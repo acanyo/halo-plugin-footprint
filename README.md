@@ -54,12 +54,12 @@
 [https://www.lik.cc/docs/halo-plugins](https://www.lik.cc/docs/halo-plugins)
 
 ## 主题适配
-目前此插件为主题端提供了 `/footprint` 路由，模板为 `footprint.html`，也提供了 Finder API，可以将足迹列表渲染到任何地方。
+目前此插件为主题端提供了 `/footprints` 路由，模板为 `footprint.html`，也提供了 Finder API，可以将足迹列表渲染到任何地方。
 
 ## 模板变量
 路由信息
 * 模板路径：/templates/footprint.html
-* 访问路径：//footprints
+* 访问路径：/footprints
 
 ## 配置说明
 
