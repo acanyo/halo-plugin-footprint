@@ -124,21 +124,21 @@ const handleSubmit = async () => {
       formState.value.spec.createTime = toISOString(createTime.value);
     }
 
-    // 如果选择了文章，获取文章URL
-    if (formState.value.spec.article) {
-      try {
-        const { data: post } = await coreApiClient.content.post.getPost({
-          name: formState.value.spec.article,
-        });
-        if (post?.status?.permalink) {
-          formState.value.spec.article = post.status.permalink;
-        }
-      } catch (e) {
-        console.error("获取文章URL失败", e);
-        Toast.error("获取文章URL失败");
-        return;
-      }
-    }
+    // // 如果选择了文章，获取文章URL
+    // if (formState.value.spec.article) {
+    //   try {
+    //     const { data: post } = await coreApiClient.content.post.getPost({
+    //       name: formState.value.spec.article,
+    //     });
+    //     if (post?.status?.permalink) {
+    //       formState.value.spec.article = post.status.permalink;
+    //     }
+    //   } catch (e) {
+    //     console.error("获取文章URL失败", e);
+    //     Toast.error("获取文章URL失败");
+    //     return;
+    //   }
+    // }
 
     if (isUpdateMode.value) {
       await footprintApiClient.footprint.updateFootprint(
@@ -292,10 +292,23 @@ const latitudeDisplay = computed({
           ></FormKit>
           
           <FormKit
-            :type="'postSelect' as any"
+            type="select"
             v-model="formState.spec.article"
             name="article"
             label="关联文章"
+            :multiple="false"
+            clearable
+            searchable
+            action="/apis/content.halo.run/v1alpha1/posts"
+            :request-option="{
+              method: 'GET',
+              pageField: 'page',
+              sizeField: 'size',
+              totalField: 'total',
+              itemsField: 'items',
+              labelField: 'spec.title',
+              valueField: 'metadata.name'
+            }"
           ></FormKit>
           
           <FormKit
