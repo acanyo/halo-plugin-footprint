@@ -35,7 +35,7 @@
 ### 方式二：手动安装
 
 1. 从以下地址下载最新版本 JAR 文件：
-   - GitHub Releases：[下载地址](https://github.com/acanyo/halo-plugin-footprin/releases)
+    - GitHub Releases：[下载地址](https://github.com/acanyo/halo-plugin-footprin/releases)
 2. 在 Halo 后台管理界面 -> 插件 -> 上传插件 -> 选择下载好的 JAR 文件
 
 ## 使用说明
@@ -43,15 +43,15 @@
 1. 安装完成后，在 Halo 后台管理界面左侧菜单栏中找到"足迹"选项
 2. 点击"添加足迹"开始记录您的旅行记录
 3. 在地图上选择位置，添加相关信息：
-   - 地点名称
-   - 访问时间
-   - 地点描述
-   - 上传照片
-   - 添加标签
+    - 地点名称
+    - 访问时间
+    - 地点描述
+    - 上传照片
+    - 添加标签
 4. 保存后即可在博客前台查看足迹展示
 
 ## 📃文档
-https://www.lik.cc/docs/halo-plugins
+[https://www.lik.cc/docs/halo-plugins](https://www.lik.cc/docs/halo-plugins)
 
 ## 主题适配
 目前此插件为主题端提供了 `/footprint` 路由，模板为 `footprint.html`，也提供了 Finder API，可以将足迹列表渲染到任何地方。
@@ -66,16 +66,20 @@ https://www.lik.cc/docs/halo-plugins
 ### 基础配置
 
 - 地图配置
-  - 地图类型：支持多种地图源
-  - 默认中心点：设置地图默认显示的中心位置
-  - 默认缩放级别：设置地图默认缩放大小
+    - 地图类型：支持多种地图源
+    - 默认中心点：设置地图默认显示的中心位置
+    - 默认缩放级别：设置地图默认缩放大小
 
 - 显示设置
-  - 时间线显示：开启/关闭时间线展示
-  - 照片展示：设置照片展示方式
-  - 标记样式：自定义地点标记的样式
+    - 时间线显示：开启/关闭时间线展示
+    - 照片展示：设置照片展示方式
+    - 标记样式：自定义地点标记的样式
+##  💬交流
+![群.png](https://www.lik.cc/upload/iShot_2025-03-03_16.03.00.png)
+![wx.png](/upload/wx.png)
 
-### 高级配置
+
+## 高级配置
 
 可在配置文件中进行更多自定义设置，包括：
 - 自定义地图标记图标
