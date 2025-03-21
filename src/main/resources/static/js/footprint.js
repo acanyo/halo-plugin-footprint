@@ -1,4 +1,21 @@
-$(document).ready(() => {
+// 等待DOM加载完成
+document.addEventListener('DOMContentLoaded', () => {
+    // 判断当前路径是否为/footprints
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/footprints') {
+        console.log('非足迹页面，不加载地图功能');
+        return;
+    }
+
+    // 打印插件信息
+    console.log(
+        '%c足迹插件%c🗺️ 记录生活轨迹，分享旅途故事\n%c作者 Handsome %cwww.lik.cc',
+        'background: #42b983; color: white; padding: 2px 4px; border-radius: 3px;',
+        'color: #42b983; padding: 2px 4px;',
+        'color: #666; padding: 2px 4px;',
+        'color: #42b983; text-decoration: underline; padding: 2px 4px;'
+    );
+
     // 等待AMap对象加载完成
     const checkAMap = () => {
         if (typeof AMap === 'undefined') {
