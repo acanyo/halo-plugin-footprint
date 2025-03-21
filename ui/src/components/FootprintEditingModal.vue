@@ -5,6 +5,7 @@ import { footprintApiClient } from "@/api";
 import type { Footprint } from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { FormKit } from "@formkit/vue";
+import { coreApiClient } from "@halo-dev/api-client";
 
 const props = withDefaults(
   defineProps<{
@@ -121,6 +122,22 @@ const handleSubmit = async () => {
 
     if (createTime.value) {
       formState.value.spec.createTime = toISOString(createTime.value);
+    }
+
+    // 如果选择了文章，获取文章URL
+    if (formState.value.spec.article) {
+      try {
+        const { data: post } = await coreApiClient.content.post.getPost({
+          name: formState.value.spec.article,
+        });
+        if (post?.status?.permalink) {
+          formState.value.spec.article = post.status.permalink;
+        }
+      } catch (e) {
+        console.error("获取文章URL失败", e);
+        Toast.error("获取文章URL失败");
+        return;
+      }
     }
 
     if (isUpdateMode.value) {
