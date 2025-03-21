@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 定义阴影 -->
+    <defs>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+            <feOffset dx="0" dy="2"/>
+            <feComponentTransfer>
+                <feFuncA type="linear" slope="0.15"/>
+            </feComponentTransfer>
+            <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- 背景圆角矩形 -->
+    <rect x="14" y="14" width="100" height="100" rx="28" fill="#5B5FEF" filter="url(#shadow)"/>
+    
+    <!-- 定位图标 -->
+    <g transform="translate(64 64)">
+        <!-- 主体轮廓 -->
+        <path d="
+            M 0 -34
+            C 5 -34, 9 -32, 12 -29
+            C 17 -24, 20 -18, 20 -12
+            C 20 -2, 12 12, 0 34
+            C -12 12, -20 -2, -20 -12
+            C -20 -18, -17 -24, -12 -29
+            C -9 -32, -5 -34, 0 -34
+            Z
+        " fill="white"/>
+        
+        <!-- 中心圆点 -->
+        <circle cx="0" cy="-16" r="4" fill="#FFB800"/>
+    </g>
+
+    <!-- 底部装饰 -->
+    <g transform="translate(64 64)">
+        <path d="
+            M -3.5 34
+            L 0 32
+            L 3.5 34
+            L 0 36
+            Z
+        " fill="#FFB800" opacity="0.8"/>
+    </g>
+</svg> 

@@ -1,0 +1,37 @@
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-footprint-view
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "足迹"
+    rbac.authorization.halo.run/display-name: "足迹查看"
+    rbac.authorization.halo.run/ui-permissions: |
+      ["plugin:footprint:view"]
+rules:
+  - apiGroups: [ "footprint.lik.cc" ]
+    resources: [ "footprintvies"]
+    verbs: [ "get", "list" ]
+
+---
+
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-footprint-manage
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "足迹"
+    rbac.authorization.halo.run/display-name: "足迹管理"
+    rbac.authorization.halo.run/ui-permissions: |
+      ["plugin:footprint:manage"]
+    rbac.authorization.halo.run/dependencies: |
+      ["role-template-footprint-view"]
+rules:
+  - apiGroups: [ "footprint.lik.cc" ]
+    resources: [ "footprintvies"]
+    verbs: [ "create", "patch", "update", "delete", "deletecollection" ]
+  - nonResourceURLs: [ "/apis/api.plugin.halo.run/v1alpha1/plugins/plugin-footprint/footprint/*"]
+    verbs: [ "create" , "delete" ]

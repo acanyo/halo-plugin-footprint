@@ -1,0 +1,10 @@
+{
+	"dependencies": {
+		"@halo-dev/api-client": "^2.20.0",
+		"@tanstack/vue-query": "^5.68.0",
+		"axios": "^1.8.3"
+	},
+	"devDependencies": {
+		"@types/lodash.clonedeep": "^4.5.9"
+	}
+}

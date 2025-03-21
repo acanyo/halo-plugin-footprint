@@ -1,0 +1,68 @@
+apiVersion: v1alpha1
+kind: Setting
+metadata:
+  name: plugin-footprint-settings
+spec:
+  forms:
+    - group: base
+      label: 基本设置
+      formSchema:
+        - $formkit: text
+          label: 页面标题
+          name: title
+          validation: required
+          value: '我的足迹'
+          help: "这里是你的网址标题"
+        - $formkit: text
+          label: 左下角标题
+          name: logoName
+          validation: required
+          value: '足迹'
+          help: "这里是左下角的标题"
+        - $formkit: text
+          label: 足迹描述
+          name: describe
+          validation: required
+          value: '每一处足迹都充满了故事，那是对人生的思考和无限的风光。'
+          help: "这里是左下角的描述"
+        - $formkit: text
+          label: hsl颜色值
+          name: hsla
+          validation: required
+          value: '109deg,42%,60%'
+          help: "全局配色 HSL (色相, 饱和度, 亮度)"
+        - $formkit: text
+          label: 高德Key
+          name: gaoDeKey
+          validation: required
+          help: https://console.amap.com/dev/key/app 前往获取
+        - $formkit: select
+          name: mapStyle
+          label: 地图样式
+          sortable: true
+          clearable: true
+          searchable: true
+          placeholder: 请选择你的主题
+          options:
+            - label: 标准
+              value: amap://styles/normal
+            - label: 幻影黑
+              value: amap://styles/dark
+            - label: 月光银
+              value: amap://styles/light
+            - label: 远山黛
+              value: amap://styles/whitesmoke
+            - label: 草色青
+              value: amap://styles/fresh
+            - label: 雅士灰
+              value: amap://styles/grey
+            - label: 涂鸦
+              value: amap://styles/graffiti
+            - label: 马卡龙
+              value: amap://styles/macaron
+            - label: 靛青蓝
+              value: amap://styles/blue
+            - label: 极夜蓝
+              value: amap://styles/darkblue
+            - label: 酱籽
+              value: amap://styles/wine

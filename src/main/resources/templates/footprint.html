@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${settings.title}">足迹 - 记录生活的每一步</title>
+    <!-- 引入高德地图API -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: /*[[${settings.gaoDeKey}]]*/''
+        }
+    </script>
+    <script type="text/javascript" th:src="|https://webapi.amap.com/maps?v=2.0&key=${settings.gaoDeKey}|"></script>
+    <!-- 引入jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 注入配置信息 -->
+    <script th:inline="javascript">
+        window.FOOTPRINT_CONFIG = {
+            amapKey: /*[[${settings.gaoDeKey}]]*/'',
+            footprints: /*[[${footprints}]]*/ [],
+            title: /*[[${settings.title}]]*/ '足迹',
+            logoName: /*[[${settings.logoName}]]*/ '足迹',
+            describe: /*[[${settings.describe}]]*/ '描述',
+            hsla: /*[[${settings.hsla}]]*/ '200, 100%, 50%',
+            mapStyle: /*[[${settings.mapStyle}]]*/ 'amap://styles/normal'
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- 地图容器 -->
+        <div id="footprint-map"></div>
+
+        <!-- 左下角Logo和文字 -->
+        <div class="logo-container">
+            <h1 class="logo" th:text="${settings.logoName}">足迹<span class="logo-version">2024</span></h1>
+            <p class="slogan" th:text="${settings.describe}">每一处足迹都充满了故事，那是对人生的思考和无限的风光。</p>
+        </div>
+
+        <!-- 底部控制栏 -->
+        <div class="map-controls">
+            <div class="button-group">
+                <button class="control-btn active" data-type="normal">标准图层</button>
+                <button class="control-btn" data-type="satellite">卫星图</button>
+            </div>
+            <div class="button-group">
+                <button class="control-btn" data-type="road">路网</button>
+                <button class="control-btn" data-type="traffic">路况</button>
+            </div>
+            <div class="zoom-buttons">
+                <button class="zoom-btn" id="zoom-in">+</button>
+                <button class="zoom-btn" id="zoom-out">−</button>
+            </div>
+            <div class="amap-scale-text">1000 公里</div>
+        </div>
+    </div>
+</body>
+</html> 

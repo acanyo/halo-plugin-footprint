@@ -1,0 +1,24 @@
+# Refer https://docs.halo.run/developer-guide/plugin/basics/manifest
+
+apiVersion: plugin.halo.run/v1alpha1
+kind: Plugin
+metadata:
+  # The name defines how the plugin is invoked, A unique name
+  name: footprint
+spec:
+  enabled: true
+  requires: ">=2.20.0"
+  author:
+    name: Handsome
+    website: https://www.lik.cc/
+  logo: logo.svg
+  homepage: https://www.lik.cc/
+  repo: https://github.com/acanyo/halo-plugin-footprin
+  issues: https://github.com/acanyo/halo-plugin-footprin/issues
+  settingName: plugin-footprint-settings
+  configMapName: plugin-footprint-configmap
+  displayName: "足迹插件"
+  description: "基于高德地图的足迹记录插件，可以记录和展示您去过的地方"
+  license:
+    - name: "GPL-3.0"
+      url: "https://github.com/acanyo/halo-plugin-footprin/blob/main/LICENSE"
