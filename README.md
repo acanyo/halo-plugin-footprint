@@ -35,7 +35,7 @@
 ### 方式二：手动安装
 
 1. 从以下地址下载最新版本 JAR 文件：
-    - GitHub Releases：[下载地址](https://github.com/acanyo/halo-plugin-footprin/releases)
+    - GitHub Releases：[下载地址](https://github.com/acanyo/halo-plugin-footprint/releases)
 2. 在 Halo 后台管理界面 -> 插件 -> 上传插件 -> 选择下载好的 JAR 文件
 
 ## 使用说明
