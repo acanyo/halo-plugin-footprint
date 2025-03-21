@@ -76,7 +76,7 @@
     - 标记样式：自定义地点标记的样式
 ##  💬交流
 ![群.png](https://www.lik.cc/upload/iShot_2025-03-03_16.03.00.png)
-![wx.png](/upload/wx.png)
+![wx.png](https://www.lik.cc/upload/wx.png)
 
 
 ## 高级配置
