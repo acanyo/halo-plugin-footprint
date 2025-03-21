@@ -307,7 +307,7 @@ const latitudeDisplay = computed({
               totalField: 'total',
               itemsField: 'items',
               labelField: 'spec.title',
-              valueField: 'metadata.name'
+              valueField: 'status.permalink'
             }"
           ></FormKit>
           
