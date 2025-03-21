@@ -4,7 +4,7 @@
 > 🗺️ 记录生活轨迹，分享旅途故事 | Record life tracks, share journey stories
 
 ![Logo](https://www.lik.cc/upload/logo.svg)
-
+[演示站](https://www.lik.cc/footprints)
 ## 项目介绍
 
 `足迹` 是一个专为 Halo 2.0 博客平台开发的足迹插件。它能够帮助博主记录和展示自己的旅行足迹，让读者能够直观地了解博主去过的地方和相关故事。
