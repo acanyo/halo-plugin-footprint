@@ -59,7 +59,7 @@
 ## 模板变量
 路由信息
 * 模板路径：/templates/footprint.html
-* 访问路径：/footprint
+* 访问路径：//footprints
 
 ## 配置说明
 
