@@ -5,7 +5,6 @@ import { footprintApiClient } from "@/api";
 import type { Footprint } from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { FormKit } from "@formkit/vue";
-import { coreApiClient } from "@halo-dev/api-client";
 
 const props = withDefaults(
   defineProps<{
@@ -92,85 +91,36 @@ watch(
     if (footprint) {
       formState.value = deepClone(footprint);
       createTime.value = toDatetimeLocal(formState.value.spec.createTime);
+      
+      // 加载数据后进行验证
+      const longitude = toNumber(formState.value.spec.longitude);
+      const latitude = toNumber(formState.value.spec.latitude);
+      
+      // 验证经度
+      if (isNaN(longitude) || !validateLongitude(longitude) || longitude === 0) {
+        longitudeError.value = '经度必须在-180到180之间且不能为0';
+      } else {
+        longitudeError.value = '';
+      }
+      
+      // 验证纬度
+      if (isNaN(latitude) || !validateLatitude(latitude) || latitude === 0) {
+        latitudeError.value = '纬度必须在-90到90之间且不能为0';
+      } else {
+        latitudeError.value = '';
+      }
     } else {
       createTime.value = undefined;
+      longitudeError.value = '';
+      latitudeError.value = '';
     }
   }
 );
 
-const handleSubmit = async () => {
-  try {
-    // 表单验证
-    if (!formState.value.spec.name) {
-      Toast.error("足迹名称不能为空");
-      return;
-    }
-    if (!formState.value.spec.description) {
-      Toast.error("足迹描述不能为空");
-      return;
-    }
-    if (formState.value.spec.longitude === 0) {
-      Toast.error("经度不能为空或者必须大于0");
-      return;
-    }
-    if (formState.value.spec.latitude === 0) {
-      Toast.error("纬度不能为空或者必须大于0");
-      return;
-    }
-
-    saving.value = true;
-
-    if (createTime.value) {
-      formState.value.spec.createTime = toISOString(createTime.value);
-    }
-
-    // // 如果选择了文章，获取文章URL
-    // if (formState.value.spec.article) {
-    //   try {
-    //     const { data: post } = await coreApiClient.content.post.getPost({
-    //       name: formState.value.spec.article,
-    //     });
-    //     if (post?.status?.permalink) {
-    //       formState.value.spec.article = post.status.permalink;
-    //     }
-    //   } catch (e) {
-    //     console.error("获取文章URL失败", e);
-    //     Toast.error("获取文章URL失败");
-    //     return;
-    //   }
-    // }
-
-    if (isUpdateMode.value) {
-      await footprintApiClient.footprint.updateFootprint(
-        formState.value.metadata.name,
-        formState.value
-      );
-      Toast.success("更新成功");
-    } else {
-      await footprintApiClient.footprint.createFootprint(formState.value);
-      Toast.success("创建成功");
-    }
-
-    onVisibleChange(false);
-  } catch (e) {
-    console.error("保存失败", e);
-  } finally {
-    saving.value = false;
-  }
-};
-
-const footprintTypes = [
-  { label: "旅游", value: "旅游" },
-  { label: "美食", value: "美食" },
-  { label: "购物", value: "购物" },
-  { label: "住宿", value: "住宿" },
-  { label: "交通", value: "交通" },
-  { label: "其他", value: "其他" },
-];
-
 // 添加验证消息配置
 const validationMessages = {
-  required: (ctx: { name: string }) => `${ctx.name}不能为空`
+  required: (ctx: { name: string }) => `${ctx.name}不能为空`,
+  number: (ctx: { name: string }) => `${ctx.name}必须是数字`
 } as const;
 
 // 添加数字转换函数
@@ -183,9 +133,52 @@ const toNumber = (value: unknown): number => {
   return 0;
 };
 
+// 添加经纬度验证函数
+const validateLongitude = (value: number): boolean => {
+  return value >= -180 && value <= 180;
+};
+
+const validateLatitude = (value: number): boolean => {
+  return value >= -90 && value <= 90;
+};
+
+// 添加错误状态
+const longitudeError = ref<string>('');
+const latitudeError = ref<string>('');
+
 // 添加数字输入处理函数
 const handleNumberInput = (value: unknown, field: 'longitude' | 'latitude') => {
   const num = toNumber(value);
+  if (field === 'longitude') {
+    if (isNaN(num)) {
+      longitudeError.value = '请输入有效的数字';
+      return;
+    }
+    if (!validateLongitude(num)) {
+      longitudeError.value = '经度必须在-180到180之间';
+      return;
+    }
+    if (num === 0) {
+      longitudeError.value = '经度不能为0';
+      return;
+    }
+    longitudeError.value = '';
+  }
+  if (field === 'latitude') {
+    if (isNaN(num)) {
+      latitudeError.value = '请输入有效的数字';
+      return;
+    }
+    if (!validateLatitude(num)) {
+      latitudeError.value = '纬度必须在-90到90之间';
+      return;
+    }
+    if (num === 0) {
+      latitudeError.value = '纬度不能为0';
+      return;
+    }
+    latitudeError.value = '';
+  }
   formState.value.spec[field] = num;
 };
 
@@ -199,6 +192,148 @@ const latitudeDisplay = computed({
   get: () => formState.value.spec.latitude.toString(),
   set: (value) => handleNumberInput(value, 'latitude')
 });
+
+// 添加失焦验证
+const handleBlur = (field: 'longitude' | 'latitude') => {
+  const value = field === 'longitude' ? formState.value.spec.longitude : formState.value.spec.latitude;
+  handleNumberInput(value, field);
+};
+
+// 修改表单验证状态
+const isFormValid = computed(() => {
+  // 检查必填项
+  if (!formState.value.spec.name?.trim()) return false;
+  if (!formState.value.spec.description?.trim()) return false;
+  
+  // 检查经纬度
+  const longitude = toNumber(formState.value.spec.longitude);
+  const latitude = toNumber(formState.value.spec.latitude);
+  
+  // 检查经纬度是否为0或无效（包括更新模式）
+  if (longitude === 0 || latitude === 0) {
+    if (isUpdateMode.value) {
+      Toast.error("经纬度不能为0");
+    }
+    return false;
+  }
+  
+  if (isNaN(longitude) || !validateLongitude(longitude)) {
+    if (isUpdateMode.value) {
+      Toast.error("经度必须在-180到180之间");
+    }
+    return false;
+  }
+  
+  if (isNaN(latitude) || !validateLatitude(latitude)) {
+    if (isUpdateMode.value) {
+      Toast.error("纬度必须在-90到90之间");
+    }
+    return false;
+  }
+  
+  // 检查是否有错误提示
+  if (longitudeError.value || latitudeError.value) return false;
+  
+  // 检查创建时间
+  if (!createTime.value) return false;
+  
+  return true;
+});
+
+const handleSubmit = async () => {
+  try {
+    // 先进行表单验证
+    if (!isFormValid.value) {
+      // 检查具体错误并显示提示
+      if (!formState.value.spec.name?.trim()) {
+        Toast.error("足迹名称不能为空");
+        return;
+      }
+      if (!formState.value.spec.description?.trim()) {
+        Toast.error("足迹描述不能为空");
+        return;
+      }
+      
+      // 经纬度验证
+      const longitude = toNumber(formState.value.spec.longitude);
+      const latitude = toNumber(formState.value.spec.latitude);
+      
+      if (longitude === 0) {
+        longitudeError.value = '经度不能为0';
+        Toast.error("请输入有效的经度");
+        return;
+      }
+      
+      if (latitude === 0) {
+        latitudeError.value = '纬度不能为0';
+        Toast.error("请输入有效的纬度");
+        return;
+      }
+      
+      if (isNaN(longitude) || !validateLongitude(longitude)) {
+        longitudeError.value = '经度必须在-180到180之间';
+        Toast.error("请检查经度输入");
+        return;
+      }
+      if (isNaN(latitude) || !validateLatitude(latitude)) {
+        latitudeError.value = '纬度必须在-90到90之间';
+        Toast.error("请检查纬度输入");
+        return;
+      }
+
+      if (!createTime.value) {
+        Toast.error("请选择创建时间");
+        return;
+      }
+
+      Toast.error("请检查表单填写是否正确");
+      return;
+    }
+
+    saving.value = true;
+
+    if (createTime.value) {
+      formState.value.spec.createTime = toISOString(createTime.value);
+    }
+
+    if (isUpdateMode.value) {
+      // 更新模式下再次验证
+      const longitude = toNumber(formState.value.spec.longitude);
+      const latitude = toNumber(formState.value.spec.latitude);
+      
+      if (longitude === 0 || latitude === 0 || 
+          !validateLongitude(longitude) || !validateLatitude(latitude)) {
+        Toast.error("请检查经纬度是否正确");
+        return;
+      }
+
+      await footprintApiClient.footprint.updateFootprint(
+        formState.value.metadata.name,
+        formState.value
+      );
+      Toast.success("更新成功");
+      onVisibleChange(false);
+    } else {
+      await footprintApiClient.footprint.createFootprint(formState.value);
+      Toast.success("创建成功");
+      onVisibleChange(false);
+    }
+  } catch (e) {
+    console.error("保存失败", e);
+    Toast.error("保存失败，请重试");
+  } finally {
+    saving.value = false;
+  }
+};
+
+const footprintTypes = [
+  { label: "旅游", value: "旅游" },
+  { label: "美食", value: "美食" },
+  { label: "购物", value: "购物" },
+  { label: "住宿", value: "住宿" },
+  { label: "交通", value: "交通" },
+  { label: "其他", value: "其他" },
+];
 </script>
 
 <template>
@@ -215,7 +350,7 @@ const latitudeDisplay = computed({
       name="footprint-form"
       type="form"
       :config="{ validationVisibility: 'submit' }"
-      @submit="handleSubmit"
+      @submit.prevent
     >
       <div class="md:grid md:grid-cols-4 md:gap-6">
         <div class="md:col-span-1">
@@ -257,7 +392,12 @@ const latitudeDisplay = computed({
             :validation-messages="validationMessages"
             label="经度"
             placeholder="请输入经度"
-          ></FormKit>
+            @blur="handleBlur('longitude')"
+          >
+            <template #help>
+              <div v-if="longitudeError" class="text-red-500 text-sm mt-1">{{ longitudeError }}</div>
+            </template>
+          </FormKit>
           
           <FormKit
             type="text"
@@ -267,7 +407,12 @@ const latitudeDisplay = computed({
             :validation-messages="validationMessages"
             label="纬度"
             placeholder="请输入纬度"
-          ></FormKit>
+            @blur="handleBlur('latitude')"
+          >
+            <template #help>
+              <div v-if="latitudeError" class="text-red-500 text-sm mt-1">{{ latitudeError }}</div>
+            </template>
+          </FormKit>
           
           <FormKit
             type="text"
@@ -335,6 +480,7 @@ const latitudeDisplay = computed({
         <VButton
           type="primary"
           :loading="saving"
+          :disabled="!isFormValid"
           @click="handleSubmit"
         >
           确定
