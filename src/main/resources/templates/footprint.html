@@ -26,15 +26,15 @@
         };
     </script>
 </head>
-<body>
+<body id = "footprint-page">
     <div class="footprint-container">
         <!-- 地图容器 -->
         <div id="footprint-map"></div>
 
         <!-- 左下角Logo和文字 -->
         <div class="logo-container">
-            <h1 class="logo" th:text="${settings.logoName}">足迹<span class="logo-version">2024</span></h1>
-            <p class="slogan" th:text="${settings.describe}">每一处足迹都充满了故事，那是对人生的思考和无限的风光。</p>
+            <h1 class="footprint-logo" th:text="${settings.logoName}">足迹<span class="logo-version">2024</span></h1>
+            <p class="footprint-slogan" th:text="${settings.describe}">每一处足迹都充满了故事，那是对人生的思考和无限的风光。</p>
         </div>
 
         <!-- 底部控制栏 -->

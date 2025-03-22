@@ -42,7 +42,7 @@ const showElements = () => {
             delay: 0,
             callback: () => {
                 requestAnimationFrame(() => {
-                    document.querySelector('.logo').style.color = 'var(--primary-color)';
+                    document.querySelector('.footprint-logo').style.color = 'var(--primary-color)';
                 });
             }
         },
@@ -147,7 +147,7 @@ const createMarker = (spec) => {
     markerImage.className = 'marker-image';
     
     const img = document.createElement('img');
-    img.src = spec.image || 'images/default-marker.png';
+    img.src = spec.image || 'https://www.lik.cc/upload/loading8.gif';
     img.alt = spec.name || '足迹标记';
     
     markerImage.appendChild(img);
@@ -190,12 +190,12 @@ function createInfoWindow(spec) {
     // 构建图片HTML
     const imageHtml = image ? `
         <div class="image">
-            <img src="${image}" alt="${name}" onerror="this.src='images/default-marker.png'">
+            <img src="${image}" alt="${name}" onerror="this.src='https://www.lik.cc/upload/loading8.gif'">
             <button class="close-btn">×</button>
         </div>
     ` : `
         <div class="image">
-            <img src="images/default-marker.png" alt="${name}">
+            <img src="https://www.lik.cc/upload/loading8.gif" alt="${name}">
             <button class="close-btn">×</button>
         </div>
     `;
