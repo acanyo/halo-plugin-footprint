@@ -13,5 +13,5 @@ jobs:
     permissions:
       contents: write
     with:
-      app-id: app-UUaHP
+      app-id: app-XCtAQ
       ui-path: "ui"
