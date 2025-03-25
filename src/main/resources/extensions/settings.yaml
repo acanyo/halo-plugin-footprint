@@ -7,6 +7,55 @@ spec:
     - group: base
       label: 基本设置
       formSchema:
+        - $el: a
+          attrs:
+            href: "https://www.lik.cc/docs/halo-plugins"
+            class: "py-4 block"
+            target: "_blank"
+            style:
+              color: "#1890ff"
+              fontSize: "0.875em"
+              display: "flex"
+              align-items: "center"
+          children:
+            - $el: span
+              children: "查看 足迹 帮助文档"
+            - $el: img
+              attrs:
+                src: "/plugins/footprint/assets/static/img/link.svg"
+                width: "14px"
+                height: "14px"
+                style:
+                  margin-left: "4px"
+        - $el: a
+          attrs:
+            href: "https://www.lik.cc/archives/microimmersion"
+            class: "py-4 block"
+            target: "_blank"
+            style:
+              color: "#1890ff"
+              fontSize: "0.875em"
+              display: "flex"
+              align-items: "center"
+          children:
+            - $el: span
+              children: "推荐halo主题"
+            - $el: img
+              attrs:
+                src: "/plugins/footprint/assets/static/img/link.svg"
+                width: "14px"
+                height: "14px"
+                style:
+                  margin-left: "4px"
+        - $el: span
+          children: "加入交流群"
+        - $el: img
+          attrs:
+            src: "https://www.lik.cc/upload/iShot_2025-03-03_16.03.00.png"
+            width: "100px"
+            height: "120px"
+            style:
+              margin-left: "80px"
         - $formkit: text
           label: 页面标题
           name: title
@@ -29,8 +78,8 @@ spec:
           label: hsl颜色值
           name: hsla
           validation: required
-          value: '109deg,42%,60%'
-          help: "全局配色 HSL (色相, 饱和度, 亮度)"
+          value: '109,68%,60%'
+          help: "全局配色 HSL格式：322,68%,60% (色相去掉deg,数值之间不要有空格)"
         - $formkit: text
           label: 高德Key
           name: gaoDeKey

@@ -1,25 +1,25 @@
-/* 删除第一行多余的body定义，添加CSS根变量 */
-:root {
-    --primary-color: hsl(322, 68%, 60%);
-    --primary-hover: hsl(322, 68%, 55%);
+#footprint-page {
+    /* 全局变量定义 */
+    --hsla-raw: var(--footprint-hsla);
+    --primary-color: hsl(var(--hsla-raw));
+    --primary-hover: hsla(var(--hsla-raw), 0.8);
     --text-color: #333;
     --text-light: #666;
     --bg-color: #fff;
     --shadow-color: rgba(0, 0, 0, 0.1);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --primary-color-hover: hsl(109, 42%, 50%);
-    --primary-color-active: hsl(109, 42%, 40%);
+    --primary-color-hover: hsla(var(--hsla-raw), 0.7);
+    --primary-color-active: hsla(var(--hsla-raw), 0.9);
     --text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    --hsla: var(--primary-color);
-    --hsla-h: 322;
-    --hsla-s: 68%;
-    --hsla-l: 60%;
-    --hsla-raw: 322, 68%, 60%;
     --font-family-slogn: "快看世界体", sans-serif;
-}
-
-#footprint-page {
+    
+    /* 足迹页面特定变量 */
+    --footprint-primary-color: hsl(var(--hsla-raw));
+    --footprint-primary-color-light: hsl(var(--hsla-h), var(--hsla-s), calc(var(--hsla-l) + 10%));
+    --footprint-primary-color-dark: hsl(var(--hsla-h), var(--hsla-s), calc(var(--hsla-l) - 10%));
+    
+    /* 基础样式 */
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -102,11 +102,11 @@
     font-family: "快看世界体", sans-serif;
     font-size: 28px;
     font-weight: 600;
-    color: var(--primary-color);
+    color: hsl(var(--hsla-raw));
     margin: 0;
     line-height: 1.2;
     letter-spacing: -0.02em;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-shadow: var(--text-shadow);
 }
 
 .logo-version {
@@ -162,8 +162,8 @@
     bottom: 0;
     width: 2px;
     background: linear-gradient(to bottom,
-        hsla(var(--hsla-h), var(--hsla-s), var(--hsla-l), 0.8),
-        hsla(var(--hsla-h), var(--hsla-s), var(--hsla-l), 0.4)
+        hsla(var(--hsla-raw), 0.8),
+        hsla(var(--hsla-raw), 0.4)
     );
     border-radius: 1px;
 }
@@ -238,19 +238,19 @@
 }
 
 .control-btn:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: hsla(var(--hsla-raw), 0.1);
 }
 
 .control-btn.active {
-    background: var(--primary-color);
+    background: hsl(var(--hsla-raw));
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* 卫星图层按钮激活样式 - 与标准图层按钮保持一致 */
+/* 卫星图层按钮激活样式 */
 .control-btn[data-type="satellite"].active {
-    background: var(--primary-color);
+    background: hsl(var(--hsla-raw));
     color: white;
     border: none;
     box-shadow: var(--box-shadow);
@@ -311,7 +311,7 @@
 
 .control-btn[data-type="road"].active::before,
 .control-btn[data-type="traffic"].active::before {
-    background: var(--primary-color);
+    background: hsl(var(--hsla-raw));
     box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
@@ -353,13 +353,13 @@
 }
 
 .zoom-btn:hover {
-    color: var(--primary-color);
-    background: rgba(255, 255, 255, 0.5);
+    background-color: hsla(var(--hsla-raw), 0.1);
+    color: hsl(var(--hsla-raw));
 }
 
 .zoom-btn:active, .zoom-btn.zoom-active {
     color: white;
-    background: var(--primary-color);
+    background: hsl(var(--hsla-raw));
     transform: translateY(1px);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -476,15 +476,15 @@
     align-items: center;
     gap: 6px;
     padding: 4px 12px;
-    background: rgba(var(--hsla-raw), 0.08);
-    color: var(--primary-color);
+    background: hsla(var(--hsla-raw), 0.08);
+    color: hsl(var(--hsla-raw));
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
     transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
     box-shadow: 
-        inset 0 0 0 1px rgba(var(--hsla-raw), 0.15),
-        0 1px 2px rgba(var(--hsla-raw), 0.1);
+        inset 0 0 0 1px hsla(var(--hsla-raw), 0.15),
+        0 1px 2px hsla(var(--hsla-raw), 0.1);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     transform: translateY(1px);
@@ -499,11 +499,11 @@
 }
 
 .info-window .tag:hover {
-    background: rgba(var(--hsla-raw), 0.12);
+    background: hsla(var(--hsla-raw), 0.12);
     transform: translateY(-1px);
     box-shadow: 
-        inset 0 0 0 1px rgba(var(--hsla-raw), 0.2),
-        0 3px 6px rgba(var(--hsla-raw), 0.15);
+        inset 0 0 0 1px hsla(var(--hsla-raw), 0.2),
+        0 3px 6px hsla(var(--hsla-raw), 0.15);
 }
 
 .info-window .tag:hover svg {
@@ -541,7 +541,7 @@
 .info-window .meta svg {
     width: 16px;
     height: 16px;
-    color: var(--primary-color);
+    color: hsl(var(--hsla-raw));
     opacity: 0;
     transform: scale(0.8) rotate(-5deg);
     animation: iconPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards 0.4s;
@@ -557,7 +557,7 @@
     padding: 12px;
     background: rgba(0, 0, 0, 0.02);
     border-radius: 12px;
-    border-left: 3px solid var(--primary-color);
+    border-left: 3px solid hsl(var(--hsla-raw));
 }
 
 .info-window .article-link {
@@ -571,25 +571,25 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: var(--primary-color);
+    color: hsl(var(--hsla-raw));
     text-decoration: none;
     font-weight: 500;
     font-size: 14px;
     padding: 8px 16px;
-    background: rgba(var(--hsla-raw), 0.08);
+    background: hsla(var(--hsla-raw), 0.08);
     border-radius: 12px;
     transition: all 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
     box-shadow: 
-        inset 0 0 0 1px rgba(var(--hsla-raw), 0.2),
-        0 2px 4px rgba(var(--hsla-raw), 0.1);
+        inset 0 0 0 1px hsla(var(--hsla-raw), 0.2),
+        0 2px 4px hsla(var(--hsla-raw), 0.1);
 }
 
 .info-window .article-link a:hover {
-    background: rgba(var(--hsla-raw), 0.12);
+    background: hsla(var(--hsla-raw), 0.12);
     transform: translateY(-2px) translateX(-4px);
     box-shadow: 
-        inset 0 0 0 1px rgba(var(--hsla-raw), 0.3),
-        0 4px 8px rgba(var(--hsla-raw), 0.15);
+        inset 0 0 0 1px hsla(var(--hsla-raw), 0.3),
+        0 4px 8px hsla(var(--hsla-raw), 0.15);
     gap: 12px;
 }
 
@@ -810,8 +810,8 @@
 .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(322, 68%, 60%, 0.1);
-    border-top-color: var(--primary-color);
+    border: 3px solid hsla(var(--hsla-raw), 0.1);
+    border-top-color: hsl(var(--hsla-raw));
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }

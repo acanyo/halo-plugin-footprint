@@ -7,6 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // 设置全局颜色变量
+    const footprintPage = document.getElementById('footprint-page');
+    if (footprintPage && window.FOOTPRINT_CONFIG) {
+        footprintPage.style.setProperty('--footprint-hsla', window.FOOTPRINT_CONFIG.hsla);
+    }
+
     // 打印插件信息
     console.log(
         '%c足迹插件%c🗺️ 记录生活轨迹，分享旅途故事\n%c作者 Handsome %cwww.lik.cc',
