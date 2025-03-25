@@ -215,38 +215,12 @@ function createInfoWindow(spec) {
                 <div class="meta">
                     <span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        ${formatDate(createTime)}
-                    </span>
-                    <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
+                            <path d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z"></path>
+                            <path d="M9 12h6"></path>
                         </svg>
                         ${footprintType || '未知类型'}
                     </span>
                 </div>
-                ${description ? `<p class="description">${description}</p>` : ''}
-                ${article ? `
-                    <a href="${article}" target="_blank" class="article-btn">
-                        查看文章
-                        <div class="arrow-wrapper">
-                            <div class="arrow"></div>
-                        </div>
-                    </a>
-                ` : ''}
-            </div>
-            <button class="close-btn">×</button>
-        </div>
-    ` : `
-        <div class="image">
-            <img src="https://www.lik.cc/upload/loading8.gif" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
-            <div class="image-info">
-                <h3 class="title">${name}</h3>
                 <div class="meta">
                     <span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -257,12 +231,14 @@ function createInfoWindow(spec) {
                         </svg>
                         ${formatDate(createTime)}
                     </span>
+                </div>
+                <div class="meta">
                     <span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
                             <circle cx="12" cy="10" r="3"></circle>
                         </svg>
-                        ${footprintType || '未知类型'}
+                        ${address || '未知位置'}
                     </span>
                 </div>
                 ${description ? `<p class="description">${description}</p>` : ''}
@@ -275,25 +251,57 @@ function createInfoWindow(spec) {
                     </a>
                 ` : ''}
             </div>
-            <button class="close-btn">×</button>
+        </div>
+    ` : `
+        <div class="image">
+            <img src="https://www.lik.cc/upload/loading8.gif" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
+            <div class="image-info">
+                <h3 class="title">${name}</h3>
+                <div class="meta">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z"></path>
+                            <path d="M9 12h6"></path>
+                        </svg>
+                        ${footprintType || '未知类型'}
+                    </span>
+                </div>
+                <div class="meta">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        ${formatDate(createTime)}
+                    </span>
+                </div>
+                <div class="meta">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        ${address || '未知位置'}
+                    </span>
+                </div>
+                ${description ? `<p class="description">${description}</p>` : ''}
+                ${article ? `
+                    <a href="${article}" target="_blank" class="article-btn">
+                        查看文章
+                        <div class="arrow-wrapper">
+                            <div class="arrow"></div>
+                        </div>
+                    </a>
+                ` : ''}
+            </div>
         </div>
     `;
 
     return `
         <div class="info-window">
             ${imageHtml}
-            <div class="location-info">
-                <div class="location">
-                    <div>
-                        <svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="64px" height="64px" viewBox="0 0 64 64" xml:space="preserve" fill="#ffffff" stroke="#ffffff">
-                            <g id="SVGRepo_iconCarrier">
-                                <path fill="#ffffff" d="M32,0C18.746,0,8,10.746,8,24c0,5.219,1.711,10.008,4.555,13.93c0.051,0.094,0.059,0.199,0.117,0.289l16,24 C29.414,63.332,30.664,64,32,64s2.586-0.668,3.328-1.781l16-24c0.059-0.09,0.066-0.195,0.117-0.289C54.289,34.008,56,29.219,56,24 C56,10.746,45.254,0,32,0z M32,32c-4.418,0-8-3.582-8-8s3.582-8,8-8s8,3.582,8,8S36.418,32,32,32z"></path>
-                            </g>
-                        </svg>
-                        <span>${address || 'Unknown'}</span>
-                    </div>
-                </div>
-            </div>
         </div>
     `;
 }
