@@ -193,15 +193,88 @@ function createInfoWindow(spec) {
         article = ''
     } = spec;
 
+    // 格式化时间
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).replace(/\//g, '-');
+    };
+
     // 构建图片HTML
     const imageHtml = image ? `
         <div class="image">
-            <img src="${image}" alt="${name}" onerror="this.src='https://www.lik.cc/upload/loading8.gif'">
+            <img src="${image}" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
+            <div class="image-info">
+                <h3 class="title">${name}</h3>
+                <div class="meta">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        ${formatDate(createTime)}
+                    </span>
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        ${footprintType || '未知类型'}
+                    </span>
+                </div>
+                ${description ? `<p class="description">${description}</p>` : ''}
+                ${article ? `
+                    <a href="${article}" target="_blank" class="article-btn">
+                        查看文章
+                        <div class="arrow-wrapper">
+                            <div class="arrow"></div>
+                        </div>
+                    </a>
+                ` : ''}
+            </div>
             <button class="close-btn">×</button>
         </div>
     ` : `
         <div class="image">
-            <img src="https://www.lik.cc/upload/loading8.gif" alt="${name}">
+            <img src="https://www.lik.cc/upload/loading8.gif" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
+            <div class="image-info">
+                <h3 class="title">${name}</h3>
+                <div class="meta">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        ${formatDate(createTime)}
+                    </span>
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        ${footprintType || '未知类型'}
+                    </span>
+                </div>
+                ${description ? `<p class="description">${description}</p>` : ''}
+                ${article ? `
+                    <a href="${article}" target="_blank" class="article-btn">
+                        查看文章
+                        <div class="arrow-wrapper">
+                            <div class="arrow"></div>
+                        </div>
+                    </a>
+                ` : ''}
+            </div>
             <button class="close-btn">×</button>
         </div>
     `;
@@ -209,48 +282,17 @@ function createInfoWindow(spec) {
     return `
         <div class="info-window">
             ${imageHtml}
-            <div class="content">
-                <h3>
-                    ${name}
-                    ${footprintType ? `
-                        <div class="type">
-                            <span class="tag">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 7v2.83l2.83-2.83M21 7v2.83l-2.83-2.83M3 17v-2.83l2.83 2.83M21 17v-2.83l-2.83 2.83"/>
-                                </svg>
-                                ${footprintType}
-                            </span>
-                        </div>
-                    ` : ''}
-                </h3>
-                <div class="meta">
-                    ${createTime ? `
-                        <p>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
-                            ${formatTime(createTime)}
-                        </p>
-                    ` : ''}
-                    ${address ? `
-                        <p>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                                <circle cx="12" cy="10" r="3"></circle>
-                            </svg>
-                            ${address}
-                        </p>
-                    ` : ''}
-                </div>
-                ${description ? `<div class="description">${description}</div>` : ''}
-                ${article ? `
-                    <div class="article-link">
-                        <a href="${article}" target="_blank">查看详情</a>
+            <div class="location-info">
+                <div class="location">
+                    <div>
+                        <svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="64px" height="64px" viewBox="0 0 64 64" xml:space="preserve" fill="#ffffff" stroke="#ffffff">
+                            <g id="SVGRepo_iconCarrier">
+                                <path fill="#ffffff" d="M32,0C18.746,0,8,10.746,8,24c0,5.219,1.711,10.008,4.555,13.93c0.051,0.094,0.059,0.199,0.117,0.289l16,24 C29.414,63.332,30.664,64,32,64s2.586-0.668,3.328-1.781l16-24c0.059-0.09,0.066-0.195,0.117-0.289C54.289,34.008,56,29.219,56,24 C56,10.746,45.254,0,32,0z M32,32c-4.418,0-8-3.582-8-8s3.582-8,8-8s8,3.582,8,8S36.418,32,32,32z"></path>
+                            </g>
+                        </svg>
+                        <span>${address || 'Unknown'}</span>
                     </div>
-                ` : ''}
+                </div>
             </div>
         </div>
     `;
@@ -286,19 +328,34 @@ const addFootprintMarkers = (map, footprintData) => {
     // 用于存储当前打开的标记
     let currentMarker = null;
 
+    // 添加点击地图事件监听器，用于关闭信息窗口
+    map.on('click', () => {
+        if (currentMarker) {
+            infoWindow.close();
+            currentMarker = null;
+        }
+    });
+
     // 打开信息窗口的函数
     const openInfoWindow = (position, content) => {
         infoWindow.setContent(content);
         infoWindow.open(map, position);
         
-        // 绑定关闭按钮事件
+        // 阻止信息窗口上的点击事件冒泡到地图
         requestAnimationFrame(() => {
-            const closeBtn = document.querySelector('.info-window .close-btn');
-            if (closeBtn) {
-                closeBtn.onclick = () => {
-                    infoWindow.close();
-                    currentMarker = null;
-                };
+            const infoWindowElement = document.querySelector('.info-window');
+            if (infoWindowElement) {
+                infoWindowElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+                
+                // 为文章链接添加点击事件处理
+                const articleBtn = infoWindowElement.querySelector('.article-btn');
+                if (articleBtn) {
+                    articleBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                    });
+                }
             }
         });
     };
