@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
-import {ref, computed, watch, onMounted} from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { footprintApiClient } from "@/api";
-import type {Footprint, Option} from "@/api/models";
+import type { Footprint, Option } from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { FormKit } from "@formkit/vue";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Teleport } from "vue";
 
 const props = withDefaults(
@@ -15,7 +16,7 @@ const props = withDefaults(
   {
     visible: false,
     footprint: undefined,
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -86,7 +87,7 @@ watch(
         handleResetForm();
       }, 200);
     }
-  }
+  },
 );
 
 watch(
@@ -147,14 +148,16 @@ const handleSubmit = async () => {
       Toast.error("地址不能为空");
       return;
     }
-    const response = await fetch(`/apis/api.footprint.lik.cc/v1alpha1/footprints/location/${encodeURIComponent(address)}`);
+    const response = await fetch(
+      `/apis/api.footprint.lik.cc/v1alpha1/footprints/location/${encodeURIComponent(address)}`,
+    );
     if (!response.ok) {
       Toast.error("获取地址经纬度失败");
       return;
     }
     const location = await response.text();
     console.log("获取到的地址经纬度:", location);
-    
+
     // 检查location是否为空或无效
     if (!location || location.trim() === "" || !location.includes(",")) {
       console.log("地址经纬度无效，显示手动输入框");
@@ -163,22 +166,27 @@ const handleSubmit = async () => {
       saving.value = false;
       return;
     }
-    
+
     const [lng, lat] = location.split(",");
     // 验证经纬度是否有效
     const longitude = parseFloat(lng);
     const latitude = parseFloat(lat);
-    
-    if (isNaN(longitude) || isNaN(latitude) || 
-        longitude < -180 || longitude > 180 || 
-        latitude < -90 || latitude > 90) {
+
+    if (
+      isNaN(longitude) ||
+      isNaN(latitude) ||
+      longitude < -180 ||
+      longitude > 180 ||
+      latitude < -90 ||
+      latitude > 90
+    ) {
       console.log("经纬度数值无效，显示手动输入框");
       Toast.info("获取到的经纬度无效，请手动输入");
       showManualInput.value = true;
       saving.value = false;
       return;
     }
-    
+
     // 更新表单数据
     formState.value.spec.longitude = longitude;
     formState.value.spec.latitude = latitude;
@@ -190,7 +198,7 @@ const handleSubmit = async () => {
     if (isUpdateMode.value) {
       await footprintApiClient.footprint.updateFootprint(
         formState.value.metadata.name,
-        formState.value
+        formState.value,
       );
       Toast.success("更新成功");
       onVisibleChange(false);
@@ -210,26 +218,26 @@ const handleSubmit = async () => {
 const handleManualInput = () => {
   const lng = parseFloat(manualLongitude.value);
   const lat = parseFloat(manualLatitude.value);
-  
+
   if (isNaN(lng) || isNaN(lat)) {
     Toast.error("请输入有效的经纬度");
     return;
   }
-  
+
   if (lng < -180 || lng > 180) {
     Toast.error("经度必须在-180到180之间");
     return;
   }
-  
+
   if (lat < -90 || lat > 90) {
     Toast.error("纬度必须在-90到90之间");
     return;
   }
-  
+
   formState.value.spec.longitude = lng;
   formState.value.spec.latitude = lat;
   showManualInput.value = false;
-  
+
   // 继续保存流程
   if (createTime.value) {
     formState.value.spec.createTime = toISOString(createTime.value);
@@ -240,19 +248,21 @@ const handleManualInput = () => {
       formState.value.metadata.name,
       formState.value
     ).then(() => {
-      Toast.success("更新成功");
-      onVisibleChange(false);
-    }).catch(e => {
-      console.error("保存失败", e);
-      Toast.error("保存失败，请重试");
-    });
+        Toast.success("更新成功");
+        onVisibleChange(false);
+      })
+      .catch((e) => {
+        console.error("保存失败", e);
+        Toast.error("保存失败，请重试");
+      });
   } else {
-    footprintApiClient.footprint.createFootprint(formState.value)
+    footprintApiClient.footprint
+      .createFootprint(formState.value)
       .then(() => {
         Toast.success("创建成功");
         onVisibleChange(false);
       })
-      .catch(e => {
+      .catch((e) => {
         console.error("保存失败", e);
         Toast.error("保存失败，请重试");
       });
@@ -261,7 +271,8 @@ const handleManualInput = () => {
 
 const footprintTypes = ref<Option[]>([]);
 onMounted(async () => {
-  footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
+  footprintTypes.value =
+    await footprintApiClient.footprint.listFootprintTypes();
 });
 </script>
 
@@ -278,8 +289,8 @@ onMounted(async () => {
         <div>
           <label class="block text-sm font-medium text-gray-700">经度</label>
           <input
-            type="number"
             v-model="manualLongitude"
+            type="number"
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             placeholder="请输入经度（-180到180）"
             step="0.000001"
@@ -288,8 +299,8 @@ onMounted(async () => {
         <div>
           <label class="block text-sm font-medium text-gray-700">纬度</label>
           <input
-            type="number"
             v-model="manualLatitude"
+            type="number"
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             placeholder="请输入纬度（-90到90）"
             step="0.000001"
@@ -298,18 +309,10 @@ onMounted(async () => {
       </div>
       <template #footer>
         <VSpace>
-          <VButton
-            type="secondary"
-            @click="showManualInput = false"
-          >
+          <VButton type="secondary" @click="showManualInput = false">
             取消
           </VButton>
-          <VButton
-            type="primary"
-            @click="handleManualInput"
-          >
-            确定
-          </VButton>
+          <VButton type="primary" @click="handleManualInput"> 确定 </VButton>
         </VSpace>
       </template>
     </VModal>
@@ -338,57 +341,64 @@ onMounted(async () => {
         </div>
         <div class="mt-5 divide-y divide-gray-100 md:col-span-3 md:mt-0">
           <div v-if="isUpdateMode" class="pb-4">
-            <p v-if="formState.spec.image"><img :src="formState.spec.image" width="100" class="rounded"></p>
-            <p class="text-lg font-medium">{{formState.spec.name}}</p>
-            <p class="text-gray-500">{{formState.spec.description}}</p>
+            <p v-if="formState.spec.image">
+              <img
+                :src="formState.spec.image"
+                width="100"
+                class="rounded"
+                alt="足迹图片"
+              />
+            </p>
+            <p class="text-lg font-medium">{{ formState.spec.name }}</p>
+            <p class="text-gray-500">{{ formState.spec.description }}</p>
           </div>
-          
+
           <FormKit
-            type="text"
             v-model="formState.spec.name"
+            type="text"
             name="足迹名称"
             validation="required"
             :validation-messages="validationMessages"
             label="足迹名称"
           ></FormKit>
-          
+
           <FormKit
-            type="textarea"
             v-model="formState.spec.description"
+            type="textarea"
             name="足迹描述"
             validation="required"
             :validation-messages="validationMessages"
             label="足迹描述"
             :rows="3"
           ></FormKit>
-          
+
           <FormKit
-            type="text"
             v-model="formState.spec.address"
+            type="text"
             validation="required"
             name="address"
             label="地址"
             help="建议地址格式：市+地址，如杭州市灵隐寺,系统会根据所填写地址获取经纬度"
           ></FormKit>
-          
+
           <FormKit
+            v-model="formState.spec.footprintType"
             :options="footprintTypes"
             label="足迹类型"
-            v-model="formState.spec.footprintType"
             name="footprintType"
             type="select"
           ></FormKit>
-          
+
           <FormKit
-            :type="'attachment' as any"
             v-model="formState.spec.image"
+            :type="'attachment' as any"
             name="image"
             label="足迹图片"
           ></FormKit>
-          
+
           <FormKit
-            type="select"
             v-model="formState.spec.article"
+            type="select"
             name="article"
             label="关联文章"
             :multiple="false"
@@ -402,15 +412,15 @@ onMounted(async () => {
               totalField: 'total',
               itemsField: 'items',
               labelField: 'spec.title',
-              valueField: 'status.permalink'
+              valueField: 'status.permalink',
             }"
           ></FormKit>
-          
+
           <FormKit
+            v-model="createTime"
             type="datetime-local"
             min="0000-01-01T00:00"
             max="9999-12-31T23:59"
-            v-model="createTime"
             name="createTime"
             validation="required"
             label="创建时间"
@@ -422,10 +432,7 @@ onMounted(async () => {
 
     <template #footer>
       <VSpace>
-        <VButton
-          type="secondary"
-          @click="onVisibleChange(false)"
-        >
+        <VButton type="secondary" @click="onVisibleChange(false)">
           取消
         </VButton>
         <VButton
@@ -485,4 +492,4 @@ onMounted(async () => {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
-</style> 
+</style>
