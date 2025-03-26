@@ -115,3 +115,19 @@ spec:
               value: amap://styles/darkblue
             - label: 酱籽
               value: amap://styles/wine
+
+    - group: advanced
+      label: 高级设置
+      formSchema:
+        - $formkit: list
+          name: footprintTypes
+          label: 足迹类型
+          addLabel: 添加类型
+          min: 1
+          value: ["旅游", "美食", "购物", "住宿", "交通", "其他"]
+          help: "自定义足迹类型"
+          itemType: string
+          children:
+            - $formkit: text
+              index: "$index"
+              validation: required

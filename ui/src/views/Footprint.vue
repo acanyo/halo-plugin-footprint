@@ -15,11 +15,11 @@ import {
   IconCloseCircle,
   VDropdown} from "@halo-dev/components";
 import {useQuery, useQueryClient} from "@tanstack/vue-query";
-import {computed, ref, watch} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import { formatDatetime } from "@/utils/date";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
 import { footprintApiClient } from "@/api";
-import type { Footprint } from "@/api/models";
+import type {Footprint, Option} from "@/api/models";
 import { FormKit } from "@formkit/vue";
 
 // 定义组件名称
@@ -159,6 +159,17 @@ const onEditingModalClose = async () => {
   selectedFootprint.value = undefined;
   refetch();
 };
+
+// 处理类型选择
+const handleTypeSelect = (type: string | undefined) => {
+  selectedFootprintType.value = type;
+  refetch();
+};
+
+const footprintTypes = ref<Option[]>([]);
+onMounted(async () => {
+  footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
+});
 </script>
 
 <template>
@@ -241,46 +252,18 @@ const onEditingModalClose = async () => {
                   <template #popper>
                     <div class="w-36 max-h-60 overflow-auto">
                       <VDropdownItem
-                        :selected="selectedFootprintType === undefined"
-                        @click="() => { selectedFootprintType = undefined; refetch(); }"
+                          :selected="selectedFootprintType === undefined"
+                          @click="handleTypeSelect(undefined)"
                       >
                         全部
                       </VDropdownItem>
                       <VDropdownItem
-                        :selected="selectedFootprintType === '旅游'"
-                        @click="() => { selectedFootprintType = '旅游'; refetch(); }"
+                          v-for="type in footprintTypes"
+                          :key="type.value"
+                          :selected="selectedFootprintType === type.value"
+                          @click="handleTypeSelect(type.value)"
                       >
-                        旅游
-                      </VDropdownItem>
-                      <VDropdownItem
-                        :selected="selectedFootprintType === '美食'"
-                        @click="() => { selectedFootprintType = '美食'; refetch(); }"
-                      >
-                        美食
-                      </VDropdownItem>
-                      <VDropdownItem
-                        :selected="selectedFootprintType === '购物'"
-                        @click="() => { selectedFootprintType = '购物'; refetch(); }"
-                      >
-                        购物
-                      </VDropdownItem>
-                      <VDropdownItem
-                        :selected="selectedFootprintType === '住宿'"
-                        @click="() => { selectedFootprintType = '住宿'; refetch(); }"
-                      >
-                        住宿
-                      </VDropdownItem>
-                      <VDropdownItem
-                        :selected="selectedFootprintType === '交通'"
-                        @click="() => { selectedFootprintType = '交通'; refetch(); }"
-                      >
-                        交通
-                      </VDropdownItem>
-                      <VDropdownItem
-                        :selected="selectedFootprintType === '其他'"
-                        @click="() => { selectedFootprintType = '其他'; refetch(); }"
-                      >
-                        其他
+                        {{ type.label }}
                       </VDropdownItem>
                     </div>
                   </template>

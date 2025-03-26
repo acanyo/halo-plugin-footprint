@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
-import type { Footprint, FootprintList } from "./models";
+import type {Footprint, FootprintList, Option} from "./models";
+import {consoleApiClient} from "@halo-dev/api-client";
 
 export class FootprintApi {
   private axios: AxiosInstance;
@@ -81,5 +82,27 @@ export class FootprintApi {
   async deleteFootprints(names: string[]): Promise<void> {
     const promises = names.map((name) => this.deleteFootprint(name));
     await Promise.all(promises);
+  }
+
+  /**
+   * 获取足迹类型列表
+   */
+  async listFootprintTypes(): Promise<Option[]> {
+    try {
+      const { data } = await consoleApiClient.plugin.plugin.fetchPluginConfig({
+        name: 'footprint'
+      });
+
+      const { advanced } = data?.data ?? {};
+      const { footprintTypes = [] } = advanced ? JSON.parse(advanced) : {};
+
+      return footprintTypes.map((type: Option) => ({
+        label: type,
+        value: type
+      }));
+    } catch (error) {
+      console.error("Failed to fetch footprint config:", error);
+      return [];
+    }
   }
 } 

@@ -100,4 +100,12 @@ export interface FootprintList {
   hasNext: boolean;
   hasPrevious: boolean;
   totalPages: number;
-} 
+}
+
+/**
+ * 选项
+ **/
+export interface Option {
+  label: string;
+  value: string;
+}
