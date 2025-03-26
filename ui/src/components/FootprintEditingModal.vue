@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
-import { ref, computed, watch } from "vue";
+import {ref, computed, watch, onMounted} from "vue";
 import { footprintApiClient } from "@/api";
-import type { Footprint } from "@/api/models";
+import type {Footprint, Option} from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { FormKit } from "@formkit/vue";
 
@@ -326,14 +326,10 @@ const handleSubmit = async () => {
   }
 };
 
-const footprintTypes = [
-  { label: "旅游", value: "旅游" },
-  { label: "美食", value: "美食" },
-  { label: "购物", value: "购物" },
-  { label: "住宿", value: "住宿" },
-  { label: "交通", value: "交通" },
-  { label: "其他", value: "其他" },
-];
+const footprintTypes = ref<Option[]>([]);
+onMounted(async () => {
+  footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
+});
 </script>
 
 <template>
