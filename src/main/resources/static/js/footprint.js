@@ -597,37 +597,49 @@ const initializeMapFeatures = (map, layers) => {
     // 优化图层控制
     const layerState = {
         baseLayer: 'normal',
-        overlays: { road: false, traffic: false }
+        overlays: {
+            road: false,
+            traffic: false
+        }
     };
 
-    // 使用事件委托优化按钮点击处理
-    document.querySelector('.map-controls').addEventListener('click', (e) => {
-        const btn = e.target.closest('.control-btn');
-        if (!btn) return;
-
-        const type = btn.dataset.type;
-        
-        requestAnimationFrame(() => {
-            handleLayerChange(btn, type, layerState, map, layers);
+    // 处理基础图层按钮点击
+    document.querySelectorAll('.control-btn[data-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.dataset.type;
+            if (type === 'normal' || type === 'satellite') {
+                handleLayerChange(btn, type, layerState, map, layers);
+            }
         });
     });
 
-    // 缩放控制
+    // 处理飞机开关的变化事件
+    document.querySelectorAll('.plane-switch input[type="checkbox"]').forEach(checkbox => {
+        const type = checkbox.dataset.type;
+        checkbox.addEventListener('change', () => {
+            layerState.overlays[type] = checkbox.checked;
+            updateLayers(layerState, layers);
+
+            // 添加动画效果
+            const mapContainer = document.getElementById('footprint-map');
+            if (checkbox.checked) {
+                mapContainer.classList.add('map-shake');
+                setTimeout(() => {
+                    mapContainer.classList.remove('map-shake');
+                }, 400);
+            }
+        });
+    });
+
+    // 处理缩放按钮点击
     document.getElementById('zoom-in').addEventListener('click', () => {
-        map.zoomIn();
-        updateScaleText();
+        map.setZoom(map.getZoom() + 1);
     });
 
     document.getElementById('zoom-out').addEventListener('click', () => {
-        map.zoomOut();
-        updateScaleText();
+        map.setZoom(map.getZoom() - 1);
     });
 
-    // 添加足迹标记
-    const footprintData = window.FOOTPRINT_CONFIG.footprints;
-    if (footprintData && Array.isArray(footprintData) && footprintData.length > 0) {
-        addFootprintMarkers(map, footprintData);
-    } else {
-        console.warn('足迹数据未找到或格式不正确，请检查后端返回的 footprints 数据');
-    }
+    // 初始化图层状态
+    updateLayers(layerState, layers);
 }; 
