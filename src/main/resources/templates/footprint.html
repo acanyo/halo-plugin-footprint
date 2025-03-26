@@ -26,6 +26,68 @@
         };
     </script>
     <style>
+        /* 重置和基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        
+        #footprint-page {
+            --primary-color: hsl(var(--footprint-hsla, 200, 100%, 50%));
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #f5f5f5;
+        }
+        
+        .footprint-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #footprint-map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Logo和描述 */
+        .logo-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            max-width: 300px;
+        }
+        
+        .footprint-logo {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .logo-version {
+            font-size: 0.8rem;
+            vertical-align: super;
+            opacity: 0.7;
+        }
+        
+        .footprint-slogan {
+            font-size: 1rem;
+            color: #333;
+            line-height: 1.4;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+        
         /* 控制台基础样式 */
         .map-controls {
             position: fixed;
@@ -141,7 +203,7 @@
         }
 
         .plane-switch .switch-text {
-            color: #000;
+            color: #fff;
             font-size: 14px;
             font-weight: 500;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -307,6 +369,141 @@
 
             100% {
                 transform: translateX(0);
+            }
+        }
+
+        /* 移动端适配 */
+        @media screen and (max-width: 768px) {
+            /* 足迹信息放到顶部 */
+            .logo-container {
+                position: fixed;
+                top: 16px;
+                bottom: auto;
+                left: 16px;
+                max-width: 80%;
+                background: transparent;
+                padding: 0;
+                z-index: 110;
+                box-shadow: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+
+            .footprint-logo {
+                font-size: 1.8rem;
+                margin-bottom: 6px;
+                margin-right: 0;
+                color: var(--primary-color);
+                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            }
+
+            .footprint-slogan {
+                font-size: 0.9rem;
+                line-height: 1.4;
+                color: #333;
+                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+                white-space: normal;
+                display: block;
+            }
+
+            /* 移动端控制台优化 */
+            .map-controls {
+                width: calc(100% - 24px);
+                left: 12px;
+                right: 12px;
+                transform: none;
+                border-radius: 20px;
+                bottom: 12px;
+                padding: 10px 0;
+                background: white;
+                box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+                grid-gap: 8px;
+                justify-items: center;
+            }
+
+            /* 图层按钮行 - 占据整行 */
+            .map-controls .button-group:first-child {
+                grid-column: 1 / 3;
+                grid-row: 1;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                padding: 0 15px 8px;
+                margin: 0;
+                border-right: none;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            }
+
+            /* 图层按钮样式 */
+            .map-controls .button-group:first-child .control-btn {
+                flex: 1;
+                max-width: 120px;
+                background: rgba(0, 0, 0, 0.05);
+                color: #333;
+                text-align: center;
+                font-weight: bold;
+                padding: 10px 0;
+            }
+
+            .map-controls .button-group:first-child .control-btn.active {
+                background: var(--primary-color);
+                color: white;
+            }
+
+            /* 路网路况开关行 */
+            .map-controls .button-group:nth-child(2) {
+                grid-column: 1;
+                grid-row: 2;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                border-right: none;
+                padding: 8px 5px 0;
+                margin: 0;
+            }
+
+            /* 缩放按钮和比例尺 */
+            .map-controls .zoom-buttons,
+            .map-controls .amap-scale-text {
+                grid-column: 2;
+                grid-row: 2;
+                margin: 0;
+                padding: 8px 15px 0 0;
+            }
+
+            /* 缩放按钮样式 */
+            .map-controls .zoom-btn {
+                width: 36px;
+                height: 36px;
+                background: rgba(0, 0, 0, 0.05);
+                color: #333;
+                font-size: 20px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+            }
+
+            /* 路网路况开关样式 */
+            .plane-switch {
+                padding: 4px;
+                background: rgba(0, 0, 0, 0.03);
+                border-radius: 20px;
+            }
+
+            .plane-switch .switch-text {
+                color: #333;
+                font-weight: 600;
+                text-shadow: none;
+            }
+
+            /* 比例尺文字 */
+            .amap-scale-text {
+                color: #666;
+                font-size: 12px;
+                padding-left: 10px;
             }
         }
     </style>
