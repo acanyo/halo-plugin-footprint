@@ -81,10 +81,15 @@ spec:
           value: '109,68%,60%'
           help: "全局配色 HSL格式：322,68%,60% (色相去掉deg,数值之间不要有空格)"
         - $formkit: text
-          label: 高德Key
+          label: 高德JsKey
           name: gaoDeKey
           validation: required
-          help: https://console.amap.com/dev/key/app 前往获取
+          help: https://console.amap.com/dev/key/app 前往获取 主要用于创建地图
+        - $formkit: text
+          label: 高德WebKey
+          name: gaoDeWebKey
+          validation: required
+          help: https://console.amap.com/dev/key/app 前往获取 用户自动获取经纬度
         - $formkit: select
           name: mapStyle
           label: 地图样式

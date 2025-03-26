@@ -13,9 +13,10 @@ import {
   VSpace,
   IconAddCircle,
   IconCloseCircle,
-  VDropdown} from "@halo-dev/components";
+  VDropdown,
+  VModal} from "@halo-dev/components";
 import {useQuery, useQueryClient} from "@tanstack/vue-query";
-import {computed, onMounted, ref, watch} from "vue";
+import {computed, h, onMounted, ref, watch} from "vue";
 import { formatDatetime } from "@/utils/date";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
 import { footprintApiClient } from "@/api";
@@ -39,6 +40,10 @@ const keyword = ref("");
 const searchText = ref("");
 const total = ref(0);
 const editingModal = ref(false);
+const showManualInput = ref(false);
+const currentFootprint = ref<Footprint | null>(null);
+const manualLongitude = ref("");
+const manualLatitude = ref("");
 
 // 添加 queryClient
 const queryClient = useQueryClient();
@@ -170,6 +175,64 @@ const footprintTypes = ref<Option[]>([]);
 onMounted(async () => {
   footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
 });
+
+const handleUpdateLocation = (row: Footprint) => {
+  showManualInput.value = true;
+  currentFootprint.value = row;
+};
+
+const handleManualInput = async () => {
+  if (!currentFootprint.value) return;
+  
+  const lng = parseFloat(manualLongitude.value);
+  const lat = parseFloat(manualLatitude.value);
+  
+  if (isNaN(lng) || isNaN(lat)) {
+    Toast.error("请输入有效的经纬度");
+    return;
+  }
+  
+  if (lng < -180 || lng > 180) {
+    Toast.error("经度必须在-180到180之间");
+    return;
+  }
+  
+  if (lat < -90 || lat > 90) {
+    Toast.error("纬度必须在-90到90之间");
+    return;
+  }
+  
+  try {
+    const updatedFootprint = {
+      ...currentFootprint.value,
+      spec: {
+        ...currentFootprint.value.spec,
+        longitude: lng,
+        latitude: lat,
+      },
+    };
+    
+    await footprintApiClient.footprint.updateFootprint(
+      currentFootprint.value.metadata.name,
+      updatedFootprint
+    );
+    
+    Toast.success("更新成功");
+    showManualInput.value = false;
+    handleFetchData();
+  } catch (e) {
+    console.error("更新失败", e);
+    Toast.error("更新失败，请重试");
+  }
+};
+
+const handleFetchData = () => {
+  refetch();
+};
+
+const handleEdit = (row: Footprint) => {
+  handleOpenCreateModal(row);
+};
 </script>
 
 <template>
@@ -369,9 +432,24 @@ onMounted(async () => {
               <td class="px-4 py-4">{{footprint.spec.address}}</td>
               <td class="px-4 py-4 table-td">{{formatDatetime(footprint.spec.createTime)}}</td>
               <td class="px-4 py-4 table-td">
-                <VDropdownItem @click="handleOpenCreateModal(footprint)">
-                  编辑
-                </VDropdownItem>
+                <VDropdown>
+                  <button
+                    type="button"
+                    class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  >
+                    操作
+                  </button>
+                  <template #popper>
+                    <div class="w-36 max-h-60 overflow-auto">
+                      <VDropdownItem @click="handleEdit(footprint)">
+                        编辑
+                      </VDropdownItem>
+                      <VDropdownItem @click="handleUpdateLocation(footprint)">
+                        更新经纬度
+                      </VDropdownItem>
+                    </div>
+                  </template>
+                </VDropdown>
               </td>
             </tr>
             </tbody>
@@ -389,6 +467,55 @@ onMounted(async () => {
       </template>
     </VCard>
   </div>
+
+  <!-- 手动输入经纬度的对话框 -->
+  <Teleport to="body">
+    <VModal
+      v-model:visible="showManualInput"
+      :width="500"
+      title="手动更新经纬度"
+      :mask-closable="false"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">经度</label>
+          <input
+            type="number"
+            v-model="manualLongitude"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder="请输入经度（-180到180）"
+            step="0.000001"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">纬度</label>
+          <input
+            type="number"
+            v-model="manualLatitude"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder="请输入纬度（-90到90）"
+            step="0.000001"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <VSpace>
+          <VButton
+            type="secondary"
+            @click="showManualInput = false"
+          >
+            取消
+          </VButton>
+          <VButton
+            type="primary"
+            @click="handleManualInput"
+          >
+            确定
+          </VButton>
+        </VSpace>
+      </template>
+    </VModal>
+  </Teleport>
 </template>
 
 <style scoped lang="scss">

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class BaseConfig {
     private String title;
     private String gaoDeKey;
+    private String gaoDeWebKey;
     private String describe;
     private String hsla;
     private String logoName;

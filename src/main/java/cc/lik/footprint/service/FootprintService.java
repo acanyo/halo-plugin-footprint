@@ -10,5 +10,5 @@ public interface FootprintService {
      */
     Mono<BaseConfig> getConfigByGroupName();
 
-    Mono<String> AddressLocationUtil(String address);
+    Mono<String> AddressLocationUtil(String address, String gaoDeWebKey);
 }

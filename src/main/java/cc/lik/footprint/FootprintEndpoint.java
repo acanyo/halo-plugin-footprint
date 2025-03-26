@@ -15,6 +15,8 @@ import run.halo.app.extension.GroupVersion;
 import run.halo.app.extension.ListResult;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.router.QueryParamBuildUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -29,6 +31,7 @@ public class FootprintEndpoint implements CustomEndpoint {
     private final ReactiveExtensionClient client;
     private final FootprintService footprintService;
     private final String footprintTag = "footprint.lik.cc/v1alpha1/footprints";
+    private static final Logger log = LoggerFactory.getLogger(FootprintEndpoint.class);
 
     @Override
     public RouterFunction<ServerResponse> endpoint() {
@@ -44,9 +47,10 @@ public class FootprintEndpoint implements CustomEndpoint {
             .GET("/footprints/location/{address}", this::getLocation, builder -> {
                 builder.operationId("GetLocation")
                     .tag(footprintTag)
-                    .description("Get location by address")
+                    .description("根据地址获取经纬度信息")
                     .response(responseBuilder()
-                        .implementation(String.class));
+                        .implementation(String.class)
+                        .description("返回经纬度信息，格式：经度,纬度"));
             })
             .build();
     }
@@ -95,9 +99,26 @@ public class FootprintEndpoint implements CustomEndpoint {
 
     private Mono<ServerResponse> getLocation(ServerRequest request) {
         String address = request.pathVariable("address");
-        return footprintService.AddressLocationUtil(address)
+        if (address.trim().isEmpty()) {
+            return ServerResponse.badRequest().bodyValue("地址参数不能为空");
+        }
+
+        return footprintService.getConfigByGroupName()
+            .switchIfEmpty(Mono.error(new RuntimeException("未找到足迹配置")))
+            .flatMap(config -> {
+                if (config.getGaoDeWebKey() == null || config.getGaoDeWebKey().trim().isEmpty()) {
+                    return Mono.error(new RuntimeException("高德地图Key未配置"));
+                }
+                return footprintService.AddressLocationUtil(address, config.getGaoDeWebKey());
+            })
             .flatMap(location -> ServerResponse.ok().bodyValue(location))
-            .switchIfEmpty(ServerResponse.notFound().build());
+            .onErrorResume(e -> {
+                log.error("获取地址位置失败: {}", e.getMessage());
+                if (e instanceof RuntimeException) {
+                    return ServerResponse.badRequest().bodyValue(e.getMessage());
+                }
+                return ServerResponse.status(500).bodyValue("获取地址位置失败: " + e.getMessage());
+            });
     }
 
     @Override

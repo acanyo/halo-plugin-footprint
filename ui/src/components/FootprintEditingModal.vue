@@ -5,6 +5,7 @@ import { footprintApiClient } from "@/api";
 import type {Footprint, Option} from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { FormKit } from "@formkit/vue";
+import { Teleport } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -51,6 +52,9 @@ const formState = ref<Footprint>(deepClone(initialFormState));
 const saving = ref<boolean>(false);
 const formVisible = ref(false);
 const createTime = ref<string | undefined>(undefined);
+const showManualInput = ref(false);
+const manualLongitude = ref<string>("");
+const manualLatitude = ref<string>("");
 
 const isUpdateMode = computed(() => {
   return !!formState.value.metadata.creationTimestamp;
@@ -91,153 +95,22 @@ watch(
     if (footprint) {
       formState.value = deepClone(footprint);
       createTime.value = toDatetimeLocal(formState.value.spec.createTime);
-      
-      // 加载数据后进行验证
-      const longitude = toNumber(formState.value.spec.longitude);
-      const latitude = toNumber(formState.value.spec.latitude);
-      
-      // 验证经度
-      if (isNaN(longitude) || !validateLongitude(longitude) || longitude === 0) {
-        longitudeError.value = '经度必须在-180到180之间且不能为0';
-      } else {
-        longitudeError.value = '';
-      }
-      
-      // 验证纬度
-      if (isNaN(latitude) || !validateLatitude(latitude) || latitude === 0) {
-        latitudeError.value = '纬度必须在-90到90之间且不能为0';
-      } else {
-        latitudeError.value = '';
-      }
     } else {
       createTime.value = undefined;
-      longitudeError.value = '';
-      latitudeError.value = '';
     }
-  }
+  },
 );
 
-// 添加验证消息配置
 const validationMessages = {
   required: (ctx: { name: string }) => `${ctx.name}不能为空`,
-  number: (ctx: { name: string }) => `${ctx.name}必须是数字`
 } as const;
-
-// 添加数字转换函数
-const toNumber = (value: unknown): number => {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    const num = Number(value);
-    return isNaN(num) ? 0 : num;
-  }
-  return 0;
-};
-
-// 添加经纬度验证函数
-const validateLongitude = (value: number): boolean => {
-  return value >= -180 && value <= 180;
-};
-
-const validateLatitude = (value: number): boolean => {
-  return value >= -90 && value <= 90;
-};
-
-// 添加错误状态
-const longitudeError = ref<string>('');
-const latitudeError = ref<string>('');
-
-// 添加数字输入处理函数
-const handleNumberInput = (value: unknown, field: 'longitude' | 'latitude') => {
-  const num = toNumber(value);
-  if (field === 'longitude') {
-    if (isNaN(num)) {
-      longitudeError.value = '请输入有效的数字';
-      return;
-    }
-    if (!validateLongitude(num)) {
-      longitudeError.value = '经度必须在-180到180之间';
-      return;
-    }
-    if (num === 0) {
-      longitudeError.value = '经度不能为0';
-      return;
-    }
-    longitudeError.value = '';
-  }
-  if (field === 'latitude') {
-    if (isNaN(num)) {
-      latitudeError.value = '请输入有效的数字';
-      return;
-    }
-    if (!validateLatitude(num)) {
-      latitudeError.value = '纬度必须在-90到90之间';
-      return;
-    }
-    if (num === 0) {
-      latitudeError.value = '纬度不能为0';
-      return;
-    }
-    latitudeError.value = '';
-  }
-  formState.value.spec[field] = num;
-};
-
-// 添加数字显示值
-const longitudeDisplay = computed({
-  get: () => formState.value.spec.longitude.toString(),
-  set: (value) => handleNumberInput(value, 'longitude')
-});
-
-const latitudeDisplay = computed({
-  get: () => formState.value.spec.latitude.toString(),
-  set: (value) => handleNumberInput(value, 'latitude')
-});
-
-// 添加失焦验证
-const handleBlur = (field: 'longitude' | 'latitude') => {
-  const value = field === 'longitude' ? formState.value.spec.longitude : formState.value.spec.latitude;
-  handleNumberInput(value, field);
-};
 
 // 修改表单验证状态
 const isFormValid = computed(() => {
   // 检查必填项
   if (!formState.value.spec.name?.trim()) return false;
   if (!formState.value.spec.description?.trim()) return false;
-  
-  // 检查经纬度
-  const longitude = toNumber(formState.value.spec.longitude);
-  const latitude = toNumber(formState.value.spec.latitude);
-  
-  // 检查经纬度是否为0或无效（包括更新模式）
-  if (longitude === 0 || latitude === 0) {
-    if (isUpdateMode.value) {
-      Toast.error("经纬度不能为0");
-    }
-    return false;
-  }
-  
-  if (isNaN(longitude) || !validateLongitude(longitude)) {
-    if (isUpdateMode.value) {
-      Toast.error("经度必须在-180到180之间");
-    }
-    return false;
-  }
-  
-  if (isNaN(latitude) || !validateLatitude(latitude)) {
-    if (isUpdateMode.value) {
-      Toast.error("纬度必须在-90到90之间");
-    }
-    return false;
-  }
-  
-  // 检查是否有错误提示
-  if (longitudeError.value || latitudeError.value) return false;
-  
-  // 检查创建时间
-  if (!createTime.value) return false;
-  
-  return true;
+  return formState.value.spec.address?.trim();
 });
 
 const handleSubmit = async () => {
@@ -253,34 +126,10 @@ const handleSubmit = async () => {
         Toast.error("足迹描述不能为空");
         return;
       }
-      
-      // 经纬度验证
-      const longitude = toNumber(formState.value.spec.longitude);
-      const latitude = toNumber(formState.value.spec.latitude);
-      
-      if (longitude === 0) {
-        longitudeError.value = '经度不能为0';
-        Toast.error("请输入有效的经度");
+      if (!formState.value.spec.address?.trim()) {
+        Toast.error("地址不能为空");
         return;
       }
-      
-      if (latitude === 0) {
-        latitudeError.value = '纬度不能为0';
-        Toast.error("请输入有效的纬度");
-        return;
-      }
-      
-      if (isNaN(longitude) || !validateLongitude(longitude)) {
-        longitudeError.value = '经度必须在-180到180之间';
-        Toast.error("请检查经度输入");
-        return;
-      }
-      if (isNaN(latitude) || !validateLatitude(latitude)) {
-        latitudeError.value = '纬度必须在-90到90之间';
-        Toast.error("请检查纬度输入");
-        return;
-      }
-
       if (!createTime.value) {
         Toast.error("请选择创建时间");
         return;
@@ -292,21 +141,53 @@ const handleSubmit = async () => {
 
     saving.value = true;
 
+    // 获取地址的经纬度
+    const address = formState.value.spec.address?.trim();
+    if (!address) {
+      Toast.error("地址不能为空");
+      return;
+    }
+    const response = await fetch(`/apis/api.footprint.lik.cc/v1alpha1/footprints/location/${encodeURIComponent(address)}`);
+    if (!response.ok) {
+      Toast.error("获取地址经纬度失败");
+      return;
+    }
+    const location = await response.text();
+    console.log("获取到的地址经纬度:", location);
+    
+    // 检查location是否为空或无效
+    if (!location || location.trim() === "" || !location.includes(",")) {
+      console.log("地址经纬度无效，显示手动输入框");
+      Toast.info("无法自动获取地址经纬度，请手动输入");
+      showManualInput.value = true;
+      saving.value = false;
+      return;
+    }
+    
+    const [lng, lat] = location.split(",");
+    // 验证经纬度是否有效
+    const longitude = parseFloat(lng);
+    const latitude = parseFloat(lat);
+    
+    if (isNaN(longitude) || isNaN(latitude) || 
+        longitude < -180 || longitude > 180 || 
+        latitude < -90 || latitude > 90) {
+      console.log("经纬度数值无效，显示手动输入框");
+      Toast.info("获取到的经纬度无效，请手动输入");
+      showManualInput.value = true;
+      saving.value = false;
+      return;
+    }
+    
+    // 更新表单数据
+    formState.value.spec.longitude = longitude;
+    formState.value.spec.latitude = latitude;
+
     if (createTime.value) {
       formState.value.spec.createTime = toISOString(createTime.value);
     }
 
     if (isUpdateMode.value) {
-      // 更新模式下再次验证
-      const longitude = toNumber(formState.value.spec.longitude);
-      const latitude = toNumber(formState.value.spec.latitude);
-      
-      if (longitude === 0 || latitude === 0 || 
-          !validateLongitude(longitude) || !validateLatitude(latitude)) {
-        Toast.error("请检查经纬度是否正确");
-        return;
-      }
-
       await footprintApiClient.footprint.updateFootprint(
         formState.value.metadata.name,
         formState.value
@@ -326,6 +207,58 @@ const handleSubmit = async () => {
   }
 };
 
+const handleManualInput = () => {
+  const lng = parseFloat(manualLongitude.value);
+  const lat = parseFloat(manualLatitude.value);
+  
+  if (isNaN(lng) || isNaN(lat)) {
+    Toast.error("请输入有效的经纬度");
+    return;
+  }
+  
+  if (lng < -180 || lng > 180) {
+    Toast.error("经度必须在-180到180之间");
+    return;
+  }
+  
+  if (lat < -90 || lat > 90) {
+    Toast.error("纬度必须在-90到90之间");
+    return;
+  }
+  
+  formState.value.spec.longitude = lng;
+  formState.value.spec.latitude = lat;
+  showManualInput.value = false;
+  
+  // 继续保存流程
+  if (createTime.value) {
+    formState.value.spec.createTime = toISOString(createTime.value);
+  }
+
+  if (isUpdateMode.value) {
+    footprintApiClient.footprint.updateFootprint(
+      formState.value.metadata.name,
+      formState.value
+    ).then(() => {
+      Toast.success("更新成功");
+      onVisibleChange(false);
+    }).catch(e => {
+      console.error("保存失败", e);
+      Toast.error("保存失败，请重试");
+    });
+  } else {
+    footprintApiClient.footprint.createFootprint(formState.value)
+      .then(() => {
+        Toast.success("创建成功");
+        onVisibleChange(false);
+      })
+      .catch(e => {
+        console.error("保存失败", e);
+        Toast.error("保存失败，请重试");
+      });
+  }
+};
+
 const footprintTypes = ref<Option[]>([]);
 onMounted(async () => {
   footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
@@ -333,6 +266,55 @@ onMounted(async () => {
 </script>
 
 <template>
+  <!-- 手动输入经纬度的对话框 -->
+  <Teleport to="body">
+    <VModal
+      v-model:visible="showManualInput"
+      :width="500"
+      title="手动输入经纬度"
+      :mask-closable="false"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">经度</label>
+          <input
+            type="number"
+            v-model="manualLongitude"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder="请输入经度（-180到180）"
+            step="0.000001"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">纬度</label>
+          <input
+            type="number"
+            v-model="manualLatitude"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder="请输入纬度（-90到90）"
+            step="0.000001"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <VSpace>
+          <VButton
+            type="secondary"
+            @click="showManualInput = false"
+          >
+            取消
+          </VButton>
+          <VButton
+            type="primary"
+            @click="handleManualInput"
+          >
+            确定
+          </VButton>
+        </VSpace>
+      </template>
+    </VModal>
+  </Teleport>
+
   <VModal
     :visible="visible"
     :width="700"
@@ -382,39 +364,11 @@ onMounted(async () => {
           
           <FormKit
             type="text"
-            v-model="longitudeDisplay"
-            name="经度"
-            validation="required"
-            :validation-messages="validationMessages"
-            label="经度"
-            placeholder="请输入经度"
-            @blur="handleBlur('longitude')"
-          >
-            <template #help>
-              <div v-if="longitudeError" class="text-red-500 text-sm mt-1">{{ longitudeError }}</div>
-            </template>
-          </FormKit>
-          
-          <FormKit
-            type="text"
-            v-model="latitudeDisplay"
-            name="纬度"
-            validation="required"
-            :validation-messages="validationMessages"
-            label="纬度"
-            placeholder="请输入纬度"
-            @blur="handleBlur('latitude')"
-          >
-            <template #help>
-              <div v-if="latitudeError" class="text-red-500 text-sm mt-1">{{ latitudeError }}</div>
-            </template>
-          </FormKit>
-          
-          <FormKit
-            type="text"
             v-model="formState.spec.address"
+            validation="required"
             name="address"
             label="地址"
+            help="建议地址格式：市+地址，如杭州市灵隐寺,系统会根据所填写地址获取经纬度"
           ></FormKit>
           
           <FormKit
@@ -460,6 +414,7 @@ onMounted(async () => {
             name="createTime"
             validation="required"
             label="创建时间"
+            help="如果为空，则使用当前时间"
           ></FormKit>
         </div>
       </div>

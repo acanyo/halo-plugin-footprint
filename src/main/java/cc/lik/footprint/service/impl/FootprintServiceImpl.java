@@ -28,6 +28,7 @@ public class FootprintServiceImpl implements FootprintService {
                 BaseConfig config = new BaseConfig(
                     item.path("title").asText("Handsome足迹"),
                     item.path("gaoDeKey").asText(),
+                    item.path("gaoDeWebKey").asText(),
                     item.path("describe").asText("每一处足迹都充满了故事，那是对人生的思考和无限的风光。"),
                     item.path("hsla").asText("109,42%,60%"),
                     item.path("logoName").asText(),
@@ -36,17 +37,13 @@ public class FootprintServiceImpl implements FootprintService {
                 return Mono.just(config);
             });
     }
-    private static final String Box_Url = "https://cn.apihz.cn/api/other/jwbaidu.php";
-    private static final String Box_Id = "88888888"; //公共
-    private static final String Box_Key = "88888888"; //公共Key
-
+    private static final String GAODE_URL = "https://restapi.amap.com/v3/geocode/geo";
     @Override
-    public Mono<String> AddressLocationUtil(String address) {
+    public Mono<String> AddressLocationUtil(String address, String gaoDeWebKey) {
         return WebClient.create()
                 .get()
-                .uri(Box_Url, uriBuilder -> uriBuilder
-                        .queryParam("id", Box_Id)
-                        .queryParam("key", Box_Key)
+                .uri(GAODE_URL, uriBuilder -> uriBuilder
+                        .queryParam("key", gaoDeWebKey)
                         .queryParam("address", address)
                         .build())
                 .retrieve()
@@ -54,20 +51,23 @@ public class FootprintServiceImpl implements FootprintService {
                 .mapNotNull(response -> {
                     try {
                         JsonNode jsonResponse = objectMapper.readTree(response);
-                        if (jsonResponse.get("code").asInt() == 200) {
-                            String lng = jsonResponse.get("lng").asText();
-                            String lat = jsonResponse.get("lat").asText();
-                            return lng + "," + lat;
+                        if ("1".equals(jsonResponse.get("status").asText())) {
+                            JsonNode geocodes = jsonResponse.get("geocodes");
+                            if (geocodes.isArray() && !geocodes.isEmpty()) {
+                                String location = geocodes.get(0).get("location").asText();
+                                String[] coordinates = location.split(",");
+                                return coordinates[0] + "," + coordinates[1];
+                            }
                         }
-                        log.warn("API返回错误: {}", jsonResponse.get("msg").asText());
-                        return null;
+                        log.warn("高德地图API返回错误: {}", jsonResponse.get("info").asText());
+                        throw new RuntimeException("高德地图API返回错误: " + jsonResponse.get("info").asText());
                     } catch (Exception e) {
-                        log.error("响应失败: {}", e.getMessage());
-                        return null;
+                        log.error("解析高德地图响应失败: {}", e.getMessage());
+                        throw new RuntimeException("解析高德地图响应失败: " + e.getMessage());
                     }
                 })
                 .onErrorResume(e -> {
-                    log.error("调用百度地图API失败: {}", e.getMessage());
+                    log.error("调用高德地图API失败: {}", e.getMessage());
                     return Mono.empty();
                 });
     }
