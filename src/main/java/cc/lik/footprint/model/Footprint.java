@@ -61,7 +61,7 @@ public class Footprint extends AbstractExtension {
         /**
          * 足迹类型
          */
-        @Schema(description = "足迹类型", allowableValues = {"旅游", "美食", "购物", "住宿", "交通", "其他"})
+        @Schema(description = "足迹类型")
         private String footprintType;
 
         /**
