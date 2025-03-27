@@ -882,4 +882,476 @@
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
+#footprint-page {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        --primary-color: hsl(var(--footprint-hsla, 200, 100%, 50%));
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background-color: #f5f5f5;
+    }
+    
+    .footprint-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+    
+    #footprint-map {
+        width: 100%;
+        height: 100%;
+    }
+    
+    /* Logo和描述 */
+    .logo-container {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 100;
+        max-width: 300px;
+    }
+    
+    .footprint-logo {
+        font-size: 2rem;
+        color: var(--primary-color);
+        margin-bottom: 8px;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    
+    .logo-version {
+        font-size: 0.8rem;
+        vertical-align: super;
+        opacity: 0.7;
+    }
+    
+    .footprint-slogan {
+        font-size: 1rem;
+        color: #333;
+        line-height: 1.4;
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    }
+    
+    /* 控制台基础样式 */
+    .map-controls {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 16px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 50px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+    }
 
+    /* 按钮组样式 */
+    .button-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px;
+    }
+
+    /* 分隔线 */
+    .button-group:not(:last-child) {
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+        padding-right: 16px;
+        margin-right: 8px;
+    }
+
+    /* 标准按钮样式 */
+    .control-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .control-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .control-btn.active {
+        background: var(--primary-color, #42b983);
+        color: #fff;
+    }
+
+    /* 缩放按钮组样式 */
+    .zoom-buttons {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .zoom-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .zoom-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* 比例尺文字样式 */
+    .amap-scale-text {
+        color: #fff;
+        font-size: 12px;
+        opacity: 0.8;
+        margin-left: 8px;
+        font-weight: 500;
+    }
+
+    /* 飞机开关样式优化 */
+    .plane-switch {
+        --dot: #fff;
+        --street: #6B6D76;
+        --street-line: #A8AAB4;
+        --street-line-mid: #C0C2C8;
+        --sky-1: #60A7FA;
+        --sky-2: #2F8EFC;
+        --light-1: rgba(255, 233, 0, 1);
+        --light-2: rgba(255, 233, 0, .3);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .plane-switch:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .plane-switch .switch-text {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        user-select: none;
+        min-width: 28px;
+        text-align: center;
+    }
+
+    .plane-switch input {
+        display: none;
+    }
+
+    .plane-switch input + div {
+        -webkit-mask-image: -webkit-radial-gradient(white, black);
+        position: relative;
+        overflow: hidden;
+        width: 50px;
+        height: 25px;
+        padding: 1px;
+        border-radius: 13px;
+        background: linear-gradient(90deg, var(--street) 0%, var(--street) 25%, var(--sky-1) 75%, var(--sky-2) 100%) left var(--p, 0%) top 0;
+        background-position-x: var(--p, 0%);
+        background-size: 400% auto;
+        transition: background-position 0.6s;
+    }
+
+    .plane-switch input + div:before, .plane-switch input + div:after {
+        content: "";
+        display: block;
+        position: absolute;
+        transform: translateX(var(--s, 0));
+        transition: transform 0.3s;
+    }
+
+    .plane-switch input + div:before {
+        width: 42px;
+        right: 2px;
+        top: 4px;
+        height: 1px;
+        background: var(--street-line);
+        box-shadow: 0 16px 0 0 var(--street-line);
+    }
+
+    .plane-switch input + div:after {
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+        left: 23px;
+        top: 1px;
+        -webkit-animation: lights2 2s linear infinite;
+        animation: lights2 2s linear infinite;
+        box-shadow: inset 0 0 0 2px var(--light-1), 0 21px 0 var(--light-1), 8px 0 0 var(--light-2), 8px 21px 0 var(--light-2), 16px 0 0 var(--light-2), 16px 21px 0 var(--light-2);
+    }
+
+    .plane-switch input + div span {
+        display: block;
+        position: absolute;
+    }
+
+    .plane-switch input + div span.street-middle {
+        top: 12px;
+        left: 21px;
+        width: 3px;
+        height: 1px;
+        transform: translateX(var(--s, 0));
+        background: var(--street-line-mid);
+        box-shadow: 5px 0 0 var(--street-line-mid), 10px 0 0 var(--street-line-mid), 15px 0 0 var(--street-line-mid), 20px 0 0 var(--street-line-mid), 25px 0 0 var(--street-line-mid);
+        transition: transform 0.3s;
+    }
+
+    .plane-switch input + div span.cloud {
+        width: 12px;
+        height: 4px;
+        border-radius: 2px;
+        background: #fff;
+        position: absolute;
+        top: var(--ct, 8px);
+        left: 100%;
+        opacity: var(--co, 0);
+        transition: opacity 0.3s;
+        -webkit-animation: clouds2 2s linear infinite var(--cd, 0s);
+        animation: clouds2 2s linear infinite var(--cd, 0s);
+    }
+
+    .plane-switch input + div span.cloud:before, .plane-switch input + div span.cloud:after {
+        content: "";
+        position: absolute;
+        transform: translateX(var(--cx, 0));
+        border-radius: 50%;
+        width: var(--cs, 5px);
+        height: var(--cs, 5px);
+        background: #fff;
+        bottom: 1px;
+        left: 1px;
+    }
+
+    .plane-switch input + div span.cloud:after {
+        --cs: 6px;
+        --cx: 4px;
+    }
+
+    .plane-switch input + div span.cloud.two {
+        --ct: 20px;
+        --cd: 1s;
+        opacity: var(--co-2, 0);
+    }
+
+    .plane-switch input + div div {
+        display: table;
+        position: relative;
+        z-index: 1;
+        padding: 5px;
+        border-radius: 50%;
+        background: var(--dot);
+        transform: translateX(var(--x, 0));
+        transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.35, 1.2);
+    }
+
+    .plane-switch input + div div svg {
+        width: 13px;
+        height: 13px;
+        display: block;
+        color: var(--c, var(--street));
+        transition: color 0.6s;
+    }
+
+    .plane-switch input:checked + div {
+        --p: 100%;
+        --x: 25px;
+        --s: -50px;
+        --c: var(--sky-2);
+        --co: .8;
+        --co-2: .6;
+    }
+
+    @keyframes lights2 {
+        20%, 30% {
+            box-shadow: inset 0 0 0 2px var(--light-2), 0 21px 0 var(--light-2), 8px 0 0 var(--light-1), 8px 21px 0 var(--light-1), 16px 0 0 var(--light-2), 16px 21px 0 var(--light-2);
+        }
+
+        55%, 65% {
+            box-shadow: inset 0 0 0 2px var(--light-2), 0 21px 0 var(--light-2), 8px 0 0 var(--light-2), 8px 21px 0 var(--light-2), 16px 0 0 var(--light-1), 16px 21px 0 var(--light-1);
+        }
+
+        90%, 100% {
+            box-shadow: inset 0 0 0 2px var(--light-1), 0 21px 0 var(--light-1), 8px 0 0 var(--light-2), 8px 21px 0 var(--light-2), 16px 0 0 var(--light-2), 16px 21px 0 var(--light-2);
+        }
+    }
+
+    @keyframes clouds2 {
+        97% {
+            transform: translateX(-72px);
+            visibility: visible;
+        }
+
+        98%, 100% {
+            visibility: hidden;
+        }
+
+        99% {
+            transform: translateX(-72px);
+        }
+
+        100% {
+            transform: translateX(0);
+        }
+    }
+
+    /* 移动端适配 */
+    @media screen and (max-width: 768px) {
+        /* 足迹信息放到顶部 */
+        .logo-container {
+            position: fixed;
+            top: 16px;
+            bottom: auto;
+            left: 16px;
+            max-width: 80%;
+            background: transparent;
+            padding: 0;
+            z-index: 110;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+
+        .footprint-logo {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+            margin-right: 0;
+            color: var(--primary-color);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .footprint-slogan {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #333;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+            white-space: normal;
+            display: block;
+        }
+
+        /* 移动端控制台优化 */
+        .map-controls {
+            width: calc(100% - 24px);
+            left: 12px;
+            right: 12px;
+            transform: none;
+            border-radius: 20px;
+            bottom: 12px;
+            padding: 10px 0;
+            background: white;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            grid-gap: 8px;
+            justify-items: center;
+        }
+
+        /* 图层按钮行 - 占据整行 */
+        .map-controls .button-group:first-child {
+            grid-column: 1 / 3;
+            grid-row: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 0 15px 8px;
+            margin: 0;
+            border-right: none;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* 图层按钮样式 */
+        .map-controls .button-group:first-child .control-btn {
+            flex: 1;
+            max-width: 120px;
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+            text-align: center;
+            font-weight: bold;
+            padding: 10px 0;
+        }
+
+        .map-controls .button-group:first-child .control-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* 路网路况开关行 */
+        .map-controls .button-group:nth-child(2) {
+            grid-column: 1;
+            grid-row: 2;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-right: none;
+            padding: 8px 5px 0;
+            margin: 0;
+        }
+
+        /* 缩放按钮和比例尺 */
+        .map-controls .zoom-buttons,
+        .map-controls .amap-scale-text {
+            grid-column: 2;
+            grid-row: 2;
+            margin: 0;
+            padding: 8px 15px 0 0;
+        }
+
+        /* 缩放按钮样式 */
+        .map-controls .zoom-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+            font-size: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* 路网路况开关样式 */
+        .plane-switch {
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 20px;
+        }
+
+        .plane-switch .switch-text {
+            color: #333;
+            font-weight: 600;
+            text-shadow: none;
+        }
+
+        /* 比例尺文字 */
+        .amap-scale-text {
+            color: #666;
+            font-size: 12px;
+            padding-left: 10px;
+        }
+    }
