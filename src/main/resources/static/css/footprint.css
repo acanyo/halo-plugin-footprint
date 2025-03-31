@@ -1258,9 +1258,8 @@
         /* 移动端控制台优化 */
         .map-controls {
             width: calc(100% - 24px);
-            left: 12px;
-            right: 12px;
-            transform: none;
+            left: 50%;
+            transform: translateX(-50%);
             border-radius: 20px;
             bottom: 12px;
             padding: 10px 0;
@@ -1271,6 +1270,8 @@
             grid-template-rows: auto auto;
             grid-gap: 8px;
             justify-items: center;
+            position: fixed;
+            margin: 0;
         }
 
         /* 图层按钮行 - 占据整行 */
@@ -1279,12 +1280,10 @@
             grid-row: 1;
             width: 100%;
             display: flex;
-            justify-content: center;
             gap: 10px;
-            padding: 0 15px 8px;
             margin: 0;
             border-right: none;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            justify-content: center;
         }
 
         /* 图层按钮样式 */
