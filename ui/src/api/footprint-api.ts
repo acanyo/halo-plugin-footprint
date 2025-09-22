@@ -92,17 +92,33 @@ export class FootprintApi {
       const { data } = await consoleApiClient.plugin.plugin.fetchPluginJsonConfig({
         name: 'footprint'
       });
-
-      const { advanced } = (data as any)?.data ?? {};
-      const { footprintTypes = [] } = advanced ? JSON.parse(advanced) : {};
-
-      return footprintTypes.map((type: Option) => ({
+      const { advanced } = data as any;
+      const { footprintTypes = [] } = advanced || {};
+      const result = footprintTypes.map((type: any) => {
+        return {
+          label: type,
+          value: type
+        };
+      });
+      // 如果结果为空，使用默认类型
+      if (result.length === 0) {
+        console.log("获取到的足迹类型为空，使用默认类型");
+        const defaultTypes = ["旅游", "美食", "购物", "住宿", "交通", "其他"];
+        return defaultTypes.map(type => ({
+          label: type,
+          value: type
+        }));
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("错误详情:", error);
+      // 返回默认的足迹类型列表作为后备方案
+      const defaultTypes = ["旅游", "美食", "购物", "住宿", "交通", "其他"];
+      return defaultTypes.map(type => ({
         label: type,
         value: type
       }));
-    } catch (error) {
-      console.error("Failed to fetch footprint config:", error);
-      return [];
     }
   }
 } 

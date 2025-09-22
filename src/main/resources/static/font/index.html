@@ -133,7 +133,6 @@
                 0,
             );
             let chartDom;
-            // console.log(record, total);
 
             onMount(() => {
                 // 问就是渲染代价太大，等 1000ms 让浏览器冷静一下
@@ -197,7 +196,6 @@
         };
         const DataAnalyze = (data, message) => {
             const total = data.reduce((col, cur) => col + cur.size, 0);
-            // console.log(data, total);
             let chartDom;
             onMount(() => {
                 // 问就是渲染代价太大，等 1000ms 让浏览器冷静一下
@@ -327,7 +325,6 @@
             );
             createEffect(() => {
                 if (data()) {
-                    console.log(data().message);
                     document.body.style.fontFamily = `"${
                         getFontData(data().message).fontFamily ||
                         getFontData(data().message).preferredFamily

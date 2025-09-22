@@ -156,7 +156,6 @@ const handleSubmit = async () => {
       return;
     }
     const location = await response.text();
-    console.log("获取到的地址经纬度:", location);
 
     // 检查location是否为空或无效
     if (!location || location.trim() === "" || !location.includes(",")) {
@@ -271,8 +270,12 @@ const handleManualInput = () => {
 
 const footprintTypes = ref<Option[]>([]);
 onMounted(async () => {
-  footprintTypes.value =
-    await footprintApiClient.footprint.listFootprintTypes();
+  try {
+    const types = await footprintApiClient.footprint.listFootprintTypes();
+    footprintTypes.value = types;
+  } catch (error) {
+    console.error("FootprintEditingModal: 获取足迹类型失败:", error);
+  }
 });
 </script>
 

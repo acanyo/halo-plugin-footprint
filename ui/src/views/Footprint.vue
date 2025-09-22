@@ -174,7 +174,12 @@ const handleTypeSelect = (type: string | undefined) => {
 
 const footprintTypes = ref<Option[]>([]);
 onMounted(async () => {
-  footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
+  try {
+    const types = await footprintApiClient.footprint.listFootprintTypes();
+    footprintTypes.value = types;
+  } catch (error) {
+    console.error("Footprint.vue: 获取足迹类型失败:", error);
+  }
 });
 
 const handleUpdateLocation = (row: Footprint) => {
