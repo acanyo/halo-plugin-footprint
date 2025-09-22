@@ -4,4 +4,4 @@ pluginManagement {
     }
 }
 rootProject.name = 'plugin-footprint'
-
+include 'ui'
