@@ -24,16 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 先获取足迹数据，然后等待地图API加载
     fetchFootprints().then(() => {
-        console.log('足迹数据获取完成，等待地图API加载...');
-        
         // 等待AMap对象加载完成
         const checkAMap = () => {
             if (typeof AMap === 'undefined') {
-                console.warn('等待高德地图API加载...');
                 setTimeout(checkAMap, 100);
                 return;
             }
-            console.log('高德地图API加载成功，开始初始化地图');
             initializeApp();
         };
         checkAMap();
@@ -47,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(checkAMap, 100);
                 return;
             }
-            console.log('高德地图API加载成功，开始初始化地图（无足迹数据）');
             initializeApp();
         };
         checkAMap();
@@ -568,7 +563,6 @@ const initializeApp = async () => {
         initializeMapFeatures(map, layers);
 
         // 添加足迹标记
-        console.log('准备添加足迹标记，当前数据:', window.FOOTPRINT_CONFIG.footprints);
         addFootprintMarkers(map, window.FOOTPRINT_CONFIG.footprints);
 
         // 显示界面元素
@@ -674,8 +668,6 @@ function fetchFootprints() {
         .then(data => {
             if (Array.isArray(data)) {
                 window.FOOTPRINT_CONFIG.footprints = data;
-                // 足迹数据已更新，地图会在 initializeApp 中使用这些数据
-                console.log('足迹数据已更新:', data.length, '条记录');
             }
             return data;
         })
