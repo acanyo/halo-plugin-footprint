@@ -35,3 +35,18 @@ rules:
     verbs: [ "create", "patch", "update", "delete", "deletecollection" ]
   - nonResourceURLs: [ "/apis/api.plugin.halo.run/v1alpha1/plugins/plugin-footprint/footprint/*"]
     verbs: [ "create" , "delete" ]
+
+---
+
+apiVersion: v1alpha1
+kind: "Role"
+metadata:
+  name: role-template-manage-footprint
+  labels:
+    halo.run/role-template: "true"
+    halo.run/hidden: "true"
+    rbac.authorization.halo.run/aggregate-to-anonymous: "true"
+rules:
+  - apiGroups: ["api.footprint.lik.cc"]
+    resources: ["listAllFootprints"]
+    verbs: ["update", "create", "get", "list"]

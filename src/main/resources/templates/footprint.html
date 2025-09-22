@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${settings.title}">足迹 - 记录生活的每一步</title>
+    <!-- 引入足迹插件样式 -->
+    <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/css/footprint.css(version=${version})}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/font/result.css(version=${version})}" />
     <!-- 引入高德地图API -->
     <script type="text/javascript">
         window._AMapSecurityConfig = {
@@ -13,11 +16,13 @@
     <script type="text/javascript" th:src="|https://webapi.amap.com/maps?v=2.0&key=${settings.gaoDeKey}|"></script>
     <!-- 引入jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 引入足迹插件JS -->
+    <script type="text/javascript" th:src="@{/plugins/footprint/assets/static/js/footprint.js(version=${version})}"></script>
     <!-- 注入配置信息 -->
     <script th:inline="javascript">
         window.FOOTPRINT_CONFIG = {
             amapKey: /*[[${settings.gaoDeKey}]]*/'',
-            footprints: /*[[${footprints}]]*/ [],
+            footprints: [],
             title: /*[[${settings.title}]]*/ '足迹',
             logoName: /*[[${settings.logoName}]]*/ '足迹',
             describe: /*[[${settings.describe}]]*/ '描述',
@@ -80,5 +85,6 @@
             <div class="amap-scale-text">1000 公里</div>
         </div>
     </div>
+
 </body>
 </html> 

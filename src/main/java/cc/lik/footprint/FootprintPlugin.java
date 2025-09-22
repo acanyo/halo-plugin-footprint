@@ -36,6 +36,11 @@ public class FootprintPlugin extends BasePlugin {
                 .setIndexFunc(
                     simpleAttribute(Footprint.class,
                         footprint -> footprint.getSpec().getFootprintType())));
+            indexSpecs.add (new IndexSpec()
+                .setName("spec.createTime")
+                .setIndexFunc(
+                    simpleAttribute(Footprint.class,
+                        footprint -> String.valueOf(footprint.getSpec().getCreateTime()))));
         });
     }
 

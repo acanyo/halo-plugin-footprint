@@ -5,7 +5,6 @@ import { footprintApiClient } from "@/api";
 import type { Footprint, Option } from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { FormKit } from "@formkit/vue";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Teleport } from "vue";
 
 const props = withDefaults(

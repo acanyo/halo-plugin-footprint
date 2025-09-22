@@ -1,8 +1,8 @@
 package cc.lik.footprint;
 
 import cc.lik.footprint.model.Footprint;
-import cc.lik.footprint.dto.BaseConfig;
 import cc.lik.footprint.service.FootprintService;
+import org.pf4j.PluginWrapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -10,7 +10,6 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import run.halo.app.theme.TemplateNameResolver;
-import run.halo.app.plugin.ReactiveSettingFetcher;
 import run.halo.app.extension.ReactiveExtensionClient;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +30,7 @@ public class FootprintRouter {
     private final TemplateNameResolver templateNameResolver;
     private final ReactiveExtensionClient client;
     private final FootprintService footprintSvc;
+    private final PluginWrapper pluginWrapper;
 
     @Bean
     RouterFunction<ServerResponse> footprintRouterFunction() {
@@ -53,10 +53,10 @@ public class FootprintRouter {
                         0,
                         1000) // 获取所有足迹
                     .flatMap(footprints -> {
-                        log.info("获取到足迹数据: {} 条", footprints.getItems().size());
                         Map<String, Object> model = new HashMap<>();
                         model.put("settings", settings);
                         model.put("footprints", footprints.getItems());
+                        model.put("version", pluginWrapper.getDescriptor().getVersion());
 
                         return templateNameResolver.resolveTemplateNameOrDefault(
                                 request.exchange(), 

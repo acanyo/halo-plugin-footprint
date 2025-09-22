@@ -2,10 +2,11 @@ package cc.lik.footprint;
 
 import cc.lik.footprint.model.Footprint;
 import cc.lik.footprint.service.FootprintService;
+import cc.lik.footprint.finders.FootprintFinder;
+import cc.lik.footprint.vo.FootprintVo;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -14,7 +15,6 @@ import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.extension.ListResult;
 import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.extension.router.QueryParamBuildUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +30,7 @@ public class FootprintEndpoint implements CustomEndpoint {
 
     private final ReactiveExtensionClient client;
     private final FootprintService footprintService;
+    private final FootprintFinder footprintFinder;
     private final String footprintTag = "footprint.lik.cc/v1alpha1/footprints";
     private static final Logger log = LoggerFactory.getLogger(FootprintEndpoint.class);
 
@@ -51,6 +52,14 @@ public class FootprintEndpoint implements CustomEndpoint {
                     .response(responseBuilder()
                         .implementation(String.class)
                         .description("返回经纬度信息，格式：经度,纬度"));
+            })
+            .GET("/listAllFootprints", this::listAllFootprints, builder -> {
+                builder.operationId("ListAllFootprints")
+                    .tag(footprintTag)
+                    .description("获取所有足迹列表")
+                    .response(responseBuilder()
+                        .implementation(FootprintVo[].class)
+                        .description("返回所有足迹的视图对象列表"));
             })
             .build();
     }
@@ -96,6 +105,26 @@ public class FootprintEndpoint implements CustomEndpoint {
             .flatMap(listResult -> ServerResponse.ok().bodyValue(listResult));
     }
 
+    /**
+     * 获取所有足迹列表
+     */
+    private Mono<ServerResponse> listAllFootprints(ServerRequest request) {
+        log.info("开始获取所有足迹列表");
+        
+        return footprintFinder.listAll()
+            .collectList()
+            .flatMap(footprints -> {
+                log.info("成功获取到 {} 条足迹记录", footprints.size());
+                return ServerResponse.ok()
+                    .contentType(APPLICATION_JSON)
+                    .bodyValue(footprints);
+            })
+            .onErrorResume(e -> {
+                log.error("获取所有足迹列表失败", e);
+                return ServerResponse.status(500)
+                    .bodyValue("获取足迹列表失败: " + e.getMessage());
+            });
+    }
 
     private Mono<ServerResponse> getLocation(ServerRequest request) {
         String address = request.pathVariable("address");
