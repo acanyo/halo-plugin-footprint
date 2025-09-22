@@ -132,29 +132,44 @@ const layerConfig = {
     }
 };
 
-// 优化地图移动
+// 优化地图移动 - 减少动画时间，提升响应性
 const moveToLocation = (map, position) => {
     return new Promise((resolve) => {
-        // 启用动画
-        map.setStatus({animateEnable: true});
+        // 启用动画，但设置更短的动画时间
+        map.setStatus({
+            animateEnable: true,
+            scrollWheel: true,
+            doubleClickZoom: true,
+            keyboardEnable: true
+        });
         
         // 设置缩放级别
-        if (map.getZoom() < 14) {
-            map.setZoom(14);
+        const currentZoom = map.getZoom();
+        if (currentZoom < 14) {
+            map.setZoom(14, false); // 不启用动画，直接设置
         }
 
-        // 平移到目标位置
-        map.panTo(position);
+        // 平移到目标位置，使用更平滑的动画
+        map.panTo(position, 800); // 设置动画时间为800ms
         
-        // 等待动画完成
+        // 等待动画完成 - 使用更精确的检测
+        let animationCheckCount = 0;
+        const maxChecks = 50; // 最多检查50次，避免无限循环
+        
         const checkAnimation = () => {
+            animationCheckCount++;
             if (!map.isMoving && !map.isZooming) {
                 resolve();
+            } else if (animationCheckCount < maxChecks) {
+                setTimeout(checkAnimation, 50); // 每50ms检查一次
             } else {
-                requestAnimationFrame(checkAnimation);
+                // 超时强制完成
+                resolve();
             }
         };
-        checkAnimation();
+        
+        // 延迟开始检查，给动画一些时间
+        setTimeout(checkAnimation, 100);
     });
 };
 
@@ -333,6 +348,117 @@ const debounce = (func, wait) => {
     };
 };
 
+// 创建聚合标记
+const createClusterMarker = (count, position) => {
+    const markerContent = document.createElement('div');
+    markerContent.className = 'likcc-footprint-cluster-marker';
+    
+    // 根据数量设置不同的大小类
+    if (count >= 100) {
+        markerContent.classList.add('likcc-footprint-cluster-xlarge');
+    } else if (count >= 50) {
+        markerContent.classList.add('likcc-footprint-cluster-large');
+    } else if (count >= 10) {
+        markerContent.classList.add('likcc-footprint-cluster-medium');
+    } else {
+        markerContent.classList.add('likcc-footprint-cluster-small');
+    }
+    
+    // 所有标记都使用统一的主题色，通过CSS变量自动适配
+    
+    // 添加数字文本
+    markerContent.appendChild(document.createTextNode(count));
+    
+    // 添加底部三角形指针
+    const pointer = document.createElement('div');
+    pointer.className = 'likcc-footprint-cluster-pointer';
+    markerContent.appendChild(pointer);
+    
+    
+    return markerContent;
+};
+
+// 计算标记点之间的距离
+const calculateDistance = (pos1, pos2) => {
+    const R = 6371000; // 地球半径（米）
+    const lat1 = pos1.lat * Math.PI / 180;
+    const lat2 = pos2.lat * Math.PI / 180;
+    const deltaLat = (pos2.lat - pos1.lat) * Math.PI / 180;
+    const deltaLng = (pos2.lng - pos1.lng) * Math.PI / 180;
+    
+    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    
+    return R * c;
+};
+
+// 聚合标记点 - 优化算法
+const clusterMarkers = (footprints, clusterDistance = 10000) => { // 10km聚合距离
+    const clusters = [];
+    const processed = new Set();
+    
+    // 按经纬度排序，提高聚合效率
+    const sortedFootprints = footprints
+        .map((footprint, index) => ({
+            footprint,
+            index,
+            lng: parseFloat(footprint.spec.longitude),
+            lat: parseFloat(footprint.spec.latitude)
+        }))
+        .filter(item => !isNaN(item.lng) && !isNaN(item.lat))
+        .sort((a, b) => a.lng - b.lng);
+    
+    sortedFootprints.forEach(({ footprint, index, lng, lat }) => {
+        if (processed.has(index)) return;
+        
+        const cluster = {
+            footprints: [footprint],
+            center: { lng, lat },
+            count: 1,
+            bounds: { minLng: lng, maxLng: lng, minLat: lat, maxLat: lat }
+        };
+        
+        // 查找附近的标记点
+        sortedFootprints.forEach(({ footprint: otherFootprint, index: otherIndex, lng: otherLng, lat: otherLat }) => {
+            if (otherIndex === index || processed.has(otherIndex)) return;
+            
+            // 快速距离检查 - 如果经度差太大，直接跳过
+            const lngDiff = Math.abs(otherLng - lng);
+            if (lngDiff > clusterDistance / 111000) { // 粗略的经度距离检查
+                return;
+            }
+            
+            const distance = calculateDistance(
+                { lng, lat },
+                { lng: otherLng, lat: otherLat }
+            );
+            
+            if (distance <= clusterDistance) {
+                cluster.footprints.push(otherFootprint);
+                cluster.count++;
+                processed.add(otherIndex);
+                
+                // 更新聚合中心点
+                cluster.center.lng = (cluster.center.lng * (cluster.count - 1) + otherLng) / cluster.count;
+                cluster.center.lat = (cluster.center.lat * (cluster.count - 1) + otherLat) / cluster.count;
+                
+                // 更新边界
+                cluster.bounds.minLng = Math.min(cluster.bounds.minLng, otherLng);
+                cluster.bounds.maxLng = Math.max(cluster.bounds.maxLng, otherLng);
+                cluster.bounds.minLat = Math.min(cluster.bounds.minLat, otherLat);
+                cluster.bounds.maxLat = Math.max(cluster.bounds.maxLat, otherLat);
+            }
+        });
+        
+        processed.add(index);
+        clusters.push(cluster);
+    });
+    
+    return clusters;
+};
+
 // 添加足迹标记
 const addFootprintMarkers = (map, footprintData) => {
     if (!Array.isArray(footprintData) || footprintData.length === 0) {
@@ -382,63 +508,138 @@ const addFootprintMarkers = (map, footprintData) => {
         });
     };
 
-    footprintData.forEach(footprint => {
-        const longitude = parseFloat(footprint.spec.longitude);
-        const latitude = parseFloat(footprint.spec.latitude);
+    // 根据缩放级别决定是否聚合
+    const currentZoom = map.getZoom();
+    const shouldCluster = currentZoom < 8; // 缩放级别小于8时进行聚合
+    
+    if (shouldCluster) {
+        // 聚合模式
+        const clusters = clusterMarkers(footprintData);
+        clusters.forEach(cluster => {
+            if (cluster.count === 1) {
+                // 单个标记点
+                const footprint = cluster.footprints[0];
+                const position = new AMap.LngLat(cluster.center.lng, cluster.center.lat);
+                const marker = new AMap.Marker({
+                    position: position,
+                    content: createMarker(footprint.spec),
+                    anchor: 'bottom-center',
+                    offset: new AMap.Pixel(0, 0)
+                });
 
-        if (isNaN(longitude) || isNaN(latitude)) {
-            console.warn('无效的经纬度数据:', footprint);
-            return;
-        }
+                marker.on('click', async () => {
+                    if (currentMarker === marker) {
+                        infoWindow.close();
+                        currentMarker = null;
+                        return;
+                    }
 
-        try {
-            const position = new AMap.LngLat(longitude, latitude);
-            const marker = new AMap.Marker({
-                position: position,
-                content: createMarker(footprint.spec),
-                anchor: 'bottom-center',
-                offset: new AMap.Pixel(0, 0)
-            });
+                    if (currentMarker) {
+                        infoWindow.close();
+                    }
 
-            marker.on('click', async () => {
-                // 如果当前标记已经打开，则关闭它
-                if (currentMarker === marker) {
-                    infoWindow.close();
-                    currentMarker = null;
-                    return;
-                }
+                    const content = createInfoWindow(footprint.spec);
+                    const currentPos = map.getCenter();
+                    const distance = position.distance(currentPos);
+                    const currentZoom = map.getZoom();
+                    
+                    const needsMovement = distance > 1000 || currentZoom < 13;
+                    
+                    if (needsMovement) {
+                        await moveToLocation(map, position);
+                    }
+                    
+                    openInfoWindow(position, content);
+                    currentMarker = marker;
+                });
 
-                // 先关闭当前窗体
-                if (currentMarker) {
-                    infoWindow.close();
-                }
+                map.add(marker);
+            } else {
+                // 聚合标记点
+                const position = new AMap.LngLat(cluster.center.lng, cluster.center.lat);
+                const markerContent = createClusterMarker(cluster.count, cluster.center);
+                const marker = new AMap.Marker({
+                    position: position,
+                    content: markerContent,
+                    anchor: 'bottom-center',
+                    offset: new AMap.Pixel(0, 0)
+                });
 
-                // 构建信息窗体内容
-                const content = createInfoWindow(footprint.spec);
+                marker.on('click', async () => {
+                    // 聚合标记点击时放大到该区域
+                    const currentZoom = map.getZoom();
+                    const targetZoom = Math.min(currentZoom + 3, 15);
+                    
+                    // 计算聚合区域的边界
+                    const bounds = cluster.bounds;
+                    const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+                    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+                    const center = new AMap.LngLat(centerLng, centerLat);
+                    
+                    // 平滑缩放到聚合区域
+                    map.setZoomAndCenter(targetZoom, center, true, 1000);
+                    
+                    // 添加脉冲动画效果
+                    markerContent.classList.add('likcc-footprint-cluster-pulse');
+                    setTimeout(() => {
+                        markerContent.classList.remove('likcc-footprint-cluster-pulse');
+                    }, 600);
+                });
 
-                // 检查是否需要移动地图
-                const currentPos = map.getCenter();
-                const distance = position.distance(currentPos);
-                const currentZoom = map.getZoom();
-                
-                // 如果距离超过1公里或缩放级别不够，需要移动地图
-                const needsMovement = distance > 1000 || currentZoom < 13;
-                
-                if (needsMovement) {
-                    // 先移动地图，等待移动完成后再打开窗口
-                    await moveToLocation(map, position);
-                }
-                
-                // 打开信息窗口
-                openInfoWindow(position, content);
-                currentMarker = marker;
-            });
+                map.add(marker);
+            }
+        });
+    } else {
+        footprintData.forEach(footprint => {
+            const longitude = parseFloat(footprint.spec.longitude);
+            const latitude = parseFloat(footprint.spec.latitude);
 
-            map.add(marker);
-        } catch (error) {
-            console.error('创建标记失败:', error, footprint);
-        }
-    });
+            if (isNaN(longitude) || isNaN(latitude)) {
+                console.warn('无效的经纬度数据:', footprint);
+                return;
+            }
+
+            try {
+                const position = new AMap.LngLat(longitude, latitude);
+                const marker = new AMap.Marker({
+                    position: position,
+                    content: createMarker(footprint.spec),
+                    anchor: 'bottom-center',
+                    offset: new AMap.Pixel(0, 0)
+                });
+
+                marker.on('click', async () => {
+                    if (currentMarker === marker) {
+                        infoWindow.close();
+                        currentMarker = null;
+                        return;
+                    }
+
+                    if (currentMarker) {
+                        infoWindow.close();
+                    }
+
+                    const content = createInfoWindow(footprint.spec);
+                    const currentPos = map.getCenter();
+                    const distance = position.distance(currentPos);
+                    const currentZoom = map.getZoom();
+                    
+                    const needsMovement = distance > 1000 || currentZoom < 13;
+                    
+                    if (needsMovement) {
+                        await moveToLocation(map, position);
+                    }
+                    
+                    openInfoWindow(position, content);
+                    currentMarker = marker;
+                });
+
+                map.add(marker);
+            } catch (error) {
+                console.error('创建标记失败:', error, footprint);
+            }
+        });
+    }
 };
 
 // 优化图层切换
@@ -524,10 +725,16 @@ const addButtonAnimation = (button) => {
     });
 };
 
-// 初始化应用
+// 初始化应用 - 优化加载性能
 const initializeApp = async () => {
     try {
-        // 创建地图实例
+        // 显示加载状态
+        const mapContainer = document.getElementById('footprint-map');
+        if (mapContainer) {
+            mapContainer.classList.add('map-loading');
+        }
+
+        // 创建地图实例 - 优化配置减少初始加载负担
         const map = new AMap.Map('footprint-map', {
             zoom: 4,
             center: [116.397428, 39.90923],
@@ -535,7 +742,14 @@ const initializeApp = async () => {
             viewMode: '3D',
             pitch: 0,
             features: ['bg', 'road', 'building', 'point'],
-            showBuildingBlock: true
+            showBuildingBlock: false, // 初始不显示建筑块
+            animateEnable: true,
+            scrollWheel: true,
+            doubleClickZoom: true,
+            keyboardEnable: true,
+            dragEnable: true,
+            zoomEnable: true,
+            resizeEnable: true
         });
         
         // 保存地图实例到全局变量
@@ -543,38 +757,57 @@ const initializeApp = async () => {
 
         // 等待地图加载完成
         await new Promise(resolve => {
-            map.on('complete', resolve);
+            map.on('complete', () => {
+                // 移除加载状态
+                if (mapContainer) {
+                    mapContainer.classList.remove('map-loading');
+                    mapContainer.classList.add('map-loaded');
+                }
+                resolve();
+            });
         });
 
-        // 创建图层
-        const layers = {
-            satellite: new AMap.TileLayer.Satellite(),
-            road: new AMap.TileLayer.RoadNet(),
-            traffic: new AMap.TileLayer.Traffic()
-        };
+        // 延迟创建图层，避免阻塞初始渲染
+        setTimeout(() => {
+            // 创建图层
+            const layers = {
+                satellite: new AMap.TileLayer.Satellite(),
+                road: new AMap.TileLayer.RoadNet(),
+                traffic: new AMap.TileLayer.Traffic()
+            };
 
-        // 添加图层到地图
-        Object.values(layers).forEach(layer => {
-            map.add(layer);
-            layer.hide();
-        });
+            // 添加图层到地图
+            Object.values(layers).forEach(layer => {
+                map.add(layer);
+                layer.hide();
+            });
 
-        // 初始化地图功能
-        initializeMapFeatures(map, layers);
+            // 初始化地图功能
+            initializeMapFeatures(map, layers);
+        }, 100);
 
         // 添加足迹标记
         addFootprintMarkers(map, window.FOOTPRINT_CONFIG.footprints);
 
-        // 显示界面元素
-        showElements();
+        // 延迟显示界面元素，避免阻塞地图渲染
+        setTimeout(() => {
+            showElements();
+        }, 200);
 
         // 为所有控制按钮添加点击动画
-        document.querySelectorAll('.control-btn, .zoom-controls button').forEach(button => {
-            addButtonAnimation(button);
-        });
+        setTimeout(() => {
+            document.querySelectorAll('.control-btn, .zoom-controls button').forEach(button => {
+                addButtonAnimation(button);
+            });
+        }, 300);
 
     } catch (error) {
         console.error('初始化地图时发生错误:', error);
+        // 移除加载状态
+        const mapContainer = document.getElementById('footprint-map');
+        if (mapContainer) {
+            mapContainer.classList.remove('map-loading');
+        }
     }
 };
 
@@ -593,23 +826,35 @@ const initializeMapFeatures = (map, layers) => {
         };
     };
 
-    // 优化比例尺更新
+    // 优化比例尺更新 - 增加防抖时间，减少更新频率
     const updateScaleText = debounce(() => {
         requestAnimationFrame(() => {
             const originalScaleText = document.querySelector('.amap-scale-text');
             if (originalScaleText) {
-                document.querySelector('.map-controls .amap-scale-text').textContent = originalScaleText.textContent;
+                const scaleText = document.querySelector('.map-controls .amap-scale-text');
+                if (scaleText) {
+                    scaleText.textContent = originalScaleText.textContent;
+                }
                 const originalScale = document.querySelector('.amap-scale');
                 if (originalScale) {
                     originalScale.style.display = 'none';
                 }
             }
         });
-    }, 100);
+    }, 300); // 增加防抖时间到300ms
 
-    // 添加事件监听
-    map.on('zoom', updateScaleText);
+    // 添加事件监听 - 只在缩放结束时更新
+    map.on('zoomend', updateScaleText);
     map.on('moveend', updateScaleText);
+    
+    // 监听缩放事件，重新渲染标记点
+    map.on('zoomend', () => {
+        // 清除现有标记
+        map.clearMap();
+        
+        // 重新添加足迹标记
+        addFootprintMarkers(map, window.FOOTPRINT_CONFIG.footprints);
+    });
 
     // 优化图层控制
     const layerState = {
@@ -648,14 +893,27 @@ const initializeMapFeatures = (map, layers) => {
         });
     });
 
-    // 处理缩放按钮点击
-    document.getElementById('zoom-in').addEventListener('click', () => {
-        map.setZoom(map.getZoom() + 1);
-    });
-
-    document.getElementById('zoom-out').addEventListener('click', () => {
-        map.setZoom(map.getZoom() - 1);
-    });
+    // 处理缩放按钮点击 - 添加防抖和动画优化
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', debounce(() => {
+            const currentZoom = map.getZoom();
+            if (currentZoom < 18) { // 限制最大缩放级别
+                map.setZoom(currentZoom + 1);
+            }
+        }, 200));
+    }
+    
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', debounce(() => {
+            const currentZoom = map.getZoom();
+            if (currentZoom > 3) { // 限制最小缩放级别
+                map.setZoom(currentZoom - 1);
+            }
+        }, 200));
+    }
 
     // 初始化图层状态
     updateLayers(layerState, layers);

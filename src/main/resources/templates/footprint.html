@@ -7,6 +7,93 @@
     <!-- 引入足迹插件样式 -->
     <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/css/footprint.css(version=${version})}" />
     <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/font/result.css(version=${version})}" />
+    <!-- 加载动画样式 -->
+    <style>
+        .map-loading {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .map-loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            animation: mapLoading 1s linear infinite;
+            z-index: 1000;
+        }
+        
+        .map-loading::after {
+            content: '地图加载中...';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1001;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes mapLoading {
+            0% { background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
+            100% { background-position: 20px 20px, 20px 30px, 30px 10px, 10px 20px; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        .map-loaded {
+            animation: mapFadeIn 0.5s ease-out;
+        }
+        
+        @keyframes mapFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* 优化缩放按钮响应 */
+        .zoom-btn {
+            transition: all 0.2s ease;
+            will-change: transform;
+        }
+        
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .zoom-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* 优化控制按钮响应 */
+        .control-btn {
+            transition: all 0.2s ease;
+            will-change: transform, background-color;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+    </style>
     <!-- 引入高德地图API -->
     <script type="text/javascript">
         window._AMapSecurityConfig = {

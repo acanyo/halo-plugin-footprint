@@ -1354,3 +1354,160 @@
             padding-left: 10px;
         }
     }
+.likcc-footprint-cluster-marker {
+    /* 基础布局 */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    
+    /* 现代字体 */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    
+    /* 流畅动画 */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    
+    /* 默认尺寸 */
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+    
+    border-radius: 50%;
+    
+    /* 纯色背景 - 使用标题颜色 */
+    background: hsl(var(--hsla-raw));
+    
+    /* 简洁阴影 */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    
+    /* 文字颜色 */
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 不同数量的标记大小和样式 */
+.likcc-footprint-cluster-marker.likcc-footprint-cluster-small {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.likcc-footprint-cluster-marker.likcc-footprint-cluster-medium {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.likcc-footprint-cluster-marker.likcc-footprint-cluster-large {
+    width: 52px;
+    height: 52px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 50%;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+
+.likcc-footprint-cluster-marker.likcc-footprint-cluster-xlarge {
+    width: 60px;
+    height: 60px;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 现代高光效果 */
+.likcc-footprint-cluster-marker::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.3) 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+
+/* 简洁悬停效果 */
+.likcc-footprint-cluster-marker:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 悬停外圈效果已移除 */
+
+/* 简洁点击效果 */
+.likcc-footprint-cluster-marker:active {
+    transform: scale(0.95);
+    transition: all 0.1s ease;
+}
+
+/* 简洁脉冲动画 */
+@keyframes likcc-footprint-cluster-pulse {
+    0% { 
+        transform: scale(1); 
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    50% { 
+        transform: scale(1.05); 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    100% { 
+        transform: scale(1); 
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+}
+
+.likcc-footprint-cluster-marker.likcc-footprint-cluster-pulse {
+    animation: likcc-footprint-cluster-pulse 0.8s ease-in-out;
+}
+
+/* 现代底部指针 */
+.likcc-footprint-cluster-pointer {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid hsl(var(--hsla-h), var(--hsla-s), calc(var(--hsla-l) - 15%));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    z-index: -1;
+}
+
+/* 指针高光效果 */
+.likcc-footprint-cluster-pointer::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -4px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid rgba(255, 255, 255, 0.2);
+    z-index: 1;
+}
