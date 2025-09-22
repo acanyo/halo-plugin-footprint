@@ -106,7 +106,8 @@ const {
       return [];
     }
   },
-  refetchInterval: (data) => {
+  refetchInterval: (query) => {
+    const data = query.state.data;
     if (!data) return false;
     // 检查是否有正在删除的足迹
     let hasDeletingFootprints = false;
@@ -155,7 +156,7 @@ const handleDeleteInBatch = () => {
   });
 };
 
-const handleOpenCreateModal = (footprint: Footprint) => {
+const handleOpenCreateModal = (footprint?: Footprint) => {
   selectedFootprint.value = footprint;
   editingModal.value = true;
 };

@@ -89,11 +89,11 @@ export class FootprintApi {
    */
   async listFootprintTypes(): Promise<Option[]> {
     try {
-      const { data } = await consoleApiClient.plugin.plugin.fetchPluginConfig({
+      const { data } = await consoleApiClient.plugin.plugin.fetchPluginJsonConfig({
         name: 'footprint'
       });
 
-      const { advanced } = data?.data ?? {};
+      const { advanced } = (data as any)?.data ?? {};
       const { footprintTypes = [] } = advanced ? JSON.parse(advanced) : {};
 
       return footprintTypes.map((type: Option) => ({

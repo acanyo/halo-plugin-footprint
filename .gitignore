@@ -74,3 +74,4 @@ application-local.properties
 /workplace/
 /src/main/resources/console/
 /ui/plugin-douban-main/
+/node_modules/

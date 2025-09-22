@@ -1,8 +1,11 @@
 {
 	"dependencies": {
+		"@formkit/vue": "^1.6.9",
 		"@halo-dev/api-client": "^2.20.0",
 		"@tanstack/vue-query": "^5.68.0",
-		"axios": "^1.8.3"
+		"axios": "^1.8.3",
+		"dayjs": "^1.11.18",
+		"javascript-time-ago": "^2.5.12"
 	},
 	"devDependencies": {
 		"@types/lodash.clonedeep": "^4.5.9"
