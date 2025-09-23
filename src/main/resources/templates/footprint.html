@@ -7,6 +7,8 @@
     <!-- 引入足迹插件样式 -->
     <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/css/footprint.css(version=${version})}" />
     <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/font/result.css(version=${version})}" />
+    <!-- 引入jQuery -->
+    <script type="text/javascript" th:src="@{/plugins/footprint/assets/static/js/jquery-3.6.0.min.js}"></script>
     <!-- 引入高德地图API -->
     <script type="text/javascript">
         window._AMapSecurityConfig = {
@@ -14,8 +16,6 @@
         }
     </script>
     <script type="text/javascript" th:src="|https://webapi.amap.com/maps?v=2.0&key=${settings.gaoDeKey}|"></script>
-    <!-- 引入jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- 引入足迹插件JS -->
     <script type="text/javascript" th:src="@{/plugins/footprint/assets/static/js/footprint.js(version=${version})}"></script>
     <!-- 注入配置信息 -->
