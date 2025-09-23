@@ -9,7 +9,7 @@ spec:
       formSchema:
         - $el: a
           attrs:
-            href: "https://www.lik.cc/docs/halo-plugins"
+            href: "https://docs.lik.cc"
             class: "py-4 block"
             target: "_blank"
             style:
@@ -19,27 +19,7 @@ spec:
               align-items: "center"
           children:
             - $el: span
-              children: "查看 足迹 帮助文档"
-            - $el: img
-              attrs:
-                src: "/plugins/footprint/assets/static/img/link.svg"
-                width: "14px"
-                height: "14px"
-                style:
-                  margin-left: "4px"
-        - $el: a
-          attrs:
-            href: "https://www.lik.cc/archives/microimmersion"
-            class: "py-4 block"
-            target: "_blank"
-            style:
-              color: "#1890ff"
-              fontSize: "0.875em"
-              display: "flex"
-              align-items: "center"
-          children:
-            - $el: span
-              children: "推荐halo主题"
+              children: "查看 智阅GPT 帮助文档"
             - $el: img
               attrs:
                 src: "/plugins/footprint/assets/static/img/link.svg"
@@ -48,14 +28,40 @@ spec:
                 style:
                   margin-left: "4px"
         - $el: span
-          children: "加入交流群"
-        - $el: img
+          children: "Halo交流群"
+        - $el: div
           attrs:
-            src: "https://www.lik.cc/upload/iShot_2025-03-03_16.03.00.png"
-            width: "100px"
-            height: "120px"
             style:
-              margin-left: "80px"
+              display: "flex"
+              gap: "8px"
+              marginTop: "8px"
+          children:
+            - $el: a
+              attrs:
+                href: "https://qm.qq.com/q/mPJeUOtG5G"
+                target: "_blank"
+                style:
+                  color: "#1890ff"
+                  fontSize: "0.875em"
+                  padding: "4px 8px"
+                  backgroundColor: "#f0f8ff"
+                  borderRadius: "4px"
+                  textDecoration: "none"
+                  border: "1px solid #d1e7ff"
+              children: "加入群聊 766203360"
+            - $el: button
+              attrs:
+                type: "button"
+                onclick: "navigator.clipboard.writeText('766203360').then(() => alert('群号已复制到剪贴板'))"
+                style:
+                  color: "#1890ff"
+                  fontSize: "0.875em"
+                  padding: "4px 8px"
+                  backgroundColor: "#f0f8ff"
+                  borderRadius: "4px"
+                  border: "1px solid #d1e7ff"
+                  cursor: "pointer"
+              children: "复制群号"
         - $formkit: text
           label: 页面标题
           name: title
@@ -122,7 +128,7 @@ spec:
               value: amap://styles/wine
 
     - group: advanced
-      label: 高级设置
+      label: 标签设置
       formSchema:
         - $formkit: list
           name: footprintTypes
