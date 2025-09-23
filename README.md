@@ -4,6 +4,9 @@
 > 🗺️ 记录生活轨迹，分享旅途故事 | Record life tracks, share journey stories
 
 ![Logo](https://www.lik.cc/upload/logo.svg)
+
+![演示图](https://www.lik.cc/upload/Google%20Chrome%202025-09-23%2016.26.54.png)
+
 [演示站](https://www.lik.cc/footprints)
 ## 项目介绍
 
