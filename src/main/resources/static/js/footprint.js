@@ -117,27 +117,48 @@ const moveToLocation = (map, position) => {
         });
         
         const currentZoom = map.getZoom();
-        if (currentZoom < 14) {
-            map.setZoom(14, false);
+        const currentCenter = map.getCenter();
+        const distance = position.distance(currentCenter);
+        
+        // 直接设置到100米级别的缩放，确保一次点击就能到达
+        const targetZoom = 18; 
+        
+        // 先缩放到目标级别，然后移动
+        if (targetZoom > currentZoom) {
+            map.setZoom(targetZoom, true, 600);
+            // 等待缩放完成后再移动
+            setTimeout(() => {
+                map.panTo(position, 800);
+            }, 100);
+        } else {
+            // 不需要缩放，直接移动
+            map.panTo(position, 800);
         }
-
-        map.panTo(position, 800);
         
-        let animationCheckCount = 0;
-        const maxChecks = 50;
+        // 监听移动完成事件，使用更简单可靠的检测方法
+        let completed = false;
         
-        const checkAnimation = () => {
-            animationCheckCount++;
-            if (!map.isMoving && !map.isZooming) {
-                resolve();
-            } else if (animationCheckCount < maxChecks) {
-                setTimeout(checkAnimation, 50);
-            } else {
-                resolve();
-            }
+        const onComplete = () => {
+            if (completed) return;
+            completed = true;
+            map.off('moveend', onComplete);
+            map.off('zoomend', onComplete);
+            resolve();
         };
         
-        setTimeout(checkAnimation, 100);
+        // 添加移动完成监听器
+        map.on('moveend', onComplete);
+        map.on('zoomend', onComplete);
+        
+        // 备用超时机制，确保不会永远等待
+        setTimeout(() => {
+            if (!completed) {
+                completed = true;
+                map.off('moveend', onComplete);
+                map.off('zoomend', onComplete);
+                resolve();
+            }
+        }, 1500);
     });
 };
 
@@ -175,6 +196,12 @@ const formatTime = (timeString) => {
     }
 };
 
+const ICONS = {
+    type: '<path d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z"></path><path d="M9 12h6"></path>',
+    time: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>',
+    location: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path><circle cx="12" cy="10" r="3"></circle>'
+};
+
 function createInfoWindow(spec) {
     const {
         image = '',
@@ -198,101 +225,43 @@ function createInfoWindow(spec) {
         }).replace(/\//g, '-');
     };
 
-    const imageHtml = image ? `
-        <div class="image">
-            <img src="${image}" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
-            <div class="image-info">
-                <h3 class="title">${name}</h3>
-                <div class="meta">
-                    <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z"></path>
-                            <path d="M9 12h6"></path>
-                        </svg>
-                        ${footprintType || '未知类型'}
-                    </span>
-                </div>
-                <div class="meta">
-                    <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        ${formatDate(createTime)}
-                    </span>
-                </div>
-                <div class="meta">
-                    <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        ${address || '未知位置'}
-                    </span>
-                </div>
-                ${description ? `<p class="description">${description}</p>` : ''}
-                ${article ? `
-                    <a href="javascript:void(0)" data-article-url="${article}" class="article-btn">
-                        查看文章
-                        <div class="arrow-wrapper">
-                            <div class="arrow"></div>
-                        </div>
-                    </a>
-                ` : ''}
-            </div>
-        </div>
-    ` : `
-        <div class="image">
-            <img src="https://www.lik.cc/upload/loading8.gif" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
-            <div class="image-info">
-                <h3 class="title">${name}</h3>
-                <div class="meta">
-                    <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z"></path>
-                            <path d="M9 12h6"></path>
-                        </svg>
-                        ${footprintType || '未知类型'}
-                    </span>
-                </div>
-                <div class="meta">
-                    <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        ${formatDate(createTime)}
-                    </span>
-                </div>
-                <div class="meta">
-                    <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        ${address || '未知位置'}
-                    </span>
-                </div>
-                ${description ? `<p class="description">${description}</p>` : ''}
-                ${article ? `
-                    <a href="javascript:void(0)" data-article-url="${article}" class="article-btn">
-                        查看文章
-                        <div class="arrow-wrapper">
-                            <div class="arrow"></div>
-                        </div>
-                    </a>
-                ` : ''}
-            </div>
+    const createMetaItem = (icon, text) => `
+        <div class="meta">
+            <span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    ${icon}
+                </svg>
+                ${text}
+            </span>
         </div>
     `;
 
+    const metaItems = [
+        createMetaItem(ICONS.type, footprintType || '未知类型'),
+        createMetaItem(ICONS.time, formatDate(createTime)),
+        createMetaItem(ICONS.location, address || '未知位置')
+    ].join('');
+
+    const articleHtml = article ? `
+        <a href="javascript:void(0)" data-article-url="${article}" class="article-btn">
+            查看文章
+            <div class="arrow-wrapper">
+                <div class="arrow"></div>
+            </div>
+        </a>
+    ` : '';
+
     return `
         <div class="info-window">
-            ${imageHtml}
+            <div class="image">
+                <img src="${image || 'https://www.lik.cc/upload/loading8.gif'}" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
+                <div class="image-info">
+                    <h3 class="title">${name}</h3>
+                    ${metaItems}
+                    ${description ? `<p class="description">${description}</p>` : ''}
+                    ${articleHtml}
+                </div>
+            </div>
         </div>
     `;
 }
@@ -426,7 +395,11 @@ const addFootprintMarkers = (map, footprintData) => {
         globalInfoWindow.setContent(content);
         globalInfoWindow.open(map, position);
         currentMarker = marker;
-        map.setPitch(60);
+        
+        // 延迟设置3D效果，确保信息窗口完全渲染后再应用
+        setTimeout(() => {
+            map.setPitch(60);
+        }, 100);
         
         setTimeout(() => {
             const infoWindowElement = document.querySelector('.info-window');
@@ -464,7 +437,8 @@ const addFootprintMarkers = (map, footprintData) => {
 
     // 根据缩放级别决定是否聚合
     const currentZoom = map.getZoom();
-    const shouldCluster = currentZoom < 8; // 缩放级别小于8时进行聚合
+    // 降低聚合阈值，让更多情况下使用非聚合模式，确保移动端和电脑端行为一致
+    const shouldCluster = currentZoom < 6; // 缩放级别小于6时进行聚合
     
     if (shouldCluster) {
         // 聚合模式
@@ -497,21 +471,11 @@ const addFootprintMarkers = (map, footprintData) => {
                     }
 
                     const content = createInfoWindow(footprint.spec);
-                    const currentPos = map.getCenter();
-                    const distance = position.distance(currentPos);
-                    const currentZoom = map.getZoom();
                     
-                    const needsMovement = distance > 1000 || currentZoom < 13;
-                    
-                    if (needsMovement) {
-                        // 先移动地图，等待移动完成后再打开信息窗口
-                        await moveToLocation(map, position);
-                        // 移动完成后打开信息窗口
-                        openInfoWindow(position, content, marker);
-                    } else {
-                        // 不需要移动，直接打开信息窗口
-                        openInfoWindow(position, content, marker);
-                    }
+                    // 统一移动逻辑：所有设备都先移动到位置，再打开信息窗口
+                    await moveToLocation(map, position);
+                    // 移动完成后打开信息窗口
+                    openInfoWindow(position, content, marker);
                 });
 
                 map.add(marker);
@@ -537,8 +501,11 @@ const addFootprintMarkers = (map, footprintData) => {
                     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
                     const center = new AMap.LngLat(centerLng, centerLat);
                     
-                    // 平滑缩放到聚合区域
-                    map.setZoomAndCenter(targetZoom, center, true, 1000);
+                    // 使用统一的移动逻辑
+                    await moveToLocation(map, center);
+                    
+                    // 设置目标缩放级别
+                    map.setZoom(targetZoom, false);
                     
                     // 添加脉冲动画效果
                     markerContent.classList.add('likcc-footprint-cluster-pulse');
@@ -585,21 +552,11 @@ const addFootprintMarkers = (map, footprintData) => {
                     }
 
                     const content = createInfoWindow(footprint.spec);
-                    const currentPos = map.getCenter();
-                    const distance = position.distance(currentPos);
-                    const currentZoom = map.getZoom();
                     
-                    const needsMovement = distance > 1000 || currentZoom < 13;
-                    
-                    if (needsMovement) {
-                        // 先移动地图，等待移动完成后再打开信息窗口
-                        await moveToLocation(map, position);
-                        // 移动完成后打开信息窗口
-                        openInfoWindow(position, content, marker);
-                    } else {
-                        // 不需要移动，直接打开信息窗口
-                        openInfoWindow(position, content, marker);
-                    }
+                    // 统一移动逻辑：所有设备都先移动到位置，再打开信息窗口
+                    await moveToLocation(map, position);
+                    // 移动完成后打开信息窗口
+                    openInfoWindow(position, content, marker);
                 });
 
                 map.add(marker);
@@ -616,7 +573,7 @@ const handleLayerChange = (btn, type, layerState, map, layers) => {
     
     requestAnimationFrame(() => {
         if (type === 'normal' || type === 'satellite') {
-            const baseButtons = document.querySelectorAll('.control-btn[data-type="normal"], .control-btn[data-type="satellite"]');
+            const baseButtons = document.querySelectorAll('.likcc-layer-btn[data-type="normal"], .likcc-layer-btn[data-type="satellite"]');
             baseButtons.forEach(button => button.classList.remove('active'));
             
             const mapContainer = document.getElementById('footprint-map');
@@ -708,9 +665,10 @@ const initializeApp = async () => {
             center: [116.397428, 39.90923],
             mapStyle: window.FOOTPRINT_CONFIG.mapStyle || 'amap://styles/normal',
             viewMode: '3D',
-            pitch: 0,
+            pitch: 45, // 设置俯仰角度以显示3D效果
+            rotation: 0, // 设置旋转角度
             features: ['bg', 'road', 'building', 'point'],
-            showBuildingBlock: false, // 初始不显示建筑块
+            showBuildingBlock: true, // 启用3D建筑模型
             animateEnable: true,
             scrollWheel: true,
             doubleClickZoom: true,
@@ -859,7 +817,7 @@ const initializeMapFeatures = (map, layers) => {
     };
 
     // 处理基础图层按钮点击
-    document.querySelectorAll('.control-btn[data-type]').forEach(btn => {
+    document.querySelectorAll('.likcc-layer-btn[data-type]').forEach(btn => {
         btn.addEventListener('click', () => {
             const type = btn.dataset.type;
             if (type === 'normal' || type === 'satellite') {
@@ -868,8 +826,8 @@ const initializeMapFeatures = (map, layers) => {
         });
     });
 
-    // 处理飞机开关的变化事件
-    document.querySelectorAll('.plane-switch input[type="checkbox"]').forEach(checkbox => {
+    // 处理功能开关的变化事件
+    document.querySelectorAll('.likcc-toggle-item input[type="checkbox"]').forEach(checkbox => {
         const type = checkbox.dataset.type;
         checkbox.addEventListener('change', () => {
             layerState.overlays[type] = checkbox.checked;
@@ -890,11 +848,37 @@ const initializeMapFeatures = (map, layers) => {
     const zoomInBtn = document.getElementById('zoom-in');
     const zoomOutBtn = document.getElementById('zoom-out');
     
+    // 比例尺更新函数
+    const updateScale = () => {
+        const scaleText = document.getElementById('scale-text');
+        if (scaleText) {
+            const zoom = map.getZoom();
+            let scale = '';
+            
+            if (zoom >= 15) {
+                scale = '100 米';
+            } else if (zoom >= 12) {
+                scale = '1 公里';
+            } else if (zoom >= 9) {
+                scale = '10 公里';
+            } else if (zoom >= 6) {
+                scale = '100 公里';
+            } else if (zoom >= 3) {
+                scale = '1000 公里';
+            } else {
+                scale = '10000 公里';
+            }
+            
+            scaleText.textContent = scale;
+        }
+    };
+    
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', debounce(() => {
             const currentZoom = map.getZoom();
             if (currentZoom < 18) { // 限制最大缩放级别
                 map.setZoom(currentZoom + 1);
+                setTimeout(updateScale, 300); // 延迟更新比例尺
             }
         }, 200));
     }
@@ -904,9 +888,13 @@ const initializeMapFeatures = (map, layers) => {
             const currentZoom = map.getZoom();
             if (currentZoom > 3) { // 限制最小缩放级别
                 map.setZoom(currentZoom - 1);
+                setTimeout(updateScale, 300); // 延迟更新比例尺
             }
         }, 200));
     }
+    
+    // 监听地图缩放事件，实时更新比例尺
+    map.on('zoomend', updateScale);
 
     // 初始化图层状态
     updateLayers(layerState, layers);
