@@ -1,13 +1,12 @@
 package cc.lik.footprint.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.Instant;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import run.halo.app.extension.AbstractExtension;
 import run.halo.app.extension.GVK;
-
-import java.time.Instant;
 
 /**
  * 足迹数据模型

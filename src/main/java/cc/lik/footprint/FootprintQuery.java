@@ -1,7 +1,17 @@
 package cc.lik.footprint;
 
+import static java.util.Comparator.comparing;
+import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
+import static run.halo.app.extension.index.query.QueryFactory.contains;
+import static run.halo.app.extension.index.query.QueryFactory.equal;
+import static run.halo.app.extension.router.QueryParamBuildUtil.sortParameter;
+
 import cc.lik.footprint.model.Footprint;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.springdoc.core.fn.builders.operation.Builder;
 import org.springframework.data.domain.Sort;
@@ -13,16 +23,6 @@ import run.halo.app.extension.PageRequest;
 import run.halo.app.extension.PageRequestImpl;
 import run.halo.app.extension.router.IListRequest;
 import run.halo.app.extension.router.SortableRequest;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-
-import static java.util.Comparator.comparing;
-import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
-import static run.halo.app.extension.index.query.QueryFactory.contains;
-import static run.halo.app.extension.index.query.QueryFactory.equal;
-import static run.halo.app.extension.router.QueryParamBuildUtil.sortParameter;
 
 public class FootprintQuery extends SortableRequest {
 

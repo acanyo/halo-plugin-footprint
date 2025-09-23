@@ -1,6 +1,5 @@
 package cc.lik.footprint.finders;
 
-import cc.lik.footprint.model.Footprint;
 import cc.lik.footprint.vo.FootprintVo;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

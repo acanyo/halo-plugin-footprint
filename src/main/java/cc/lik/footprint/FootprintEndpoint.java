@@ -1,10 +1,17 @@
 package cc.lik.footprint;
 
+import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+
+import cc.lik.footprint.finders.FootprintFinder;
 import cc.lik.footprint.model.Footprint;
 import cc.lik.footprint.service.FootprintService;
-import cc.lik.footprint.finders.FootprintFinder;
 import cc.lik.footprint.vo.FootprintVo;
+import java.util.List;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -15,14 +22,6 @@ import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.extension.ListResult;
 import run.halo.app.extension.ReactiveExtensionClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.function.Predicate;
-
-import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @Component
 @RequiredArgsConstructor

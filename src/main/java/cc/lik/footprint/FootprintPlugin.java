@@ -1,15 +1,14 @@
 package cc.lik.footprint;
 
+import static run.halo.app.extension.index.IndexAttributeFactory.simpleAttribute;
+
 import cc.lik.footprint.model.Footprint;
-import org.pf4j.PluginWrapper;
 import org.springframework.stereotype.Component;
 import run.halo.app.extension.Scheme;
 import run.halo.app.extension.SchemeManager;
 import run.halo.app.extension.index.IndexSpec;
 import run.halo.app.plugin.BasePlugin;
 import run.halo.app.plugin.PluginContext;
-
-import static run.halo.app.extension.index.IndexAttributeFactory.simpleAttribute;
 
 /**
  * <p>足迹插件主类，管理插件的生命周期。</p>
