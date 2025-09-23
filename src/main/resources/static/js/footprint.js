@@ -143,6 +143,8 @@ const moveToLocation = (map, position) => {
             completed = true;
             map.off('moveend', onComplete);
             map.off('zoomend', onComplete);
+            // 设置3D建筑角度
+            map.setPitch(50, false, 500);
             resolve();
         };
         
@@ -241,13 +243,15 @@ function createInfoWindow(spec) {
         createMetaItem(ICONS.time, formatDate(createTime)),
         createMetaItem(ICONS.location, address || '未知位置')
     ].join('');
-
-    const articleHtml = article ? `
-        <a href="javascript:void(0)" data-article-url="${article}" class="article-btn">
-            查看文章
-            <div class="arrow-wrapper">
-                <div class="arrow"></div>
-            </div>
+    const linkUrl = article;
+    
+    const linkHtml = linkUrl ? `
+        <a href="javascript:void(0)" data-article-url="${linkUrl}" class="likcc-footprint-link-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="likcc-footprint-link-icon">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            查看关联
         </a>
     ` : '';
 
@@ -259,7 +263,7 @@ function createInfoWindow(spec) {
                     <h3 class="title">${name}</h3>
                     ${metaItems}
                     ${description ? `<p class="description">${description}</p>` : ''}
-                    ${articleHtml}
+                    ${linkHtml}
                 </div>
             </div>
         </div>
@@ -405,13 +409,13 @@ const addFootprintMarkers = (map, footprintData) => {
             const infoWindowElement = document.querySelector('.info-window');
             if (infoWindowElement) {
                 infoWindowElement.addEventListener('click', (e) => {
-                    if (e.target.closest('.article-btn')) {
+                    if (e.target.closest('.likcc-footprint-link-btn')) {
                         e.stopPropagation();
                         e.preventDefault();
-                        const articleBtn = e.target.closest('.article-btn');
-                        const articleUrl = articleBtn.getAttribute('data-article-url');
-                        if (articleUrl) {
-                            window.open(articleUrl, '_blank');
+                        const linkBtn = e.target.closest('.likcc-footprint-link-btn');
+                        const linkUrl = linkBtn.getAttribute('data-article-url');
+                        if (linkUrl) {
+                            window.open(linkUrl, '_blank');
                         }
                         return;
                     }
@@ -420,14 +424,14 @@ const addFootprintMarkers = (map, footprintData) => {
                     currentMarker = null;
                 });
                 
-                const articleBtn = infoWindowElement.querySelector('.article-btn');
-                if (articleBtn) {
-                    articleBtn.addEventListener('click', (e) => {
+                const linkBtn = infoWindowElement.querySelector('.likcc-footprint-link-btn');
+                if (linkBtn) {
+                    linkBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        const articleUrl = articleBtn.getAttribute('data-article-url');
-                        if (articleUrl) {
-                            window.open(articleUrl, '_blank');
+                        const linkUrl = linkBtn.getAttribute('data-article-url');
+                        if (linkUrl) {
+                            window.open(linkUrl, '_blank');
                         }
                     });
                 }
@@ -459,7 +463,8 @@ const addFootprintMarkers = (map, footprintData) => {
                     if (currentMarker === marker) {
                         globalInfoWindow.close();
                         // 恢复水平视角
-                        map.setPitch(0);
+                        map.setPitch(0, false, 500);
+                        map.setRotation(0, false, 500);
                         currentMarker = null;
                         return;
                     }
@@ -467,7 +472,8 @@ const addFootprintMarkers = (map, footprintData) => {
                     if (currentMarker) {
                         globalInfoWindow.close();
                         // 恢复水平视角
-                        map.setPitch(0);
+                        map.setPitch(0, false, 500);
+                        map.setRotation(0, false, 500);
                     }
 
                     const content = createInfoWindow(footprint.spec);
@@ -493,7 +499,7 @@ const addFootprintMarkers = (map, footprintData) => {
                 marker.on('click', async () => {
                     // 聚合标记点击时放大到该区域
                     const currentZoom = map.getZoom();
-                    const targetZoom = Math.min(currentZoom + 3, 15);
+                    const targetZoom = currentZoom < 20 ? currentZoom + 2 : 20;
                     
                     // 计算聚合区域的边界
                     const bounds = cluster.bounds;
@@ -506,6 +512,10 @@ const addFootprintMarkers = (map, footprintData) => {
                     
                     // 设置目标缩放级别
                     map.setZoom(targetZoom, false);
+                    
+                    // 重置3D角度
+                    map.setPitch(0);
+                    map.setRotation(0);
                     
                     // 添加脉冲动画效果
                     markerContent.classList.add('likcc-footprint-cluster-pulse');
@@ -540,7 +550,8 @@ const addFootprintMarkers = (map, footprintData) => {
                     if (currentMarker === marker) {
                         globalInfoWindow.close();
                         // 恢复水平视角
-                        map.setPitch(0);
+                        map.setPitch(0, false, 500);
+                        map.setRotation(0, false, 500);
                         currentMarker = null;
                         return;
                     }
@@ -548,12 +559,11 @@ const addFootprintMarkers = (map, footprintData) => {
                     if (currentMarker) {
                         globalInfoWindow.close();
                         // 恢复水平视角
-                        map.setPitch(0);
+                        map.setPitch(0, false, 500);
+                        map.setRotation(0, false, 500);
                     }
 
                     const content = createInfoWindow(footprint.spec);
-                    
-                    // 统一移动逻辑：所有设备都先移动到位置，再打开信息窗口
                     await moveToLocation(map, position);
                     // 移动完成后打开信息窗口
                     openInfoWindow(position, content, marker);
@@ -665,8 +675,11 @@ const initializeApp = async () => {
             center: [116.397428, 39.90923],
             mapStyle: window.FOOTPRINT_CONFIG.mapStyle || 'amap://styles/normal',
             viewMode: '3D',
-            pitch: 45, // 设置俯仰角度以显示3D效果
-            rotation: 0, // 设置旋转角度
+            rotateEnable: true,
+            pitchEnable: true,
+            wallColor: 'rgba(175,206,233,0.2)',
+            roofColor: 'rgba(175,206,233,0.5)',
+            pitch: 35,
             features: ['bg', 'road', 'building', 'point'],
             showBuildingBlock: true, // 启用3D建筑模型
             animateEnable: true,

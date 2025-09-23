@@ -45,9 +45,6 @@ const currentFootprint = ref<Footprint | null>(null);
 const manualLongitude = ref("");
 const manualLatitude = ref("");
 
-// 添加 queryClient
-const queryClient = useQueryClient();
-
 watch(
   () => [
     selectedSort.value,
@@ -109,14 +106,10 @@ const {
   refetchInterval: (query) => {
     const data = query.state.data;
     if (!data) return false;
-    // 检查是否有正在删除的足迹
-    let hasDeletingFootprints = false;
-    if (Array.isArray(data)) {
-      hasDeletingFootprints = data.some((footprint: Footprint) => 
-        footprint.metadata.deletionTimestamp !== undefined
-      );
-    }
-    return hasDeletingFootprints ? 500 : false;
+    const hasDeletingFootprints = data.some(
+      (footprint: Footprint) => footprint?.metadata.deletionTimestamp,
+    );
+    return hasDeletingFootprints ? 1000 : false;
   },
 });
 
@@ -412,7 +405,7 @@ const handleEdit = (row: Footprint) => {
               <th scope="col" class="px-4 py-3"><div class="w-max flex items-center">足迹类型 </div></th>
               <th scope="col" class="px-4 py-3"><div class="w-max flex items-center">经度 </div></th>
               <th scope="col" class="px-4 py-3"><div class="w-max flex items-center">纬度 </div></th>
-              <th scope="col" class="px-4 py-3"><div class="w-max flex items-center">地址 </div></th>
+              <th scope="col" class="px-4 py-3"><div class="w-max flex items-center">关联链接 </div></th>
               <th scope="col" class="px-4 py-3"><div class="w-max flex items-center">创建时间 </div></th>
               <th scope="col" class="px-4 py-3"><div class="w-max flex items-center"> </div></th>
             </tr>
@@ -435,7 +428,12 @@ const handleEdit = (row: Footprint) => {
               <td class="px-4 py-4 table-td">{{footprint.spec.footprintType}}</td>
               <td class="px-4 py-4 table-td">{{footprint.spec.longitude}}</td>
               <td class="px-4 py-4 table-td">{{footprint.spec.latitude}}</td>
-              <td class="px-4 py-4">{{footprint.spec.address}}</td>
+              <td class="px-4 py-4">
+                <span v-if="footprint.spec.article" class="text-blue-600">
+                  {{footprint.spec.article}}
+                </span>
+                <span v-else class="text-gray-400">暂无关联</span>
+              </td>
               <td class="px-4 py-4 table-td">{{formatDatetime(footprint.spec.createTime)}}</td>
               <td class="px-4 py-4 table-td">
                 <VDropdown>

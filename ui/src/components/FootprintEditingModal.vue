@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
+import { Toast, VButton, VModal, VSpace, VAlert } from "@halo-dev/components";
 import { ref, computed, watch, onMounted } from "vue";
 import { footprintApiClient } from "@/api";
 import type { Footprint, Option } from "@/api/models";
@@ -55,6 +55,7 @@ const createTime = ref<string | undefined>(undefined);
 const showManualInput = ref(false);
 const manualLongitude = ref<string>("");
 const manualLatitude = ref<string>("");
+const customUrl = ref<string>("");
 
 const isUpdateMode = computed(() => {
   return !!formState.value.metadata.creationTimestamp;
@@ -95,8 +96,16 @@ watch(
     if (footprint) {
       formState.value = deepClone(footprint);
       createTime.value = toDatetimeLocal(formState.value.spec.createTime);
+      // 如果article字段是URL格式，将其设置为customUrl
+      if (formState.value.spec.article && formState.value.spec.article.startsWith('http')) {
+        customUrl.value = formState.value.spec.article;
+        formState.value.spec.article = '';
+      } else {
+        customUrl.value = '';
+      }
     } else {
       createTime.value = undefined;
+      customUrl.value = '';
     }
   },
 );
@@ -189,6 +198,11 @@ const handleSubmit = async () => {
     formState.value.spec.longitude = longitude;
     formState.value.spec.latitude = latitude;
 
+    // 如果article为空，使用自定义URL
+    if (!formState.value.spec.article && customUrl.value) {
+      formState.value.spec.article = customUrl.value;
+    }
+
     if (createTime.value) {
       formState.value.spec.createTime = toISOString(createTime.value);
     }
@@ -235,6 +249,11 @@ const handleManualInput = () => {
   formState.value.spec.longitude = lng;
   formState.value.spec.latitude = lat;
   showManualInput.value = false;
+
+  // 如果article为空，使用自定义URL
+  if (!formState.value.spec.article && customUrl.value) {
+    formState.value.spec.article = customUrl.value;
+  }
 
   // 继续保存流程
   if (createTime.value) {
@@ -398,6 +417,13 @@ onMounted(async () => {
             label="足迹图片"
           ></FormKit>
 
+          <!-- 关联信息提示 -->
+          <VAlert 
+            type="info" 
+            title="关联信息说明" 
+            description="请选择关联文章或输入自定义链接地址。文章优先级最高：如果选择了文章，将使用文章链接；否则使用自定义链接地址。"
+          />
+
           <FormKit
             v-model="formState.spec.article"
             type="select"
@@ -416,6 +442,20 @@ onMounted(async () => {
               labelField: 'spec.title',
               valueField: 'status.permalink',
             }"
+            help="如果选择文章，将使用文章链接；否则请在下方输入自定义地址"
+          ></FormKit>
+
+          <FormKit
+            v-model="customUrl"
+            type="url"
+            name="customUrl"
+            label="自定义URL"
+            placeholder="请输入完整的网址，如：https://example.com"
+            validation="url"
+            :validation-messages="{
+              url: '请输入有效的网址格式'
+            }"
+            help="当未选择关联文章时，将使用此URL"
           ></FormKit>
 
           <FormKit
