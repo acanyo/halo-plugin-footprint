@@ -1,13 +1,10 @@
-// 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', () => {
-    // 判断当前路径是否为/footprints
     const currentPath = window.location.pathname;
     if (currentPath !== '/footprints') {
         console.log('非足迹页面，不加载地图功能');
         return;
     }
 
-    // 设置全局颜色变量
     const footprintPage = document.getElementById('footprint-page');
     if (footprintPage && window.FOOTPRINT_CONFIG) {
         footprintPage.style.setProperty('--footprint-hsla', window.FOOTPRINT_CONFIG.hsla);
@@ -24,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 先获取足迹数据，然后等待地图API加载
     fetchFootprints().then(() => {
-        // 等待AMap对象加载完成
         const checkAMap = () => {
             if (typeof AMap === 'undefined') {
                 setTimeout(checkAMap, 100);
@@ -35,11 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         checkAMap();
     }).catch(error => {
         console.error('获取足迹数据失败，但仍会初始化地图:', error);
-        
-        // 即使数据获取失败，也要初始化地图
         const checkAMap = () => {
             if (typeof AMap === 'undefined') {
-                console.warn('等待高德地图API加载...');
                 setTimeout(checkAMap, 100);
                 return;
             }
@@ -49,12 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// 优化动画性能
 const showElements = () => {
-    // 添加初始类
     document.body.classList.add('theme-ready');
     
-    // 动画序列
     const animationSequence = [
         {
             element: '.logo-container',
@@ -71,14 +61,11 @@ const showElements = () => {
             className: 'show',
             delay: 200,
             callback: () => {
-                // 依次显示控制按钮
                 const buttons = document.querySelectorAll('.map-controls .control-btn');
                 buttons.forEach((btn, index) => {
                     setTimeout(() => {
                         btn.classList.add('show');
-                        // 添加缩放效果
                         btn.classList.add('scale-in');
-                        // 移除缩放效果
                         setTimeout(() => btn.classList.remove('scale-in'), 300);
                     }, index * 100);
                 });
@@ -101,7 +88,6 @@ const showElements = () => {
         }
     ];
 
-    // 执行动画序列
     animationSequence.forEach(({element, className, delay, callback}) => {
         setTimeout(() => {
             const el = document.querySelector(element);
@@ -115,27 +101,14 @@ const showElements = () => {
     });
 };
 
-// 图层配置
 const layerConfig = {
-    satellite: {
-        zIndex: 0,
-        opacity: 1
-    },
-    road: {
-        zIndex: 1,
-        opacity: 0.6,
-        strokeColor: '#666666'
-    },
-    traffic: {
-        zIndex: 2,
-        opacity: 0.6
-    }
+    satellite: { zIndex: 0, opacity: 1 },
+    road: { zIndex: 1, opacity: 0.6, strokeColor: '#666666' },
+    traffic: { zIndex: 2, opacity: 0.6 }
 };
 
-// 优化地图移动 - 减少动画时间，提升响应性
 const moveToLocation = (map, position) => {
     return new Promise((resolve) => {
-        // 启用动画，但设置更短的动画时间
         map.setStatus({
             animateEnable: true,
             scrollWheel: true,
@@ -143,37 +116,31 @@ const moveToLocation = (map, position) => {
             keyboardEnable: true
         });
         
-        // 设置缩放级别
         const currentZoom = map.getZoom();
         if (currentZoom < 14) {
-            map.setZoom(14, false); // 不启用动画，直接设置
+            map.setZoom(14, false);
         }
 
-        // 平移到目标位置，使用更平滑的动画
-        map.panTo(position, 800); // 设置动画时间为800ms
+        map.panTo(position, 800);
         
-        // 等待动画完成 - 使用更精确的检测
         let animationCheckCount = 0;
-        const maxChecks = 50; // 最多检查50次，避免无限循环
+        const maxChecks = 50;
         
         const checkAnimation = () => {
             animationCheckCount++;
             if (!map.isMoving && !map.isZooming) {
                 resolve();
             } else if (animationCheckCount < maxChecks) {
-                setTimeout(checkAnimation, 50); // 每50ms检查一次
+                setTimeout(checkAnimation, 50);
             } else {
-                // 超时强制完成
                 resolve();
             }
         };
         
-        // 延迟开始检查，给动画一些时间
         setTimeout(checkAnimation, 100);
     });
 };
 
-// 优化标记点创建
 const createMarker = (spec) => {
     const markerContent = document.createElement('div');
     markerContent.className = 'custom-marker';
@@ -191,7 +158,6 @@ const createMarker = (spec) => {
     return markerContent;
 };
 
-// 格式化时间
 const formatTime = (timeString) => {
     if (!timeString) return '';
     try {
@@ -209,9 +175,7 @@ const formatTime = (timeString) => {
     }
 };
 
-// 优化信息窗口内容创建
 function createInfoWindow(spec) {
-    // 确保所有字段都有默认值
     const {
         image = '',
         name = '',
@@ -222,7 +186,6 @@ function createInfoWindow(spec) {
         article = ''
     } = spec;
 
-    // 格式化时间
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -235,7 +198,6 @@ function createInfoWindow(spec) {
         }).replace(/\//g, '-');
     };
 
-    // 构建图片HTML
     const imageHtml = image ? `
         <div class="image">
             <img src="${image}" alt="${name}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">
@@ -272,7 +234,7 @@ function createInfoWindow(spec) {
                 </div>
                 ${description ? `<p class="description">${description}</p>` : ''}
                 ${article ? `
-                    <a href="${article}" target="_blank" class="article-btn">
+                    <a href="javascript:void(0)" data-article-url="${article}" class="article-btn">
                         查看文章
                         <div class="arrow-wrapper">
                             <div class="arrow"></div>
@@ -317,7 +279,7 @@ function createInfoWindow(spec) {
                 </div>
                 ${description ? `<p class="description">${description}</p>` : ''}
                 ${article ? `
-                    <a href="${article}" target="_blank" class="article-btn">
+                    <a href="javascript:void(0)" data-article-url="${article}" class="article-btn">
                         查看文章
                         <div class="arrow-wrapper">
                             <div class="arrow"></div>
@@ -335,7 +297,6 @@ function createInfoWindow(spec) {
     `;
 }
 
-// 性能优化：使用防抖优化事件处理
 const debounce = (func, wait) => {
     let timeout;
     return function executedFunction(...args) {
@@ -348,12 +309,10 @@ const debounce = (func, wait) => {
     };
 };
 
-// 创建聚合标记
 const createClusterMarker = (count, position) => {
     const markerContent = document.createElement('div');
     markerContent.className = 'likcc-footprint-cluster-marker';
     
-    // 根据数量设置不同的大小类
     if (count >= 100) {
         markerContent.classList.add('likcc-footprint-cluster-xlarge');
     } else if (count >= 50) {
@@ -364,23 +323,17 @@ const createClusterMarker = (count, position) => {
         markerContent.classList.add('likcc-footprint-cluster-small');
     }
     
-    // 所有标记都使用统一的主题色，通过CSS变量自动适配
-    
-    // 添加数字文本
     markerContent.appendChild(document.createTextNode(count));
     
-    // 添加底部三角形指针
     const pointer = document.createElement('div');
     pointer.className = 'likcc-footprint-cluster-pointer';
     markerContent.appendChild(pointer);
     
-    
     return markerContent;
 };
 
-// 计算标记点之间的距离
 const calculateDistance = (pos1, pos2) => {
-    const R = 6371000; // 地球半径（米）
+    const R = 6371000;
     const lat1 = pos1.lat * Math.PI / 180;
     const lat2 = pos2.lat * Math.PI / 180;
     const deltaLat = (pos2.lat - pos1.lat) * Math.PI / 180;
@@ -394,12 +347,10 @@ const calculateDistance = (pos1, pos2) => {
     return R * c;
 };
 
-// 聚合标记点 - 优化算法
-const clusterMarkers = (footprints, clusterDistance = 10000) => { // 10km聚合距离
+const clusterMarkers = (footprints, clusterDistance = 10000) => {
     const clusters = [];
     const processed = new Set();
     
-    // 按经纬度排序，提高聚合效率
     const sortedFootprints = footprints
         .map((footprint, index) => ({
             footprint,
@@ -420,13 +371,11 @@ const clusterMarkers = (footprints, clusterDistance = 10000) => { // 10km聚合�
             bounds: { minLng: lng, maxLng: lng, minLat: lat, maxLat: lat }
         };
         
-        // 查找附近的标记点
         sortedFootprints.forEach(({ footprint: otherFootprint, index: otherIndex, lng: otherLng, lat: otherLat }) => {
             if (otherIndex === index || processed.has(otherIndex)) return;
             
-            // 快速距离检查 - 如果经度差太大，直接跳过
             const lngDiff = Math.abs(otherLng - lng);
-            if (lngDiff > clusterDistance / 111000) { // 粗略的经度距离检查
+            if (lngDiff > clusterDistance / 111000) {
                 return;
             }
             
@@ -440,11 +389,9 @@ const clusterMarkers = (footprints, clusterDistance = 10000) => { // 10km聚合�
                 cluster.count++;
                 processed.add(otherIndex);
                 
-                // 更新聚合中心点
                 cluster.center.lng = (cluster.center.lng * (cluster.count - 1) + otherLng) / cluster.count;
                 cluster.center.lat = (cluster.center.lat * (cluster.count - 1) + otherLat) / cluster.count;
                 
-                // 更新边界
                 cluster.bounds.minLng = Math.min(cluster.bounds.minLng, otherLng);
                 cluster.bounds.maxLng = Math.max(cluster.bounds.maxLng, otherLng);
                 cluster.bounds.minLat = Math.min(cluster.bounds.minLat, otherLat);
@@ -459,53 +406,60 @@ const clusterMarkers = (footprints, clusterDistance = 10000) => { // 10km聚合�
     return clusters;
 };
 
-// 添加足迹标记
+let currentMarker = null;
+let globalInfoWindow = null;
+
 const addFootprintMarkers = (map, footprintData) => {
     if (!Array.isArray(footprintData) || footprintData.length === 0) {
-        console.warn('足迹数据为空或格式不正确');
         return;
     }
 
-    // 创建信息窗体
-    let infoWindow = new AMap.InfoWindow({
-        isCustom: true,
-        autoMove: false,
-        offset: new AMap.Pixel(0, -10)
-    });
+    if (!globalInfoWindow) {
+        globalInfoWindow = new AMap.InfoWindow({
+            isCustom: true,
+            autoMove: false,
+            offset: new AMap.Pixel(0, -10)
+        });
+    }
 
-    // 用于存储当前打开的标记
-    let currentMarker = null;
-
-    // 添加点击地图事件监听器，用于关闭信息窗口
-    map.on('click', () => {
-        if (currentMarker) {
-            infoWindow.close();
-            currentMarker = null;
-        }
-    });
-
-    // 打开信息窗口的函数
-    const openInfoWindow = (position, content) => {
-        infoWindow.setContent(content);
-        infoWindow.open(map, position);
+    const openInfoWindow = (position, content, marker) => {
+        globalInfoWindow.setContent(content);
+        globalInfoWindow.open(map, position);
+        currentMarker = marker;
+        map.setPitch(60);
         
-        // 阻止信息窗口上的点击事件冒泡到地图
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             const infoWindowElement = document.querySelector('.info-window');
             if (infoWindowElement) {
                 infoWindowElement.addEventListener('click', (e) => {
-                    e.stopPropagation();
+                    if (e.target.closest('.article-btn')) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const articleBtn = e.target.closest('.article-btn');
+                        const articleUrl = articleBtn.getAttribute('data-article-url');
+                        if (articleUrl) {
+                            window.open(articleUrl, '_blank');
+                        }
+                        return;
+                    }
+                    globalInfoWindow.close();
+                    map.setPitch(0);
+                    currentMarker = null;
                 });
                 
-                // 为文章链接添加点击事件处理
                 const articleBtn = infoWindowElement.querySelector('.article-btn');
                 if (articleBtn) {
                     articleBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
+                        e.preventDefault();
+                        const articleUrl = articleBtn.getAttribute('data-article-url');
+                        if (articleUrl) {
+                            window.open(articleUrl, '_blank');
+                        }
                     });
                 }
             }
-        });
+        }, 100);
     };
 
     // 根据缩放级别决定是否聚合
@@ -529,13 +483,17 @@ const addFootprintMarkers = (map, footprintData) => {
 
                 marker.on('click', async () => {
                     if (currentMarker === marker) {
-                        infoWindow.close();
+                        globalInfoWindow.close();
+                        // 恢复水平视角
+                        map.setPitch(0);
                         currentMarker = null;
                         return;
                     }
 
                     if (currentMarker) {
-                        infoWindow.close();
+                        globalInfoWindow.close();
+                        // 恢复水平视角
+                        map.setPitch(0);
                     }
 
                     const content = createInfoWindow(footprint.spec);
@@ -546,11 +504,14 @@ const addFootprintMarkers = (map, footprintData) => {
                     const needsMovement = distance > 1000 || currentZoom < 13;
                     
                     if (needsMovement) {
+                        // 先移动地图，等待移动完成后再打开信息窗口
                         await moveToLocation(map, position);
+                        // 移动完成后打开信息窗口
+                        openInfoWindow(position, content, marker);
+                    } else {
+                        // 不需要移动，直接打开信息窗口
+                        openInfoWindow(position, content, marker);
                     }
-                    
-                    openInfoWindow(position, content);
-                    currentMarker = marker;
                 });
 
                 map.add(marker);
@@ -610,13 +571,17 @@ const addFootprintMarkers = (map, footprintData) => {
 
                 marker.on('click', async () => {
                     if (currentMarker === marker) {
-                        infoWindow.close();
+                        globalInfoWindow.close();
+                        // 恢复水平视角
+                        map.setPitch(0);
                         currentMarker = null;
                         return;
                     }
 
                     if (currentMarker) {
-                        infoWindow.close();
+                        globalInfoWindow.close();
+                        // 恢复水平视角
+                        map.setPitch(0);
                     }
 
                     const content = createInfoWindow(footprint.spec);
@@ -627,11 +592,14 @@ const addFootprintMarkers = (map, footprintData) => {
                     const needsMovement = distance > 1000 || currentZoom < 13;
                     
                     if (needsMovement) {
+                        // 先移动地图，等待移动完成后再打开信息窗口
                         await moveToLocation(map, position);
+                        // 移动完成后打开信息窗口
+                        openInfoWindow(position, content, marker);
+                    } else {
+                        // 不需要移动，直接打开信息窗口
+                        openInfoWindow(position, content, marker);
                     }
-                    
-                    openInfoWindow(position, content);
-                    currentMarker = marker;
                 });
 
                 map.add(marker);
@@ -813,6 +781,18 @@ const initializeApp = async () => {
 
 // 性能优化：将地图功能初始化封装为单独的函数
 const initializeMapFeatures = (map, layers) => {
+    // 添加地图点击事件监听器，用于关闭信息窗口
+    map.on('click', (e) => {
+        if (currentMarker) {
+            if (globalInfoWindow) {
+                globalInfoWindow.close();
+            }
+            // 恢复水平视角
+            map.setPitch(0);
+            currentMarker = null;
+        }
+    });
+    
     // 使用防抖优化事件处理
     const debounce = (func, wait) => {
         let timeout;
@@ -849,11 +829,24 @@ const initializeMapFeatures = (map, layers) => {
     
     // 监听缩放事件，重新渲染标记点
     map.on('zoomend', () => {
-        // 清除现有标记
-        map.clearMap();
+        // 如果当前有信息窗口打开，不重新渲染标记
+        if (currentMarker) {
+            return;
+        }
         
-        // 重新添加足迹标记
-        addFootprintMarkers(map, window.FOOTPRINT_CONFIG.footprints);
+        // 延迟执行，确保点击事件先处理
+        setTimeout(() => {
+            // 再次检查是否有信息窗口打开
+            if (currentMarker) {
+                return;
+            }
+            
+            // 清除现有标记
+            map.clearMap();
+            
+            // 重新添加足迹标记
+            addFootprintMarkers(map, window.FOOTPRINT_CONFIG.footprints);
+        }, 100);
     });
 
     // 优化图层控制
