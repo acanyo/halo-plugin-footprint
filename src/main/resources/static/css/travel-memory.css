@@ -958,10 +958,22 @@
             letter-spacing: 0.05em;
         }
         .marker-card-addr {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             margin: 9px 0 0;
             font-size: 12px;
             letter-spacing: 0.06em;
             color: var(--paper-ink-faint);
+        }
+        /* 地址前的定位图标：跟随文字颜色与基线，不参与缩放 */
+        .marker-card-addr-icon {
+            flex: none;
+            opacity: 0.9;
+        }
+        /* display:flex 会压过 UA 的 [hidden]{display:none}，没有地址时这里兜底 */
+        .marker-card-addr[hidden] {
+            display: none;
         }
         .marker-card-desc {
             margin: 12px 0 0;
@@ -1512,6 +1524,37 @@
             background-position: center;
             border-right: 1px solid rgba(247, 245, 241, 0.08);
         }
+        /* 卡片可点的提示：只在悬停/键盘聚焦时浮在封面区（那一片没有文字，不会挡内容） */
+        .prop-card-hint {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            padding: 0 4px;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(6, 8, 14, 0.3), rgba(6, 8, 14, 0.62));
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        .prop-card-hint em {
+            font-style: normal;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            color: #f7f5f1;
+        }
+        .prop-card-hint small {
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            color: rgba(247, 245, 241, 0.74);
+        }
+        .prop-city-card:hover .prop-card-hint,
+        .prop-city-card:focus-visible .prop-card-hint {
+            opacity: 1;
+        }
         .prop-card-body {
             grid-area: 1 / 2 / 2 / 3;
             display: flex;
@@ -1556,6 +1599,7 @@
         }
         @media (prefers-reduced-motion: reduce) {
             .prop-city-card,
+            .prop-card-hint,
             #provinceLabel,
             #provinceHint,
             .prop-leader,

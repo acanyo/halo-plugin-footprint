@@ -167,6 +167,12 @@ setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
 
     viewer.cesiumWidget.creditContainer.style.display = 'none';
 
+    // Cesium 默认的双击会 `viewer.trackedEntity = 拾取到的实体`：相机被拖进"跟随实体"模式，
+    // 表现为镜头突然变成斜面、之后旋转缩放都不跟手。本页不需要这个默认行为，直接移除；
+    // 顺手清一次跟踪状态，避免之前误触留下的跟随残留。
+    viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+    viewer.trackedEntity = undefined;
+
     // 高分屏渲染倍率封顶：useBrowserRecommendedResolution=false 时有效倍率会直接等于
     // window.devicePixelRatio，3 倍屏手机等于按 9 倍像素渲染，拖动和捏合会明显掉帧。
     // 这里改成显式指定：桌面最多 2 倍，触屏 1.5 倍（清晰度几乎无损，帧率更稳）。
@@ -277,7 +283,11 @@ setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
     // 中国边界线：仅在放大到国内范围时显示，首屏整球视图保持干净。
     // 低于 SHOW 高度显示，高于 HIDE 高度隐藏；同样留出回滞区间防闪烁。
     const BOUNDARY_SHOW_HEIGHT = 9500000;
-    const BOUNDARY_HIDE_HEIGHT = 11000000;
+    // 轮廓收起必须与"整球标题卡出现"在同一个高度：原来写死 11,000,000，
+    // 而标题卡 10,500,000 就显示，10.5M~11M 这段会出现"标题卡已出、轮廓与城市高亮还在"，
+    // 并且 activateAllCityCards() 看到 boundaryVisible 仍为 true，会跳过自动缩放直接展开。
+    // 取 INTRO_SHOW_HEIGHT 后两者同时翻转，回滞区间（9.5M~10.5M）内也互斥。
+    const BOUNDARY_HIDE_HEIGHT = INTRO_SHOW_HEIGHT;
     let chinaBoundarySource = null;
     let boundaryVisible = false;
     let cityFillVisible = false;   // 城市淡色填充当前是否可见（与边界共用一套阈值状态）
@@ -1899,6 +1909,7 @@ setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
     const markerCardTitle = document.getElementById('markerCardTitle');
     const markerCardMeta = document.getElementById('markerCardMeta');
     const markerCardAddr = document.getElementById('markerCardAddr');
+    const markerCardAddrRow = document.getElementById('markerCardAddrRow');
     const markerCardDesc = document.getElementById('markerCardDesc');
     const markerCardActions = markerCard.querySelector('.marker-card-actions');
     const markerCardTicket = document.getElementById('markerCardTicket');
@@ -2134,6 +2145,8 @@ setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
         activeFootprintIndex = index;
         markerCardTitle.textContent = fp.name;
         markerCardAddr.textContent = fp.address || '';
+        // 地址为空时连图标一起收起（编辑窗里地址是必填的，这里只是兜底）
+        if (markerCardAddrRow) markerCardAddrRow.hidden = !(fp.address || '').trim();
         markerCardDesc.textContent = fp.description || '';
 
         const metaParts = [];
@@ -9897,11 +9910,23 @@ setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
             el.setAttribute('role', 'button');
             el.tabIndex = 0;
             el.setAttribute('aria-label', view.name + '，' + view.count + ' 条足迹，进入城市相册');
+            el.title = '单击进入相册，双击打开城市卡';
             const media = document.createElement('div');
             media.className = 'prop-card-media';
             // 先只画"首字 + 空图片层"，封面等布局与错峰顺序定了再排队加载：
             // 这样先飞出来的卡片先拿到图（见 activateCityCards 里的 startProvinceCoverLoads）
             const coverRequest = renderCardCover(media, view.cover, view.name ? view.name.charAt(0) : '?');
+            // 悬停/聚焦时才浮出来的提示：卡片没有按钮，整卡可点，得让人知道能点、以及双击的层次。
+            // 盖在封面区上（左边 40%），那里没有文字，不会挡住城市名/统计/日期。
+            const hint = document.createElement('span');
+            hint.className = 'prop-card-hint';
+            const hintMain = document.createElement('em');
+            hintMain.textContent = '点击进入相册';
+            const hintSub = document.createElement('small');
+            hintSub.textContent = '双击看城市卡';
+            hint.appendChild(hintMain);
+            hint.appendChild(hintSub);
+            media.appendChild(hint);
             const body = document.createElement('div');
             body.className = 'prop-card-body';
             const title = document.createElement('h3');
