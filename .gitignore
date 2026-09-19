@@ -82,3 +82,5 @@ packages/*/.svelte-kit/
 
 # 前台压缩步骤的依赖
 frontend-build/node_modules/
+
+docs
