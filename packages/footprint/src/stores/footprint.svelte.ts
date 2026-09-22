@@ -12,11 +12,32 @@ import type { Footprint, FootprintConfig } from '../types/footprint';
  */
 
 class FootprintStore {
-  /** 后台注入的配置，页面生命周期内不变 */
-  readonly config: FootprintConfig = readConfig();
+  /**
+   * 配置与足迹**惰性读取**，不在构造时快照。
+   *
+   * 原因：本模块会随组件脚本一起在 <head> 执行，而 window.FOOTPRINT_CONFIG
+   * 由页面注入。只要两者顺序有任何变化（比如脚本改成 defer、或配置移到 body），
+   * 构造时快照就会读到空配置，表现为「一个标记都没有」且不报任何错。
+   * 实测在 demo 页就踩到了。惰性读取让顺序不再是隐式前提。
+   */
+  #config: FootprintConfig | null = null;
+
+  get config(): FootprintConfig {
+    if (!this.#config) this.#config = readConfig();
+    return this.#config;
+  }
+
+  #footprints = $state<Footprint[] | null>(null);
 
   /** 全部足迹 */
-  footprints = $state<Footprint[]>([]);
+  get footprints(): Footprint[] {
+    if (this.#footprints === null) this.#footprints = this.config.footprints ?? [];
+    return this.#footprints;
+  }
+
+  set footprints(value: Footprint[]) {
+    this.#footprints = value;
+  }
 
   /** 当前选中的足迹（点击标记后设置），null 表示未选中 */
   selected = $state<Footprint | null>(null);
@@ -26,10 +47,6 @@ class FootprintStore {
 
   /** 当前聚焦的城市，用于城市卡片墙与票根筛选；空串表示全部 */
   cityFilter = $state('');
-
-  constructor() {
-    this.footprints = this.config.footprints ?? [];
-  }
 
   /** 有票根图的足迹。票根墙与护照集章都基于这个集合。 */
   get ticketFootprints(): Footprint[] {

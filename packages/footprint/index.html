@@ -16,6 +16,44 @@
     <script src="/plugins/footprint/assets/static/cesium/Cesium.js"></script>
     <link rel="stylesheet" href="/plugins/footprint/assets/static/cesium/Widgets/widgets.css" />
 
+    <!--
+      配置必须先于组件脚本执行：组件挂载时就会读取它（例如地球要取天地图 Key）。
+      真实页面 footprint.html 也是把 FOOTPRINT_CONFIG 注入在 <head> 最前面的。
+    -->
+    <script>
+      window.FOOTPRINT_CONFIG = {
+        globeTitle: '旅行记忆',
+        globeLabels: 'all',
+        tiandituKey: '',
+        footprints: [
+          {
+            metadata: { name: 'fp-1' },
+            spec: {
+              name: '杭州雷峰塔',
+              longitude: 120.209903,
+              latitude: 30.246566,
+              city: '杭州市',
+              cityAdcode: '330100',
+              address: '杭州雷峰塔',
+              createTime: '2025-09-22T08:45:00Z',
+            },
+          },
+          {
+            metadata: { name: 'fp-2' },
+            spec: {
+              name: '钱塘江',
+              longitude: 120.200341,
+              latitude: 30.218454,
+              city: '杭州市',
+              cityAdcode: '330100',
+              address: '杭州钱塘江',
+              createTime: '2025-09-22T07:39:00Z',
+            },
+          },
+        ],
+      };
+    </script>
+
     <script type="module" src="/src/index.ts"></script>
 
     <style>
@@ -63,49 +101,49 @@
     <div class="bar">
       <button id="openLb">图片灯箱</button>
       <button id="flyTo">飞到杭州</button>
+      <button id="openCity">城市卡片墙</button>
+      <button id="openTicket">票根墙</button>
       <span id="status">加载中…</span>
     </div>
 
     <footprint-globe></footprint-globe>
-    <footprint-lightbox></footprint-lightbox>
+    <footprint-markers></footprint-markers>
+    <footprint-detail-card id="detail"></footprint-detail-card>
+    <footprint-city-wall id="cityWall"></footprint-city-wall>
+    <footprint-ticket-wall id="ticketWall"></footprint-ticket-wall>
+    <footprint-lightbox id="lightbox"></footprint-lightbox>
 
     <script type="module">
-      // demo 用的最小配置。真实页面由 Thymeleaf 注入 window.FOOTPRINT_CONFIG，
-      // 这里手工造一份等价结构，组件读取路径完全一致。
-      window.FOOTPRINT_CONFIG = {
-        globeTitle: '旅行记忆',
-        globeLabels: 'all',
-        tiandituKey: '',
-        footprints: [
-          {
-            metadata: { name: 'fp-1' },
-            spec: {
-              name: '杭州雷峰塔',
-              longitude: 120.209903,
-              latitude: 30.246566,
-              city: '杭州市',
-              cityAdcode: '330100',
-              address: '杭州雷峰塔',
-              createTime: '2025-09-22T08:45:00Z',
-            },
-          },
-          {
-            metadata: { name: 'fp-2' },
-            spec: {
-              name: '钱塘江',
-              longitude: 120.200341,
-              latitude: 30.218454,
-              city: '杭州市',
-              cityAdcode: '330100',
-              address: '杭州钱塘江',
-              createTime: '2025-09-22T07:39:00Z',
-            },
-          },
-        ],
-      };
 
       const status = document.getElementById('status');
       status.textContent = window.Cesium ? 'Cesium 已加载' : 'Cesium 未加载';
+
+      // 装配：地球就绪后把 viewer 交给标记层。
+      // 由页面显式接线，而不是让组件互相 querySelector —— 避免隐式耦合。
+      const globe = document.querySelector('footprint-globe');
+      const markers = document.querySelector('footprint-markers');
+      (async () => {
+        for (let i = 0; i < 50 && !globe.getViewer?.(); i++) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        const v = globe.getViewer?.();
+        if (v) { markers.attach(v); status.textContent = '地球 + 标记已就绪'; }
+        else status.textContent = '地球初始化超时';
+      })();
+
+      // UI 面板派发的事件在这里落地
+      document.addEventListener('footprint:open-detail', (e) => {
+        const fp = (window.FOOTPRINT_CONFIG.footprints || [])
+          .find((f) => f.metadata.name === e.detail.name);
+        if (fp) document.getElementById('detail').show(fp);
+      });
+      document.addEventListener('footprint:open-lightbox', (e) => {
+        document.getElementById('lightbox').show(e.detail.images, e.detail.index);
+      });
+      document.getElementById('openCity').addEventListener('click', () =>
+        document.getElementById('cityWall').show());
+      document.getElementById('openTicket').addEventListener('click', () =>
+        document.getElementById('ticketWall').show());
 
       document.getElementById('openLb').addEventListener('click', (e) => {
         document.querySelector('footprint-lightbox').show(

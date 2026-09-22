@@ -38,8 +38,12 @@ export class Clustering {
     const onMoveEnd = () => this.syncFromCamera();
     viewer.camera.moveEnd.addEventListener(onMoveEnd);
     this.dispose = () => viewer.camera.moveEnd.removeEventListener(onMoveEnd);
-    // 初始整球视图：城市聚合
-    this.apply('city');
+    // 用 reapply 而非 apply('city')：mode 初值就是 'city'，apply 会因
+    // 「模式未变」直接短路，实体显隐一次都没设过，表现为城市标记与足迹标记
+    // 同时显示。构造时必须无条件套用一次。
+    this.reapply();
+    // 再按当前相机高度校正——页面可能从保存的视角恢复，未必是整球视图
+    this.syncFromCamera();
   }
 
   get current(): MarkerMode {
