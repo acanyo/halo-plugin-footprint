@@ -6,14 +6,6 @@
 
 `足迹` 是专为 Halo 开发的旅行足迹插件。它把每一条旅行记录变成一个地图标记、一组照片和一个可以回看的旅行故事，支持从后台录入数据，在前台展示。v2.8.0 起，前台默认以 3D 地球展示足迹，并支持一键切换回 2D 高德地图（图片墙、时间线等功能完整保留）。
 
-[演示站](https://www.yunduan019.com/footprints)
-
-## 原作者
-
-本项目原作者为 Handsome，主页：<https://www.lik.cc/>。
-
-原始项目地址：[acanyo/halo-plugin-footprint](https://github.com/acanyo/halo-plugin-footprint)
-
 [演示站](https://www.lik.cc/footprints) · [在线文档](https://www.lik.cc/docs/halo-plugins) · [GitHub](https://github.com/acanyo/halo-plugin-footprint)
 
 ![Logo](src/main/resources/logo.svg)
@@ -427,8 +419,18 @@ pnpm dev
 
 本项目使用 [GPL-3.0 License](./LICENSE)。
 
-## 鸣谢
+## 贡献者
 
-感谢所有贡献者的支持。
+感谢每一位为本项目付出的开发者。
+
+<a href="https://github.com/acanyo/halo-plugin-footprint/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=acanyo/halo-plugin-footprint" alt="贡献者" />
+</a>
+
+v2.9.18 的 3D 地球、足迹照片环、省份城市卡片与连线、仪表盘足迹统计小组件等功能，
+来自 [@yunDuan-G](https://github.com/yunDuan-G) 的
+[fork](https://github.com/yunDuan-G/halo-plugin-footprint)，已整体合入本仓库。
+
+## 鸣谢
 
 样式设计参考：困困鱼 & Thyuu
