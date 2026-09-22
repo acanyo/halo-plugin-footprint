@@ -1,0 +1,60 @@
+{
+  "name": "@xhhao/footprint",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/acanyo/halo-plugin-footprint.git",
+    "directory": "packages/footprint"
+  },
+  "author": {
+    "name": "Handsome",
+    "url": "https://www.lik.cc"
+  },
+  "maintainers": [
+    {
+      "name": "Handsome",
+      "url": "https://www.lik.cc"
+    }
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/footprint.js"
+    },
+    "./index.css": "./dist/footprint.css",
+    "./footprint.css": "./dist/footprint.css"
+  },
+  "main": "./dist/footprint.js",
+  "module": "./dist/footprint.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.config.lib.ts",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "dev": "vite",
+    "preview": "vite preview",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@iconify-json/ri": "^1.2.10",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^22.18.0",
+    "@unocss/reset": "^66.7.2",
+    "@unocss/svelte-scoped": "^66.7.2",
+    "jsdom": "^28.1.0",
+    "svelte": "^5.56.3",
+    "svelte-check": "^4.6.0",
+    "terser": "^5.48.0",
+    "typescript": "~5.9.3",
+    "unocss": "^66.7.2",
+    "vite": "^8.0.16",
+    "vite-plugin-static-copy": "^4.1.1",
+    "vitest": "^5.0.0"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0"
+  }
+}

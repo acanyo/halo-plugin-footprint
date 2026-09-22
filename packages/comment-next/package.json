@@ -1,0 +1,60 @@
+{
+  "name": "@xhhao/comment-next",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/acanyo/plugin-comment-next.git",
+    "directory": "packages/comment-next"
+  },
+  "author": {
+    "name": "Handsome",
+    "url": "https://www.xhhao.com"
+  },
+  "maintainers": [
+    {
+      "name": "Handsome",
+      "url": "https://www.xhhao.com"
+    }
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/comment-next.js"
+    },
+    "./index.css": "./dist/comment-next.css",
+    "./comment-next.css": "./dist/comment-next.css"
+  },
+  "main": "./dist/comment-next.js",
+  "module": "./dist/comment-next.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.config.lib.ts",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "dev": "vite",
+    "preview": "vite preview",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@iconify-json/logos": "^1.2.11",
+    "@iconify-json/simple-icons": "^1.2.86",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tsconfig/svelte": "^5.0.8",
+    "@unocss/reset": "^66.7.2",
+    "@unocss/svelte-scoped": "^66.7.2",
+    "svelte": "^5.56.3",
+    "svelte-check": "^4.6.0",
+    "terser": "^5.48.0",
+    "unocss": "^66.7.2",
+    "vite": "^8.0.16",
+    "vite-plugin-static-copy": "^4.1.1",
+    "vitest": "^5.0.0",
+    "jsdom": "^28.1.0"
+  },
+  "dependencies": {
+    "altcha": "^3.1.0",
+    "cap-widget": "^0.1.56"
+  }
+}

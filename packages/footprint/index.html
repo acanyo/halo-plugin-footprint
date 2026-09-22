@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Footprint 前台组件 Demo</title>
+    <script type="module" src="/src/index.ts"></script>
+    <style>
+      body { margin: 0; background: #0f1020; color: #e8eaf2;
+             font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+      .shell { width: min(92vw, 1100px); margin: 0 auto; padding: 48px 0; }
+      button.demo { padding: 8px 16px; border-radius: 8px; border: 1px solid #3a3d5c;
+                    background: #1a1a2e; color: inherit; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <h1>Footprint 前台组件</h1>
+      <p>逐个迁移自 travel-memory.js，产物为标准 Custom Element。</p>
+      <h2>footprint-lightbox</h2>
+      <button class="demo" id="openLb">打开图片灯箱</button>
+      <footprint-lightbox></footprint-lightbox>
+    </div>
+    <script type="module">
+      document.getElementById('openLb').addEventListener('click', (e) => {
+        document.querySelector('footprint-lightbox').show(
+          [
+            { url: 'https://picsum.photos/id/1018/1600/1000', caption: '杭州西湖 · 2025-04-12' },
+            { url: 'https://picsum.photos/id/1015/1600/1000', caption: '钱塘江' },
+            { url: 'https://picsum.photos/id/1019/1600/1000', caption: '雷峰塔' },
+          ],
+          0,
+          e.currentTarget
+        );
+      });
+    </script>
+  </body>
+</html>

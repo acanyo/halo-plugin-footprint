@@ -76,3 +76,6 @@ application-local.properties
 /workplace/
 /src/main/resources/console/
 /ui/plugin-douban-main/
+# Svelte 前台组件包
+packages/*/node_modules/
+packages/*/.svelte-kit/

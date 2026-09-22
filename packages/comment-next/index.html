@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comment Next Demo</title>
+    <script type="module" src="/src/index.ts"></script>
+
+    <style>
+      body {
+        margin: 0;
+        background: #f6f8fa;
+        color: #111b35;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .comment-next-demo-shell {
+        width: min(92vw, 1378px);
+        margin: 0 auto;
+        padding: 32px 0;
+      }
+
+      .comment-next-demo-controls {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .comment-next-demo-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 30px;
+        padding: 0 9px;
+        border: 1px solid #dbe5f5;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #435172;
+        cursor: pointer;
+        font-size: 12px;
+        user-select: none;
+      }
+
+      .comment-next-demo-control input {
+        accent-color: rgb(59, 130, 246);
+      }
+
+      .comment-next-demo-card {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .comment-next-demo-preview {
+        display: block;
+      }
+
+      .comment-next-demo-section {
+        margin-top: 14px;
+      }
+
+      .comment-next-demo-section-title {
+        margin: 0;
+        color: #7180a0;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .comment-next-demo-section[open] .comment-next-demo-section-title {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="comment-next-demo-shell">
+      <section class="comment-next-demo-card">
+        <comment-widget
+          id="comment-next-demo-widget"
+          class="comment-next-demo-preview"
+          group="content.halo.run"
+          kind="Post"
+          version="v1alpha1"
+          name="demo-post"
+          allow-anonymous
+          logged-in
+          demo-data
+        ></comment-widget>
+      </section>
+
+      <details class="comment-next-demo-section">
+        <summary class="comment-next-demo-section-title">调试状态</summary>
+        <div class="comment-next-demo-controls" aria-label="demo 状态控制">
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="logged-in" checked />
+            已登录
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="allow-anonymous" checked />
+            允许匿名
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="show-captcha" />
+            验证码
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="enable-private" />
+            私密评论
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="command-menu-open" />
+            AI 浮层
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="inline-suggestion" />
+            内联建议
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="selection-tools" />
+            选区改写
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="submitting" />
+            提交中
+          </label>
+          <label class="comment-next-demo-control">
+            <input type="checkbox" data-demo-toggle="loading" />
+            骨架屏
+          </label>
+        </div>
+      </details>
+
+      <details class="comment-next-demo-section">
+        <summary class="comment-next-demo-section-title">新标签兼容示例</summary>
+        <comment-next
+          class="comment-next-demo-preview"
+          group="content.halo.run"
+          kind="Post"
+          version="v1alpha1"
+          name="demo-post-next"
+          allow-anonymous
+          enable-private
+          demo-data
+        ></comment-next>
+      </details>
+    </main>
+
+    <script>
+      const target = document.querySelector("#comment-next-demo-widget");
+      const toggles = document.querySelectorAll("[data-demo-toggle]");
+      const toPropName = (name) => name.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+
+      for (const toggle of toggles) {
+        const attr = toggle.dataset.demoToggle;
+        const prop = toPropName(attr);
+        const sync = () => {
+          target[prop] = toggle.checked;
+          if (toggle.checked) {
+            target.setAttribute(attr, "");
+          } else {
+            target.removeAttribute(attr);
+          }
+        };
+        toggle.addEventListener("change", sync);
+        sync();
+      }
+    </script>
+  </body>
+</html>
