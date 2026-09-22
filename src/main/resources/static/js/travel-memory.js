@@ -320,6 +320,36 @@
     // 让时间自动推进，明暗分界线随时间缓缓移动
     viewer.clock.shouldAnimate = true;
 
+    // ---------- 星空盒延后加载 ----------
+    // 6 张 Tycho 星表贴图合计 848 KB，占首屏近三成，而地球本身一点不依赖它。
+    // Cesium 的 SkyBox 是在 update() 里才去取贴图的，且 show 为 false 时直接返回，
+    // 所以首帧之前先关掉就能把这 848 KB 整个挪出关键路径。
+    //
+    // 不能改用 Viewer 的 skyBox:false —— 那个选项会连太阳和月亮一起不创建，
+    // 而上面的 enableLighting 依赖太阳，昼夜晨昏线会直接消失。
+    //
+    // 等地球第一批瓦片铺完再打开：这时候用户已经看到地球了，
+    // 带宽也空出来了，星空补上去不会跟底图抢。
+    if (viewer.scene.skyBox) {
+        viewer.scene.skyBox.show = false;
+        let skyBoxRevealed = false;
+        const revealSkyBox = () => {
+            if (skyBoxRevealed || !viewer.scene.skyBox) return;
+            skyBoxRevealed = true;
+            viewer.scene.skyBox.show = true;
+        };
+        // 瓦片铺完是最自然的时机；兜一个定时器，免得 tileLoadProgressEvent
+        // 因为底图服务异常一直不归零，星空就永远不出现了
+        const onTileProgress = queued => {
+            if (queued === 0) {
+                viewer.scene.globe.tileLoadProgressEvent.removeEventListener(onTileProgress);
+                revealSkyBox();
+            }
+        };
+        viewer.scene.globe.tileLoadProgressEvent.addEventListener(onTileProgress);
+        setTimeout(revealSkyBox, 4000);
+    }
+
     // 3D 地球品牌文案：标题/描述使用“3D 地球”Tab 的独立配置（globeTitle/globeDesc），
     // 导航栏英文名保持默认 "Travel Memory"，不再从基本设置读取。
     const footprintCfg = window.FOOTPRINT_CONFIG || {};
