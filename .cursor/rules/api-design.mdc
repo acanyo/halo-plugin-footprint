@@ -1,0 +1,37 @@
+---
+globs: *.java,*.ts,*.vue
+description: API 设计和数据模型规范
+---
+
+# API 设计和数据模型规范
+
+## 数据模型设计
+- 使用 `@Schema` 注解提供完整的 API 文档
+- 所有字段都要有中文描述
+- 必填字段使用 `requiredMode = Schema.RequiredMode.REQUIRED`
+- 数值字段要设置合理的范围限制
+
+## API 接口规范
+- RESTful 风格设计
+- 统一的响应格式
+- 适当的 HTTP 状态码
+- 错误信息要清晰明确
+
+## 前端 API 调用
+- 使用 TypeScript 类型定义
+- 统一的错误处理
+- 合理的加载状态管理
+- 使用 Vue Query 进行数据缓存
+
+## 示例
+```java
+@Schema(description = "足迹名称", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 100)
+private String name;
+```
+
+```typescript
+const { data, isLoading, error } = useQuery({
+  queryKey: ['footprints', page, size],
+  queryFn: () => footprintApiClient.footprint.listFootprints({...})
+});
+```

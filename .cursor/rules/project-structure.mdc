@@ -1,0 +1,28 @@
+---
+alwaysApply: true
+---
+
+# Halo 插件项目结构指南
+
+这是一个 Halo 2.x 足迹插件项目，采用前后端分离架构。
+
+## 项目结构
+- **后端 (Java)**: `src/main/java/cc/lik/footprint/` - Spring Boot 插件核心代码
+- **前端 (Vue 3)**: `ui/src/` - 基于 Vue 3 + TypeScript 的管理界面
+- **构建配置**: `build.gradle` (后端), `ui/package.json` (前端)
+
+## 核心文件
+- [FootprintPlugin.java](mdc:src/main/java/cc/lik/footprint/FootprintPlugin.java) - 插件主入口类
+- [Footprint.java](mdc:src/main/java/cc/lik/footprint/model/Footprint.java) - 足迹数据模型
+- [Footprint.vue](mdc:ui/src/views/Footprint.vue) - 前端管理界面
+- [footprint-api.ts](mdc:ui/src/api/footprint-api.ts) - API 客户端
+
+## 技术栈
+- **后端**: Java 21, Spring Boot, Halo 2.21, Lombok
+- **前端**: Vue 3, TypeScript, Vite/Rsbuild, Halo UI Components
+- **构建**: Gradle (后端), pnpm (前端)
+
+## 开发规范
+- 使用中文注释和文档
+- 遵循 Halo 插件开发规范
+- 前后端 API 通过 RESTful 接口通信

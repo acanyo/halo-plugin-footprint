@@ -1,0 +1,39 @@
+---
+globs: *.gradle,*.kts,package.json,*.ts
+---
+
+# 构建配置规范
+
+## Gradle 配置 (后端)
+- 使用 Java 21 工具链
+- Halo 2.21 平台依赖
+- Lombok 插件支持
+- 插件开发工具集成
+
+## 前端构建 (UI)
+- 使用 Rsbuild 构建工具
+- TypeScript 严格模式
+- Sass 样式支持
+- 图标插件集成
+
+## 依赖管理
+- 后端: Gradle + Maven Central
+- 前端: pnpm + npm registry
+- 版本锁定和兼容性
+
+## 开发脚本
+- `./gradlew` - 后端构建
+- `pnpm dev` - 前端开发
+- `pnpm build` - 前端构建
+- `pnpm lint` - 代码检查
+
+## 构建流程
+1. 前端资源构建到 `ui/build/dist/`
+2. 复制到 `build/resources/main/console/`
+3. 打包为 JAR 文件
+4. 部署到 Halo 实例
+
+## 环境配置
+- 开发环境: 调试模式启用
+- 生产环境: 优化构建
+- 测试环境: 单元测试支持

@@ -1,0 +1,46 @@
+---
+globs: **/*.test.*,**/*.spec.*
+description: 测试相关规范和最佳实践
+---
+
+# 测试规范和最佳实践
+
+## 单元测试
+- 使用 JUnit 5 进行 Java 单元测试
+- 使用 Vitest 进行 Vue 组件测试
+- 测试覆盖率目标：80% 以上
+- 测试文件命名：`*.test.java` 或 `*.spec.ts`
+
+## 测试结构
+- 遵循 AAA 模式：Arrange, Act, Assert
+- 使用有意义的测试方法名
+- 每个测试只验证一个功能点
+- 使用 `@BeforeEach` 和 `@AfterEach` 进行测试准备和清理
+
+## Mock 和 Stub
+- 使用 Mockito 进行 Java Mock
+- 使用 Vue Test Utils 进行 Vue 组件 Mock
+- 模拟外部依赖和 API 调用
+- 避免测试中的副作用
+
+## 集成测试
+- 测试完整的 API 流程
+- 测试前后端数据交互
+- 使用测试数据库
+- 验证业务逻辑的正确性
+
+## 示例
+```java
+@Test
+void shouldCreateFootprint() {
+    // Arrange
+    Footprint footprint = new Footprint();
+    footprint.setName("测试足迹");
+    
+    // Act
+    Footprint result = footprintService.create(footprint);
+    
+    // Assert
+    assertThat(result.getName()).isEqualTo("测试足迹");
+}
+```

@@ -1,7 +1,0 @@
-# 让 pnpm 把本目录视作独立的安装根。
-# 否则 pnpm 会顺着仓库根的 pnpm-workspace.yaml 往上走，装成根 package.json 的依赖。
-# ui/ 用的是同一套隔离手法。
-allowBuilds:
-  esbuild: true
-enableModulesDir: true
-nodeLinker: isolated

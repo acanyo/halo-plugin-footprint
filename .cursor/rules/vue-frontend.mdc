@@ -1,0 +1,44 @@
+---
+globs: ui/**/*.vue,ui/**/*.ts
+description: Vue 前端开发规范
+---
+
+# Vue 前端开发规范
+
+## 组件结构
+- 使用 Composition API (`<script setup>`)
+- 组件名使用 PascalCase
+- 使用 TypeScript 进行类型检查
+- 合理使用 Vue 3 的响应式 API
+
+## 状态管理
+- 使用 `@tanstack/vue-query` 进行服务端状态管理
+- 本地状态使用 `ref` 和 `reactive`
+- 计算属性使用 `computed`
+- 监听器使用 `watch` 和 `watchEffect`
+
+## UI 组件
+- 使用 Halo UI Components (`@halo-dev/components`)
+- 保持一致的样式风格
+- 响应式设计，支持移动端
+- 合理的加载和错误状态
+
+## 代码组织
+- API 调用统一放在 `api/` 目录
+- 工具函数放在 `utils/` 目录
+- 组件放在 `components/` 目录
+- 类型定义放在 `api/models.ts`
+
+## 示例
+```vue
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+
+const page = ref(1)
+const { data, isLoading } = useQuery({
+  queryKey: ['footprints', page],
+  queryFn: () => api.getFootprints(page.value)
+})
+</script>
+```

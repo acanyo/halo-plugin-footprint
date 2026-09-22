@@ -1,0 +1,72 @@
+---
+globs: ui/src/components/*.vue
+---
+
+# UI 组件开发规范
+
+## 组件命名
+- 使用 PascalCase 命名
+- 文件名与组件名保持一致
+- 使用 `defineOptions` 定义组件名称
+
+## 组件结构
+```vue
+<script setup lang="ts">
+// 导入依赖
+import { ref, computed } from 'vue'
+
+// 定义组件名称
+defineOptions({
+  name: "ComponentName"
+})
+
+// Props 定义
+interface Props {
+  // 属性定义
+}
+const props = defineProps<Props>()
+
+// Emits 定义
+const emit = defineEmits<{
+  // 事件定义
+}>()
+
+// 响应式数据
+const data = ref<Type[]>([])
+
+// 计算属性
+const computedValue = computed(() => {
+  // 计算逻辑
+})
+
+// 方法
+const handleAction = () => {
+  // 处理逻辑
+}
+</script>
+
+<template>
+  <!-- 模板内容 -->
+</template>
+
+<style scoped lang="scss">
+/* 样式定义 */
+</style>
+```
+
+## 组件通信
+- 使用 `defineProps` 接收父组件数据
+- 使用 `defineEmits` 向父组件发送事件
+- 使用 `v-model` 实现双向绑定
+- 使用 `provide/inject` 跨层级通信
+
+## 样式规范
+- 使用 `scoped` 避免样式污染
+- 优先使用 Tailwind CSS 类
+- 自定义样式使用 SCSS
+- 响应式设计优先
+
+## 组件文档
+- 添加中文注释
+- 说明组件用途和用法
+- 标注必要的 props 和 events

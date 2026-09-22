@@ -1,0 +1,42 @@
+---
+globs: *.java
+---
+
+# Java 后端开发规范
+
+## 代码风格
+- 使用 Java 21 特性
+- 遵循 Spring Boot 最佳实践
+- 使用 Lombok 减少样板代码
+- 中文注释和文档
+
+## 包结构
+- `cc.lik.footprint` - 主包
+- `model` - 数据模型 (如 [Footprint.java](mdc:src/main/java/cc/lik/footprint/model/Footprint.java))
+- `service` - 业务逻辑层
+- `dto` - 数据传输对象
+- `vo` - 视图对象
+- `finders` - 查询器
+
+## 注解使用
+- `@Component` - Spring 组件
+- `@Schema` - OpenAPI 文档注解
+- `@GVK` - Halo 扩展资源定义
+- `@Data`, `@EqualsAndHashCode`, `@ToString` - Lombok 注解
+
+## API 设计
+- 使用 Halo 的 Extension API
+- RESTful 接口设计
+- 统一的错误处理
+- 分页查询支持
+
+## 示例代码结构
+```java
+@Data
+@EqualsAndHashCode(callSuper = true)
+@GVK(group = "footprint.lik.cc", version = "v1alpha1", kind = "Footprint")
+public class Footprint extends AbstractExtension {
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+    private FootprintSpec spec;
+}
+```
