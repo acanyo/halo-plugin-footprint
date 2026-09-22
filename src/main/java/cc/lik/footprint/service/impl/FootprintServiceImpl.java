@@ -128,7 +128,7 @@ public class FootprintServiceImpl implements FootprintService {
     }
 
     /**
-     * 天地图 Key 自 2.9.19 起改存 Halo Secret。迁移完成前仍读 globe3d 里的明文字段，
+     * 天地图 Key 现已改存 Halo Secret。迁移完成前仍读 globe3d 里的明文字段，
      * 避免升级瞬间三维地形与天地图底图失效。
      */
     private Mono<String> resolveTiandituKey(JsonNode tianditu, JsonNode legacy) {
