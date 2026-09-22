@@ -109,6 +109,22 @@ const initMap = async () => {
       mapStyle: config.mapStyle || undefined,
     });
 
+    // 高德对 Key 的域名白名单校验是异步的，失败时不会抛异常，只在控制台打
+    // INVALID_USER_DOMAIN，页面上只剩一块空白。这里用 complete 事件加超时兜底，
+    // 把「大概率是 Key 配置问题」直接说出来。
+    let completed = false;
+    map.on("complete", () => {
+      completed = true;
+    });
+    window.setTimeout(() => {
+      if (!completed && map) {
+        loadError.value =
+          "地图未能正常加载。常见原因：高德 Js Key 绑定的域名白名单不包含当前访问域名"
+          + `（${window.location.host}）。请到高德控制台为该 Key 添加此域名，`
+          + "或改用不限域名的 Key；具体错误可查看浏览器控制台。";
+      }
+    }, 5000);
+
     marker = new AMap.Marker({ position: center, draggable: true, cursor: "move" });
     map.add(marker);
 
@@ -195,7 +211,7 @@ watch(
         <input
           v-model="searchKeyword"
           type="text"
-          class="formkit-input"
+          class="min-w-0 flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 outline-none"
           placeholder="输入地址后回车定位，或直接在地图上点选"
           @keyup.enter="handleSearch"
         />
@@ -206,9 +222,17 @@ watch(
         {{ loadError }}
       </div>
 
-      <div class="relative h-[420px] w-full overflow-hidden rounded-base border border-gray-200">
+      <!--
+        高度必须用内联样式：本插件的 ui 没有引入 Tailwind/UnoCSS，模板里那些
+        工具类是靠 Halo Console 的全局样式表才生效的，而 h-[420px] 这类任意值
+        类不可能预先存在于全局样式表中，写了等于没写，容器会塌成 0 高。
+      -->
+      <div
+        class="relative w-full overflow-hidden rounded-base border border-gray-200"
+        style="height: 420px"
+      >
         <VLoading v-if="loading" />
-        <div ref="mapContainer" class="h-full w-full"></div>
+        <div ref="mapContainer" style="height: 100%; width: 100%"></div>
       </div>
 
       <div class="rounded-base bg-gray-50 px-3 py-2 text-sm">
