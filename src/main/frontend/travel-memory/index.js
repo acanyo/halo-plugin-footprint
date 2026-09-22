@@ -10,6 +10,10 @@
  */
 
 import { wgs84ToGcj02, gcj02ToWgs84 } from './modules/coordinate.js';
+import { countTdtProvider, tdtTodayUsage, setTileBatchHandler } from './modules/tianditu-usage.js';
+
+// updateStatusText 是函数声明，会提升，这里可以安全地先注入
+setTileBatchHandler(updateStatusText);
     // ================= 配置 =================
     // 天地图 Key：在 https://lbs.tianditu.gov.cn 注册后申请（浏览器端应用）
     // 不填则自动降级：只显示高德底图，无天地图影像/注记，也无三维地形
@@ -108,51 +112,6 @@ import { wgs84ToGcj02, gcj02ToWgs84 } from './modules/coordinate.js';
         subdomains: ['1', '2', '3', '4'],
         maximumLevel: 18
     });
-
-    // ================= 天地图用量统计 =================
-    // 天地图按 Key 计额度（个人 Key 每天约一万次），这里只做"看得见"：
-    // 把当天发出的瓦片数记在 localStorage，状态栏直接显示。
-    // 注意：不要再在客户端做令牌桶限速/排队/透明瓦片兜底——那会让瓦片迟到或留空，
-    // 转动地球时看起来就是"卡住"（观感远比省几额度重要）。要省量请走缓存方案。
-    const TILE_USAGE_KEY = 'footprint-tile-usage';
-    let tdtTilesSinceStatus = 0;
-
-    function tdtCountTile() {
-        // 攒够 25 张刷一次状态栏，别每来一张瓦片就重写一次 DOM
-        tdtTilesSinceStatus += 1;
-        if (tdtTilesSinceStatus >= 25) {
-            tdtTilesSinceStatus = 0;
-            try { updateStatusText(); } catch (e) { /* 初始化未完成时忽略 */ }
-        }
-        try {
-            const today = new Date().toISOString().slice(0, 10);
-            const raw = JSON.parse(localStorage.getItem(TILE_USAGE_KEY) || '{}');
-            const count = raw.date === today ? (Number(raw.count) || 0) : 0;
-            localStorage.setItem(TILE_USAGE_KEY, JSON.stringify({ date: today, count: count + 1 }));
-        } catch (e) {
-            // 隐私模式下 localStorage 可能不可用，忽略
-        }
-    }
-
-    function tdtTodayUsage() {
-        try {
-            const today = new Date().toISOString().slice(0, 10);
-            const raw = JSON.parse(localStorage.getItem(TILE_USAGE_KEY) || '{}');
-            return raw.date === today ? (Number(raw.count) || 0) : 0;
-        } catch (e) {
-            return 0;
-        }
-    }
-
-    // 给天地图的 provider 包一层：只计数，不改请求节奏
-    function countTdtProvider(provider) {
-        const original = provider.requestImage.bind(provider);
-        provider.requestImage = function (x, y, level, request) {
-            tdtCountTile();
-            return original(x, y, level, request);
-        };
-        return provider;
-    }
 
     // ================= 天地图影像（需要 Key） =================
     // 天地图 _w（Web 墨卡托）瓦片：第 L 级为 2^L × 2^L 张（第 1 级即 2×2），
