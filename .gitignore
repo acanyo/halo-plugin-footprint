@@ -70,8 +70,9 @@ application-local.yml
 application-local.yaml
 application-local.properties
 
+/node_modules/
+/test/
 /ui/node_modules/
 /workplace/
 /src/main/resources/console/
 /ui/plugin-douban-main/
-/node_modules/

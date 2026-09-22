@@ -1,5 +1,5 @@
 import type { AxiosInstance } from "axios";
-import type {Footprint, FootprintList, Option} from "./models";
+import type {Footprint, FootprintList, Option, StatsResult, GeoInfo} from "./models";
 import {consoleApiClient} from "@halo-dev/api-client";
 
 export class FootprintApi {
@@ -58,9 +58,6 @@ export class FootprintApi {
     return data;
   }
 
-  /**
-   * 更新足迹
-   */
   async updateFootprint(name: string, footprint: Footprint): Promise<Footprint> {
     const { data } = await this.axios.put(
       `/apis/footprint.lik.cc/v1alpha1/footprints/${name}`,
@@ -100,15 +97,13 @@ export class FootprintApi {
           value: type
         };
       });
-      // 如果结果为空，使用默认类型
       if (result.length === 0) {
         const defaultTypes = ["旅游", "美食", "购物", "住宿", "交通", "其他"];
         return defaultTypes.map(type => ({
-          label: type,
-          value: type
-        }));
+        label: type,
+        value: type
+      }));
       }
-      
       return result;
     } catch (error) {
       console.error("错误详情:", error);
@@ -120,4 +115,18 @@ export class FootprintApi {
       }));
     }
   }
-} 
+
+  async getStats(): Promise<StatsResult> {
+    const { data } = await this.axios.get(
+      "/apis/api.footprint.lik.cc/v1alpha1/footprints/stats", { params: { _t: Date.now() } }
+    );
+    return data;
+  }
+
+  async geocodeFootprint(name: string): Promise<GeoInfo> {
+    const { data } = await this.axios.post(
+      `/apis/api.footprint.lik.cc/v1alpha1/footprints/${name}/geocode`
+    );
+    return data;
+  }
+}

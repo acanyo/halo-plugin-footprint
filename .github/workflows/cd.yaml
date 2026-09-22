@@ -8,11 +8,10 @@ on:
 jobs:
   cd:
     uses: halo-sigs/reusable-workflows/.github/workflows/plugin-cd.yaml@v3
+    secrets:
+      halo-pat: ${{ secrets.HALO_PAT }}
     permissions:
       contents: write
     with:
-      ui-path: "ui"
-      pnpm-version: 9
-      node-version: 22
-      java-version: 21
       app-id: app-XCtAQ
+      ui-path: "ui"

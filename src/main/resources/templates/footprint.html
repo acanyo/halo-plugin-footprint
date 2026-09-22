@@ -2,13 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
     <title th:text="${settings.title}">足迹 - 记录生活的每一步</title>
-    <!-- 引入足迹插件样式 -->
-    <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/css/footprint.css(version=${version})}" />
-    <link rel="stylesheet" type="text/css" th:href="@{/plugins/footprint/assets/static/font/result.css(version=${version})}" />
-    <!-- 引入jQuery -->
-    <script type="text/javascript" th:src="@{/plugins/footprint/assets/static/js/jquery-3.6.0.min.js}"></script>
     <!-- 引入高德地图API -->
     <script type="text/javascript">
         window._AMapSecurityConfig = {
@@ -16,108 +14,784 @@
         }
     </script>
     <script type="text/javascript" th:src="|https://webapi.amap.com/maps?v=2.0&key=${settings.gaoDeKey}|"></script>
-    <!-- 引入足迹插件JS -->
-    <script type="text/javascript" th:src="@{/plugins/footprint/assets/static/js/footprint.js(version=${version})}"></script>
+
+    <!-- Cesium 3D 地球（本地静态资源，仅 /footprints 页面加载） -->
+    <link href="/plugins/footprint/assets/static/cesium/Widgets/widgets.css" rel="stylesheet">
+    <script src="/plugins/footprint/assets/static/cesium/Cesium.js"></script>
+    <script src="/plugins/footprint/assets/static/vendor/pako.min.js"></script>
+    <script src="/plugins/footprint/assets/static/vendor/tdtplug.umd.min.js"></script>
+    <!-- travel-memory.css / district-pinyin.js / travel-memory.js 由 FootprintHeadProcessor
+         按插件版本号注入（?version=${version}），这里不再写死版本 -->
+
+
+    <style>
+    </style>
     <!-- 注入配置信息 -->
     <script th:inline="javascript">
         window.FOOTPRINT_CONFIG = {
-            amapKey: /*[[${settings.gaoDeKey}]]*/'',
-            footprints: [],
+            amapKey: /*[[${settings.gaoDeKey}]]*/ '',
+            footprints: /*[[${footprints}]]*/ [],
             title: /*[[${settings.title}]]*/ '足迹',
             logoName: /*[[${settings.logoName}]]*/ '足迹',
             describe: /*[[${settings.describe}]]*/ '描述',
-            hsla: /*[[${settings.hsla}]]*/ '200, 100%, 50%',
-            mapStyle: /*[[${settings.mapStyle}]]*/ 'amap://styles/normal'
+            hsla: /*[[${settings.hsla}]]*/ '1,75%,88%',
+            mapStyle: /*[[${settings.mapStyle}]]*/ 'amap://styles/whitesmoke',
+            markerStyle: /*[[${settings.markerStyle}]]*/ 'circle',
+            enableHoverZoom: /*[[${settings.enableHoverZoom}]]*/ true,
+            highlightScheme: /*[[${settings.highlightScheme}]]*/ 'pulse',
+            highlightVisitedCities: /*[[${settings.highlightVisitedCities}]]*/ true,
+            photoWallPageSize: /*[[${settings.photoWallPageSize}]]*/ 12,
+            photoWallStyle: /*[[${settings.photoWallStyle}]]*/ 'focus',
+            globeTitle: /*[[${settings.globeTitle}]]*/ '旅行记忆',
+            globeDesc: /*[[${settings.globeDesc}]]*/ '把每一次出发，收藏成地球上的坐标；让走过的城市，成为星空下的故事。',
+            globeLabels: /*[[${settings.globeLabels}]]*/ 'all',
+            tiandituKey: /*[[${settings.tiandituKey}]]*/ '',
+            enableTerrainDefault: /*[[${settings.enableTerrainDefault}]]*/ false,
+            ticketGalleryStyle: /*[[${settings.ticketGalleryStyle}]]*/ 'fan',
+            mobileCityWallColumns: /*[[${settings.mobileCityWallColumns}]]*/ 2,
+            enableTimeCapsule: /*[[${settings.enableTimeCapsule}]]*/ true,
+            enableInsight: /*[[${settings.enableInsight}]]*/ true,
+            cityCardHoverCarousel: /*[[${settings.cityCardHoverCarousel}]]*/ true,
+            enablePostcard: /*[[${settings.enablePostcard}]]*/ true,
+            enableTicketJourneyReplay: /*[[${settings.enableTicketJourneyReplay}]]*/ false,
+            enableTicketSeasonLight: /*[[${settings.enableTicketSeasonLight}]]*/ false,
+            enableTicketOracle: /*[[${settings.enableTicketOracle}]]*/ false,
+            enableTicketLetter: /*[[${settings.enableTicketLetter}]]*/ false,
+            enableTicketPassport: /*[[${settings.enableTicketPassport}]]*/ false,
+            markerImageFrom: /*[[${settings.markerImageFrom}]]*/ '',
+            markerImageTo: /*[[${settings.markerImageTo}]]*/ '',
+            markerImageSuffix: /*[[${settings.markerImageSuffix}]]*/ '',
+            timelineImageFrom: /*[[${settings.timelineImageFrom}]]*/ '',
+            timelineImageTo: /*[[${settings.timelineImageTo}]]*/ '',
+            timelineImageSuffix: /*[[${settings.timelineImageSuffix}]]*/ '',
+            cityWallImageFrom: /*[[${settings.cityWallImageFrom}]]*/ '',
+            cityWallImageTo: /*[[${settings.cityWallImageTo}]]*/ '',
+            cityWallImageSuffix: /*[[${settings.cityWallImageSuffix}]]*/ '',
         };
+        // console.log('Footprint Config:', window.FOOTPRINT_CONFIG);
     </script>
 </head>
-<body id="footprint-page">
-    <div class="footprint-container">
-        <!-- 地图容器 -->
-        <div id="footprint-map"></div>
-
-        <!-- 左下角Logo和文字 -->
-        <div class="logo-container">
-            <h1 class="footprint-logo" th:text="${settings.logoName}">足迹<span class="logo-version">2024</span></h1>
-            <p class="footprint-slogan" th:text="${settings.describe}">每一处足迹都充满了故事，那是对人生的思考和无限的风光。</p>
+<body id="footprint-page" th:class="'mode-3d marker-style-' + ${settings.markerStyle}">
+<!-- 顶部导航栏（两个视图共用）：2D/3D 切换、自动旋转、底图下拉 -->
+<header id="topNav">
+    <div class="nav-brand">
+        <span class="nav-brand-zh">旅行记忆</span>
+        <span class="nav-brand-sep"></span>
+        <span class="nav-brand-en">Travel Memory</span>
+    </div>
+    <div class="nav-actions">
+        <div class="nav-group nav-group-primary">
+            <button id="sceneModeBtn" type="button" title="切换到 2D 平面地图">2D 地图</button>
+            <span class="nav-sep"></span>
+            <button id="cityWallBtn" type="button" title="打开城记：按最近到访排列的城市卡片墙">城记</button>
+            <span class="nav-sep"></span>
+            <button id="ticketGalleryBtn" type="button" title="打开票根册：按时间收好的旅途票根">票根册</button>
+            <span class="nav-sep"></span>
+            <button id="provinceAllBtn" type="button" aria-pressed="false" title="在 3D 地球上展开所有去过的城市卡片与连线">全部城市</button>
+            <span class="nav-sep nav-sep-back"></span>
+            <button id="navBackGlobeBtn" type="button" title="回到整球视图">回到整球</button>
         </div>
-
-        <!-- 底部控制栏 -->
-        <div class="map-controls">
-            <!-- 图层选择器 -->
-            <div class="likcc-layer-selector">
-                <button class="likcc-layer-btn active" data-type="normal">
-                    <svg class="likcc-layer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <path d="M9 9h6v6H9z"></path>
+        <div class="nav-group nav-group-more" id="navTools">
+            <button id="rotateBtn" class="globe-only" type="button" aria-pressed="false" title="开启自动旋转">自动旋转</button>
+            <span class="nav-sep"></span>
+            <button id="cityFillBtn" class="globe-only" type="button" aria-pressed="false" title="放大后高亮显示去过的城市区域">城市高亮</button>
+            <span class="nav-sep"></span>
+            <button id="terrainBtn" class="globe-only" type="button" aria-pressed="false" title="天地图三维地形（可选，默认关闭；开启后中国境内显示真实地貌）" disabled hidden>三维地形</button>
+            <span class="nav-sep nav-sep-tools"></span>
+            <div class="nav-menu globe-only" id="layerMenu">
+                <button id="layerMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                    <span>底图</span>
+                    <svg class="nav-chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                        <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span>标准图</span>
                 </button>
-                <button class="likcc-layer-btn" data-type="satellite">
-                    <svg class="likcc-layer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                    </svg>
-                    <span>卫星图</span>
-                </button>
+                <div id="layerButtons" class="nav-menu-panel" role="menu" aria-label="切换底图" hidden>
+                    <button data-key="amapVec" role="menuitemradio" title="高德矢量路网图（含地名标注）">高德矢量</button>
+                    <button data-key="amapImg" role="menuitemradio" title="高德卫星影像（含地名标注）">高德卫星</button>
+                    <button data-key="amapImgClean" role="menuitemradio" title="高德卫星影像，无地名标注">高德卫星·无字</button>
+                    <button data-key="tdtImg" role="menuitemradio" title="天地图影像（含地名标注）" disabled>天地图影像</button>
+                    <button data-key="tdtVec" role="menuitemradio" title="天地图矢量（含地名标注）" disabled>天地图矢量</button>
+                    <button data-key="tdtImgClean" role="menuitemradio" title="天地图影像，无地名标注" class="active" disabled>天地图影像·无字</button>
+                    <button data-key="tdtVecClean" role="menuitemradio" title="天地图矢量，无地名标注" disabled>天地图矢量·无字</button>
+                </div>
             </div>
+        </div>
+        <button id="navMoreBtn" type="button" aria-haspopup="true" aria-expanded="false" title="更多工具">
+            <span>工具</span>
+            <svg class="nav-chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<!-- ================= 3D 地球视图（默认首页） ================= -->
+<div id="view-3d">
+    <!-- 承载地球的 div 容器 -->
+    <div id="cesiumContainer"></div>
 
-            <!-- 功能开关 -->
-            <div class="likcc-feature-toggles">
-                <label class="likcc-toggle-item">
-                    <input type="checkbox" data-type="road">
-                    <div class="likcc-toggle-switch">
-                        <div class="likcc-toggle-slider"></div>
+    <!-- 省份城市卡片：屏幕空间抛物线连线层（在卡片之下、地球之上）+ 省名标签 + 卡片层 -->
+    <svg id="leaderOverlay" aria-hidden="true"></svg>
+    <div id="provinceLabel" aria-hidden="true"></div>
+    <!-- 卡片层：打开时才把 aria-hidden 放开（层里是 role=button 的卡片，关着却暴露给读屏是矛盾的） -->
+    <div id="provinceCardLayer" role="group" aria-label="城市卡片" aria-hidden="true"></div>
+    <!-- 首次放大到国内范围时的一次性提示：告诉用户"省份可以点" -->
+    <div id="provinceHint" aria-hidden="true">点一下省份，展开去过的城市</div>
+
+    <div id="status">
+        <span id="statusText">正在加载地图…</span>
+        <button id="statusRetry" type="button" hidden>重试</button>
+    </div>
+
+    <!-- 右下角浮动按钮（纯图标）：回到整球视图 -->
+    <button id="backGlobeBtn" type="button" title="回到整球视图" aria-label="回到整球视图">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <ellipse cx="12" cy="12" rx="4" ry="9"/>
+            <path d="M3.4 12h17.2"/>
+        </svg>
+    </button>
+    <!-- 城市高亮浮动开关（圆环 + 中心点） -->
+    <button id="cityFillFloatBtn" type="button" aria-pressed="false" title="放大到国内范围时高亮显示去过的城市" aria-label="城市高亮">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="8"/>
+            <circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/>
+        </svg>
+    </button>
+
+    <!-- 标记键盘可达：屏幕外按钮，Tab 聚焦时显示名称，Enter 打开详情卡 -->
+    <div id="markerFocusLayer"></div>
+
+    <!-- 悬停名称：标注式引导线，跟随标记位置 -->
+    <div id="markerTip" aria-hidden="true">
+        <span class="marker-tip-dot"></span>
+        <span class="marker-tip-line"></span>
+        <span class="marker-tip-name" id="markerTipName">北京</span>
+    </div>
+
+    <!-- 照片环：点足迹标记后围绕标记铺开的 5 张缩略图 + 「全部 N 张」入口 + 窗口化查看器 -->
+    <div id="photoRing" role="group" aria-label="足迹照片" aria-hidden="true"></div>
+
+    <!-- 城市足迹全屏视图：左侧足迹 Tab 卡片 + 右侧详情 -->
+    <div id="cityView" role="dialog" aria-modal="true" aria-label="城市足迹" aria-hidden="true">
+        <div class="city-view-top">
+            <button id="cityViewBack" type="button" aria-label="返回地球">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <ellipse cx="12" cy="12" rx="4" ry="9"/>
+                    <path d="M3.4 12h17.2"/>
+                </svg>
+                <span id="cityViewBackLabel">返回地球</span>
+            </button>
+            <div class="city-view-head">
+                <!-- 标题行：足迹 / 城市名 / 统计。到访条刻意放到它下面另起一行，
+                     否则到访一多就会把这行撑宽，把城市名顶到一边 -->
+                <div class="city-view-headline">
+                    <p class="city-view-eyebrow">Footprints · 足迹</p>
+                    <h2 class="city-view-title-head" aria-label="城市名称">
+                        <button type="button" id="cityViewTitle" class="city-title-options"
+                                aria-haspopup="listbox" aria-expanded="false" aria-label="切换城市">城市</button>
+                    </h2>
+                    <p id="cityViewStats"></p>
+                </div>
+                <div class="city-view-meta" id="cityViewMeta" hidden>
+                    <div id="cityViewTimeline" class="city-view-timeline" hidden>
+                        <!-- 手机端折叠入口：桌面端由 CSS 隐藏，到访直接平铺成一行 -->
+                        <button type="button" id="cityViewTimelineToggle" class="city-view-timeline-toggle"
+                                aria-expanded="false" aria-controls="cityViewTimelineList" aria-label="展开到访记录">
+                            <span>到访</span><b id="cityViewTimelineCount">0</b><span>次</span>
+                            <i class="city-view-timeline-chevron" aria-hidden="true">▾</i>
+                        </button>
+                        <span class="city-view-timeline-label">到访</span>
+                        <ol id="cityViewTimelineList" class="city-view-timeline-list"></ol>
                     </div>
-                    <div class="likcc-toggle-content">
-                        <svg class="likcc-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z"></path>
-                            <path d="M9 12h6"></path>
-                        </svg>
-                        <span class="likcc-toggle-label">路网</span>
-                    </div>
-                </label>
-                
-                <label class="likcc-toggle-item">
-                    <input type="checkbox" data-type="traffic">
-                    <div class="likcc-toggle-switch">
-                        <div class="likcc-toggle-slider"></div>
-                    </div>
-                    <div class="likcc-toggle-content">
-                        <svg class="likcc-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                        </svg>
-                        <span class="likcc-toggle-label">路况</span>
-                    </div>
-                </label>
+                    <button id="cityViewTickets" class="city-view-tickets" type="button" hidden>看这座城市的票根</button>
+                </div>
+                <div id="cityViewCityList" class="city-view-city-list" role="listbox" aria-label="城市列表" hidden></div>
             </div>
-
-            <!-- 缩放控制 -->
-            <div class="likcc-zoom-controls">
-                <button class="likcc-zoom-btn" id="zoom-out">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="M21 21l-4.35-4.35"></path>
-                        <line x1="8" y1="11" x2="14" y2="11"></line>
-                    </svg>
-                </button>
-                <button class="likcc-zoom-btn" id="zoom-in">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="M21 21l-4.35-4.35"></path>
-                        <line x1="11" y1="8" x2="11" y2="14"></line>
-                        <line x1="8" y1="11" x2="14" y2="11"></line>
-                    </svg>
-                </button>
+            <div class="city-view-nav">
+                <button id="cityViewPrevCity" type="button" aria-label="上一个城市">‹</button>
+                <button id="cityViewNextCity" type="button" aria-label="下一个城市">›</button>
             </div>
-
-            <!-- 比例尺 -->
-            <div class="likcc-scale-display">
-                <div class="likcc-scale-bar"></div>
-                <span class="likcc-scale-text" id="scale-text">1000 公里</span>
+        </div>
+        <div class="city-view-body" id="cityViewBody">
+            <aside class="city-tabs" id="cityTabs" role="tablist" aria-label="城市足迹列表"></aside>
+            <section class="city-stage" id="cityStage" aria-live="polite"></section>
+        </div>
+    </div>
+    <!-- 城市卡片墙：全部已到访城市的总览目录，点击卡片进入对应城市图片墙 -->
+    <div id="cityWall" role="dialog" aria-modal="true" aria-label="城市卡片墙" aria-hidden="true">
+        <div class="city-wall-top">
+            <button id="cityWallBack" type="button" aria-label="返回地球">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <ellipse cx="12" cy="12" rx="4" ry="9"/>
+                    <path d="M3.4 12h17.2"/>
+                </svg>
+                <span>返回地球</span>
+            </button>
+            <div class="city-wall-head">
+                <p class="city-wall-eyebrow">CITY COLLECTION · 城市目录</p>
+                <h2 id="cityWallTitle">城市卡片墙</h2>
+                <p id="cityWallStats"></p>
+                <button id="cityWallProvinceFilter" class="city-wall-province-filter" type="button" hidden></button>
+            </div>
+            <div class="city-wall-actions" id="cityWallFeatureActions">
+                <button id="cityWallTimeCapsuleBtn" type="button" hidden>去年今天</button>
+                <button id="cityWallInsightBtn" type="button" hidden>足迹洞察</button>
+            </div>
+        </div>
+        <div class="city-wall-body">
+            <div class="city-wall-grid" id="cityWallGrid" aria-live="polite"></div>
+            <div id="cityWallEmpty" class="city-wall-empty-view" hidden>
+                <p>还没有收录城市足迹</p>
+                <span>回到地球，继续记录下一段旅程。</span>
             </div>
         </div>
     </div>
+    <!-- 去年今天：历史同月同日的足迹回看 -->
+    <div id="timeCapsule" class="feature-overlay" role="dialog" aria-modal="true" aria-label="去年今天" aria-hidden="true">
+        <div class="feature-top">
+            <button id="timeCapsuleBack" class="feature-back" type="button" aria-label="返回城市墙">
+                <span>‹ 返回城市墙</span>
+            </button>
+            <div class="feature-head">
+                <p class="feature-eyebrow">THIS DAY IN MY TRIPS</p>
+                <h2>去年今天，你在哪里</h2>
+                <p id="timeCapsuleStats"></p>
+            </div>
+            <div class="feature-nav">
+                <button id="timeCapsulePrev" type="button" aria-label="上一条">‹</button>
+                <button id="timeCapsuleNext" type="button" aria-label="下一条">›</button>
+            </div>
+        </div>
+        <div class="feature-body" id="timeCapsuleBody" aria-live="polite"></div>
+    </div>
+    <!-- 足迹洞察：可翻页的洞察卡（概览 / 时间 / 省份 / 距离 / 类型 / 年度 / 成就） -->
+    <div id="insightView" class="feature-overlay" role="dialog" aria-modal="true" aria-label="足迹洞察" aria-hidden="true">
+        <div class="feature-top">
+            <button id="insightBack" class="feature-back" type="button" aria-label="返回城市墙">
+                <span>‹ 返回城市墙</span>
+            </button>
+            <div class="feature-head">
+                <p class="feature-eyebrow">FOOTPRINT INSIGHT</p>
+                <h2>足迹洞察</h2>
+                <p id="insightTitle"></p>
+            </div>
+            <div class="feature-nav">
+                <button id="insightPrevCard" type="button" aria-label="上一张洞察">‹</button>
+                <button id="insightNextCard" type="button" aria-label="下一张洞察">›</button>
+            </div>
+        </div>
+        <div class="feature-body insight-body">
+            <div class="insight-deck" id="insightDeck"></div>
+            <div class="insight-pager">
+                <div class="insight-dots" id="insightDots" role="tablist" aria-label="洞察分页"></div>
+                <button id="insightPageCount" class="insight-page-count" type="button" hidden>1 / 7</button>
+            </div>
+            <p class="insight-note">按相邻足迹直线距离估算，供回顾使用；带箭头的数字可以点进去看对应内容</p>
+        </div>
+    </div>
+    <!-- 旅行明信片预览 -->
+    <div id="postcardPreview" class="feature-overlay" role="dialog" aria-modal="true" aria-label="旅行明信片" aria-hidden="true">
+        <div class="feature-top">
+            <button id="postcardBack" class="feature-back" type="button" aria-label="返回城市墙">
+                <span>‹ 返回城市墙</span>
+            </button>
+            <div class="feature-head">
+                <p class="feature-eyebrow">CITY POSTCARD</p>
+                <h2 id="postcardTitle">旅行明信片</h2>
+            </div>
+            <div class="feature-nav"></div>
+        </div>
+        <div class="feature-body postcard-body">
+            <div id="postcardStage" class="postcard-stage is-loading">
+                <div class="postcard-skeleton" aria-hidden="true"></div>
+                <img id="postcardPreviewImg" alt="旅行明信片预览">
+                <div class="postcard-status">
+                    <p id="postcardStatus" aria-live="polite">正在生成明信片…</p>
+                    <button id="postcardRetry" type="button" hidden>重新生成</button>
+                </div>
+            </div>
+            <div class="postcard-actions">
+                <button id="postcardDownload" type="button" disabled>下载图片</button>
+                <button id="postcardShare" type="button" hidden>分享</button>
+            </div>
+        </div>
+    </div>
+    <!-- 票根墙：仅展示配置了 ticketImage 的足迹 -->
+    <div id="ticketGallery" role="region" aria-label="旅行票根墙" aria-hidden="true">
+        <div class="ticket-gallery-top">
+            <button id="ticketGalleryBack" type="button" aria-label="返回地球">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3.4 12h17.2"/>
+                </svg>
+                <span>返回地球</span>
+            </button>
+            <div class="ticket-gallery-heading">
+                <p class="ticket-gallery-eyebrow">TRAVEL TICKET ARCHIVE</p>
+                <h2>旅途票根</h2>
+                <p id="ticketGalleryStats">收集每一次出发的凭证</p>
+            </div>
+            <div class="ticket-gallery-actions" id="ticketGalleryActions">
+                <div id="ticketViewModes" class="ticket-view-modes" role="group" aria-label="票根浏览模式" hidden>
+                    <button id="ticketModeArchiveBtn" type="button" data-ticket-mode="archive" class="is-active">票夹</button>
+                    <button id="ticketModeReplayBtn" type="button" data-ticket-mode="replay">重走</button>
+                </div>
+                <button id="ticketCityFilter" type="button" hidden></button>
+                <button id="ticketOracleBtn" type="button" hidden>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path d="M4.5 4.5 19.5 19.5M4.5 19.5 19.5 4.5"/>
+                    </svg>
+                    <span>抽一张</span>
+                </button>
+                <button id="ticketPassportBtn" type="button" hidden>
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <rect x="3.5" y="5.5" width="17" height="13" rx="2"/>
+                        <path d="M3.5 9.5h17M8 5.5v13"/>
+                    </svg>
+                    <span>护照</span>
+                    <span id="ticketPassportCount"></span>
+                </button>
+            </div>
+        </div>
+        <div class="ticket-gallery-content">
+            <div class="ticket-gallery-view" aria-live="polite">
+                <div class="ticket-gallery-stage">
+                    <div id="ticketWallet" class="ticket-wallet" role="group" aria-label="旅行票夹"></div>
+                    <div id="ticketGalleryLoading" class="ticket-gallery-loading" role="status">票根加载中</div>
+                    <div id="ticketGalleryError" class="ticket-gallery-error" hidden>
+                        <span>票根加载失败</span>
+                        <button id="ticketGalleryRetry" type="button">重新加载</button>
+                    </div>
+                    <p id="ticketGalleryHint" class="ticket-gallery-hint" hidden>点击票根或滚动鼠标切换</p>
+                    <div id="ticketStrip" class="ticket-strip" hidden>
+                        <div id="ticketStripScroller" class="ticket-strip-scroller" role="group" aria-label="横向票根浏览"></div>
+                        <div id="ticketStripProgress" class="ticket-strip-progress ticket-caption-progress" aria-hidden="true">
+                            <span class="ticket-progress-side">
+                                <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
+                                    <path d="M7.5 2.5 4 6l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                向左滚动
+                            </span>
+                            <span class="ticket-progress-rail">
+                                <!-- 按票根数量由 JS 生成可访问的步骤点 -->
+                            </span>
+                            <span class="ticket-progress-side">
+                                向右滚动
+                                <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
+                                    <path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                    <span id="ticketStampBadge" class="ticket-stamp-badge" hidden aria-hidden="true"></span>
+                </div>
+                <!-- TicketCaption：当前选中票根下方的悬浮电影字幕信息区 -->
+                <aside id="ticketMetaPanel" class="ticket-gallery-meta ticket-caption">
+                    <p class="ticket-meta-kicker">FOOTPRINT RECORD</p>
+                    <h2 id="ticketGalleryTitle">
+                        <span class="ticket-meta-title-line">
+                            <span class="ticket-meta-title-text"></span>
+                            <span id="ticketGalleryPinyin" class="ticket-meta-pinyin"></span>
+                        </span>
+                        <span id="ticketGalleryEnglish" class="ticket-meta-english"></span>
+                    </h2>
+                    <p id="ticketGallerySubtitle" class="ticket-meta-subtitle"></p>
+                    <dl id="ticketGalleryDetails"></dl>
+                    <p id="ticketGalleryDescription" class="ticket-meta-description"></p>
+                    <p id="ticketGalleryTagline" class="ticket-meta-tagline">DIFFERENT PLACES, A BRIGHTER YOU</p>
+                    <p id="ticketGalleryPosition" class="ticket-meta-count"></p>
+                    <div class="ticket-meta-actions" id="ticketMetaActions">
+                        <button id="ticketLetterBtn" type="button" hidden>给这张票写信</button>
+                    </div>
+                </aside>
+            </div>
+            <div id="ticketGalleryEmpty" class="ticket-gallery-empty" hidden>
+                <p>还没有收集票根</p>
+                <span>回到地球，继续记录下一段旅程。</span>
+            </div>
+        </div>
+        <div id="ticketReplayView" class="ticket-replay-view" hidden>
+            <div id="ticketReplayCard" class="ticket-replay-card" role="button" tabindex="0"
+                 aria-live="polite" aria-expanded="false" aria-label="放大票根"></div>
+            <div class="ticket-replay-cinema">
+                <div class="ticket-replay-copy">
+                    <p class="ticket-replay-title">
+                        <span id="ticketReplaySubtitle" class="ticket-replay-subtitle"></span>
+                        <span id="ticketReplayCityBadge" class="ticket-replay-city-badge" hidden></span>
+                    </p>
+                    <p class="ticket-replay-meta">
+                        <span id="ticketReplayRoute" class="ticket-replay-route"></span>
+                        <span id="ticketReplayDistance" class="ticket-replay-distance"></span>
+                        <span id="ticketReplayTotal" class="ticket-replay-total"></span>
+                    </p>
+                </div>
+                <div class="ticket-replay-progress">
+                    <div class="ticket-replay-progress-head">
+                        <span id="ticketReplayProgressText"></span>
+                        <span id="ticketReplayEta" class="ticket-replay-eta"></span>
+                    </div>
+                    <div class="ticket-replay-bar"><i id="ticketReplayBarInner"></i></div>
+                </div>
+                <div class="ticket-replay-actions">
+                    <div class="ticket-replay-transport">
+                        <button id="ticketReplayPrev" type="button" aria-label="上一站">‹</button>
+                        <button id="ticketReplayPlay" type="button">暂停</button>
+                        <button id="ticketReplayNext" type="button" aria-label="下一站">›</button>
+                    </div>
+                    <div class="ticket-replay-extras">
+                        <button id="ticketReplaySpeed" type="button" aria-label="播放速度，当前 1 倍速">1×</button>
+                        <button id="ticketReplayOpen" type="button">查看这张票</button>
+                        <button id="ticketReplayExit" type="button">退出</button>
+                    </div>
+                </div>
+            </div>
+            <div id="ticketReplayFlight" class="ticket-replay-flight" aria-hidden="true">
+                <p id="ticketReplayFlightLabel" class="ticket-replay-flight-kicker">正在飞往</p>
+                <div class="ticket-replay-flight-route">
+                    <span id="ticketReplayFlightFrom" class="ticket-replay-flight-from"></span>
+                    <i class="ticket-replay-flight-arrow" aria-hidden="true"></i>
+                    <strong id="ticketReplayFlightCity" class="ticket-replay-flight-city"></strong>
+                </div>
+                <div class="ticket-replay-flight-track"><i></i></div>
+                <span id="ticketReplayFlightKm" class="ticket-replay-flight-km"></span>
+            </div>
+            <div id="ticketReplayEnd" class="ticket-replay-end" hidden>
+                <div class="ticket-replay-end-card" role="dialog" aria-labelledby="ticketReplayEndTitle">
+                    <p class="ticket-replay-end-kicker">THE JOURNEY SO FAR</p>
+                    <h3 id="ticketReplayEndTitle">重走完毕</h3>
+                    <p id="ticketReplayEndRange" class="ticket-replay-end-range"></p>
+                    <dl class="ticket-replay-end-metrics">
+                        <div class="ticket-replay-end-metric">
+                            <dt>张票根</dt>
+                            <dd id="ticketReplayEndTickets">—</dd>
+                        </div>
+                        <div class="ticket-replay-end-metric">
+                            <dt>座城市</dt>
+                            <dd id="ticketReplayEndCities">—</dd>
+                        </div>
+                        <div class="ticket-replay-end-metric">
+                            <dt>公里</dt>
+                            <dd id="ticketReplayEndKm">—</dd>
+                        </div>
+                        <div class="ticket-replay-end-metric">
+                            <dt>年跨度</dt>
+                            <dd id="ticketReplayEndSpan">—</dd>
+                        </div>
+                    </dl>
+                    <p id="ticketReplayEndNote" class="ticket-replay-end-note"></p>
+                    <div class="ticket-replay-end-actions">
+                        <button id="ticketReplayAgain" type="button">再看一次</button>
+                        <button id="ticketReplayCloseEnd" type="button">回到票夹</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="ticketStripHint" class="ticket-strip-hint" hidden>
+            <svg class="ticket-mouse-icon" viewBox="0 0 24 36" width="20" height="30" fill="none" aria-hidden="true">
+                <rect x="3.2" y="2.2" width="17.6" height="31.6" rx="8.8" stroke="currentColor" stroke-width="1.6"/>
+                <line class="ticket-mouse-wheel" x1="12" y1="8" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>滚动鼠标或拖动查看票根</span>
+        </div>
+    </div>
+    <!-- 旅行护照：本机集章进度 -->
+    <div id="ticketPassport" class="feature-overlay ticket-passport-overlay" role="dialog" aria-modal="true" aria-label="旅行护照" aria-hidden="true">
+        <div class="feature-top">
+            <button id="ticketPassportBack" class="feature-back" type="button" aria-label="返回票根页">
+                <span>‹ 返回票根页</span>
+            </button>
+            <div class="feature-head">
+                <p class="feature-eyebrow">TRAVEL PASSPORT</p>
+                <h2>旅行护照</h2>
+                <p id="ticketPassportStats"></p>
+            </div>
+            <div class="feature-nav"></div>
+        </div>
+        <div class="feature-body">
+            <div class="ticket-passport-grid" id="ticketPassportGrid" aria-live="polite"></div>
+            <button id="ticketPassportReset" class="ticket-passport-reset" type="button">清除本机集章</button>
+        </div>
+    </div>
+    <!-- 命运抽票：随机翻开一张已有票根并给出“下一站”灵感 -->
+    <div id="ticketOracle" class="feature-overlay ticket-overlay-high" role="dialog" aria-modal="true" aria-label="命运抽票" aria-hidden="true">
+        <div class="feature-top">
+            <button id="ticketOracleBack" class="feature-back" type="button" aria-label="返回票根页">
+                <span>‹ 返回票根页</span>
+            </button>
+            <div class="feature-head">
+                <p class="feature-eyebrow">NEXT STOP ORACLE</p>
+                <h2>命运抽票</h2>
+                <p id="ticketOracleStats"></p>
+            </div>
+            <div class="feature-nav"></div>
+        </div>
+        <div class="feature-body">
+            <div class="ticket-oracle-stage">
+                <div class="ticket-oracle-stack">
+                    <div id="ticketOracleCard" class="ticket-oracle-card" aria-live="polite"></div>
+                    <div class="ticket-oracle-below">
+                        <p id="ticketOracleInspiration" class="ticket-oracle-inspiration"></p>
+                        <div class="ticket-oracle-actions">
+                            <button id="ticketOracleView" type="button">查看这张票</button>
+                            <button id="ticketOracleAgain" type="button">再抽一次</button>
+                            <button id="ticketOracleClose" type="button">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 未寄出的明信片：为当前票根自动生成一封可分享的信 -->
+    <div id="ticketLetter" class="feature-overlay ticket-overlay-high" role="dialog" aria-modal="true" aria-label="未寄出的明信片" aria-hidden="true">
+        <div class="feature-top">
+            <button id="ticketLetterBack" class="feature-back" type="button" aria-label="返回票根页">
+                <span>‹ 返回票根页</span>
+            </button>
+            <div class="feature-head">
+                <p class="feature-eyebrow">A LETTER FROM A TICKET</p>
+                <h2 id="ticketLetterTitle">未寄出的明信片</h2>
+            </div>
+            <div class="feature-nav"></div>
+        </div>
+        <div class="feature-body ticket-letter-body">
+            <div id="ticketLetterStage" class="ticket-letter-stage is-loading">
+                <div class="ticket-letter-skeleton" aria-hidden="true"></div>
+                <img id="ticketLetterImg" alt="未寄出的明信片预览">
+                <div class="ticket-letter-status">
+                    <p id="ticketLetterStatus" aria-live="polite">正在写这封信…</p>
+                    <button id="ticketLetterRetry" type="button" hidden>重新生成</button>
+                </div>
+            </div>
+            <p id="ticketLetterCaption" class="ticket-letter-caption"></p>
+            <div class="postcard-actions ticket-letter-actions">
+                <button id="ticketLetterDownload" type="button" disabled>下载图片</button>
+                <button id="ticketLetterShare" type="button" hidden>分享</button>
+            </div>
+            <p class="ticket-letter-note">这封信由票根自动写成，正面是票根，背面是当时想说的话。</p>
+        </div>
+    </div>
+    <!-- 图片灯箱 -->
+    <div id="lightbox" role="dialog" aria-modal="true" aria-label="图片查看" aria-hidden="true">
+        <button id="lightboxClose" type="button" aria-label="关闭图片">×</button>
+        <button id="lightboxPrev" type="button" aria-label="上一张">‹</button>
+        <div class="lightbox-stage" id="lightboxStage">
+            <div class="lightbox-skeleton" id="lightboxSkeleton" aria-hidden="true"></div>
+            <img id="lightboxImg" alt="">
+            <div class="lightbox-error" id="lightboxError" hidden>
+                <span>图片加载失败</span>
+                <button id="lightboxRetry" type="button">重试</button>
+            </div>
+        </div>
+        <button id="lightboxNext" type="button" aria-label="下一张">›</button>
+        <div class="lightbox-meta">
+            <span id="lightboxCount"></span>
+            <span id="lightboxCaption"></span>
+        </div>
+    </div>
+
+    <!-- 左侧标题卡：仅 3D 整球视图时显示 -->
+    <div id="pageIntro">
+        <p class="intro-eyebrow">TRAVEL MEMORY</p>
+        <h1 class="intro-title">旅行记忆</h1>
+        <p class="intro-desc">把每一次出发，收藏成地球上的坐标；<br>让走过的城市，成为星空下的故事。</p>
+        <div class="intro-stats">
+            <div class="intro-stat">
+                <span class="intro-num" id="introTotal">24</span>
+                <span class="intro-label">总足迹数量</span>
+            </div>
+            <div class="intro-stat">
+                <span class="intro-num" id="introCities">6</span>
+                <span class="intro-label">去过的城市</span>
+            </div>
+        </div>
+        <p class="intro-hint">拖动地球，探索我的足迹</p>
+    </div>
+
+    <!-- 足迹卡（条目层）：单条记录的「纸票据」形态，点击地球上的标记点后显示 -->
+    <div id="markerCard" aria-hidden="true" aria-labelledby="markerCardTitle">
+        <div class="marker-card-media" id="markerCardMedia"></div>
+        <div class="marker-card-body">
+            <div class="marker-card-head">
+                <p class="marker-card-eyebrow">Footprint</p>
+                <span class="marker-card-stamp" id="markerCardStamp" hidden></span>
+            </div>
+            <h2 class="marker-card-title" id="markerCardTitle">稻城亚丁</h2>
+            <p class="marker-card-meta" id="markerCardMeta"></p>
+            <p class="marker-card-addr" id="markerCardAddr"></p>
+            <p class="marker-card-desc" id="markerCardDesc"></p>
+            <div class="marker-card-actions">
+                <button id="markerCardTicket" type="button" hidden>打开票根</button>
+                <button id="markerCardGallery" type="button" hidden>
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+                        <rect x="2.2" y="2.2" width="5" height="5" rx="1"/>
+                        <rect x="8.8" y="2.2" width="5" height="5" rx="1"/>
+                        <rect x="2.2" y="8.8" width="5" height="5" rx="1"/>
+                        <rect x="8.8" y="8.8" width="5" height="5" rx="1"/>
+                    </svg>
+                    <span id="markerCardGalleryLabel">打开图片墙</span>
+                </button>
+            </div>
+        </div>
+        <button id="markerCardClose" type="button" aria-label="关闭详情">×</button>
+    </div>
+
+    <!-- 城市卡（容器层）：深色玻璃统计面板，信息由城市内已有足迹聚合，不维护独立城市数据 -->
+    <div id="cityCard" aria-hidden="true" aria-labelledby="cityCardTitle">
+        <div class="city-card-media" id="cityCardMedia"></div>
+        <div class="city-card-body">
+            <p class="city-card-eyebrow">City Collection</p>
+            <h2 class="city-card-title" id="cityCardTitle">城市</h2>
+            <div class="city-card-stats">
+                <div class="city-card-stat"><b id="cityStatFootprints">0</b><span>足迹</span></div>
+                <div class="city-card-stat"><b id="cityStatPhotos">0</b><span>照片</span></div>
+            </div>
+            <p class="city-card-desc" id="cityCardDesc"></p>
+            <div class="city-card-actions">
+                <button id="cityCardGallery" class="is-primary" type="button">
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+                        <rect x="2.2" y="2.2" width="5" height="5" rx="1"/>
+                        <rect x="8.8" y="2.2" width="5" height="5" rx="1"/>
+                        <rect x="2.2" y="8.8" width="5" height="5" rx="1"/>
+                        <rect x="8.8" y="8.8" width="5" height="5" rx="1"/>
+                    </svg>
+                    <span>进入城市</span>
+                </button>
+                <button id="cityCardLocate" type="button">定位</button>
+            </div>
+        </div>
+        <button id="cityCardClose" type="button" aria-label="关闭城市信息">×</button>
+    </div>
+</div>
+
+<!-- ================= 2D 高德地图视图（原页面，切 2D 时启用） ================= -->
+<div id="view-2d" hidden>
+<canvas id="canvas"></canvas>
+<div class="footprint-container">
+    <!-- 地图容器 -->
+    <div id="footprint-map" role="application" aria-label="足迹地图"></div>
+
+    <!-- 页面级图片墙图层：不使用高德信息窗口，图片卡片展示在地图外围 -->
+    <div id="photo-wall-layer" class="photo-wall-layer" aria-live="polite"></div>
+
+    <!-- 左上角Logo和文字 -->
+    <div class="logo-container">
+        <h1 class="footprint-logo" th:text="${settings.logoName}">足迹<span class="logo-version">2024</span></h1>
+        <p class="footprint-slogan" th:text="${settings.describe}">
+            每一处足迹都充满了故事，那是对人生的思考和无限的风光。</p>
+    </div>
+
+
+    <!-- 右上角统计面板 -->
+    <div id="map-stats" class="map-stats-panel show" aria-label="足迹统计">
+        <div class="stats-heading">
+            <div class="stats-heading-copy">
+                <span class="stats-kicker">TRAVEL LOG</span>
+                <span class="stats-title">足迹概览</span>
+            </div>
+            <span class="stats-live" aria-hidden="true"><i></i>LIVE</span>
+        </div>
+        <div class="stats-main">
+            <div class="stats-item stats-total">
+                <span class="stats-number" id="stats-total">0</span>
+                <span class="stats-label">总足迹</span>
+            </div>
+            <div class="stats-item">
+                <span class="stats-number stats-accent" id="stats-provinces">0 / 34</span>
+                <span class="stats-label">省级行政区</span>
+            </div>
+            <div class="stats-item">
+                <span class="stats-number" id="stats-cities">0</span>
+                <span class="stats-label">城市</span>
+            </div>
+        </div>
+        <div class="stats-divider"></div>
+        <div class="stats-detail" id="stats-detail">
+        </div>
+    </div>
+<!-- 底部控制栏 -->
+    <div class="map-controls" id="map-controls">
+        <div class="zoom-buttons" id="zoom-buttons">
+            <button class="zoom-btn" id="zoom-in" data-tooltip="放大地图">+</button>
+            <button class="zoom-btn" id="zoom-out" data-tooltip="缩小地图">−</button>
+        </div>
+        <div class="button-group">
+            <button class="control-btn active" data-type="normal" data-tooltip="切换到标准地图">标准图层</button>
+            <button class="control-btn" data-type="satellite" data-tooltip="切换到卫星地图">卫星图</button>
+        </div>
+        <div class="button-group" id="line">
+            <label class="plane-switch road-switch" data-tooltip="显示/隐藏道路网络" aria-label="切换路网显示">
+                <input type="checkbox" data-type="road">
+                <div>
+                    <div>
+                        <svg viewBox="0 0 13 13">
+                            <path d="M1.55989957,5.41666667 L5.51582215,5.41666667 L4.47015462,0.108333333 L4.47015462,0.108333333 C4.47015462,0.0634601974 4.49708054,0.0249592654 4.5354546,0.00851337035 L4.57707145,0 L5.36229752,0 C5.43359776,0 5.50087375,0.028779451 5.55026392,0.0782711996 L5.59317877,0.134368264 L7.13659662,2.81558333 L8.29565964,2.81666667 C8.53185377,2.81666667 8.72332694,3.01067661 8.72332694,3.25 C8.72332694,3.48932339 8.53185377,3.68333333 8.29565964,3.68333333 L7.63589819,3.68225 L8.63450135,5.41666667 L11.9308317,5.41666667 C12.5213171,5.41666667 13,5.90169152 13,6.5 C13,7.09830848 12.5213171,7.58333333 11.9308317,7.58333333 L8.63450135,7.58333333 L7.63589819,9.31666667 L8.29565964,9.31666667 C8.53185377,9.31666667 8.72332694,9.51067661 8.72332694,9.75 C8.72332694,9.98932339 8.53185377,10.1833333 8.29565964,10.1833333 L7.13659662,10.1833333 L5.59317877,12.8656317 C5.55725264,12.9280353 5.49882018,12.9724157 5.43174295,12.9907056 L5.36229752,13 L4.57707145,13 L4.55610333,12.9978962 C4.51267695,12.9890959 4.48069792,12.9547924 4.47230803,12.9134397 L4.47223088,12.8704208 L5.51582215,7.58333333 L1.55989957,7.58333333 L0.891288881,8.55114605 C0.853775374,8.60544678 0.798421006,8.64327676 0.73629202,8.65879796 L0.672314689,8.66666667 L0.106844414,8.66666667 L0.0715243949,8.66058466 L0.0715243949,8.66058466 C0.0297243066,8.6457608 0.00275502199,8.60729104 0,8.5651586 L0.00593007386,8.52254537 L0.580855011,6.85813984 C0.64492547,6.67265611 0.6577034,6.47392717 0.619193545,6.28316421 L0.580694768,6.14191703 L0.00601851064,4.48064746 C0.00203480725,4.4691314 0,4.45701613 0,4.44481314 C0,4.39994001 0.0269259152,4.36143908 0.0652999725,4.34499318 L0.106916826,4.33647981 L0.672546853,4.33647981 C0.737865848,4.33647981 0.80011301,4.36066329 0.848265401,4.40322477 L0.89131128,4.45169723 L1.55989957,5.41666667 Z" fill="currentColor"></path>
+                        </svg>
+                    </div>
+                    <span class="street-middle"></span>
+                    <span class="cloud"></span>
+                    <span class="cloud two"></span>
+                </div>
+                <span class="switch-text">路网</span>
+            </label>
+            <label class="plane-switch traffic-switch" data-tooltip="显示/隐藏实时路况" aria-label="切换实时路况显示">
+                <input type="checkbox" data-type="traffic">
+                <div>
+                    <div>
+                        <svg viewBox="0 0 13 13">
+                            <path d="M1.55989957,5.41666667 L5.51582215,5.41666667 L4.47015462,0.108333333 L4.47015462,0.108333333 C4.47015462,0.0634601974 4.49708054,0.0249592654 4.5354546,0.00851337035 L4.57707145,0 L5.36229752,0 C5.43359776,0 5.50087375,0.028779451 5.55026392,0.0782711996 L5.59317877,0.134368264 L7.13659662,2.81558333 L8.29565964,2.81666667 C8.53185377,2.81666667 8.72332694,3.01067661 8.72332694,3.25 C8.72332694,3.48932339 8.53185377,3.68333333 8.29565964,3.68333333 L7.63589819,3.68225 L8.63450135,5.41666667 L11.9308317,5.41666667 C12.5213171,5.41666667 13,5.90169152 13,6.5 C13,7.09830848 12.5213171,7.58333333 11.9308317,7.58333333 L8.63450135,7.58333333 L7.63589819,9.31666667 L8.29565964,9.31666667 C8.53185377,9.31666667 8.72332694,9.51067661 8.72332694,9.75 C8.72332694,9.98932339 8.53185377,10.1833333 8.29565964,10.1833333 L7.13659662,10.1833333 L5.59317877,12.8656317 C5.55725264,12.9280353 5.49882018,12.9724157 5.43174295,12.9907056 L5.36229752,13 L4.57707145,13 L4.55610333,12.9978962 C4.51267695,12.9890959 4.48069792,12.9547924 4.47230803,12.9134397 L4.47223088,12.8704208 L5.51582215,7.58333333 L1.55989957,7.58333333 L0.891288881,8.55114605 C0.853775374,8.60544678 0.798421006,8.64327676 0.73629202,8.65879796 L0.672314689,8.66666667 L0.106844414,8.66666667 L0.0715243949,8.66058466 L0.0715243949,8.66058466 C0.0297243066,8.6457608 0.00275502199,8.60729104 0,8.5651586 L0.00593007386,8.52254537 L0.580855011,6.85813984 C0.64492547,6.67265611 0.6577034,6.47392717 0.619193545,6.28316421 L0.580694768,6.14191703 L0.00601851064,4.48064746 C0.00203480725,4.4691314 0,4.45701613 0,4.44481314 C0,4.39994001 0.0269259152,4.36143908 0.0652999725,4.34499318 L0.106916826,4.33647981 L0.672546853,4.33647981 C0.737865848,4.33647981 0.80011301,4.36066329 0.848265401,4.40322477 L0.89131128,4.45169723 L1.55989957,5.41666667 Z" fill="currentColor"></path>
+                        </svg>
+                    </div>
+                    <span class="street-middle"></span>
+                    <span class="cloud"></span>
+                    <span class="cloud two"></span>
+                </div>
+                <span class="switch-text">路况</span>
+            </label>
+        </div>
+        <div class="button-group marker-visibility-control" id="marker-visibility">
+            <label class="plane-switch marker-switch" data-tooltip="显示/隐藏足迹标记点" aria-label="切换足迹标记点显示">
+                <input type="checkbox" data-type="markers" checked>
+                <div aria-hidden="true">
+                    <div></div>
+                </div>
+                <span class="switch-text">标记点</span>
+            </label>
+        </div>
+        <button id="zoom-restore" data-tooltip="返回中国全图视图" aria-label="返回中国全图视图">中国地图</button>
+        <button id="back3dBtn" data-tooltip="切换回 3D 地球" aria-label="切换回 3D 地球" type="button">3D 地球</button>
+        <div id="timeline-btn" data-tooltip="查看旅行时间线">时间线</div>
+        <div id="messageBoards" class="amap-scale-text" data-tooltip="查看留言板" role="button" tabindex="0" aria-label="查看留言板">留言板</div>
+        <button id="map-fullscreen" data-tooltip="进入全屏地图" aria-label="进入全屏地图" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path class="fullscreen-enter-icon" d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"></path>
+                <path class="fullscreen-exit-icon" d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"></path>
+            </svg>
+        </button>
+    </div>
+<!--    <div id="timeline-drawer" class="drawer">
+        <div class="drawer-content app-container">
+            <h2>时间线</h2>
+            <div id="timeline-container" style="width: 100%"></div>
+            <button id="close-drawer">X</button>
+        </div>
+    </div>-->
+</div>
+<div class="timeline-drawer" id="timelineDrawer">
+    <div class="drawer-header">
+        <div class="drawer-header-copy">
+            <span class="drawer-eyebrow">TRAVEL ARCHIVE</span>
+            <h2 id="timeline-title"><i class="fas fa-clock" aria-hidden="true"></i><span>旅行时间线</span></h2>
+            <p class="drawer-subtitle">按时间回看走过的地方</p>
+        </div>
+        <button class="time-close-btn" id="closeBtn" aria-label="关闭时间线"><span aria-hidden="true">X</span></button>
+    </div>
+    <div class="timeline-content" id="timelineContent">
+        <div class="timeline-decoration"></div>
+        <div class="timeline" id="timeline"></div>
+    </div>
+</div>
+</div>
 
 </body>
-</html> 
+</html>
