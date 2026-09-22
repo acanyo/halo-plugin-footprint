@@ -1,6 +1,6 @@
 import { getCesium, type CesiumViewer } from './global';
 import { MARKER_SIZE, MARKER_URL, CITY_MARKER_SIZE, cityMarkerUrl } from './marker-icon';
-import { wgs84ToGcj02 } from '../utils/coordinate';
+import { gcj02ToWgs84, wgs84ToGcj02 } from '../utils/coordinate';
 import type { Footprint } from '../types/footprint';
 
 /**
@@ -43,14 +43,28 @@ export interface CityMarkerEntity {
   footprints: Footprint[];
 }
 
-/** 底图坐标系。高德瓦片是 GCJ-02，天地图是 ≈WGS84。 */
+/** 坐标系。高德瓦片是 GCJ-02，天地图是 CGCS2000（≈WGS84）。 */
 export type BaseCoordinateSystem = 'gcj02' | 'wgs84';
 
-/** 按底图坐标系换算标记位置 */
-function positionOf(fp: Footprint, system: BaseCoordinateSystem) {
+/**
+ * 足迹自身坐标的来源坐标系。
+ *
+ * **本插件存的是 GCJ-02**：后端用高德 Web API 做地理编码，返回的就是火星坐标，
+ * 2D 高德地图也是原样传入不转换。原实现用 coordType 字段标注这一点。
+ */
+const FOOTPRINT_COORD_SYSTEM: BaseCoordinateSystem = 'gcj02';
+
+/**
+ * 把足迹从它自己的坐标系换算到当前底图坐标系。
+ *
+ * 必须双向：同源直接用，异源才转。写成单向（比如「底图是 gcj02 就调
+ * wgs84ToGcj02」）会在同源时多偏一次、异源时完全不转，两种底图下都错约 500 米。
+ */
+function positionOf(fp: Footprint, basemap: BaseCoordinateSystem) {
   const lng = fp.spec.longitude;
   const lat = fp.spec.latitude;
-  return system === 'gcj02' ? wgs84ToGcj02(lng, lat) : { lng, lat };
+  if (FOOTPRINT_COORD_SYSTEM === basemap) return { lng, lat };
+  return basemap === 'gcj02' ? wgs84ToGcj02(lng, lat) : gcj02ToWgs84(lng, lat);
 }
 
 /**

@@ -1,5 +1,6 @@
 import './components/FootprintGlobe.svelte';
 import './components/FootprintMarkers.svelte';
+import './components/FootprintAmap.svelte';
 import './components/FootprintViewSwitch.svelte';
 import './components/FootprintTitleCard.svelte';
 import './components/FootprintDetailCard.svelte';
