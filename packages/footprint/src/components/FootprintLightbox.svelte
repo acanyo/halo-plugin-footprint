@@ -22,7 +22,7 @@
  *   lb.show(images, startIndex, triggerEl);
  */
 import { tick } from 'svelte';
-import type { LightboxImage } from './types/footprint';
+import type { LightboxImage } from '../types/footprint';
 
 let open = $state(false);
 let images = $state<LightboxImage[]>([]);
