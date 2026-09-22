@@ -76,6 +76,7 @@ tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
     dependsOn tasks.named('minifyFrontendInstall')
     dependsOn tasks.named('processResources')
 
+    inputs.dir('src/main/frontend')
     inputs.dir('src/main/resources/static/js')
     inputs.dir('src/main/resources/static/css')
     inputs.files('frontend-build/esbuild.config.mjs', 'frontend-build/package.json')
