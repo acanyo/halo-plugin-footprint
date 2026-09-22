@@ -4,6 +4,7 @@ import {ref, computed, watch, onMounted} from "vue";
 import {footprintApiClient} from "@/api";
 import type {Footprint, GalleryImage, Option} from "@/api/models";
 import {toDatetimeLocal, toISOString} from "@/utils/date";
+import {parseCoordinate} from "@/utils/coordinate";
 import {FormKit} from "@formkit/vue";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {Teleport} from "vue";
@@ -391,26 +392,14 @@ const handleSubmit = async () => {
 };
 
 const handleManualInput = () => {
-  const lng = parseFloat(manualLongitude.value);
-  const lat = parseFloat(manualLatitude.value);
-
-  if (isNaN(lng) || isNaN(lat)) {
-    Toast.error("请输入有效的经纬度");
+  const result = parseCoordinate(manualLongitude.value, manualLatitude.value);
+  if (!result.ok) {
+    Toast.error(result.message);
     return;
   }
 
-  if (lng < -180 || lng > 180) {
-    Toast.error("经度必须在-180到180之间");
-    return;
-  }
-
-  if (lat < -90 || lat > 90) {
-    Toast.error("纬度必须在-90到90之间");
-    return;
-  }
-
-  formState.value.spec.longitude = lng;
-  formState.value.spec.latitude = lat;
+  formState.value.spec.longitude = result.longitude;
+  formState.value.spec.latitude = result.latitude;
   showManualInput.value = false;
 
   // 继续保存流程

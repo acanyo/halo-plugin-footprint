@@ -37,61 +37,111 @@ public class FootprintServiceImpl implements FootprintService {
         return Mono.zip(
                 fetchSetting("base")
                     .switchIfEmpty(Mono.error(new RuntimeException("配置不存在"))),
-                fetchSetting("globe3d")
-                    .defaultIfEmpty(objectMapper.createObjectNode()),
-                fetchSetting("imageProcess")
-                    .defaultIfEmpty(objectMapper.createObjectNode())
+                fetchSetting("globe3d").defaultIfEmpty(objectMapper.createObjectNode()),
+                fetchSetting("tianditu").defaultIfEmpty(objectMapper.createObjectNode()),
+                fetchSetting("ticket").defaultIfEmpty(objectMapper.createObjectNode()),
+                fetchSetting("cityWall").defaultIfEmpty(objectMapper.createObjectNode()),
+                fetchSetting("imageProcess").defaultIfEmpty(objectMapper.createObjectNode())
             )
-            .map(tuple -> {
-                JsonNode item = tuple.getT1();
-                JsonNode globe = tuple.getT2();
-                JsonNode image = tuple.getT3();
+            .flatMap(tuple -> {
+                JsonNode base = tuple.getT1();
+                // globe3d 同时也是 2.9.18 及更早版本所有 3D 相关配置的遗留存放位置
+                JsonNode legacy = tuple.getT2();
+                JsonNode tianditu = tuple.getT3();
+                JsonNode ticket = tuple.getT4();
+                JsonNode cityWall = tuple.getT5();
+                JsonNode image = tuple.getT6();
+
                 return Mono.zip(
-                    getSecretValue(item.path("gaoDeKeySecretName").asText()),
-                    getSecretValue(item.path("gaoDeWebKeySecretName").asText())
-                ).map(keys -> new BaseConfig(
-                    item.path("title").asText("Handsome足迹"),
-                    keys.getT1(),
-                    keys.getT2(),
-                    item.path("describe").asText("每一处足迹都充满了故事，那是对人生的思考和无限的风光。"),
-                    item.path("hsla").asText("109,42%,60%"),
-                    item.path("logoName").asText(),
-                    item.path("mapStyle").asText(),
-                    item.path("markerStyle").asText("pin"),
-                    item.path("enableHoverZoom").asBoolean(true),
-                    item.path("highlightScheme").asText("glow"),
-                    item.path("highlightVisitedCities").asBoolean(true),
-                    item.path("photoWallPageSize").asInt(6),
-                    item.path("photoWallStyle").asText("original"),
-                    globe.path("globeTitle").asText("旅行记忆"),
-                    globe.path("globeDesc").asText("把每一次出发，收藏成地球上的坐标；让走过的城市，成为星空下的故事。"),
-                    globe.path("tiandituKey").asText(""),
-                    globe.path("enableTerrainDefault").asBoolean(false),
-                    globe.path("ticketGalleryStyle").asText("fan"),
-                    globe.path("ticketGalleryInfoStyle").asText("card"),
-                    globe.path("mobileCityWallColumns").asInt(2),
-                    globe.path("enableTimeCapsule").asBoolean(true),
-                    globe.path("enableInsight").asBoolean(true),
-                    globe.path("cityCardHoverCarousel").asBoolean(true),
-                    globe.path("enablePostcard").asBoolean(true),
-                    image.path("markerImageFrom").asText(""),
-                    image.path("markerImageTo").asText(""),
-                    image.path("markerImageSuffix").asText(""),
-                    image.path("timelineImageFrom").asText(""),
-                    image.path("timelineImageTo").asText(""),
-                    image.path("timelineImageSuffix").asText(""),
-                    image.path("cityWallImageFrom").asText(""),
-                    image.path("cityWallImageTo").asText(""),
-                    image.path("cityWallImageSuffix").asText(""),
-                    globe.path("enableTicketJourneyReplay").asBoolean(false),
-                    globe.path("enableTicketSeasonLight").asBoolean(false),
-                    globe.path("enableTicketOracle").asBoolean(false),
-                    globe.path("enableTicketLetter").asBoolean(false),
-                    globe.path("enableTicketPassport").asBoolean(false),
-                    globe.path("globeLabels").asText("all")
-                ));
-            })
-            .flatMap(config -> config);
+                    getSecretValue(base.path("gaoDeKeySecretName").asText()),
+                    getSecretValue(base.path("gaoDeWebKeySecretName").asText()),
+                    resolveTiandituKey(tianditu, legacy)
+                ).map(keys -> BaseConfig.builder()
+                    .title(base.path("title").asText("Handsome足迹"))
+                    .gaoDeKey(keys.getT1())
+                    .gaoDeWebKey(keys.getT2())
+                    .describe(base.path("describe")
+                        .asText("每一处足迹都充满了故事，那是对人生的思考和无限的风光。"))
+                    .hsla(base.path("hsla").asText("109,42%,60%"))
+                    .logoName(base.path("logoName").asText())
+                    .mapStyle(base.path("mapStyle").asText())
+                    .markerStyle(base.path("markerStyle").asText("pin"))
+                    .enableHoverZoom(base.path("enableHoverZoom").asBoolean(true))
+                    .highlightScheme(base.path("highlightScheme").asText("glow"))
+                    .highlightVisitedCities(base.path("highlightVisitedCities").asBoolean(true))
+                    .photoWallPageSize(base.path("photoWallPageSize").asInt(6))
+                    .photoWallStyle(base.path("photoWallStyle").asText("original"))
+
+                    .globeTitle(legacy.path("globeTitle").asText("旅行记忆"))
+                    .globeDesc(legacy.path("globeDesc")
+                        .asText("把每一次出发，收藏成地球上的坐标；让走过的城市，成为星空下的故事。"))
+                    .globeLabels(legacy.path("globeLabels").asText("all"))
+
+                    .tiandituKey(keys.getT3())
+                    .enableTerrainDefault(
+                        field(tianditu, legacy, "enableTerrainDefault").asBoolean(false))
+
+                    .ticketGalleryStyle(field(ticket, legacy, "ticketGalleryStyle").asText("fan"))
+                    .enableTicketJourneyReplay(
+                        field(ticket, legacy, "enableTicketJourneyReplay").asBoolean(false))
+                    .enableTicketSeasonLight(
+                        field(ticket, legacy, "enableTicketSeasonLight").asBoolean(false))
+                    .enableTicketOracle(
+                        field(ticket, legacy, "enableTicketOracle").asBoolean(false))
+                    .enableTicketLetter(
+                        field(ticket, legacy, "enableTicketLetter").asBoolean(false))
+                    .enableTicketPassport(
+                        field(ticket, legacy, "enableTicketPassport").asBoolean(false))
+
+                    .mobileCityWallColumns(
+                        field(cityWall, legacy, "mobileCityWallColumns").asInt(2))
+                    .enableTimeCapsule(
+                        field(cityWall, legacy, "enableTimeCapsule").asBoolean(true))
+                    .enableInsight(field(cityWall, legacy, "enableInsight").asBoolean(true))
+                    .cityCardHoverCarousel(
+                        field(cityWall, legacy, "cityCardHoverCarousel").asBoolean(true))
+                    .enablePostcard(field(cityWall, legacy, "enablePostcard").asBoolean(true))
+
+                    .markerImageFrom(image.path("markerImageFrom").asText(""))
+                    .markerImageTo(image.path("markerImageTo").asText(""))
+                    .markerImageSuffix(image.path("markerImageSuffix").asText(""))
+                    .timelineImageFrom(image.path("timelineImageFrom").asText(""))
+                    .timelineImageTo(image.path("timelineImageTo").asText(""))
+                    .timelineImageSuffix(image.path("timelineImageSuffix").asText(""))
+                    .cityWallImageFrom(image.path("cityWallImageFrom").asText(""))
+                    .cityWallImageTo(image.path("cityWallImageTo").asText(""))
+                    .cityWallImageSuffix(image.path("cityWallImageSuffix").asText(""))
+                    .build());
+            });
+    }
+
+    /**
+     * <p>按「新分组优先、globe3d 兜底」的顺序取字段。</p>
+     *
+     * <p>2.9.18 及更早版本把 3D 地球、天地图、票根页、城市卡片墙的配置全部存在 globe3d
+     * 一个分组里。拆分后配置迁移在插件启动时异步执行，这里的兜底保证迁移尚未完成、
+     * 或因任何原因失败时，前台读到的仍是用户原先的配置而不是一堆默认值。</p>
+     */
+    private static JsonNode field(JsonNode current, JsonNode legacy, String name) {
+        JsonNode value = current.path(name);
+        return value.isMissingNode() || value.isNull() ? legacy.path(name) : value;
+    }
+
+    /**
+     * 天地图 Key 自 2.9.19 起改存 Halo Secret。迁移完成前仍读 globe3d 里的明文字段，
+     * 避免升级瞬间三维地形与天地图底图失效。
+     */
+    private Mono<String> resolveTiandituKey(JsonNode tianditu, JsonNode legacy) {
+        String secretName = tianditu.path("tiandituKeySecretName").asText("");
+        if (secretName.isBlank()) {
+            return Mono.just(legacy.path("tiandituKey").asText(""));
+        }
+        // 天地图属于可选能力，Secret 缺失不应让整份配置加载失败
+        return getSecretValue(secretName)
+            .onErrorResume(e -> {
+                log.warn("读取天地图 Key Secret [{}] 失败，将按未配置处理", secretName, e);
+                return Mono.just("");
+            });
     }
 
     private Mono<ObjectNode> fetchSetting(String groupName) {

@@ -21,6 +21,7 @@ import {
 import { useQuery } from "@tanstack/vue-query";
 import { computed, onMounted, ref, watch } from "vue";
 import { formatDatetime } from "@/utils/date";
+import { parseCoordinate } from "@/utils/coordinate";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
 import { footprintApiClient } from "@/api";
 import type { Footprint, Option, StatsResult } from "@/api/models";
@@ -251,25 +252,15 @@ const handleUpdateLocation = (footprint: Footprint) => {
 const handleManualInput = async () => {
   if (!currentFootprint.value) return;
 
-  const lng = parseFloat(manualLongitude.value);
-  const lat = parseFloat(manualLatitude.value);
-
-  if (isNaN(lng) || isNaN(lat)) {
-    Toast.error("请输入有效的经纬度");
-    return;
-  }
-  if (lng < -180 || lng > 180) {
-    Toast.error("经度范围应在 -180 到 180 之间");
-    return;
-  }
-  if (lat < -90 || lat > 90) {
-    Toast.error("纬度范围应在 -90 到 90 之间");
+  const result = parseCoordinate(manualLongitude.value, manualLatitude.value);
+  if (!result.ok) {
+    Toast.error(result.message);
     return;
   }
 
   try {
-    currentFootprint.value.spec.longitude = lng;
-    currentFootprint.value.spec.latitude = lat;
+    currentFootprint.value.spec.longitude = result.longitude;
+    currentFootprint.value.spec.latitude = result.latitude;
     await footprintApiClient.footprint.updateFootprint(
       currentFootprint.value.metadata.name,
       currentFootprint.value,

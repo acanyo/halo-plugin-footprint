@@ -179,20 +179,67 @@ spec:
               value: all
           help: "地名的常驻显示方式：整球视图标注去过的城市，放大到城市后标注各条足迹（同名城市下按到访顺序编号）。
                  使用「无字」底图（高德卫星·无字 / 天地图无标注）时尤其建议开启，否则画面上没有任何地名参照"
-        - $formkit: text
+    - group: tianditu
+      label: 天地图
+      formSchema:
+        - $formkit: secret
           label: 天地图 Key
-          name: tiandituKey
-          id: tianditu_key
-          value: ''
-          help: "https://lbs.tianditu.gov.cn 注册后申请（浏览器端应用）。不填则 3D 地球只显示高德底图，天地图影像/矢量底图与三维地形不可用"
+          name: tiandituKeySecretName
+          id: tianditu_secret
+          descriptionPreset: 天地图 Key
+          requiredKeys:
+            - key: key
+              help: 天地图浏览器端 Key
+          help: "创建一个包含 key 字段的 Secret。前往 https://lbs.tianditu.gov.cn 注册后申请（浏览器端应用）。不配置则 3D 地球只显示高德底图，天地图影像/矢量底图与三维地形不可用"
         - $formkit: checkbox
-          if: "$get(tianditu_key).value"
+          if: "$get(tianditu_secret).value"
           label: 默认启用三维地形
           name: enableTerrainDefault
           value: false
           help: "进入 3D 地球时是否默认开启三维地形（用户仍可在导航栏手动切换）"
+    - group: ticket
+      label: 票根页
+      formSchema:
+        - $formkit: select
+          label: 切换样式
+          name: ticketGalleryStyle
+          value: fan
+          options:
+            - label: 票夹切换
+              value: fan
+            - label: 横向长串浏览
+              value: strip
+          help: "选择票根页的切换样式：票夹叠放式，或横向长串滚动浏览式（主图居中，支持滚轮与拖拽切换）"
+        - $formkit: checkbox
+          label: 重走一遍
+          name: enableTicketJourneyReplay
+          value: false
+          help: "在票根页提供「重走」放映模式：按日期从第一张票开始，镜头在城市间飞行，逐张回放票根"
+        - $formkit: checkbox
+          label: 时间有色
+          name: enableTicketSeasonLight
+          value: false
+          help: "票根氛围色跟随票根日期月份变化（春绿/夏金/秋赭/冬蓝），仅作用于页面环境与描边，不改变票根图颜色"
+        - $formkit: checkbox
+          label: 命运抽票
+          name: enableTicketOracle
+          value: false
+          help: "在票根页提供「抽取下一站」：洗牌翻开一张已有票根，并从未收录票根的城市中给出灵感"
+        - $formkit: checkbox
+          label: 未寄出的明信片
+          name: enableTicketLetter
+          value: false
+          help: "为每张票根提供「写信」动作，自动生成一张可下载/分享的票根明信片"
+        - $formkit: checkbox
+          label: 护照集章
+          name: enableTicketPassport
+          value: false
+          help: "正式浏览票根时盖章记录（本机存储），并提供护照进度页；集齐后显示金色护照封面"
+    - group: cityWall
+      label: 城市卡片墙
+      formSchema:
         - $formkit: number
-          label: 移动端城市卡片墙每排城市数
+          label: 移动端每排城市数
           name: mobileCityWallColumns
           value: 2
           min: 1
@@ -211,7 +258,7 @@ spec:
           value: true
           help: "在城市卡片墙顶栏显示「足迹洞察」入口：自动生成旅行总结文案与统计"
         - $formkit: checkbox
-          label: PC 城市卡片悬停轮播
+          label: PC 悬停轮播
           name: cityCardHoverCarousel
           value: true
           help: "PC 端鼠标悬停或键盘聚焦城市卡片时，封面在最多 3 张照片间轮播；移动端不生效"
@@ -220,41 +267,6 @@ spec:
           name: enablePostcard
           value: true
           help: "为每张城市卡片提供「明信片」按钮，可预览、下载或分享生成的竖版旅行明信片"
-        - $formkit: select
-          label: 票根页 · 切换样式
-          name: ticketGalleryStyle
-          value: fan
-          options:
-            - label: 票夹切换
-              value: fan
-            - label: 横向长串浏览
-              value: strip
-          help: "选择票根页的切换样式：票夹叠放式，或横向长串滚动浏览式（主图居中，支持滚轮与拖拽切换）"
-        - $formkit: checkbox
-          label: 票根页 · 重走一遍
-          name: enableTicketJourneyReplay
-          value: false
-          help: "在票根页提供「重走」放映模式：按日期从第一张票开始，镜头在城市间飞行，逐张回放票根"
-        - $formkit: checkbox
-          label: 票根页 · 时间有色
-          name: enableTicketSeasonLight
-          value: false
-          help: "票根氛围色跟随票根日期月份变化（春绿/夏金/秋赭/冬蓝），仅作用于页面环境与描边，不改变票根图颜色"
-        - $formkit: checkbox
-          label: 票根页 · 命运抽票
-          name: enableTicketOracle
-          value: false
-          help: "在票根页提供「抽取下一站」：洗牌翻开一张已有票根，并从未收录票根的城市中给出灵感"
-        - $formkit: checkbox
-          label: 票根页 · 未寄出的明信片
-          name: enableTicketLetter
-          value: false
-          help: "为每张票根提供「写信」动作，自动生成一张可下载/分享的票根明信片"
-        - $formkit: checkbox
-          label: 票根页 · 护照集章
-          name: enableTicketPassport
-          value: false
-          help: "正式浏览票根时盖章记录（本机存储），并提供护照进度页；集齐后显示金色护照封面"
     - group: imageProcess
       label: 图片处理配置
       help: "如果你的图床需要给同一张原图生成不同质量的缩略图，可在此按用途配置 URL 规则；三项都留空时，界面将直接使用足迹中保存的图片 URL（通用做法）。"
