@@ -4,33 +4,128 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Footprint 前台组件 Demo</title>
+
+    <!--
+      加载真实的 Cesium：由 vite dev server 代理到本地 Halo 实例。
+      Cesium 必须从自己的目录读取 Workers/Assets，因此用 CESIUM_BASE_URL 指过去，
+      这与前台页 footprint.html 的做法一致。
+    -->
+    <script>
+      window.CESIUM_BASE_URL = '/plugins/footprint/assets/static/cesium/';
+    </script>
+    <script src="/plugins/footprint/assets/static/cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="/plugins/footprint/assets/static/cesium/Widgets/widgets.css" />
+
     <script type="module" src="/src/index.ts"></script>
+
     <style>
-      body { margin: 0; background: #0f1020; color: #e8eaf2;
-             font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
-      .shell { width: min(92vw, 1100px); margin: 0 auto; padding: 48px 0; }
-      button.demo { padding: 8px 16px; border-radius: 8px; border: 1px solid #3a3d5c;
-                    background: #1a1a2e; color: inherit; cursor: pointer; }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0f1020;
+        color: #e8eaf2;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      .bar {
+        position: fixed;
+        z-index: 10;
+        top: 12px;
+        left: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: rgba(15, 16, 32, 0.82);
+        border: 1px solid #2f3350;
+      }
+      .bar button {
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #3a3d5c;
+        background: #1a1a2e;
+        color: inherit;
+        cursor: pointer;
+      }
+      .bar span {
+        font-size: 12px;
+        color: #9aa0b8;
+      }
+      footprint-globe {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
     </style>
   </head>
   <body>
-    <div class="shell">
-      <h1>Footprint 前台组件</h1>
-      <p>逐个迁移自 travel-memory.js，产物为标准 Custom Element。</p>
-      <h2>footprint-lightbox</h2>
-      <button class="demo" id="openLb">打开图片灯箱</button>
-      <footprint-lightbox></footprint-lightbox>
+    <div class="bar">
+      <button id="openLb">图片灯箱</button>
+      <button id="flyTo">飞到杭州</button>
+      <span id="status">加载中…</span>
     </div>
+
+    <footprint-globe></footprint-globe>
+    <footprint-lightbox></footprint-lightbox>
+
     <script type="module">
+      // demo 用的最小配置。真实页面由 Thymeleaf 注入 window.FOOTPRINT_CONFIG，
+      // 这里手工造一份等价结构，组件读取路径完全一致。
+      window.FOOTPRINT_CONFIG = {
+        globeTitle: '旅行记忆',
+        globeLabels: 'all',
+        tiandituKey: '',
+        footprints: [
+          {
+            metadata: { name: 'fp-1' },
+            spec: {
+              name: '杭州雷峰塔',
+              longitude: 120.209903,
+              latitude: 30.246566,
+              city: '杭州市',
+              cityAdcode: '330100',
+              address: '杭州雷峰塔',
+              createTime: '2025-09-22T08:45:00Z',
+            },
+          },
+          {
+            metadata: { name: 'fp-2' },
+            spec: {
+              name: '钱塘江',
+              longitude: 120.200341,
+              latitude: 30.218454,
+              city: '杭州市',
+              cityAdcode: '330100',
+              address: '杭州钱塘江',
+              createTime: '2025-09-22T07:39:00Z',
+            },
+          },
+        ],
+      };
+
+      const status = document.getElementById('status');
+      status.textContent = window.Cesium ? 'Cesium 已加载' : 'Cesium 未加载';
+
       document.getElementById('openLb').addEventListener('click', (e) => {
         document.querySelector('footprint-lightbox').show(
           [
             { url: 'https://picsum.photos/id/1018/1600/1000', caption: '杭州西湖 · 2025-04-12' },
             { url: 'https://picsum.photos/id/1015/1600/1000', caption: '钱塘江' },
-            { url: 'https://picsum.photos/id/1019/1600/1000', caption: '雷峰塔' },
           ],
           0,
           e.currentTarget
+        );
+      });
+
+      // 走事件通道，验证 UI 面板 → 地图层的链路
+      document.getElementById('flyTo').addEventListener('click', (e) => {
+        e.currentTarget.dispatchEvent(
+          new CustomEvent('footprint:flyto', {
+            detail: { longitude: 120.15, latitude: 30.28, zoom: 200000 },
+            bubbles: true,
+            composed: true,
+          })
         );
       });
     </script>
