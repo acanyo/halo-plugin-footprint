@@ -458,6 +458,7 @@
     let provinceMaterialSnapshot = null;// Map<Entity, { fill, stroke, width }>，用于还原
     let provinceIndex = null;           // Map<adcode, { name, center, bbox, polygons }>
     let provinceIndexPromise = null;
+    let provinceGeoJsonPromise = null;  // china-full.json 的共享请求，见 loadProvinceGeoJson
     let provinceLayoutDirty = true;
     let provinceRestorePending = null;  // 从城市相册返回后要恢复的省份
     let provinceDragState = null;
@@ -9305,11 +9306,12 @@
         }, { once: true });
     }
 
-    const chinaDataSource = Cesium.GeoJsonDataSource.load(
-        '/plugins/footprint/assets/static/data/china-full.json',
-        {
+    // 传已解析的 GeoJSON 对象而不是 URL：GeoJsonDataSource.load 两者都收，
+    // 传对象就不会再发一次请求，与几何索引共用 loadProvinceGeoJson 那一次下载。
+    const chinaDataSource = loadProvinceGeoJson().then(geojson =>
+        Cesium.GeoJsonDataSource.load(geojson, {
             fill: Cesium.Color.PALETURQUOISE.withAlpha(0) // 填充颜色（设为透明）
-        }
+        })
     );
 
     chinaDataSource.then(dataSource => {
@@ -9394,14 +9396,30 @@
         return cityCardsEnabled() && boundaryVisible;
     }
 
-    // ---------- 省份边界索引（几何判定用） ----------
-    function loadProvinceIndex() {
-        if (!provinceIndexPromise) {
-            provinceIndexPromise = fetch(PROVINCE_GEOJSON_URL, { referrerPolicy: 'no-referrer' })
+    // ---------- 省份边界 GeoJSON（共享请求） ----------
+    // 这份 208 KB 的 china-full.json 有两个消费方：画轮廓的 GeoJsonDataSource，
+    // 和点省份时做几何判定的索引。两边原来各自发一次请求，且一个走 Cesium 的
+    // Resource、一个走 fetch，几乎同时发出谁也命中不了对方的缓存，
+    // 结果同一份文件在首屏下载两次（实测 208 KB × 2）。这里收敛成一次。
+    function loadProvinceGeoJson() {
+        if (!provinceGeoJsonPromise) {
+            provinceGeoJsonPromise = fetch(PROVINCE_GEOJSON_URL, { referrerPolicy: 'no-referrer' })
                 .then(res => {
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     return res.json();
                 })
+                .catch(e => {
+                    provinceGeoJsonPromise = null;   // 失败允许下次重试
+                    throw e;
+                });
+        }
+        return provinceGeoJsonPromise;
+    }
+
+    // ---------- 省份边界索引（几何判定用） ----------
+    function loadProvinceIndex() {
+        if (!provinceIndexPromise) {
+            provinceIndexPromise = loadProvinceGeoJson()
                 .then(geojson => {
                     provinceIndex = buildProvinceIndex(geojson);
                     return provinceIndex;
