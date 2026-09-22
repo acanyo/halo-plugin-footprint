@@ -16,8 +16,13 @@ import {
   VPageHeader,
   VPagination,
   VSpace,
+  VStatusDot,
   VTabbar,
+  VTag,
 } from "@halo-dev/components";
+import RiMapPinLine from "~icons/ri/map-pin-line";
+import RiEarthLine from "~icons/ri/earth-line";
+import RiImageLine from "~icons/ri/image-line";
 import { useQuery } from "@tanstack/vue-query";
 import { computed, onMounted, ref, watch } from "vue";
 import { formatDatetime } from "@/utils/date";
@@ -277,12 +282,20 @@ const handleManualInput = async () => {
 
 <template>
   <VPageHeader title="足迹管理">
+    <template #icon>
+      <RiMapPinLine class="self-center" />
+    </template>
     <template #actions>
       <VSpace>
-        <VButton size="sm" @click="handleOpenFrontend">前台地图</VButton>
-        <VButton type="secondary" @click="handleEdit()">
+        <VButton size="sm" ghost @click="handleOpenFrontend">
           <template #icon>
-            <IconAddCircle />
+            <RiEarthLine class="h-full w-full" />
+          </template>
+          前台地图
+        </VButton>
+        <VButton size="sm" type="secondary" @click="handleEdit()">
+          <template #icon>
+            <IconAddCircle class="h-full w-full" />
           </template>
           新建足迹
         </VButton>
@@ -290,79 +303,92 @@ const handleManualInput = async () => {
     </template>
   </VPageHeader>
 
-  <div class="m-0 md:m-4">
-    <VCard v-if="stats" class="mb-4">
-      <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-3">
-        <dl class="flex flex-wrap items-center gap-x-8 gap-y-3">
-          <div>
-            <dt class="text-xs text-gray-500">足迹</dt>
-            <dd class="text-xl font-semibold text-gray-900 tabular-nums">
-              {{ stats.totalFootprints }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-gray-500">省级行政区</dt>
-            <dd class="text-xl font-semibold text-gray-900 tabular-nums">
-              {{ stats.totalProvinces }}
-              <span class="text-sm font-normal text-gray-400">/ {{ TOTAL_PROVINCES }}</span>
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-gray-500">城市</dt>
-            <dd class="text-xl font-semibold text-gray-900 tabular-nums">
-              {{ stats.totalCities }}
-            </dd>
-          </div>
-        </dl>
-        <VButton size="sm" @click="showDistribution = !showDistribution">
-          {{ showDistribution ? "收起分布" : "省/市分布" }}
-        </VButton>
-      </div>
-
-      <div v-if="showDistribution" class="border-t border-gray-100">
-        <VTabbar
-          v-model:active-id="distributionTab"
-          :items="[
-            { id: 'province', label: `省份（${stats.provinces.length}）` },
-            { id: 'city', label: `城市（${stats.cities.length}）` },
-          ]"
-          type="outline"
-        />
-        <div class="p-4">
-          <SearchInput v-model="distributionKeyword" placeholder="搜索省份或城市" />
-          <p class="mt-3 text-xs text-gray-400">点击任意项可筛选下方足迹列表</p>
-          <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <button
-              v-for="item in distributionItems"
-              :key="item.key"
-              type="button"
-              class="flex items-center gap-3 rounded-base border px-3 py-2 text-left transition-all"
-              :class="
-                activeRegionFilter === item.name
-                  ? 'border-primary bg-gray-50'
-                  : 'border-gray-100 hover:border-gray-300'
-              "
-              @click="handleRegionClick(item.name)"
-            >
-              <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm text-gray-900">{{ item.name }}</span>
-                <span v-if="item.description" class="block truncate text-xs text-gray-400">
-                  {{ item.description }}
-                </span>
-              </span>
-              <span class="shrink-0 text-xs text-gray-500 tabular-nums">{{ item.count }}</span>
-            </button>
-          </div>
-          <VEmpty v-if="!distributionItems.length" message="没有匹配的地区" />
+  <div class="p-4">
+    <div
+      v-if="stats"
+      class="mb-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white/90 p-3 shadow-sm md:flex-row md:items-center md:justify-between"
+    >
+      <dl class="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div class="flex items-baseline gap-1.5">
+          <dt class="text-xs text-gray-500">足迹</dt>
+          <dd class="text-sm font-medium tabular-nums text-gray-900">
+            {{ stats.totalFootprints }}
+          </dd>
         </div>
+        <div class="flex items-baseline gap-1.5">
+          <dt class="text-xs text-gray-500">省级行政区</dt>
+          <dd class="text-sm font-medium tabular-nums text-gray-900">
+            {{ stats.totalProvinces }}
+            <span class="font-normal text-gray-400">/ {{ TOTAL_PROVINCES }}</span>
+          </dd>
+        </div>
+        <div class="flex items-baseline gap-1.5">
+          <dt class="text-xs text-gray-500">城市</dt>
+          <dd class="text-sm font-medium tabular-nums text-gray-900">
+            {{ stats.totalCities }}
+          </dd>
+        </div>
+      </dl>
+      <VSpace>
+        <VButton size="sm" @click="showDistribution = !showDistribution">
+          {{ showDistribution ? "收起分布" : "省 / 市分布" }}
+        </VButton>
+      </VSpace>
+    </div>
+
+    <VCard v-if="stats && showDistribution" class="mb-4" :body-class="['!p-0']">
+      <template #header>
+        <div class="block w-full bg-gray-50 px-4 py-3">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <VTabbar
+              v-model:active-id="distributionTab"
+              :items="[
+                { id: 'province', label: `省份 ${stats.provinces.length}` },
+                { id: 'city', label: `城市 ${stats.cities.length}` },
+              ]"
+              type="outline"
+            />
+            <div class="sm:w-64">
+              <SearchInput v-model="distributionKeyword" placeholder="搜索省份或城市" />
+            </div>
+          </div>
+        </div>
+      </template>
+      <div class="p-4">
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <button
+            v-for="item in distributionItems"
+            :key="item.key"
+            v-tooltip="'点击可筛选下方足迹列表'"
+            type="button"
+            class="flex items-center gap-2 rounded-base border px-3 py-2 text-left transition-all"
+            :class="
+              activeRegionFilter === item.name
+                ? 'border-primary bg-gray-50'
+                : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'
+            "
+            @click="handleRegionClick(item.name)"
+          >
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm text-gray-900">{{ item.name }}</span>
+              <span v-if="item.description" class="block truncate text-xs text-gray-500">
+                {{ item.description }}
+              </span>
+            </span>
+            <span class="shrink-0 text-xs tabular-nums text-gray-500">{{ item.count }}</span>
+          </button>
+        </div>
+        <VEmpty v-if="!distributionItems.length" message="没有匹配的地区" />
       </div>
     </VCard>
 
     <VCard :body-class="['!p-0']">
       <template #header>
         <div class="block w-full bg-gray-50 px-4 py-3">
-          <div class="relative flex flex-col items-start sm:flex-row sm:items-center">
-            <div class="mr-4 hidden items-center sm:flex">
+          <div
+            class="relative flex flex-col flex-wrap items-start gap-4 sm:flex-row sm:items-center"
+          >
+            <div class="hidden items-center sm:flex">
               <input
                 v-model="checkedAll"
                 type="checkbox"
@@ -373,42 +399,40 @@ const handleManualInput = async () => {
               <SearchInput v-if="!selectedFootprints.length" v-model="keyword" />
               <VSpace v-else>
                 <VButton type="danger" @click="handleDeleteInBatch">删除选中</VButton>
+                <VButton @click="selectedFootprints = []">取消选择</VButton>
               </VSpace>
             </div>
-            <div class="mt-4 flex sm:mt-0">
-              <VSpace spacing="lg">
-                <FilterDropdown
-                  v-model="selectedFootprintType"
-                  label="类型"
-                  :items="[
-                    { label: '全部', value: undefined },
-                    ...footprintTypes.map((t) => ({ label: t.label, value: t.value })),
-                  ]"
+            <VSpace spacing="lg" class="flex-wrap">
+              <FilterCleanButton v-if="hasFilters" @click="handleClearFilters" />
+              <FilterDropdown
+                v-model="selectedFootprintType"
+                label="类型"
+                :items="[
+                  { label: '全部' },
+                  ...footprintTypes.map((t) => ({ label: t.label, value: t.value })),
+                ]"
+              />
+              <FilterDropdown
+                v-model="selectedSort"
+                label="排序"
+                :items="[
+                  { label: '默认' },
+                  { label: '最近创建', value: 'spec.createTime,desc' },
+                  { label: '较晚创建', value: 'spec.createTime,asc' },
+                ]"
+              />
+              <button
+                v-tooltip="'刷新'"
+                type="button"
+                class="group cursor-pointer rounded p-1 hover:bg-gray-200"
+                @click="handleRefreshAll"
+              >
+                <IconRefreshLine
+                  :class="{ 'animate-spin text-gray-900': refreshing || isFetching }"
+                  class="h-4 w-4 text-gray-600 group-hover:text-gray-900"
                 />
-                <FilterDropdown
-                  v-model="selectedSort"
-                  label="排序"
-                  :items="[
-                    { label: '默认', value: undefined },
-                    { label: '较晚创建', value: 'spec.createTime,asc' },
-                    { label: '最近创建', value: 'spec.createTime,desc' },
-                  ]"
-                />
-                <FilterCleanButton v-if="hasFilters" @click="handleClearFilters" />
-                <div class="flex flex-row gap-2">
-                  <div
-                    class="group cursor-pointer rounded p-1 hover:bg-gray-200"
-                    @click="handleRefreshAll"
-                  >
-                    <IconRefreshLine
-                      v-tooltip="'刷新'"
-                      :class="{ 'animate-spin text-gray-900': refreshing || isFetching }"
-                      class="h-4 w-4 text-gray-600 group-hover:text-gray-900"
-                    />
-                  </div>
-                </div>
-              </VSpace>
-            </div>
+              </button>
+            </VSpace>
           </div>
         </div>
       </template>
@@ -446,31 +470,61 @@ const handleManualInput = async () => {
             <template #start>
               <VEntityField>
                 <template #description>
-                  <img
-                    v-if="footprint.spec.image"
-                    :src="footprint.spec.image"
-                    class="h-10 w-10 rounded object-cover"
-                    alt=""
-                  />
-                  <div v-else class="h-10 w-10 rounded bg-gray-100"></div>
+                  <div class="h-10 w-10 overflow-hidden rounded border bg-white p-1">
+                    <img
+                      v-if="footprint.spec.image"
+                      :src="footprint.spec.image"
+                      class="h-full w-full rounded-sm object-cover"
+                      alt=""
+                    />
+                    <RiImageLine v-else class="h-full w-full text-gray-300" />
+                  </div>
                 </template>
               </VEntityField>
-              <VEntityField
-                :title="footprint.spec.name"
-                :description="footprint.spec.address"
-              />
+              <VEntityField :title="footprint.spec.name">
+                <template #description>
+                  <VSpace class="flex-wrap">
+                    <span class="text-xs text-gray-500">{{ footprint.spec.address }}</span>
+                    <VTag v-if="footprint.spec.footprintType">
+                      {{ footprint.spec.footprintType }}
+                    </VTag>
+                  </VSpace>
+                </template>
+              </VEntityField>
             </template>
             <template #end>
-              <VEntityField :description="footprint.spec.footprintType" />
-              <VEntityField
-                :description="
-                  [footprint.spec.province, footprint.spec.city].filter(Boolean).join(' · ') || '未解析'
-                "
-              />
-              <VEntityField
-                :description="`${footprint.spec.longitude}, ${footprint.spec.latitude}`"
-              />
-              <VEntityField :description="formatDatetime(footprint.spec.createTime)" />
+              <VEntityField v-if="footprint.metadata.deletionTimestamp">
+                <template #description>
+                  <VStatusDot v-tooltip="'删除中'" state="warning" animate />
+                </template>
+              </VEntityField>
+              <VEntityField>
+                <template #description>
+                  <span
+                    class="text-xs"
+                    :class="footprint.spec.province ? 'text-gray-500' : 'text-gray-300'"
+                  >
+                    {{
+                      [footprint.spec.province, footprint.spec.city].filter(Boolean).join(" · ")
+                        || "省 / 市未解析"
+                    }}
+                  </span>
+                </template>
+              </VEntityField>
+              <VEntityField>
+                <template #description>
+                  <span class="truncate text-xs tabular-nums text-gray-500">
+                    {{ footprint.spec.longitude }}, {{ footprint.spec.latitude }}
+                  </span>
+                </template>
+              </VEntityField>
+              <VEntityField>
+                <template #description>
+                  <span class="truncate text-xs tabular-nums text-gray-500">
+                    {{ formatDatetime(footprint.spec.createTime) }}
+                  </span>
+                </template>
+              </VEntityField>
             </template>
             <template #dropdownItems>
               <VDropdownItem @click="handleEdit(footprint)">编辑</VDropdownItem>

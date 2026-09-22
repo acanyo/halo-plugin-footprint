@@ -1,5 +1,5 @@
 import type { AxiosInstance } from "axios";
-import type {Footprint, FootprintList, Option, StatsResult, GeoInfo} from "./models";
+import type {Footprint, FootprintList, Option, StatsResult, GeoInfo, MapConfig} from "./models";
 import {consoleApiClient} from "@halo-dev/api-client";
 
 export class FootprintApi {
@@ -126,6 +126,39 @@ export class FootprintApi {
   async geocodeFootprint(name: string): Promise<GeoInfo> {
     const { data } = await this.axios.post(
       `/apis/api.footprint.lik.cc/v1alpha1/footprints/${name}/geocode`
+    );
+    return data;
+  }
+
+  /**
+   * 根据地址获取经纬度，返回 "经度,纬度" 文本。
+   * 由服务端持有高德 Web 服务 Key 并代为请求，浏览器不直连高德。
+   */
+  async getLocation(address: string): Promise<string> {
+    const { data } = await this.axios.get(
+      `/apis/api.footprint.lik.cc/v1alpha1/footprints/location/${encodeURIComponent(address)}`
+    );
+    return data;
+  }
+
+  /**
+   * 对任意经纬度做逆地理编码。与 geocodeFootprint 不同，它不要求足迹已保存，
+   * 因此「新建」状态下的地图选点也能拿到省/市。
+   */
+  async reverseGeocode(longitude: number, latitude: number): Promise<GeoInfo> {
+    const { data } = await this.axios.get(
+      "/apis/api.footprint.lik.cc/v1alpha1/footprints/-/reverse-geocode",
+      { params: { longitude, latitude } }
+    );
+    return data;
+  }
+
+  /**
+   * 获取地图选点所需配置。服务端只返回浏览器端安全字段，不含高德 Web 服务 Key。
+   */
+  async getMapConfig(): Promise<MapConfig> {
+    const { data } = await this.axios.get(
+      "/apis/api.footprint.lik.cc/v1alpha1/footprints/-/map-config"
     );
     return data;
   }

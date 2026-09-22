@@ -1,6 +1,7 @@
 package cc.lik.footprint;
 
 import cc.lik.footprint.dto.GeoInfo;
+import cc.lik.footprint.dto.MapConfig;
 import cc.lik.footprint.dto.StatsResult;
 import cc.lik.footprint.model.Footprint;
 import cc.lik.footprint.service.FootprintService;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
+import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @Component
@@ -67,6 +69,26 @@ public class FootprintEndpoint implements CustomEndpoint {
                     .description("对指定足迹执行逆地理编码")
                     .response(responseBuilder()
                         .implementation(GeoInfo.class));
+            })
+            .GET("/footprints/-/reverse-geocode", this::reverseGeocode, builder -> {
+                builder.operationId("ReverseGeocode")
+                    .tag(footprintTag)
+                    .description("对任意经纬度执行逆地理编码，不要求足迹已保存，供控制台地图选点使用")
+                    .parameter(parameterBuilder().name("longitude")
+                        .description("经度")
+                        .required(true))
+                    .parameter(parameterBuilder().name("latitude")
+                        .description("纬度")
+                        .required(true))
+                    .response(responseBuilder()
+                        .implementation(GeoInfo.class));
+            })
+            .GET("/footprints/-/map-config", this::getMapConfig, builder -> {
+                builder.operationId("GetMapConfig")
+                    .tag(footprintTag)
+                    .description("获取控制台地图选点所需配置（仅浏览器端安全字段）")
+                    .response(responseBuilder()
+                        .implementation(MapConfig.class));
             })
             .build();
     }
@@ -137,6 +159,58 @@ public class FootprintEndpoint implements CustomEndpoint {
                     return ServerResponse.badRequest().bodyValue(e.getMessage());
                 }
                 return ServerResponse.status(500).bodyValue("获取地址位置失败: " + e.getMessage());
+            });
+    }
+
+    /**
+     * 对任意经纬度做逆地理编码。与 {@link #geocodeFootprint} 的区别是不要求足迹已存在，
+     * 因此控制台在「新建」状态下就能拿到省/市，不必先保存再解析。
+     */
+    private Mono<ServerResponse> reverseGeocode(ServerRequest request) {
+        double longitude;
+        double latitude;
+        try {
+            longitude = Double.parseDouble(request.queryParam("longitude").orElseThrow());
+            latitude = Double.parseDouble(request.queryParam("latitude").orElseThrow());
+        } catch (Exception e) {
+            return ServerResponse.badRequest().bodyValue("经纬度参数缺失或格式不正确");
+        }
+        if (longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
+            return ServerResponse.badRequest().bodyValue("经纬度超出有效范围");
+        }
+
+        return footprintService.getConfigByGroupName()
+            .switchIfEmpty(Mono.error(new RuntimeException("未找到足迹配置")))
+            .flatMap(config -> {
+                if (config.getGaoDeWebKey() == null || config.getGaoDeWebKey().trim().isEmpty()) {
+                    return Mono.error(new RuntimeException("高德地图Key未配置"));
+                }
+                return footprintService.reverseGeocode(longitude, latitude,
+                    config.getGaoDeWebKey());
+            })
+            .flatMap(geoInfo -> ServerResponse.ok().bodyValue(geoInfo))
+            .switchIfEmpty(Mono.defer(() -> ServerResponse.badRequest().bodyValue("逆地理编码失败")))
+            .onErrorResume(e -> {
+                log.error("逆地理编码失败: {}", e.getMessage());
+                if (e instanceof RuntimeException) {
+                    return ServerResponse.badRequest().bodyValue(e.getMessage());
+                }
+                return ServerResponse.status(500).bodyValue("逆地理编码失败: " + e.getMessage());
+            });
+    }
+
+    /**
+     * 只下发浏览器端可见的地图配置。刻意不返回整个 BaseConfig——其中的
+     * gaoDeWebKey 是服务端 Key，泄漏到浏览器等同公开。
+     */
+    private Mono<ServerResponse> getMapConfig(ServerRequest request) {
+        return footprintService.getConfigByGroupName()
+            .switchIfEmpty(Mono.error(new RuntimeException("未找到足迹配置")))
+            .map(config -> new MapConfig(config.getGaoDeKey(), config.getMapStyle()))
+            .flatMap(mapConfig -> ServerResponse.ok().bodyValue(mapConfig))
+            .onErrorResume(e -> {
+                log.error("获取地图配置失败: {}", e.getMessage());
+                return ServerResponse.status(500).bodyValue("获取地图配置失败: " + e.getMessage());
             });
     }
 

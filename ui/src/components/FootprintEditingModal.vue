@@ -5,6 +5,8 @@ import {footprintApiClient} from "@/api";
 import type {Footprint, GalleryImage, Option} from "@/api/models";
 import {toDatetimeLocal, toISOString} from "@/utils/date";
 import {parseCoordinate} from "@/utils/coordinate";
+import MapPickerModal from "./MapPickerModal.vue";
+import RiMapPin2Line from "~icons/ri/map-pin-2-line";
 import {FormKit} from "@formkit/vue";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {Teleport} from "vue";
@@ -231,19 +233,46 @@ const getSubmitFormState = (): Footprint => {
 };
 
 
-const handleRegoecode = async () => {
-  if (!formState.value.spec.longitude || !formState.value.spec.latitude) {
-    Toast.error("请先填写地址以获取经纬度，或手动输入经纬度");
-    return;
+const hasCoordinate = computed(
+  () => !!formState.value.spec.longitude && !!formState.value.spec.latitude,
+);
+
+const mapPickerVisible = ref(false);
+
+/** 把地图选点的结果写回表单 */
+const handleMapPicked = (result: {
+  longitude: number;
+  latitude: number;
+  province?: string;
+  city?: string;
+  provinceAdcode?: string;
+  cityAdcode?: string;
+}) => {
+  formState.value.spec.longitude = result.longitude;
+  formState.value.spec.latitude = result.latitude;
+  if (result.province) {
+    formState.value.spec.province = result.province;
+    formState.value.spec.city = result.city;
+    formState.value.spec.provinceAdcode = result.provinceAdcode;
+    formState.value.spec.cityAdcode = result.cityAdcode;
   }
-  if (!isUpdateMode.value) {
-    Toast.warning("请先保存足迹后再解析省/市信息");
+  Toast.success("已更新位置");
+};
+
+/**
+ * 重新解析省/市。改用按经纬度解析的接口，因此新建状态下也能用——
+ * 原先必须先保存才能解析，是因为旧接口只接受已存在的足迹名。
+ */
+const handleRegoecode = async () => {
+  if (!hasCoordinate.value) {
+    Toast.error("请先通过地图选点或填写地址确定经纬度");
     return;
   }
   try {
     awaitingGeocode.value = true;
-    const geoInfo = await footprintApiClient.footprint.geocodeFootprint(
-      formState.value.metadata.name
+    const geoInfo = await footprintApiClient.footprint.reverseGeocode(
+      formState.value.spec.longitude,
+      formState.value.spec.latitude,
     );
     formState.value.spec.province = geoInfo.province;
     formState.value.spec.city = geoInfo.city;
@@ -523,34 +552,48 @@ onMounted(async () => {
             placeholder="输入详细地址"
           ></FormKit>
 
-          <!-- 省份/城市 -->
+          <!-- 位置：地图选点是主路径，省/市由选点结果带出 -->
           <div class="formkit-outer py-5" data-type="text">
-            <label class="formkit-label">省份 / 城市（自动解析）</label>
-            <div class="flex items-center gap-2 w-full" style="max-width: 31em">
-              <input
-                :value="formState.spec.province || '—'"
-                readonly
-                class="flex-1 min-w-0 w-0 rounded border px-3 py-1.5 text-base bg-white text-gray-900 border-gray-300 outline-none"
-                placeholder="省份"
-              />
-              <span class="shrink-0 text-gray-300 text-sm">/</span>
-              <input
-                :value="formState.spec.city || '—'"
-                readonly
-                class="flex-1 min-w-0 w-0 rounded border px-3 py-1.5 text-base bg-white text-gray-900 border-gray-300 outline-none"
-                placeholder="城市"
-              />
-              <VButton
-                type="secondary"
-                size="sm"
-                :loading="awaitingGeocode"
-                :disabled="!isUpdateMode"
-                @click="handleRegoecode"
-              >
-                解析
-              </VButton>
+            <label class="formkit-label">位置</label>
+            <div class="w-full" style="max-width: 31em">
+              <div class="flex items-center gap-2">
+                <div
+                  class="flex-1 min-w-0 rounded border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm"
+                >
+                  <span v-if="hasCoordinate" class="tabular-nums text-gray-900">
+                    {{ formState.spec.longitude }}, {{ formState.spec.latitude }}
+                  </span>
+                  <span v-else class="text-gray-400">未选点，保存时将按地址自动解析</span>
+                </div>
+                <VButton size="sm" @click="mapPickerVisible = true">
+                  <template #icon>
+                    <RiMapPin2Line class="h-full w-full" />
+                  </template>
+                  地图选点
+                </VButton>
+              </div>
+              <div class="mt-2 flex items-center gap-2">
+                <div
+                  class="flex-1 min-w-0 rounded border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm"
+                >
+                  <span v-if="formState.spec.province" class="text-gray-900">
+                    {{ [formState.spec.province, formState.spec.city].filter(Boolean).join(" · ") }}
+                  </span>
+                  <span v-else class="text-gray-400">省 / 市未解析</span>
+                </div>
+                <VButton
+                  size="sm"
+                  :loading="awaitingGeocode"
+                  :disabled="!hasCoordinate"
+                  @click="handleRegoecode"
+                >
+                  重新解析
+                </VButton>
+              </div>
             </div>
-            <p v-if="!isUpdateMode" class="formkit-help">保存后可使用"解析"自动填充省/市信息</p>
+            <p class="formkit-help">
+              点「地图选点」可直接在地图上确定位置，省 / 市会一并解析，无需先保存。
+            </p>
           </div>
           <FormKit
             v-model="formState.spec.image"
@@ -779,5 +822,16 @@ onMounted(async () => {
         </VSpace>
       </template>
     </VModal>
+  </Teleport>
+
+  <!-- 同样需要 Teleport：排在编辑窗之后才会盖在它上面 -->
+  <Teleport to="body">
+    <MapPickerModal
+      v-model:visible="mapPickerVisible"
+      :longitude="formState.spec.longitude || undefined"
+      :latitude="formState.spec.latitude || undefined"
+      :address="formState.spec.address"
+      @confirm="handleMapPicked"
+    />
   </Teleport>
 </template>

@@ -127,3 +127,12 @@ export interface GeoInfo {
   provinceAdcode: string;
   cityAdcode: string;
 }
+
+/**
+ * 地图选点所需配置。服务端刻意只下发这两项——高德 Web 服务 Key 属于服务端凭据，
+ * 不能进入浏览器。
+ */
+export interface MapConfig {
+  gaoDeKey: string;
+  mapStyle: string;
+}
