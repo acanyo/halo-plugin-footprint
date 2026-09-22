@@ -79,3 +79,6 @@ application-local.properties
 # Svelte 前台组件包
 packages/*/node_modules/
 packages/*/.svelte-kit/
+
+# 前台压缩步骤的依赖
+frontend-build/node_modules/

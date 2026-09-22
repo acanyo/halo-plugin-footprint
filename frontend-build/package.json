@@ -1,0 +1,15 @@
+{
+  "name": "footprint-frontend-build",
+  "private": true,
+  "type": "module",
+  "description": "前台静态资源的压缩步骤，由 gradle 的 minifyFrontend 任务调用",
+  "scripts": {
+    "minify": "node esbuild.config.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

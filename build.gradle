@@ -2,6 +2,8 @@ plugins {
     id 'java'
     id "io.freefair.lombok" version "8.13"
     id "run.halo.plugin.devtools" version "0.6.1"
+    // 前台 js/css 的压缩步骤要用（ui 子项目也用同一个插件管 node）
+    id "com.github.node-gradle.node" version "7.1.0"
 }
 
 group 'cc.lik.footprint'
@@ -44,8 +46,46 @@ tasks.register('processUiResources', Copy) {
     shouldRunAfter tasks.named('processResources')
 }
 
+/*
+ * 前台静态资源压缩。
+ *
+ * 源文件原地不动，只压缩 processResources 拷进 build/resources/main 的那一份，
+ * 所以必须排在 processResources 之后。详见 frontend-build/esbuild.config.mjs。
+ *
+ * 用 node-gradle 插件跑：ui 子项目本来就靠它管 node/pnpm，node 早已是硬依赖，
+ * 这里不引入新的环境要求。
+ */
+// 这里刻意用 npm 而不是 ui 子项目那套 pnpm：
+// 仓库根有 pnpm-workspace.yaml，pnpm 会把 frontend-build 当成 workspace 的一部分、
+// 因其不在 packages 里而「已是最新」却什么都不装；加 --ignore-workspace 又会连带
+// 忽略 onlyBuiltDependencies，于是 pnpm 因 esbuild 的 postinstall 被拦而报错退出。
+// 这个目录只有一个依赖，用 npm 直接绕开整套纠缠。
+tasks.register('minifyFrontendInstall', com.github.gradle.node.npm.task.NpmTask) {
+    workingDir = file('frontend-build')
+    args = ['install', '--no-audit', '--no-fund']
+    inputs.file('frontend-build/package.json')
+    outputs.dir('frontend-build/node_modules')
+}
+
+tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
+    group = 'build'
+    description = '压缩前台 js/css（源文件不动，只改构建产物）'
+    workingDir = file('frontend-build')
+    args = ['run', 'minify']
+
+    dependsOn tasks.named('minifyFrontendInstall')
+    dependsOn tasks.named('processResources')
+
+    inputs.dir('src/main/resources/static/js')
+    inputs.dir('src/main/resources/static/css')
+    inputs.files('frontend-build/esbuild.config.mjs', 'frontend-build/package.json')
+    outputs.dir(layout.buildDirectory.dir('resources/main/static/js'))
+    outputs.dir(layout.buildDirectory.dir('resources/main/static/css'))
+}
+
 tasks.named('classes') {
     dependsOn tasks.named('processUiResources')
+    dependsOn tasks.named('minifyFrontend')
 }
 
 halo {
