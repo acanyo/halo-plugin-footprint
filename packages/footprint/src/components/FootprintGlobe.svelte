@@ -14,6 +14,8 @@
 import { onMount } from 'svelte';
 import { createViewer, setRenderLoop, type ViewerHandle } from '../cesium/viewer';
 import { createBasemapLayers, type BasemapLayers } from '../cesium/basemap';
+import { configureCamera, enableLighting, flyTo } from '../cesium/camera';
+import { AutoRotate } from '../cesium/auto-rotate';
 import { isCesiumReady } from '../cesium/global';
 import { on } from '../utils/events';
 import { store } from '../stores/footprint.svelte';
@@ -21,7 +23,10 @@ import { store } from '../stores/footprint.svelte';
 let container = $state<HTMLDivElement>();
 let handle: ViewerHandle | null = null;
 let layers: BasemapLayers | null = null;
+let autoRotate: AutoRotate | null = null;
 let error = $state('');
+/** 自动旋转的用户偏好，供外部按钮显示高亮状态 */
+let rotateEnabled = $state(false);
 
 onMount(() => {
   if (!isCesiumReady()) {
@@ -36,6 +41,15 @@ onMount(() => {
     layers = createBasemapLayers(store.config.tiandituKey);
     // 默认底图：高德矢量路网
     handle.viewer.imageryLayers.addImageryProvider(layers.amapVec);
+
+    configureCamera(handle.viewer);
+    enableLighting(handle.viewer);
+
+    autoRotate = new AutoRotate(handle.viewer, {
+      onChange: ({ enabled }) => {
+        rotateEnabled = enabled;
+      },
+    });
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
     console.error('[footprint-globe] 初始化失败', e);
@@ -44,26 +58,45 @@ onMount(() => {
 
   // 相机飞行请求来自各 UI 面板，它们不持有 viewer，只派发事件
   const offFlyTo = on('footprint:flyto', ({ longitude, latitude, zoom }) => {
-    const Cesium = window.Cesium;
-    if (!handle || !Cesium) return;
-    handle.viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, zoom ?? 20000),
-    });
+    if (handle) flyTo(handle.viewer, longitude, latitude, zoom);
   });
 
   // 不透明全屏层打开时暂停渲染省电；票根墙需要透出地球，不会派发 running:false
   const offRenderLoop = on('footprint:render-loop', ({ running }) => {
-    if (handle) setRenderLoop(handle.viewer, running);
+    if (!handle) return;
+    setRenderLoop(handle.viewer, running);
+    // 渲染暂停时同步暂停旋转，恢复时解除——用带原因的临时暂停而非改用户偏好
+    if (running) autoRotate?.resume('overlay');
+    else autoRotate?.pause('overlay');
   });
 
   return () => {
     offFlyTo();
     offRenderLoop();
+    autoRotate?.destroy();
+    autoRotate = null;
     handle?.destroy();
     handle = null;
     layers = null;
   };
 });
+
+/** 供 2D/3D 切换按钮等外部控件调用 */
+export function toggleAutoRotate() {
+  autoRotate?.toggle();
+}
+
+export function pauseAutoRotate(reason: string) {
+  autoRotate?.pause(reason);
+}
+
+export function resumeAutoRotate(reason: string) {
+  autoRotate?.resume(reason);
+}
+
+export function isAutoRotateEnabled() {
+  return rotateEnabled;
+}
 
 /** 暴露给地图相关组件取用同一个 viewer，避免各自再造一个 */
 export function getViewer() {
