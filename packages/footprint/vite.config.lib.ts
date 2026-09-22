@@ -23,12 +23,16 @@ export default defineConfig({
   plugins: [
     svelte(),
     minifyBundle(),
-    // 产物直接落到插件的静态资源目录，由 footprint.html 以普通 <script> 加载。
-    // 前台页面不经过 Halo Console 的构建，所以不能走 ui/ 那条链路。
+    // 产物落到插件静态资源目录，由 footprint.html 以 <script type="module"> 加载。
+    //
+    // 投递 ES 产物而非 IIFE：IIFE 按定义是单文件，动态 import 会被内联回主包，
+    // 代码分割完全失效（实测 GSAP 让 IIFE 从 77 kB 涨到 109 kB，而 ES 构建
+    // 把 Flip 拆成 24 kB 独立 chunk，只有真正打开票根页才加载）。
+    // 因此连同 chunk 一起拷贝，用通配匹配带 hash 的文件名。
     StaticCopy({
       targets: [
         {
-          src: ['./dist/footprint.iife.js', './dist/footprint.css'],
+          src: ['./dist/*.js', './dist/footprint.css'],
           dest: fileURLToPath(
             new URL('../../src/main/resources/static/next', import.meta.url)
           ),
@@ -42,7 +46,8 @@ export default defineConfig({
       entry: 'src/index.ts',
       name: 'footprint',
       fileName: 'footprint',
-      formats: ['es', 'iife'],
+      // 只出 ES：见上方 StaticCopy 注释，IIFE 会让动态 import 失去意义
+      formats: ['es'],
     },
     rollupOptions: {
       output: {

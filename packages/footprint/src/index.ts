@@ -1,5 +1,6 @@
 import './components/FootprintGlobe.svelte';
 import './components/FootprintDetailCard.svelte';
 import './components/FootprintCityWall.svelte';
+import './components/FootprintTicketWall.svelte';
 import './components/FootprintLightbox.svelte';
 import './var.css';
