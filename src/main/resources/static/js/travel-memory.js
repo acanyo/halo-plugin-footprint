@@ -320,34 +320,35 @@
     // 让时间自动推进，明暗分界线随时间缓缓移动
     viewer.clock.shouldAnimate = true;
 
-    // ---------- 星空盒延后加载 ----------
-    // 6 张 Tycho 星表贴图合计 848 KB，占首屏近三成，而地球本身一点不依赖它。
-    // Cesium 的 SkyBox 是在 update() 里才去取贴图的，且 show 为 false 时直接返回，
-    // 所以首帧之前先关掉就能把这 848 KB 整个挪出关键路径。
+    // ---------- 「地球可用」信号 ----------
+    // 底图第一批瓦片铺完的时刻。此时用户已经看到地球，带宽也空出来了，
+    // 那些"迟一点到也不影响"的资源都挂在这个信号后面，不跟底图抢首屏。
     //
-    // 不能改用 Viewer 的 skyBox:false —— 那个选项会连太阳和月亮一起不创建，
-    // 而上面的 enableLighting 依赖太阳，昼夜晨昏线会直接消失。
-    //
-    // 等地球第一批瓦片铺完再打开：这时候用户已经看到地球了，
-    // 带宽也空出来了，星空补上去不会跟底图抢。
-    if (viewer.scene.skyBox) {
-        viewer.scene.skyBox.show = false;
-        let skyBoxRevealed = false;
-        const revealSkyBox = () => {
-            if (skyBoxRevealed || !viewer.scene.skyBox) return;
-            skyBoxRevealed = true;
-            viewer.scene.skyBox.show = true;
-        };
-        // 瓦片铺完是最自然的时机；兜一个定时器，免得 tileLoadProgressEvent
-        // 因为底图服务异常一直不归零，星空就永远不出现了
+    // 兜一个 4 秒定时器：底图服务异常时 tileLoadProgressEvent 可能一直不归零，
+    // 没有兜底的话后面挂的东西就永远不加载了。
+    const globeReady = new Promise(resolve => {
         const onTileProgress = queued => {
             if (queued === 0) {
                 viewer.scene.globe.tileLoadProgressEvent.removeEventListener(onTileProgress);
-                revealSkyBox();
+                resolve();
             }
         };
         viewer.scene.globe.tileLoadProgressEvent.addEventListener(onTileProgress);
-        setTimeout(revealSkyBox, 4000);
+        setTimeout(resolve, 4000);
+    });
+
+    // ---------- 星空盒延后加载 ----------
+    // 6 张 Tycho 星表贴图合计 849 KB，占首屏近三成，而地球本身一点不依赖它。
+    // Cesium 的 SkyBox 是在 update() 里才去取贴图的，且 show 为 false 时直接返回，
+    // 所以首帧之前先关掉就能把这 849 KB 整个挪出关键路径。
+    //
+    // 不能改用 Viewer 的 skyBox:false —— 那个选项会连太阳和月亮一起不创建，
+    // 而上面的 enableLighting 依赖太阳，昼夜晨昏线会直接消失。
+    if (viewer.scene.skyBox) {
+        viewer.scene.skyBox.show = false;
+        globeReady.then(() => {
+            if (viewer.scene.skyBox) viewer.scene.skyBox.show = true;
+        });
     }
 
     // 3D 地球品牌文案：标题/描述使用“3D 地球”Tab 的独立配置（globeTitle/globeDesc），
@@ -9336,13 +9337,20 @@
         }, { once: true });
     }
 
+    // 省界轮廓同样挂在 globeReady 之后：它只在放大到国内范围才显示
+    // （见下面 boundaryVisible 的高度判定），整球视图下这 208 KB 纯属白占首屏带宽。
+    // 挂在瓦片铺完之后而不是等到真正放大时才拉，是为了让用户放大时已经准备好，
+    // 不会看到轮廓迟到。
+    //
     // 传已解析的 GeoJSON 对象而不是 URL：GeoJsonDataSource.load 两者都收，
     // 传对象就不会再发一次请求，与几何索引共用 loadProvinceGeoJson 那一次下载。
-    const chinaDataSource = loadProvinceGeoJson().then(geojson =>
-        Cesium.GeoJsonDataSource.load(geojson, {
-            fill: Cesium.Color.PALETURQUOISE.withAlpha(0) // 填充颜色（设为透明）
-        })
-    );
+    const chinaDataSource = globeReady
+        .then(loadProvinceGeoJson)
+        .then(geojson =>
+            Cesium.GeoJsonDataSource.load(geojson, {
+                fill: Cesium.Color.PALETURQUOISE.withAlpha(0) // 填充颜色（设为透明）
+            })
+        );
 
     chinaDataSource.then(dataSource => {
         chinaBoundarySource = dataSource;
