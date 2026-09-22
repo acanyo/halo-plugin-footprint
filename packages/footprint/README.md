@@ -16,34 +16,43 @@
 Custom Element + Shadow DOM 给出样式与作用域的硬边界，且每个模块可独立复用。
 主题定制通过 CSS 变量穿透边界（见 `src/var.css`），沿用 comment-next 的做法。
 
-## 边界：哪些迁，哪些不迁
+## 全量迁移：Shadow DOM 是逐组件的选择，不是一刀切
 
-迁移**只覆盖 UI 面板**，地图层保持原样。这不是偷懒，是硬约束：
+目标是前台**全部**改成 Svelte，包括地图层。这能成立的前提是：
+「用 Svelte 写」和「开 Shadow DOM」是两件独立的事。
 
-| 不迁（约 3500 行） | 原因 |
-| --- | --- |
-| Cesium Viewer 初始化、相机交互、自动旋转 | 命令式 SDK，声明式模型使不上劲 |
-| 足迹标记点、常驻地名标注层、标记自愈 | 与渲染引擎搏斗的逻辑，与框架无关 |
-| 地名标签屏幕空间避让、城市聚合 | 同上 |
-| 底图切换、天地图三维地形、中国轮廓 | 同上 |
-| 坐标转换 WGS84↔GCJ-02 | 纯函数，抽成 `utils/` 即可 |
+Svelte 5 的 `customElement` 支持 `shadow: 'none'`，因此地图层照样是 Svelte 组件，
+只是不开影子根、留在 light DOM——Cesium 自带 `static/cesium/Widgets/` 下 2000+ 行
+样式且假定自己在全局作用域，canvas 的事件、全屏、右键菜单也都按 light DOM 设计，
+开了影子根就要逐个打补丁。
 
-Cesium 自带 `static/cesium/Widgets/` 下 2000+ 行样式且假定自己在全局作用域，
-地图 canvas 的事件、全屏、右键菜单也都按 light DOM 设计——
-**把地图塞进 Shadow DOM 会引出一串要逐个打补丁的问题。**
+```svelte
+<!-- 地图层：Svelte 组件，但不开影子根 -->
+<svelte:options customElement={{ tag: 'footprint-globe', shadow: 'none' }} />
 
-| 迁（约 6500 行） | 目标元素 |
-| --- | --- |
-| 票根墙 / 横向长串 / 命运抽票 | `<footprint-ticket-wall>` |
-| 未寄出的明信片 | `<footprint-postcard>` |
-| 城市卡片墙 / 卡片封面 / PC 悬停轮播 | `<footprint-city-wall>` |
-| 照片环 | `<footprint-photo-ring>` |
-| 省份城市卡片 | `<footprint-province-cards>` |
-| 重走一遍 | `<footprint-journey-replay>` |
-| 图片灯箱 | `<footprint-lightbox>` |
-| 足迹详情卡 | `<footprint-detail-card>` |
-| 左侧标题卡 | `<footprint-title-card>` |
-| 2D/3D 切换按钮 | `<footprint-view-switch>` |
+<!-- UI 面板：默认 shadow: 'open'，拿到样式硬边界 -->
+<svelte:options customElement={{ tag: 'footprint-lightbox' }} />
+```
+
+| 组件 | shadow | 迁自 |
+| --- | --- | --- |
+| `<footprint-globe>` | `none` | Viewer 初始化 / 相机 / 自动旋转 / 底图 / 地形 |
+| `<footprint-markers>` | `none` | 足迹标记点 / 标记自愈 / 城市聚合 |
+| `<footprint-labels>` | `none` | 常驻地名标注 / 屏幕空间避让 |
+| `<footprint-amap>` | `none` | 2D 高德地图（footprint.js） |
+| `<footprint-ticket-wall>` | `open` | 票根墙 / 横向长串 / 命运抽票 |
+| `<footprint-postcard>` | `open` | 未寄出的明信片 |
+| `<footprint-city-wall>` | `open` | 城市卡片墙 / 卡片封面 / 悬停轮播 |
+| `<footprint-photo-ring>` | `open` | 照片环 |
+| `<footprint-province-cards>` | `open` | 省份城市卡片 |
+| `<footprint-journey-replay>` | `open` | 重走一遍 |
+| `<footprint-lightbox>` | `open` | 图片灯箱 |
+| `<footprint-detail-card>` | `open` | 足迹详情卡 |
+| `<footprint-title-card>` | `open` | 左侧标题卡 |
+| `<footprint-view-switch>` | `open` | 2D/3D 切换按钮 |
+
+纯函数（坐标转换 WGS84↔GCJ-02、图片 URL 规则、日期格式化）抽到 `utils/`，
+不做成组件。
 
 ## 两侧怎么通信
 
@@ -68,20 +77,47 @@ this.dispatchEvent(new CustomEvent('footprint:flyto', {
 
 ## 迁移顺序
 
-按「与地图耦合度」从浅到深，每完成一个就接进 `footprint.html` 验证，不攒大批量：
+按依赖方向推进：先落地基础设施与纯函数，再是地图层（其余组件都要向它派发事件），
+最后是 UI 面板。
 
-1. `<footprint-ticket-wall>` — 只依赖足迹数据，耦合最浅，用来验证整条链路
-2. `<footprint-postcard>` — 纯生成与下载
-3. `<footprint-lightbox>` — 纯展示
-4. `<footprint-city-wall>` — 数据量大但交互独立
-5. `<footprint-photo-ring>` — 需要标记的屏幕坐标，开始与地图耦合
-6. `<footprint-province-cards>` — 同上，且涉及抛物线连线
-7. `<footprint-detail-card>` / `<footprint-title-card>` / `<footprint-view-switch>`
-8. `<footprint-journey-replay>` — 与相机动画深度耦合，放最后
+1. `utils/` — 坐标转换、图片 URL 规则、日期、存储封装
+2. `stores/` — 足迹数据、当前选中、2D/3D 视图模式（Svelte 5 runes）
+3. `<footprint-globe>` / `<footprint-markers>` / `<footprint-labels>` — 3D 地图层
+4. `<footprint-amap>` — 2D 地图层
+5. UI 面板，按与地图耦合度从浅到深：
+   `lightbox` → `postcard` → `city-wall` → `photo-ring` → `province-cards`
+   → `detail-card` / `title-card` / `view-switch` → `ticket-wall` → `journey-replay`
 
-迁移过程中原 `travel-memory.js` 的对应段落**直接删除**，不留两份实现。
+**注意**：票根子系统（票根墙 + 命运抽票 + 明信片 + 重走一遍 + 横向长串）在旧代码里
+横跨 7187→9357 约 2200 行，共享 40 多个模块级可变状态，是耦合最深的一块，放最后。
+按分节标题看它只有 437 行，那只是声明段（90 个 getElementById），别被误导。
+
+每迁完一个模块，原 `travel-memory.js` 的对应段落**直接删除**，不留两份实现。
 旧代码里「照片环」和「省份城市卡片」各有两处实现（分散在相隔 6000 行的位置），
 迁移时必须合并成一处——这本身就是收益。
+
+## 如何保证「一模一样」
+
+纯逻辑一律用**黄金值等价测试**锁住：先用 Node 跑迁移前的 `travel-memory.js`
+对应片段，把输出记成常量，再断言新实现产出同样的值。
+
+```bash
+node -e "
+const f=require('fs').readFileSync('../../src/main/resources/static/js/travel-memory.js','utf8');
+eval(f.split('\n').slice(81,135).join('\n').replace(/^\s{4}/gm,''));
+console.log(wgs84ToGcj02(120.15, 30.28));
+"
+```
+
+见 `src/utils/coordinate.test.ts`。这类代码出偏差不会报错——坐标转换错了只是
+所有标记整体平移几百米，肉眼很难发现，只能靠数值断言。
+
+写断言时不要凭直觉设定范围：GCJ-02 的纬度偏移方向随地点变化（杭州为负、
+北京为正），一开始按「总是正偏移」写就直接挂了。**以原实现的实际输出为准，
+不要以对算法的想象为准。**
+
+视觉部分没有等价测试可言，只能逐个接进页面人工比对，因此迁移按模块推进、
+每个模块单独验收。
 
 ## 开发
 
