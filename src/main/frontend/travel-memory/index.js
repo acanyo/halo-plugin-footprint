@@ -11,6 +11,9 @@
 
 import { wgs84ToGcj02, gcj02ToWgs84 } from './modules/coordinate.js';
 import { countTdtProvider, tdtTodayUsage, setTileBatchHandler } from './modules/tianditu-usage.js';
+import { amapVec, amapImg, amapImgLabel } from './modules/amap-basemap.js';
+import { compareTicketByTime, ticketHasCoordinate, isSameTicketCity } from './modules/ticket-utils.js';
+import { startCityWallWarmQueue, stopCityWallWarmQueue } from './modules/city-wall-prewarm.js';
 
 // updateStatusText 是函数声明，会提升，这里可以安全地先注入
 setTileBatchHandler(updateStatusText);
@@ -90,28 +93,6 @@ setTileBatchHandler(updateStatusText);
     const btnMap = Object.fromEntries(
         [...document.querySelectorAll('#layerButtons button')].map(b => [b.dataset.key, b])
     );
-
-    // ================= 高德底图（无需 Key） =================
-    // 高德矢量路网图（含地名标注）
-    const amapVec = new Cesium.UrlTemplateImageryProvider({
-        url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-        subdomains: ['1', '2', '3', '4'],
-        maximumLevel: 18
-    });
-
-    // 高德卫星影像
-    const amapImg = new Cesium.UrlTemplateImageryProvider({
-        url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
-        subdomains: ['1', '2', '3', '4'],
-        maximumLevel: 18
-    });
-
-    // 高德卫星影像上的中文标注（style=8，透明标注层，叠加在影像上）
-    const amapImgLabel = new Cesium.UrlTemplateImageryProvider({
-        url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}',
-        subdomains: ['1', '2', '3', '4'],
-        maximumLevel: 18
-    });
 
     // ================= 天地图影像（需要 Key） =================
     // 天地图 _w（Web 墨卡托）瓦片：第 L 级为 2^L × 2^L 张（第 1 级即 2×2），
@@ -4055,52 +4036,7 @@ setTileBatchHandler(updateStatusText);
         pending.forEach(media => cityWallCoverObserver.observe(media));
     }
 
-    // ============ 卡片墙图片空闲预热 ============
-    // 刷新后磁盘缓存里的图片仍要重新解码；滚动时再解码就会造成帧断。
-    // 打开卡片墙后以低并发在后台把封面与轮播图全部解码，滚动时不再等待。
-    const CITY_WALL_WARM_CONCURRENCY = 2;
-    const CITY_WALL_WARM_MAX_IMAGES = 60;   // 防止超大城市列表过度预热
-    const cityWallWarmQueue = [];
-    let cityWallWarmLoading = 0;
-    let cityWallWarmTimer = null;
-
-    function drainCityWallWarmQueue() {
-        cityWallWarmTimer = null;
-        while (cityWallWarmLoading < CITY_WALL_WARM_CONCURRENCY && cityWallWarmQueue.length) {
-            const img = cityWallWarmQueue.shift();
-            if (!img || !img.isConnected || img.getAttribute('src')) continue;
-            cityWallWarmLoading++;
-            const done = () => {
-                cityWallWarmLoading = Math.max(0, cityWallWarmLoading - 1);
-                if (!cityWallWarmTimer) {
-                    cityWallWarmTimer = setTimeout(drainCityWallWarmQueue, 0);
-                }
-            };
-            img.addEventListener('load', done, { once: true });
-            img.addEventListener('error', done, { once: true });
-            img.src = img.dataset.src;
-        }
-    }
-
-    function stopCityWallWarmQueue() {
-        if (cityWallWarmTimer) {
-            clearTimeout(cityWallWarmTimer);
-            cityWallWarmTimer = null;
-        }
-        cityWallWarmQueue.length = 0;
-        cityWallWarmLoading = 0;
-    }
-
-    function startCityWallWarmQueue() {
-        stopCityWallWarmQueue();
-        const imgs = [...cityWallGrid.querySelectorAll(
-            'img.city-wall-card-cover, img.city-wall-card-preview')]
-            .filter(img => img.dataset.src && !img.getAttribute('src'));
-        if (!imgs.length || imgs.length > CITY_WALL_WARM_MAX_IMAGES) return;
-        cityWallWarmQueue.push(...imgs);
-        drainCityWallWarmQueue();
-    }
-
+    // 卡片墙图片空闲预热在 modules/city-wall-prewarm.js
     // ============ PC 城市卡片悬停轮播（最多 3 张） ============
     const CITY_CARD_CAROUSEL_DELAY = 600;      // 悬停后多久开始
     const CITY_CARD_CAROUSEL_INTERVAL = 1800;  // 每张停留时长
@@ -4402,7 +4338,7 @@ setTileBatchHandler(updateStatusText);
         });
         refreshCityWallFeatureActions();
         startCityWallCoverLoader();
-        startCityWallWarmQueue();
+        startCityWallWarmQueue(cityWallGrid);
     }
 
     function openCityWall() {
@@ -7950,59 +7886,11 @@ setTileBatchHandler(updateStatusText);
         }
     }
 
-    // ================= 票根排序与坐标工具（重走 / 护照共用） =================
+    // 票根排序/坐标校验的纯逻辑在 modules/ticket-utils.js；
+    // 这里只留一个薄包装，因为它要闭包引用主文件里的 ticketItems。
     function sortedTicketItems() {
         return ticketItems.slice().sort(compareTicketByTime);
     }
-
-    function ticketTimeKey(fp) {
-        return String((fp && (fp.ticketDate || fp.createTime)) || '');
-    }
-
-    function ticketNameKey(fp) {
-        return String((fp && (fp.name || fp.ticketTitle)) || '');
-    }
-
-    // 全局统一的时间线排序：ticketDate || createTime 升序；
-    // 两个字段都缺失的票排到最后（空串 localeCompare 最小，直接字符串比较会把它排到最前）；
-    // 同值按名称、key 兜底，保证重走/护照各功能顺序一致。
-    function compareTicketByTime(a, b) {
-        const ka = ticketTimeKey(a);
-        const kb = ticketTimeKey(b);
-        if (!ka && kb) return 1;
-        if (ka && !kb) return -1;
-        const byDate = ka.localeCompare(kb);
-        if (byDate) return byDate;
-        const byName = ticketNameKey(a).localeCompare(ticketNameKey(b), 'zh-Hans-CN');
-        if (byName) return byName;
-        return String((a && a.key) || '').localeCompare(String((b && b.key) || ''));
-    }
-
-    function ticketHasCoordinate(fp) {
-        if (!fp) return false;
-        const rawLng = fp.lng;
-        const rawLat = fp.lat;
-        // 空值不能走 Number()：Number(null) / Number('') 都是 0，会被误判成有效坐标
-        if (rawLng === '' || rawLng == null || rawLat === '' || rawLat == null) return false;
-        const lng = Number(rawLng);
-        const lat = Number(rawLat);
-        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return false;
-        if (lng < -180 || lng > 180 || lat < -90 || lat > 90) return false;
-        // (0, 0) 是后台表单未填写坐标时的默认值，视为没有定位
-        return !(lng === 0 && lat === 0);
-    }
-
-    // 同城判定：优先比 adcode，没有 adcode 才比城市名；
-    // 两边都得有值，否则城市为空的票根会被误判成“同一城市”，整场放映一次都不飞。
-    function isSameTicketCity(a, b) {
-        const codeA = String((a && a.cityAdcode) || '').trim();
-        const codeB = String((b && b.cityAdcode) || '').trim();
-        if (codeA && codeB) return codeA === codeB;
-        const cityA = String((a && a.city) || '').trim();
-        const cityB = String((b && b.city) || '').trim();
-        return !!cityA && cityA === cityB;
-    }
-
     // ================= 重走一遍（阶段 D） =================
     function updateTicketReplayPlayButton() {
         if (ticketReplayPlay) {
