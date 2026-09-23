@@ -14,9 +14,12 @@ import { countTdtProvider, tdtTodayUsage, setTileBatchHandler } from './modules/
 import { amapVec, amapImg, amapImgLabel } from './modules/amap-basemap.js';
 import { compareTicketByTime, ticketHasCoordinate, isSameTicketCity } from './modules/ticket-utils.js';
 import { startCityWallWarmQueue, stopCityWallWarmQueue } from './modules/city-wall-prewarm.js';
+import { lightbox, openLightbox, closeLightbox, switchLightbox, setLightboxDeps } from './modules/lightbox.js';
 
 // updateStatusText 是函数声明，会提升，这里可以安全地先注入
 setTileBatchHandler(updateStatusText);
+// 同理，下面三个也都是函数声明
+setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
     // ================= 配置 =================
     // 天地图 Key：在 https://lbs.tianditu.gov.cn 注册后申请（浏览器端应用）
     // 不填则自动降级：只显示高德底图，无天地图影像/注记，也无三维地形
@@ -2962,114 +2965,7 @@ setTileBatchHandler(updateStatusText);
         if (fp) openFootprintAlbum(fp, markerCardGallery);
     });
 
-    // ================= 图片灯箱 =================
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightboxImg');
-    const lightboxCount = document.getElementById('lightboxCount');
-    const lightboxCaption = document.getElementById('lightboxCaption');
-    const lightboxPrev = document.getElementById('lightboxPrev');
-    const lightboxNext = document.getElementById('lightboxNext');
-    const lightboxStage = document.getElementById('lightboxStage');
-    const lightboxSkeleton = document.getElementById('lightboxSkeleton');
-    const lightboxError = document.getElementById('lightboxError');
-    const lightboxRetry = document.getElementById('lightboxRetry');
-    let lightboxFp = null;
-    let lightboxIndex = 0;
-    let lightboxTriggerBtn = null;
-
-    function lightboxImages() {
-        return lightboxFp ? cityWallImages(lightboxFp) : [];
-    }
-
-    function loadLightboxImage(url) {
-        lightboxSkeleton.hidden = false;
-        lightboxError.hidden = true;
-        lightboxImg.hidden = false;
-        lightboxImg.onload = () => { lightboxSkeleton.hidden = true; };
-        lightboxImg.onerror = () => {
-            lightboxSkeleton.hidden = true;
-            lightboxImg.hidden = true;
-            lightboxError.hidden = false;
-        };
-        lightboxImg.src = url;
-    }
-
-    function preloadLightboxNeighbors() {
-        const imgs = lightboxImages();
-        [lightboxIndex - 1, lightboxIndex + 1].forEach(i => {
-            if (i >= 0 && i < imgs.length) {
-                const pre = new Image();
-                pre.src = imgs[i].url;
-            }
-        });
-    }
-
-    function renderLightboxImage() {
-        const imgs = lightboxImages();
-        const img = imgs[lightboxIndex];
-        const single = imgs.length <= 1;
-        lightboxPrev.hidden = single;
-        lightboxNext.hidden = single;
-        lightboxCount.textContent = (lightboxIndex + 1) + ' / ' + imgs.length;
-        lightboxCaption.textContent = img.caption ||
-            (lightboxFp.name + (lightboxFp.createTime ? ' · ' + formatLightboxDate(lightboxFp.createTime) : ''));
-        loadLightboxImage(img.url);
-        preloadLightboxNeighbors();
-    }
-
-    function openLightbox(fp, index, triggerBtn) {
-        lightboxFp = fp;
-        lightboxIndex = index;
-        lightboxTriggerBtn = triggerBtn || null;
-        lightbox.classList.add('show');
-        setOverlayHidden(lightbox, false);
-        document.getElementById('lightboxClose').focus();
-        renderLightboxImage();
-    }
-
-    function closeLightbox(returnFocus = true) {
-        lightbox.classList.remove('show');
-        setOverlayHidden(lightbox, true);
-        lightboxImg.onload = null;
-        lightboxImg.onerror = null;
-        lightboxImg.removeAttribute('src');
-        if (returnFocus && lightboxTriggerBtn) {
-            lightboxTriggerBtn.focus();   // 焦点还给触发它的图片按钮
-        }
-        lightboxTriggerBtn = null;
-        lightboxFp = null;
-    }
-
-    function switchLightbox(delta) {
-        const imgs = lightboxImages();
-        if (imgs.length < 2) return;
-        lightboxIndex = (lightboxIndex + delta + imgs.length) % imgs.length;
-        renderLightboxImage();
-    }
-
-    lightboxPrev.addEventListener('click', () => switchLightbox(-1));
-    lightboxNext.addEventListener('click', () => switchLightbox(1));
-    document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
-    lightboxRetry.addEventListener('click', () => {
-        const imgs = lightboxImages();
-        if (imgs[lightboxIndex]) loadLightboxImage(imgs[lightboxIndex].url);
-    });
-    // 点击灯箱背景（图片之外）关闭
-    lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox || e.target === lightboxStage) closeLightbox();
-    });
-    // 触屏左右滑动切换
-    let lightboxTouchX = null;
-    lightbox.addEventListener('touchstart', (e) => {
-        lightboxTouchX = e.touches[0].clientX;
-    }, { passive: true });
-    lightbox.addEventListener('touchend', (e) => {
-        if (lightboxTouchX === null) return;
-        const dx = e.changedTouches[0].clientX - lightboxTouchX;
-        if (Math.abs(dx) > 40) switchLightbox(dx < 0 ? 1 : -1);
-        lightboxTouchX = null;
-    }, { passive: true });
-
+    // 图片灯箱在 modules/lightbox.js
     // ================= 城市足迹全屏视图（左侧足迹 Tab 卡片 + 右侧详情） =================
     const cityView = document.getElementById('cityView');
     const cityViewBack = document.getElementById('cityViewBack');
