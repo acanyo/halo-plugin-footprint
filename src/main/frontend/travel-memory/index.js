@@ -10679,3 +10679,26 @@ setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
         if (view3d) view3d.hidden = false;
         if (view2d) view2d.hidden = true;
     }
+
+    // ================= 对外只读接口（供「世界这本书」memory-shelf.js 使用） =================
+    // 书架是独立脚本（static/js/memory-shelf.js），拿不到本文件的闭包变量，
+    // 所以这里显式开一扇小门。三条约定：
+    //   1) 全部写成取值函数，不导出快照 —— FOOTPRINTS / cityList 都是 let，
+    //      刷新数据时会被整体重建，导出快照会立刻变成僵尸数据；
+    //   2) 只导出书架真正需要的，不把内部状态整包抛出去；
+    //   3) 这里不产生任何副作用 —— 删掉这段顶多让书架不显示，不影响地球页本身。
+    window.FootprintMemoryData = {
+        // 数据
+        footprints: () => FOOTPRINTS,
+        cityList: () => cityList,
+        cityKeyOf: (fp) => cityKeyOf(fp),
+        normalizeProvinceName: (value) => normalizeProvinceName(value),
+        // 取图：画廊优先、主图兜底；拿到的是原图 URL，缩略要再过 cityCardImageUrl
+        cityWallImages: (fp) => cityWallImages(fp),
+        cityCardImageUrl: (url) => cityCardImageUrl(url),
+        // 跨域图要进 canvas / WebGL 必须先转同源代理地址，否则画布被污染、贴图会失败
+        canvasSafeImageUrl: (url) => canvasSafeImageUrl(url),
+        // 覆盖层控制：书架全屏不透明，打开时要停掉地球渲染省 GPU
+        setGlobeRenderLoop: (running) => setGlobeRenderLoop(running),
+        setOverlayHidden: (el, hidden) => setOverlayHidden(el, hidden),
+    };

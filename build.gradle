@@ -9,6 +9,13 @@ plugins {
 group 'cc.lik.footprint'
 
 repositories {
+    // 国内镜像放最前面：本机到 repo.maven.apache.org / s01.oss.sonatype.org 是超时的
+    // （实测 12 秒无响应），而 haloServer 需要下载 Halo 运行时（run.halo.app:halo），
+    // 走原仓库会一直卡在超时重试上，表现为「Gradle Daemon started 之后就没动静」。
+    // 能连通后可以删掉这几行。
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/spring' }
     mavenCentral()
     maven { url 'https://s01.oss.sonatype.org/content/repositories/releases' }
     maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }

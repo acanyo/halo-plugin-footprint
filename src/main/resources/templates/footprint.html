@@ -85,6 +85,8 @@
             <span class="nav-sep"></span>
             <button id="cityWallBtn" type="button" title="打开城记：按最近到访排列的城市卡片墙">城记</button>
             <span class="nav-sep"></span>
+            <button id="memoryShelfBtn" type="button" title="打开世界这本书：按省份翻阅旅行记忆" hidden>世界这本书</button>
+            <span class="nav-sep"></span>
             <button id="ticketGalleryBtn" type="button" title="打开票根册：按时间收好的旅途票根">票根册</button>
             <span class="nav-sep"></span>
             <button id="provinceAllBtn" type="button" aria-pressed="false" title="在 3D 地球上展开所有去过的城市卡片与连线">全部城市</button>
@@ -217,6 +219,50 @@
             <aside class="city-tabs" id="cityTabs" role="tablist" aria-label="城市足迹列表"></aside>
             <section class="city-stage" id="cityStage" aria-live="polite"></section>
         </div>
+    </div>
+    <!-- 世界这本书：省份书架 → 城市章节 → 旅行相册，三层共用一个沉浸式覆盖层。
+         内容全部由 memory-shelf.js 渲染，这里只放外壳。 -->
+    <div id="memoryShelf" role="dialog" aria-modal="true" aria-label="世界这本书" aria-hidden="true">
+        <div id="memoryShelfLive" class="ms-sr-only" aria-live="polite" aria-atomic="true"></div>
+        <div class="ms-top">
+            <button id="memoryShelfBack" class="ms-back" type="button" aria-label="关闭世界这本书">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+                <span>关闭</span>
+            </button>
+            <div class="ms-head">
+                <p class="ms-eyebrow">TRAVEL LIBRARY · 旅行记忆书库</p>
+                <h2 id="memoryShelfTitle">世界这本书</h2>
+                <p id="memoryShelfIntro">一省一卷，一城一章。</p>
+            </div>
+            <div class="ms-actions">
+                <!-- 声音：静音开关 + 音量（音频文件在 /assets/static/audio/）
+                     静音键用和「关闭 / 上一本」同一套线描图标（1.5px 描边），
+                     两个状态在同一段 SVG 里：声波 / 声波加叉，由 aria-pressed 切换。
+                     JS 只维护 aria-pressed，不再往按钮里写文字 —— 写文字会把 SVG 冲掉。 -->
+                <button id="memoryShelfMute" class="ms-nav ms-sound" type="button"
+                        aria-pressed="false" aria-label="静音" title="静音 / 取消静音">
+                    <svg class="ms-sound-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M11 5 6.4 9H2.6v6h3.8L11 19z"/>
+                        <path class="ms-sound-on" d="M15.3 8.6a4.8 4.8 0 0 1 0 6.8"/>
+                        <path class="ms-sound-on" d="M18.4 5.6a9 9 0 0 1 0 12.8"/>
+                        <path class="ms-sound-off" d="M16.2 9.4 21.4 14.6M21.4 9.4l-5.2 5.2"/>
+                    </svg>
+                </button>
+                <input id="memoryShelfVolume" class="ms-volume" type="range"
+                       min="0" max="1" step="0.05" value="0.55" aria-label="音量">
+                <!-- 一次翻**一屏**（= 精选书右边排不下、沉到搁板下面那几本一次换上来），
+                     所以标签是「上一屏 / 下一屏」而不是「上一本 / 下一本」；
+                     一次一本已经有滚轮、←/→ 方向键、左侧书脊轨三条路。
+                     中间的计数由 JS（syncPageCount）维护。 -->
+                <button id="memoryShelfPrev" class="ms-nav" type="button" aria-label="上一屏" hidden>‹</button>
+                <span id="memoryShelfPageCount" class="ms-page-count" hidden></span>
+                <button id="memoryShelfNext" class="ms-nav" type="button" aria-label="下一屏" hidden>›</button>
+            </div>
+        </div>
+        <div id="memoryShelfBody" class="ms-body" aria-live="polite"></div>
     </div>
     <!-- 城市卡片墙：全部已到访城市的总览目录，点击卡片进入对应城市图片墙 -->
     <div id="cityWall" role="dialog" aria-modal="true" aria-label="城市卡片墙" aria-hidden="true">

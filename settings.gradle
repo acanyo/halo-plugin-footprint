@@ -1,8 +1,9 @@
 pluginManagement {
     repositories {
+        // 同 build.gradle：本机到 gradlePluginPortal 也可能慢，先走国内镜像
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
         gradlePluginPortal()
     }
 }
 rootProject.name = 'plugin-footprint'
 include 'ui'
-

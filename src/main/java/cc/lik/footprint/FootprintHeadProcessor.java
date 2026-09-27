@@ -68,6 +68,39 @@ public class FootprintHeadProcessor implements TemplateHeadProcessor {
             <!-- footprint globe end -->
             """, properties);
         model.add(modelFactory.createText(globeScript));
+
+        // 「世界这本书」书架。
+        //
+        // three.js 走 **ES module** 加载（不再是 UMD）：importmap 把裸标识符 three 指到
+        // 本地 vendor 的 three.module.min.js，再由一个内联 module 把 THREE 与
+        // RectAreaLightUniformsLib 一起装好、挂到 window 上。
+        // 这样做的原因是 RectAreaLight（纸张面光）依赖 examples 里的
+        // RectAreaLightUniformsLib，而 UMD 构建里没有它。
+        //
+        // memory-shelf.js 本身仍是普通脚本：它只等 window.THREE 出现，
+        // 不参与模块图，避免把三千多行代码整体改造成 module。
+        String bookshelfScript = PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders("""
+            <!-- footprint bookshelf start -->
+            <link rel="stylesheet" type="text/css" href="/plugins/footprint/assets/static/css/memory-shelf.css?version=${version}" />
+            <script type="importmap">
+            {"imports":{"three":"/plugins/footprint/assets/static/vendor/three/three.module.min.js"}}
+            </script>
+            <script type="module">
+            import * as THREE from 'three';
+            import { RectAreaLightUniformsLib } from '/plugins/footprint/assets/static/vendor/three/RectAreaLightUniformsLib.js';
+            import { RoundedBoxGeometry } from '/plugins/footprint/assets/static/vendor/three/RoundedBoxGeometry.js';
+            RectAreaLightUniformsLib.init();
+            window.THREE = THREE;
+            // 封板用 three examples 里那个圆角盒（vendor 原样文件，未改一行）。
+            // 注意：import * 得到的是**只读的模块命名空间**，往 THREE 上加属性会抛
+            // TypeError（"Cannot assign to property ... of [object Module]"），
+            // 所以单独挂一个全局量，由 memory-shelf.js 取用。
+            window.THREE_RoundedBoxGeometry = RoundedBoxGeometry;
+            </script>
+            <script defer type="text/javascript" src="/plugins/footprint/assets/static/js/memory-shelf.js?version=${version}"></script>
+            <!-- footprint bookshelf end -->
+            """, properties);
+        model.add(modelFactory.createText(bookshelfScript));
         return Mono.empty();
     }
 
