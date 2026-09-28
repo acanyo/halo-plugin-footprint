@@ -5690,7 +5690,7 @@
         pages.push({
             kind: 'colophon',
             headline: book.cityCount + ' 座城市 · ' + book.photoCount + ' 张照片',
-            lines: ['《' + book.name + '》旅行记忆', '数据来自足迹插件 · ' + todayText() + ' 生成'],
+            lines: ['《' + book.name + '》旅行记忆', '足迹所至 · ' + todayCn() + '整理'],
             headLeft: book.name, headRight: book.name
         });
         return finishPageSpecs(fillTocPageNumbers(pages, cityBlocks), chaptersPage, tocPage);
@@ -5734,7 +5734,7 @@
             headline: photos.length + ' 张照片',
             lines: ['《' + city.name + '》旅行相册',
                 rangeText ? '记录于 ' + rangeText : '',
-                '数据来自足迹插件 · ' + todayText() + ' 生成'].filter(Boolean),
+                '足迹所至 · ' + todayCn() + '整理'].filter(Boolean),
             headLeft: book.name, headRight: city.name
         });
         return finishPageSpecs(pages);
@@ -5781,11 +5781,11 @@
         return pages;
     }
 
-    function todayText() {
+    // 尾页那行「整理时间」照书里的日期口径写法（2026 年 9 月 28 日），
+    // 不用 2026.09.28 —— 那个点号看着像文件名，不像一本书的末页
+    function todayCn() {
         var d = new Date();
-        return d.getFullYear() + '.' +
-            ('0' + (d.getMonth() + 1)).slice(-2) + '.' +
-            ('0' + d.getDate()).slice(-2);
+        return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日';
     }
 
     // ---------------- 进入 / 翻页 / 退出 ----------------
@@ -6436,13 +6436,15 @@
                 var angleProgress = clamp(Math.abs(target) / Math.PI, 0, 1);
                 var lift = clamp((angleProgress - 0.25) / 0.25, 0, 1);
                 zTarget = lerp(leaf.restZ, leaf.turnedZ, lift);
-                // 翻得越快纸拱得越高；左右拖动的纵向偏差变成纸的扭转
-                var envelope = Math.sin(Math.PI * clamp(active.p, 0, 1));
-                // 拖动时纸拱得更高：0.032→0.05、速度项 0.064→0.09
-                // 拖动：用同一条不换向的包络（half 段起拱快、后半段收得快）
-                curveTarget = 0.004 + curlEnvelope(active.p) *
+                // 翻得越快纸拱得越高；左右拖动的纵向偏差变成纸的扭转。
+                // ⚠️ 拱形与扭转都要按**这一叶自己的转角**（angleProgress）来，不能按
+                // 拖拽进度 active.p：往回拖左边那页时 p 走 10% 就已经 curlEnvelope(0.1)
+                // ≈ 0.4，而这一叶才刚离开左叠 5° —— 它此刻的局部 +z 指向书里，
+                // 0.4 的拱等于把纸肚子**按进左叠**，松手回正那一段看得最清楚
+                //（用户报的「轻轻拖一下就穿模到后面」）。参考实现也是按纸自己的转角。
+                curveTarget = 0.004 + curlEnvelope(angleProgress) *
                     (0.08 + active.speedResponse * 0.1);
-                twistTarget = envelope * active.verticalBias * 0.08;
+                twistTarget = Math.sin(Math.PI * angleProgress) * active.verticalBias * 0.08;
             }
             // 曾经这里还给「刚翻过去、落在左边」的那一片单独加 0.02 的余韵。
             // 那是错的：翻过去之后叶自己的 +z 已经指向书里，0.02 的拱会把它的
@@ -6474,13 +6476,15 @@
             // 之前只有 sin 那 0.082，纸是"挺"着翻过去的，几乎没有弧。
             // 松手后这一截会自己衰减掉（dragging 变 false），纸再回落 —— 和参考一致。
             var curveBoost = 0;
-            if (active && active.dragging) {
-                // ⚠️ 必须再乘**这一叶自己的转角包络**（sin(π·turnProgress)）：
-                // 不然这一项对所有叶一视同仁，平放着的那些页也会一起鼓起来
-                // （用户报的"翻页时所有的页都改变弧度了"）。
-                // 参考实现里它乘的是每张纸自己的 amount，同理。
+            if (active && active.dragging && draggingThis) {
+                // ⚠️ 两条限制缺一不可：
+                //   1. 只给**正被拖的这片** —— 原来对所有叶一视同仁，平放着的那些页
+                //      会一起鼓起来（用户报的"翻页时所有的页都改变弧度了"）；
+                //   2. 包络用 curlEnvelope（靠近左叠那几度已经归零），不能用
+                //      sin(π·转角)：后者在"停在左侧"的这片上还剩 0.156 的残余，
+                //      轻轻一拖就有约 0.015 的肚子按进左叠 —— 就是这次的穿模。
                 curveBoost = (0.032 + clamp(active.speedResponse || 0, 0, 1) * 0.064)
-                    * Math.sin(Math.PI * turnProgress);
+                    * curlEnvelope(turnProgress);
             }
             var curveFromTurn = state.bookOpen *
                 // 纸的拱形由**这一叶自己的转角**推出来（0.082→0.13）：
