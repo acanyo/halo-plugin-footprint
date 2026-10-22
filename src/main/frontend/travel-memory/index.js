@@ -15,6 +15,7 @@ import { amapVec, amapImg, amapImgLabel } from './modules/amap-basemap.js';
 import { compareTicketByTime, ticketHasCoordinate, isSameTicketCity } from './modules/ticket-utils.js';
 import { startCityWallWarmQueue, stopCityWallWarmQueue } from './modules/city-wall-prewarm.js';
 import { lightbox, openLightbox, closeLightbox, switchLightbox, setLightboxDeps } from './modules/lightbox.js';
+import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 
 // updateStatusText 是函数声明，会提升，这里可以安全地先注入
 setTileBatchHandler(updateStatusText);
@@ -1500,97 +1501,17 @@ setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
     switchBase(resolveInitialBase());
 
     // ================= 天地图三维地形（可选开关，默认关闭） =================
-    // 注意：这是专有地形格式，Cesium.sampleTerrain 对它不适用；主要覆盖国内范围（级别 5-12 左右）。
-    // 天地图 Key 绑定域名白名单（未授权返回 403），且地形与影像/矢量共用每日配额（429）。
-    // 因此默认不启用地形；导航栏「三维地形」开启时先探测授权，成功才启用，失败自动回退平面。
-    const terrainBtn = document.getElementById('terrainBtn');
-    const TDT_TERRAIN_STORAGE_KEY = 'travelMemoryTerrain';
-    function getSavedTerrain() {
-        try { return localStorage.getItem(TDT_TERRAIN_STORAGE_KEY) === '1'; } catch (e) { return false; }
-    }
-    function saveTerrain(on) {
-        try { localStorage.setItem(TDT_TERRAIN_STORAGE_KEY, on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-    }
-    let terrainEnabled = false;    // 实际启用状态（探测成功后才为 true）
-    let terrainPending = false;    // 防止探测期间重复点击
-
-    function applyTerrainBtnState() {
-        terrainBtn.classList.toggle('active', terrainEnabled);
-        terrainBtn.setAttribute('aria-pressed', String(terrainEnabled));
-    }
-
-    function setTdtTerrain(on) {
-        if (terrainPending) return;
-        if (!on) {
-            terrainEnabled = false;
-            saveTerrain(false);
-            terrainNote = '，未启用三维地形';
-            viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
-            applyTerrainBtnState();
-            updateStatusText();
-            return;
-        }
-        if (!hasTDTKey || typeof TdtPlug === 'undefined' || !TdtPlug.GeoTerrainProvider) {
-            terrainBtn.disabled = true;
-            return;
-        }
-        terrainPending = true;
-        fetch('https://t0.tianditu.gov.cn/mapservice/swdx?T=elv_c&x=211&y=36&l=8&tk=' + TDT_KEY)
-            .then(res => {
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const provider = new TdtPlug.GeoTerrainProvider({
-                    url: 'https://t{s}.tianditu.gov.cn/mapservice/swdx?T=elv_c&x={x}&y={y}&l={z}&tk=' + TDT_KEY,
-                    subdomains: ['0', '1', '2', '3', '4', '5', '6', '7']
-                });
-                // 天地图高程仅覆盖中国范围，且 Cesium 1.120 的 CustomHeightmapTerrainProvider
-                // 不读 rectangle 选项。覆盖 getTileDataAvailable：境外/超深瓦片返回 false，
-                // Cesium 直接标记为不可用而不发起请求，避免“无效数据”报错刷屏。
-                const chinaRect = Cesium.Rectangle.fromDegrees(72.0, 0.5, 138.5, 56.5);
-                provider.getTileDataAvailable = function (x, y, level) {
-                    try {
-                        if (level < 5) return true;    // 低级别插件返回平面缓冲，始终可用（保证球面能构建）
-                        if (level >= 12) return false; // 插件 12 级及以上不发送请求
-                        const rect = provider.tilingScheme.tileXYToRectangle(x, y, level);
-                        return Cesium.Rectangle.contains(chinaRect, Cesium.Rectangle.center(rect));
-                    } catch (e) {
-                        return true;   // 异常时放行给插件原有逻辑，避免影响渲染
-                    }
-                };
-                viewer.terrainProvider = provider;
-                terrainEnabled = true;
-                terrainNote = '，已启用天地图三维地形';
-                saveTerrain(true);
-            })
-            .catch(e => {
-                terrainEnabled = false;
-                saveTerrain(false);
-                terrainNote = '，未启用三维地形（Key 未授权当前域名或未开通地形服务）';
-                console.warn('天地图三维地形不可用，使用平面地球：', e.message || e);
-                statusText.textContent =
-                    '三维地形不可用：天地图 Key 未授权当前域名或未开通地形服务。' +
-                    '请在天地图控制台把当前域名加入白名单后重试。';
-            })
-            .finally(() => {
-                terrainPending = false;
-                applyTerrainBtnState();
-                updateStatusText();
-            });
-    }
-
-    terrainBtn.addEventListener('click', () => setTdtTerrain(!terrainEnabled));
-    const terrainAvailable = !!(hasTDTKey && typeof TdtPlug !== 'undefined' && TdtPlug.GeoTerrainProvider);
-    terrainBtn.hidden = !terrainAvailable;   // 无 Key / 无插件时直接隐藏，不占导航位置
-    if (!terrainAvailable) {
-        terrainBtn.disabled = true;
-    } else {
-        terrainBtn.disabled = false;
-    }
-    // 初始化：恢复上次选择（默认关闭，不请求任何地形瓦片）
-    // 初始化：恢复上次选择；未选择过时按后台“默认启用三维地形”配置
-    if (getSavedTerrain() || (window.FOOTPRINT_CONFIG && window.FOOTPRINT_CONFIG.enableTerrainDefault)) {
-        setTdtTerrain(true);
-    }
-    applyTerrainBtnState();
+    // 实现见 modules/tdt-terrain.js；专有地形格式，默认不启用，导航栏「三维地形」
+    // 开启时先探测授权，成功才启用，失败自动回退平面。
+    setTdtTerrainDeps({
+        setTerrainNote: (note) => { terrainNote = note; },
+        updateStatusText
+    });
+    initTdtTerrain(viewer, {
+        hasTDTKey,
+        tdtKey: TDT_KEY,
+        enableDefault: !!(window.FOOTPRINT_CONFIG && window.FOOTPRINT_CONFIG.enableTerrainDefault)
+    });
 
     // ================= 初始视角与开场动画 =================
     // 首次加载：地球从另一侧（太平洋方向）旋转入场，飞到“中国朝向”的整球视图，
