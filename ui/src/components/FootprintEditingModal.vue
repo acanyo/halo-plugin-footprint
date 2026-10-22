@@ -1,16 +1,31 @@
-﻿<script lang="ts" setup>
-import {Toast, VButton, VModal, VSpace} from "@halo-dev/components";
-import {ref, computed, watch, onMounted} from "vue";
-import {footprintApiClient} from "@/api";
-import type {Footprint, GalleryImage, Option} from "@/api/models";
-import {toDatetimeLocal, toISOString} from "@/utils/date";
-import {parseCoordinate} from "@/utils/coordinate";
-import MapPickerModal from "./MapPickerModal.vue";
-import RiMapPin2Line from "~icons/ri/map-pin-2-line";
-import {FormKit} from "@formkit/vue";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import {Teleport} from "vue";
+<script setup lang="ts">
+/**
+ * 足迹编辑窗。
+ *
+ * 这里只保留「把几块拼起来」与提交流程。表单的三个分组各自成组件，
+ * 校验、附件归一化、图片墙排序同步都收敛到 utils / composables：
+ * - 校验：utils/footprint-form
+ * - 附件 URL 归一化：utils/attachment
+ * - 图片墙 URL ↔ 有序项同步：composables/useGalleryImages
+ */
 
+import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
+import { computed, onMounted, ref, watch } from "vue";
+import { footprintApiClient } from "@/api";
+import type { Footprint, GalleryImage, Option } from "@/api/models";
+import { toDatetimeLocal, toISOString } from "@/utils/date";
+import { parseCoordinate } from "@/utils/coordinate";
+import {
+  shouldShowPitchAngle,
+  validateFootprintForm,
+  validateGalleryOrders,
+} from "@/utils/footprint-form";
+import { unwrapAttachmentImageUrl } from "@/utils/attachment";
+import { useGalleryImages } from "@/composables/useGalleryImages";
+import MapPickerModal from "./MapPickerModal.vue";
+import FootprintFormBasics from "./FootprintFormBasics.vue";
+import FootprintFormMapSection from "./FootprintFormMapSection.vue";
+import FootprintFormMetaSection from "./FootprintFormMetaSection.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -27,8 +42,6 @@ const emit = defineEmits<{
   (event: "update:visible", value: boolean): void;
   (event: "close"): void;
 }>();
-
-const articleType = ref<'post' | 'custom'>('post');
 
 const initialFormState: Footprint = {
   metadata: {
@@ -55,110 +68,64 @@ const initialFormState: Footprint = {
   apiVersion: "footprint.lik.cc/v1alpha1",
 };
 
-// 使用JSON.parse(JSON.stringify())进行深拷贝，替代lodash.clonedeep
-const deepClone = <T, >(obj: T): T => {
-  return JSON.parse(JSON.stringify(obj));
-};
+const deepClone = <T,>(obj: T): T => JSON.parse(JSON.stringify(obj));
 
 const formState = ref<Footprint>(deepClone(initialFormState));
-const galleryImageUrls = ref<string[]>([]);
-const galleryImageItems = ref<GalleryImage[]>([]);
-const saving = ref<boolean>(false);
+const saving = ref(false);
 const formVisible = ref(false);
 const createTime = ref<string | undefined>(undefined);
 const showManualInput = ref(false);
-const manualLongitude = ref<string>("");
-const manualLatitude = ref<string>("");
+const manualLongitude = ref("");
+const manualLatitude = ref("");
 const awaitingGeocode = ref(false);
+const mapPickerVisible = ref(false);
 
-const isUpdateMode = computed(() => {
-  return !!formState.value.metadata.creationTimestamp;
+const gallery = useGalleryImages();
+const galleryImageUrls = gallery.urls;
+
+const isUpdateMode = computed(() => !!formState.value.metadata.creationTimestamp);
+const modalTitle = computed(() => (isUpdateMode.value ? "编辑足迹" : "新建足迹"));
+const showPitchAngle = computed(() => shouldShowPitchAngle(formState.value.spec.zoomLevel));
+const hasCoordinate = computed(() => !!formState.value.spec.longitude && !!formState.value.spec.latitude);
+
+const validationMessages = {
+  required: (ctx: { name: string }) => `${ctx.name}不能为空`,
+} as const;
+
+/**
+ * 按钮可用状态。真正的错误提示在提交时由 validateFootprintForm 给出 ——
+ * 这里只需要知道「现在能不能点」，不要让两处规则各写一遍。
+ */
+const isFormValid = computed(() => validateFootprintForm(formState.value, createTime.value).ok);
+
+const footprintTypes = ref<Option[]>([]);
+onMounted(async () => {
+  footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
 });
 
-const modalTitle = computed(() => {
-  return isUpdateMode.value ? "编辑足迹" : "新建足迹";
-});
-
-const onVisibleChange = (visible: boolean) => {
+function onVisibleChange(visible: boolean) {
   emit("update:visible", visible);
-  if (!visible) {
-    emit("close");
-  }
-};
+  if (!visible) emit("close");
+}
 
-const handleResetForm = () => {
+function handleResetForm() {
   formState.value = deepClone(initialFormState);
-  galleryImageUrls.value = [];
-  galleryImageItems.value = [];
-};
-
-const unwrapAttachmentImageUrl = (url: unknown): string => {
-  // attachment 组件在不同 Halo 版本中可能返回 URL、对象或单元素数组。
-  // 不能直接对对象调用 String，否则会把附件保存成 "[object Object]"。
-  let value: unknown = url;
-  if (Array.isArray(value)) value = value[0];
-  if (value && typeof value === "object") {
-    const image = value as {url?: unknown; src?: unknown; thumbnail?: unknown; path?: unknown};
-    value = image.url ?? image.src ?? image.thumbnail ?? image.path ?? "";
-  }
-  return String(value ?? "").trim();
-};
-
-const normalizeAttachmentImageUrl = (url: unknown): string => {
-  return unwrapAttachmentImageUrl(url).replace(
-    /(\.(?:jpe?g|png|gif|webp|bmp|svg|avif|ico))(?:![^/?#]*)?(?=([?#]|$))/i,
-    "$1",
-  );
-};
-
-const normalizeGalleryImagesForEditor = (images: unknown): GalleryImage[] => {
-  if (!Array.isArray(images)) return [];
-  return images.map((item, index) => {
-    if (typeof item === "string") {
-      return {url: item, order: index + 1};
-    }
-    if (item && typeof item === "object") {
-      const image = item as {url?: string; src?: string; thumbnail?: string; order?: number};
-      const order = Number(image.order);
-      return {
-        url: image.url || image.src || image.thumbnail || "",
-        order: Number.isInteger(order) && order > 0 ? order : index + 1,
-      };
-    }
-    return {url: "", order: index + 1};
-  }).filter((item) => item.url).sort((a, b) => a.order - b.order);
-};
-
-const syncGalleryImageItems = (urls: string[]) => {
-  const existingUrls = new Map(
-    galleryImageItems.value.map((item) => [normalizeAttachmentImageUrl(item.url), item.url]),
-  );
-  const normalizedUrls = urls.map(normalizeAttachmentImageUrl).filter(Boolean);
-  const originalUrls = urls.map((url) => String(url ?? "").trim()).filter(Boolean);
-  galleryImageItems.value = normalizedUrls.map((url, index) => ({
-    url: existingUrls.get(url) ?? originalUrls[index] ?? url,
-    order: index + 1,
-  }));
-  if (normalizedUrls.length !== urls.length || normalizedUrls.some((url, index) => url !== urls[index])) {
-    galleryImageUrls.value = normalizedUrls;
-  }
-};
-
-watch(galleryImageUrls, (urls) => {
-  syncGalleryImageItems(urls);
-}, {deep: true});
+  gallery.reset();
+  createTime.value = undefined;
+}
 
 watch(
   () => props.visible,
   (visible) => {
     if (visible) {
       formVisible.value = true;
-    } else {
-      setTimeout(() => {
-        formVisible.value = false;
-        handleResetForm();
-      }, 200);
+      return;
     }
+    // 等关闭动画走完再清空，否则用户会看到表单在收起过程中闪一下空值
+    setTimeout(() => {
+      formVisible.value = false;
+      handleResetForm();
+    }, 200);
   },
 );
 
@@ -168,102 +135,40 @@ watch(
     if (footprint) {
       formState.value = deepClone(footprint);
       createTime.value = toDatetimeLocal(formState.value.spec.createTime);
-      galleryImageItems.value = normalizeGalleryImagesForEditor(formState.value.spec.galleryImages);
-      galleryImageUrls.value = galleryImageItems.value.map((item) => normalizeAttachmentImageUrl(item.url));
+      gallery.loadFromFootprint(formState.value.spec.galleryImages);
     } else {
       createTime.value = undefined;
-      galleryImageUrls.value = [];
-      galleryImageItems.value = [];
+      gallery.reset();
     }
   },
+  { immediate: true },
 );
 
-// 添加一个计算属性来控制pitchAngle的显示
-const showPitchAngle = computed(() => {
-  const zoomLevel = parseFloat(formState.value.spec.zoomLevel || '0')
-  return zoomLevel >= 18
-})
-
-const validationMessages = {
-  required: (ctx: { name: string }) => `${ctx.name}不能为空`,
-} as const;
-
-// 修改表单验证状态
-const isFormValid = computed(() => {
-  // 检查必填项
-  if (!formState.value.spec.name?.trim()) return false;
-  if (!formState.value.spec.description?.trim()) return false;
-  if (!formState.value.spec.zoomLevel?.trim()) return false;
-  if (!formState.value.spec.pitchAngle?.trim()) {
-    formState.value.spec.pitchAngle = "0";
-  }
-  if (!formState.value.spec.rotationAngle?.trim()) {
-    formState.value.spec.rotationAngle = "0";
-  }
-  return formState.value.spec.address?.trim();
-});
-
-const getGalleryImagesForSubmit = (): GalleryImage[] => {
-  return galleryImageItems.value.filter((item) => item.url).map((item, index) => ({
-    url: item.url,
-    order: index + 1,
-  }));
-};
-
-const validateGalleryImageOrders = () => {
-  const galleryImages = getGalleryImagesForSubmit();
-  if (galleryImages.some((item) => !Number.isInteger(item.order) || item.order < 1)) {
-    Toast.error("图片墙显示顺序必须是大于 0 的整数");
-    return false;
-  }
-  if (new Set(galleryImages.map((item) => item.order)).size !== galleryImages.length) {
-    Toast.error("图片墙显示顺序不能重复");
-    return false;
-  }
-  return true;
-};
-
-const getSubmitFormState = (): Footprint => {
-  const submitState = deepClone(formState.value);
-  submitState.spec.galleryImages = getGalleryImagesForSubmit();
-  // 票根图片 URL 可能包含图片处理后缀（如 !w100），保存时不能去掉。
-  // 这里只负责解析 attachment 组件返回的对象/数组，不做任何后缀清理。
-  submitState.spec.ticketImage = unwrapAttachmentImageUrl(submitState.spec.ticketImage);
-  return submitState;
-};
-
-
-const hasCoordinate = computed(
-  () => !!formState.value.spec.longitude && !!formState.value.spec.latitude,
-);
-
-const mapPickerVisible = ref(false);
-
-/** 把地图选点的结果写回表单 */
-const handleMapPicked = (result: {
+function handleMapPicked(result: {
   longitude: number;
   latitude: number;
   province?: string;
   city?: string;
   provinceAdcode?: string;
   cityAdcode?: string;
-}) => {
-  formState.value.spec.longitude = result.longitude;
-  formState.value.spec.latitude = result.latitude;
+}) {
+  const spec = formState.value.spec;
+  spec.longitude = result.longitude;
+  spec.latitude = result.latitude;
   if (result.province) {
-    formState.value.spec.province = result.province;
-    formState.value.spec.city = result.city;
-    formState.value.spec.provinceAdcode = result.provinceAdcode;
-    formState.value.spec.cityAdcode = result.cityAdcode;
+    spec.province = result.province;
+    spec.city = result.city;
+    spec.provinceAdcode = result.provinceAdcode;
+    spec.cityAdcode = result.cityAdcode;
   }
   Toast.success("已更新位置");
-};
+}
 
 /**
- * 重新解析省/市。改用按经纬度解析的接口，因此新建状态下也能用——
- * 原先必须先保存才能解析，是因为旧接口只接受已存在的足迹名。
+ * 重新解析省/市。走按经纬度解析的接口，因此新建状态下也能用 ——
+ * 原先必须先保存，是因为旧接口只接受已存在的足迹名。
  */
-const handleRegoecode = async () => {
+async function handleReparse() {
   if (!hasCoordinate.value) {
     Toast.error("请先通过地图选点或填写地址确定经纬度");
     return;
@@ -274,10 +179,12 @@ const handleRegoecode = async () => {
       formState.value.spec.longitude,
       formState.value.spec.latitude,
     );
-    formState.value.spec.province = geoInfo.province;
-    formState.value.spec.city = geoInfo.city;
-    formState.value.spec.provinceAdcode = geoInfo.provinceAdcode;
-    formState.value.spec.cityAdcode = geoInfo.cityAdcode;
+    Object.assign(formState.value.spec, {
+      province: geoInfo.province,
+      city: geoInfo.city,
+      provinceAdcode: geoInfo.provinceAdcode,
+      cityAdcode: geoInfo.cityAdcode,
+    });
     Toast.success("省/市信息解析成功");
   } catch (error) {
     console.error("逆地理编码失败:", error);
@@ -285,73 +192,53 @@ const handleRegoecode = async () => {
   } finally {
     awaitingGeocode.value = false;
   }
-};
-const handleSubmit = async () => {
+}
+
+/** 组装提交数据：图片墙换成 {url, order}，票根只解包附件对象、保留处理后缀。 */
+function buildSubmitState(): Footprint {
+  const submitState = deepClone(formState.value);
+  submitState.spec.galleryImages = gallery.toSubmit();
+  submitState.spec.ticketImage = unwrapAttachmentImageUrl(submitState.spec.ticketImage);
+  return submitState;
+}
+
+async function save() {
+  const submitState = buildSubmitState();
+  if (isUpdateMode.value) {
+    await footprintApiClient.footprint.updateFootprint(
+      formState.value.metadata.name,
+      submitState,
+    );
+    Toast.success("更新成功");
+  } else {
+    await footprintApiClient.footprint.createFootprint(submitState);
+    Toast.success("创建成功");
+  }
+  onVisibleChange(false);
+}
+
+/**
+ * 保存主流程：校验 → 按地址解析经纬度 → 保存。
+ *
+ * 地址解析失败时打开「手动输入经纬度」小窗，用户填完由 handleManualInput
+ * 接着走保存 —— 因此解析逻辑本身返回「是否继续」，而不是自己吞掉流程。
+ */
+async function handleSubmit() {
+  const validation = validateFootprintForm(formState.value, createTime.value);
+  if (!validation.ok) {
+    Toast.error(validation.message ?? "请检查表单填写是否正确");
+    return;
+  }
+
+  const galleryCheck = validateGalleryOrders(gallery.orders());
+  if (!galleryCheck.ok) {
+    Toast.error(galleryCheck.message ?? "图片墙顺序有误");
+    return;
+  }
+
+  saving.value = true;
   try {
-    // 先进行表单验证
-    if (!isFormValid.value) {
-      // 检查具体错误并显示提示
-      if (!formState.value.spec.name?.trim()) {
-        Toast.error("足迹名称不能为空");
-        return;
-      }
-      if (!formState.value.spec.description?.trim()) {
-        Toast.error("足迹描述不能为空");
-        return;
-      }
-      if (!formState.value.spec.address?.trim()) {
-        Toast.error("地址不能为空");
-        return;
-      }
-      if (!formState.value.spec.zoomLevel?.trim()) {
-        Toast.error("缩放级别不能为空");
-        return;
-      }
-      if (!formState.value.spec.pitchAngle?.trim()) {
-        Toast.error("俯仰角度不能为空");
-        return;
-      }
-      if (!formState.value.spec.rotationAngle?.trim()) {
-        Toast.error("旋转角度不能为空");
-        return;
-      }
-      if (!createTime.value) {
-        Toast.error("请选择创建时间");
-        return;
-      }
-
-      Toast.error("请检查表单填写是否正确");
-      return;
-    }
-
-    if (!validateGalleryImageOrders()) return;
-
-    const zoomLevel = formState.value.spec.zoomLevel;
-    if (parseFloat(zoomLevel) < 4 || parseFloat(zoomLevel) > 26) {
-      Toast.error("缩放级别必须在4-20之间");
-      return;
-    }
-
-    const pitchAngle = formState.value.spec.pitchAngle;
-    if (parseFloat(pitchAngle) < 0 || parseFloat(pitchAngle) > 83) {
-      Toast.error("俯仰角度必须在0-83之间");
-      return;
-    }
-
-    const rotationAngle = formState.value.spec.rotationAngle;
-    if (parseFloat(rotationAngle) < -360 || parseFloat(rotationAngle) > 360) {
-      Toast.error("旋转角度必须在-360到360之间");
-      return;
-    }
-
-    saving.value = true;
-
-    // 获取地址的经纬度
-    const address = formState.value.spec.address?.trim();
-    if (!address) {
-      Toast.error("地址不能为空");
-      return;
-    }
+    const address = formState.value.spec.address!.trim();
     const response = await fetch(
       `/apis/api.footprint.lik.cc/v1alpha1/footprints/location/${encodeURIComponent(address)}`,
     );
@@ -359,68 +246,49 @@ const handleSubmit = async () => {
       Toast.error("获取地址经纬度失败");
       return;
     }
-    const location = await response.text();
-    console.log("获取到的地址经纬度:", location);
 
-    // 检查location是否为空或无效
-    if (!location || location.trim() === "" || !location.includes(",")) {
-      console.log("地址经纬度无效，显示手动输入框");
+    const location = await response.text();
+    const coordinates = parseLocation(location);
+    if (!coordinates) {
       Toast.info("无法自动获取地址经纬度，请手动输入");
       showManualInput.value = true;
-      saving.value = false;
       return;
     }
 
-    const [lng, lat] = location.split(",");
-    // 验证经纬度是否有效
-    const longitude = parseFloat(lng);
-    const latitude = parseFloat(lat);
+    formState.value.spec.longitude = coordinates.longitude;
+    formState.value.spec.latitude = coordinates.latitude;
+    if (createTime.value) formState.value.spec.createTime = toISOString(createTime.value);
 
-    if (
-      isNaN(longitude) ||
-      isNaN(latitude) ||
-      longitude < -180 ||
-      longitude > 180 ||
-      latitude < -90 ||
-      latitude > 90
-    ) {
-      console.log("经纬度数值无效，显示手动输入框");
-      Toast.info("获取到的经纬度无效，请手动输入");
-      showManualInput.value = true;
-      saving.value = false;
-      return;
-    }
-
-    // 更新表单数据
-    formState.value.spec.longitude = longitude;
-    formState.value.spec.latitude = latitude;
-
-    if (createTime.value) {
-      formState.value.spec.createTime = toISOString(createTime.value);
-    }
-
-    const submitFormState = getSubmitFormState();
-    if (isUpdateMode.value) {
-      await footprintApiClient.footprint.updateFootprint(
-        formState.value.metadata.name,
-        submitFormState,
-      );
-      Toast.success("更新成功");
-      onVisibleChange(false);
-    } else {
-      await footprintApiClient.footprint.createFootprint(submitFormState);
-      Toast.success("创建成功");
-      onVisibleChange(false);
-    }
+    await save();
   } catch (e) {
     console.error("保存失败", e);
     Toast.error("保存失败，请重试");
   } finally {
     saving.value = false;
   }
-};
+}
 
-const handleManualInput = () => {
+/** 解析 `"经度,纬度"`；格式或范围不对返回 null，交给调用方转手动输入。 */
+function parseLocation(location: string): { longitude: number; latitude: number } | null {
+  if (!location || !location.includes(",")) return null;
+  const [lng, lat] = location.split(",");
+  const longitude = parseFloat(lng);
+  const latitude = parseFloat(lat);
+  if (
+    Number.isNaN(longitude) ||
+    Number.isNaN(latitude) ||
+    longitude < -180 ||
+    longitude > 180 ||
+    latitude < -90 ||
+    latitude > 90
+  ) {
+    return null;
+  }
+  return { longitude, latitude };
+}
+
+/** 手动输入经纬度之后的保存：与 handleSubmit 的后半段相同，只是跳过地址解析。 */
+function handleManualInput() {
   const result = parseCoordinate(manualLongitude.value, manualLatitude.value);
   if (!result.ok) {
     Toast.error(result.message);
@@ -431,46 +299,19 @@ const handleManualInput = () => {
   formState.value.spec.latitude = result.latitude;
   showManualInput.value = false;
 
-  // 继续保存流程
-  if (createTime.value) {
-    formState.value.spec.createTime = toISOString(createTime.value);
+  if (createTime.value) formState.value.spec.createTime = toISOString(createTime.value);
+
+  const galleryCheck = validateGalleryOrders(gallery.orders());
+  if (!galleryCheck.ok) {
+    Toast.error(galleryCheck.message ?? "图片墙顺序有误");
+    return;
   }
 
-  if (!validateGalleryImageOrders()) return;
-
-  const submitFormState = getSubmitFormState();
-
-  if (isUpdateMode.value) {
-    footprintApiClient.footprint.updateFootprint(
-      formState.value.metadata.name,
-      submitFormState
-    ).then(() => {
-      Toast.success("更新成功");
-      onVisibleChange(false);
-    })
-      .catch((e) => {
-        console.error("保存失败", e);
-        Toast.error("保存失败，请重试");
-      });
-  } else {
-    footprintApiClient.footprint
-      .createFootprint(submitFormState)
-      .then(() => {
-        Toast.success("创建成功");
-        onVisibleChange(false);
-      })
-      .catch((e) => {
-        console.error("保存失败", e);
-        Toast.error("保存失败，请重试");
-      });
-  }
-};
-
-const footprintTypes = ref<Option[]>([]);
-onMounted(async () => {
-  footprintTypes.value =
-    await footprintApiClient.footprint.listFootprintTypes();
-});
+  save().catch((e) => {
+    console.error("保存失败", e);
+    Toast.error("保存失败，请重试");
+  });
+}
 </script>
 
 <template>
@@ -515,272 +356,34 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- 基本信息 -->
-      <div class="md:grid md:grid-cols-4 md:gap-6">
-        <div class="md:col-span-1">
-          <div class="sticky top-0 pt-1">
-            <span class="text-sm font-semibold text-gray-700">基本信息</span>
-          </div>
-        </div>
-        <div class="divide-y divide-gray-100 md:col-span-3" style="margin-top: 10px">
-          <FormKit
-            v-model="formState.spec.name"
-            type="text"
-            name="足迹名称"
-            validation="required"
-            :validation-messages="validationMessages"
-            label="足迹名称"
-            placeholder="输入足迹名称"
-          ></FormKit>
-          <FormKit
-            v-model="formState.spec.description"
-            type="textarea"
-            name="足迹描述"
-            validation="required"
-            :validation-messages="validationMessages"
-            label="足迹描述"
-            :rows="3"
-            placeholder="描述一下这个足迹吧"
-          ></FormKit>
-          <FormKit
-            v-model="formState.spec.address"
-            type="text"
-            validation="required"
-            name="address"
-            label="地址"
-            help="建议格式：市+地址，如杭州市灵隐寺，系统会根据地址自动获取经纬度"
-            placeholder="输入详细地址"
-          ></FormKit>
+      <FootprintFormBasics
+        v-model:spec="formState.spec"
+        v-model:gallery-image-urls="galleryImageUrls"
+        :has-coordinate="hasCoordinate"
+        :awaiting-geocode="awaitingGeocode"
+        :validation-messages="validationMessages"
+        @open-map-picker="mapPickerVisible = true"
+        @reparse="handleReparse"
+      />
 
-          <!-- 位置：地图选点是主路径，省/市由选点结果带出 -->
-          <div class="formkit-outer py-5" data-type="text">
-            <label class="formkit-label">位置</label>
-            <div class="w-full" style="max-width: 31em">
-              <div class="flex items-center gap-2">
-                <div
-                  class="flex-1 min-w-0 rounded border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm"
-                >
-                  <span v-if="hasCoordinate" class="tabular-nums text-gray-900">
-                    {{ formState.spec.longitude }}, {{ formState.spec.latitude }}
-                  </span>
-                  <span v-else class="text-gray-400">未选点，保存时将按地址自动解析</span>
-                </div>
-                <VButton size="sm" @click="mapPickerVisible = true">
-                  <template #icon>
-                    <RiMapPin2Line class="h-full w-full" />
-                  </template>
-                  地图选点
-                </VButton>
-              </div>
-              <div class="mt-2 flex items-center gap-2">
-                <div
-                  class="flex-1 min-w-0 rounded border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm"
-                >
-                  <span v-if="formState.spec.province" class="text-gray-900">
-                    {{ [formState.spec.province, formState.spec.city].filter(Boolean).join(" · ") }}
-                  </span>
-                  <span v-else class="text-gray-400">省 / 市未解析</span>
-                </div>
-                <VButton
-                  size="sm"
-                  :loading="awaitingGeocode"
-                  :disabled="!hasCoordinate"
-                  @click="handleRegoecode"
-                >
-                  重新解析
-                </VButton>
-              </div>
-            </div>
-            <p class="formkit-help">
-              点「地图选点」可直接在地图上确定位置，省 / 市会一并解析，无需先保存。
-            </p>
-          </div>
-          <FormKit
-            v-model="formState.spec.image"
-            :type="'attachment' as any"
-            name="image"
-            label="足迹图片"
-          ></FormKit>
-          <FormKit
-            v-model="formState.spec.ticketImage"
-            :type="'attachment' as any"
-            name="ticketImage"
-            label="票根图片"
-            help="每个足迹最多上传一张票根，票根墙只展示已配置票根的足迹"
-          ></FormKit>
-          <FormKit
-            v-model="galleryImageUrls"
-            :type="'attachment' as any"
-            name="galleryImages"
-            label="图片墙图片"
-            :accepts="['image/*']"
-            :multiple="true"
-            width="140px"
-            aspect-ratio="1/1"
-            help="支持拖拽图片调整图片墙显示顺序"
-          ></FormKit>
-        </div>
-      </div>
+      <FootprintFormMapSection
+        v-model:spec="formState.spec"
+        :show-pitch-angle="showPitchAngle"
+      />
 
-      <!-- 地图设置 -->
-      <div class="mt-8 md:grid md:grid-cols-4 md:gap-6">
-        <div class="md:col-span-1">
-          <div class="sticky top-0 pt-1">
-            <span class="text-sm font-semibold text-gray-700">地图设置</span>
-          </div>
-        </div>
-        <div class="divide-y divide-gray-100 md:col-span-3">
-          <FormKit
-            v-model="formState.spec.zoomLevel"
-            type="number"
-            name="zoomLevel"
-            label="缩放级别"
-            validation="required|number|between:4,26"
-            validation-visibility="live"
-            :validation-messages="{
-              required: '缩放级别不能为空',
-              between: '缩放级别必须在4到26之间'
-            }"
-            help="标记的放大级别，4-26（支持两位小数），≥18时可开启3D效果"
-            min="4"
-            max="26"
-            step="0.01"
-          ></FormKit>
-          <FormKit
-            v-if="showPitchAngle"
-            v-model="formState.spec.pitchAngle"
-            type="number"
-            name="pitchAngle"
-            label="3D 俯仰角度"
-            validation="required|number|between:0,83"
-            validation-visibility="live"
-            :validation-messages="{
-              required: '俯仰角不能为空',
-              between: '俯仰角必须在0到83之间'
-            }"
-            help="3D 视图的俯仰角度，范围 0-83"
-            min="0"
-            max="90"
-            step="1"
-          ></FormKit>
-          <FormKit
-            v-if="showPitchAngle"
-            v-model="formState.spec.rotationAngle"
-            type="number"
-            name="rotationAngle"
-            label="3D 旋转角度"
-            validation="required|number|between:-360,360"
-            validation-visibility="live"
-            :validation-messages="{
-              required: '旋转角度不能为空',
-              between: '旋转角度必须在-360到360之间'
-            }"
-            help="3D 视图的旋转角度，范围 -360 到 360"
-            min="-360"
-            max="360"
-            step="1"
-          ></FormKit>
-        </div>
-      </div>
-
-      <!-- 其他信息 -->
-      <div class="mt-8 md:grid md:grid-cols-4 md:gap-6">
-        <div class="md:col-span-1">
-          <div class="sticky top-0 pt-1">
-            <span class="text-sm font-semibold text-gray-700">其他信息</span>
-          </div>
-        </div>
-        <div class="divide-y divide-gray-100 md:col-span-3">
-          <FormKit
-            v-model="formState.spec.footprintType"
-            :options="footprintTypes"
-            label="足迹类型"
-            name="footprintType"
-            type="select"
-          ></FormKit>
-                   <FormKit
-            v-model="articleType"
-            type="select"
-            name="articleType"
-            label="关联类型"
-            :options="[
-              { label: '文章', value: 'post' },
-              { label: '自定义链接', value: 'custom' },
-            ]"
-          ></FormKit>
-          <template v-if="articleType === 'post'">
-            <FormKit
-              v-model="formState.spec.article"
-              type="select"
-              name="article"
-              label="关联文章"
-              :multiple="false"
-              clearable
-              searchable
-              action="/apis/content.halo.run/v1alpha1/posts"
-              :request-option="{
-                method: 'GET',
-                pageField: 'page',
-                sizeField: 'size',
-                totalField: 'total',
-                itemsField: 'items',
-                labelField: 'spec.title',
-                valueField: 'status.permalink',
-              }"
-            ></FormKit>
-          </template>
-          <template v-else-if="articleType === 'custom'">
-            <FormKit
-              v-model="formState.spec.article"
-              type="text"
-              name="customArticle"
-              label="链接地址"
-              placeholder="请输入完整URL，如 https://example.com"
-              validation="url"
-              :validation-messages="{
-                url: '请输入有效的URL地址，需包含http://或https://',
-              }"
-            ></FormKit>
-          </template>
-          <FormKit
-            v-model="formState.spec.metadataNames"
-            type="select"
-            name="metadataNames"
-            label="关联足迹"
-            :multiple="true"
-            :debounce="300"
-            :min-chars="1"
-            clearable
-            searchable
-            action="/apis/api.footprint.lik.cc/v1alpha1/footprints"
-            :request-option="{
-              method: 'GET',
-              pageField: 'page',
-              sizeField: 'size',
-              totalField: 'total',
-              itemsField: 'items',
-              labelField: 'spec.name',
-              valueField: 'metadata.name',
-            }"
-          ></FormKit>
-          <FormKit
-            v-model="createTime"
-            type="datetime-local"
-            min="0000-01-01T00:00"
-            max="9999-12-31T23:59"
-            name="createTime"
-            validation="required"
-            label="创建时间"
-            help="如果为空，则使用当前时间"
-          ></FormKit>
-        </div>
-      </div>
+      <FootprintFormMetaSection
+        v-model:spec="formState.spec"
+        v-model:create-time="createTime"
+        :footprint-types="footprintTypes"
+      />
     </FormKit>
 
     <template #footer>
       <VSpace>
         <VButton type="secondary" @click="onVisibleChange(false)">取消</VButton>
-        <VButton type="primary" :loading="saving" :disabled="!isFormValid" @click="handleSubmit">确定</VButton>
+        <VButton type="primary" :loading="saving" :disabled="!isFormValid" @click="handleSubmit">
+          确定
+        </VButton>
       </VSpace>
     </template>
   </VModal>
@@ -818,7 +421,7 @@ onMounted(async () => {
       <template #footer>
         <VSpace>
           <VButton type="secondary" @click="showManualInput = false">取消</VButton>
-          <VButton type="primary" @click="handleManualInput"> 确定</VButton>
+          <VButton type="primary" @click="handleManualInput">确定</VButton>
         </VSpace>
       </template>
     </VModal>
