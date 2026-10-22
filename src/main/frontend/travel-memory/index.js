@@ -17,6 +17,19 @@ import { startCityWallWarmQueue, stopCityWallWarmQueue } from './modules/city-wa
 import { lightbox, openLightbox, closeLightbox, switchLightbox, setLightboxDeps } from './modules/lightbox.js';
 import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 import {
+    clampNumber,
+    round1,
+    snapDevicePx,
+    overlapArea,
+    ringSampleIndexes,
+    fitBox,
+    offsetCenteredRects,
+    rectsBBox,
+    totalOverlapArea,
+    pushVector,
+    angleGap
+} from './modules/geometry.js';
+import {
     haversineKm,
     setInsightDeps,
     insightSpotDate,
@@ -5426,19 +5439,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     }
 
     // 均匀采样：n > k 时取"含首末"的等距 k 张（n=12,k=5 → 0,3,6,8,11）
-    function ringSampleIndexes(n, k) {
-        if (n <= k) return Array.from({ length: n }, (_, i) => i);
-        const set = new Set();
-        for (let i = 0; i < k; i++) {
-            set.add(Math.round((i * (n - 1)) / (k - 1)));
-        }
-        let cursor = 0;
-        while (set.size < k && cursor < n) {
-            set.add(cursor);
-            cursor++;
-        }
-        return [...set].sort((a, b) => a - b);
-    }
 
     function photoRingImages() {
         return photoRingFp ? cityWallImages(photoRingFp) : [];
@@ -5700,60 +5700,15 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     }
 
     // 环上各位置的屏幕矩形（位置 ± 每张自己的尺寸），加上整体平移量
-    function photoRingRects(entries, dx, dy) {
-        return entries.map(e => ({
-            x: e.x - e.w / 2 + dx,
-            y: e.y - e.h / 2 + dy,
-            w: e.w,
-            h: e.h
-        }));
-    }
 
-    function photoRingRectsBBox(rects) {
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        rects.forEach(r => {
-            minX = Math.min(minX, r.x);
-            maxX = Math.max(maxX, r.x + r.w);
-            minY = Math.min(minY, r.y);
-            maxY = Math.max(maxY, r.y + r.h);
-        });
-        return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
-    }
 
     // 环被卡片压住的面积：**逐张**算，不按包围盒 —— 半环是"弧"，包围盒的四角是空的，
     // 按包围盒判重叠会把"照片其实没碰到卡片"也算成压住，逼着整环离开标记。
-    function photoRingOverlapArea(rects, card) {
-        if (!card) return 0;
-        let sum = 0;
-        rects.forEach(r => { sum += overlapArea(r, card); });
-        return sum;
-    }
 
     // 清掉重叠所需的最小平移：四个方向各算一次，取位移最小的那个方向。
     // 同样只按"真的压住的照片"算，而不是按包围盒（否则会被空角落带着挪很远）。
-    function photoRingPushVector(rects, card) {
-        let left = 0, right = 0, up = 0, down = 0;
-        rects.forEach(r => {
-            if (overlapArea(r, card) <= 0) return;
-            left = Math.max(left, r.x + r.w - card.x);
-            right = Math.max(right, card.x + card.w - r.x);
-            up = Math.max(up, r.y + r.h - card.y);
-            down = Math.max(down, card.y + card.h - r.y);
-        });
-        const best = Math.min(left, right, up, down);
-        if (!(best > 0)) return { dx: 0, dy: 0, dist: 0 };
-        if (best === left) return { dx: -best, dy: 0, dist: best };
-        if (best === right) return { dx: best, dy: 0, dist: best };
-        if (best === up) return { dx: 0, dy: -best, dist: best };
-        return { dx: 0, dy: best, dist: best };
-    }
 
     // 两个朝向之间的夹角（0~π），用于"贴着上一帧朝向"的连续性偏好
-    function photoRingAngleGap(a, b) {
-        const twoPi = Math.PI * 2;
-        const d = Math.abs(a - b) % twoPi;
-        return d > Math.PI ? twoPi - d : d;
-    }
 
     // 环形布局：{整圈 / 半环} × {5 张 / 减量 3 张} × 2 档尺寸 × 朝向，
     // 取"不压卡片、不出界"的最优解；降级档在 cost 里带小惩罚，所以正常情况下就是整圈 5 张。
@@ -5762,15 +5717,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     // 让弧线自己去找空位 —— 拖动地球让标记绕到卡片另一侧时，弧会跟着转过去，
     // 而不是固定成"上半圆/左半圆"（用户反馈的就是这个）。
     // 按图片实际宽高比等比装进一个盒子（保持比例；只在极端竖图/全景图时被上下限夹一下）
-    function fitPhotoRingBox(natW, natH, maxW, maxH, minW, minH) {
-        const w0 = Number(natW) > 0 ? Number(natW) : 4;
-        const h0 = Number(natH) > 0 ? Number(natH) : 3;
-        const fit = Math.min(maxW / w0, maxH / h0);
-        return {
-            w: Math.round(Math.min(maxW, Math.max(minW || 0, w0 * fit))),
-            h: Math.round(Math.min(maxH, Math.max(minH || 0, h0 * fit)))
-        };
-    }
 
     // 某个槽位该渲染多大：按它自己那张图的原始宽高比；图片还没到手就用占位尺寸
     function photoRingSlotSize(slot) {
@@ -5779,7 +5725,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
         const natW = el ? Number(el.dataset.natW) || 0 : 0;
         const natH = el ? Number(el.dataset.natH) || 0 : 0;
         if (!natW || !natH) return { w: PHOTO_RING_PLACEHOLDER_W, h: PHOTO_RING_PLACEHOLDER_H };
-        return fitPhotoRingBox(natW, natH,
+        return fitBox(natW, natH,
             PHOTO_RING_MAX_W, PHOTO_RING_MAX_H, PHOTO_RING_MIN_W, PHOTO_RING_MIN_H);
     }
 
@@ -5788,7 +5734,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
         const natW = el ? Number(el.dataset.natW) || 0 : 0;
         const natH = el ? Number(el.dataset.natH) || 0 : 0;
         if (!natW || !natH) return { w: PHOTO_RING_VIEW_MAX_W, h: Math.round(PHOTO_RING_VIEW_MAX_H * 0.75) };
-        return fitPhotoRingBox(natW, natH, PHOTO_RING_VIEW_MAX_W, PHOTO_RING_VIEW_MAX_H, 0, 0);
+        return fitBox(natW, natH, PHOTO_RING_VIEW_MAX_W, PHOTO_RING_VIEW_MAX_H, 0, 0);
     }
 
     function layoutPhotoRing(anchor) {
@@ -5866,7 +5812,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
                         });
                     }
                     // 1) 先把环整体挪进视口
-                    const boxStart = photoRingRectsBBox(photoRingRects(entries, 0, 0));
+                    const boxStart = rectsBBox(offsetCenteredRects(entries, 0, 0));
                     let dx = 0;
                     let dy = 0;
                     if (boxStart.minX < pad) dx = pad - boxStart.minX;
@@ -5877,13 +5823,13 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
                     const dyBeforePush = dy;
                     // 2) 再避卡片：只按"真的被压住的照片"推（空角落不算），推完钳回视口
                     if (card) {
-                        const push = photoRingPushVector(photoRingRects(entries, dx, dy), card);
+                        const push = pushVector(offsetCenteredRects(entries, dx, dy), card);
                         if (push.dist > 0) {
                             const capped = Math.min(push.dist, PHOTO_RING_MAX_PUSH);
                             dx += push.dx / push.dist * capped;
                             dy += push.dy / push.dist * capped;
                         }
-                        const boxPush = photoRingRectsBBox(photoRingRects(entries, dx, dy));
+                        const boxPush = rectsBBox(offsetCenteredRects(entries, dx, dy));
                         if (boxPush.maxX - boxPush.minX <= W - pad * 2) {
                             dx = clampNumber(dx, pad - boxPush.minX, W - pad - boxPush.maxX);
                         }
@@ -5891,11 +5837,11 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
                             dy = clampNumber(dy, pad - boxPush.minY, H - pad - boxPush.maxY);
                         }
                     }
-                    const rects = photoRingRects(entries, dx, dy);
-                    const box = photoRingRectsBBox(rects);
+                    const rects = offsetCenteredRects(entries, dx, dy);
+                    const box = rectsBBox(rects);
                     const overflow = Math.max(0, pad - box.minX) + Math.max(0, box.maxX - (W - pad)) +
                         Math.max(0, pad - box.minY) + Math.max(0, box.maxY - (H - pad));
-                    const overlap = photoRingOverlapArea(rects, card);
+                    const overlap = totalOverlapArea(rects, card);
                     // 推距要计价（0.12/px）：否则"整圈硬推"因为降级惩罚更低，会一直赢过"半环绕行"，
                     // 表现就是环被整体推走、不再围绕标记。现在 40px 推距 ≈ 4.8 分，已经比"半环"的 3 分
                     // 更贵 —— 能半环就半环；只有当半环也压住卡片时，才用更长的推距去换"照片不被挡住"。
@@ -5905,7 +5851,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
                     const cost = overlap * 2 + overflow * 40 + (variant.compact ? 1 : 0) +
                         (mode.half ? 3 : 0) + (mode.reduced ? 6 : 0) + pushUsed * 0.12 +
                         edgePushUsed * PHOTO_RING_EDGE_PUSH_COST +
-                        photoRingAngleGap(base, preferred) * 0.4;
+                        angleGap(base, preferred) * 0.4;
                     if (!best || cost < best.cost) {
                         const bySlot = {};
                         visible.forEach((slot, k) => {
@@ -9390,18 +9336,11 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     }
 
     // ---------- 布局：就近边优先（上下左右都能放）+ 沿边错开 + 互相避让 ----------
-    function clampNumber(value, min, max) {
-        return Math.max(min, Math.min(max, value));
-    }
 
     // 坐标对齐到「设备像素」而不是 CSS 像素：
     // 显示器开了 125% / 150% 缩放时（devicePixelRatio = 1.25 / 1.5），
     // 整数 CSS 像素映射过去仍是小数设备像素，落在半格上的卡片文字就是糊的。
     // 对齐后每张卡都落在整格上，文字栅格化才稳定清晰。
-    function snapDevicePx(value) {
-        const dpr = window.devicePixelRatio || 1;
-        return Math.round(value * dpr) / dpr;
-    }
 
     const PROVINCE_EDGES = ['left', 'right', 'top', 'bottom'];
     const PROVINCE_EDGE_SIDE_BIAS = 0.05;   // 上下与左右同样近时优先左右（沿用原来的观感）
@@ -9427,11 +9366,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
         return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     }
 
-    function overlapArea(a, b) {
-        const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-        const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-        return (w > 0 && h > 0) ? w * h : 0;
-    }
 
     function markerClusterRect(items) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -9627,9 +9561,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     }
 
     // ---------- 连线与省名标注 ----------
-    function round1(value) {
-        return Math.round(value * 10) / 10;
-    }
 
     // 连线落点：卡片中心朝自己的标记方向，与卡片边框的交点。
     // 这样卡片无论放在上下左右哪条边，线都钉在朝向标记的那一边上（拐角处也能自然落在角上）。
