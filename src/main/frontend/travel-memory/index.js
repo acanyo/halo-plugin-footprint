@@ -17,6 +17,18 @@ import { startCityWallWarmQueue, stopCityWallWarmQueue } from './modules/city-wa
 import { lightbox, openLightbox, closeLightbox, switchLightbox, setLightboxDeps } from './modules/lightbox.js';
 import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 import {
+    setupAutoRotate,
+    initAutoRotate,
+    pauseAutoRotate,
+    resumeAutoRotate,
+    refreshAutoRotate,
+    applyCanvasCursor,
+    cesiumCanvas,
+    isAutoRotating,
+    isAutoRotatePreferred,
+    setHoveredMarker
+} from './modules/auto-rotate.js';
+import {
     setupCityView,
     initCityView,
     cityView,
@@ -282,6 +294,50 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
         btnMap.tdtImgClean.disabled = false;
         btnMap.tdtVecClean.disabled = false;
     }
+
+    // ================= 自动旋转与画布光标 =================
+    setupAutoRotate({
+        viewer: () => viewer,
+        reduceMotion: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    });
+    initAutoRotate();
+
+    // ================= 城市高亮开关 =================
+    // 默认关闭（首次加载不高亮），开启后放大到国内范围才显示填充+轮廓；
+    // 选择用 localStorage 记住，刷新后保持。关闭时不加载/不渲染城市边界。
+    const CITY_FILL_STORAGE_KEY = 'travelMemoryCityFill';
+    function getSavedCityFill() {
+        try { return localStorage.getItem(CITY_FILL_STORAGE_KEY) === '1'; } catch (e) { return false; }
+    }
+    function saveCityFill(on) {
+        try { localStorage.setItem(CITY_FILL_STORAGE_KEY, on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+    }
+    let cityFillEnabled = getSavedCityFill();
+    const cityFillBtn = document.getElementById('cityFillBtn');
+
+    function applyCityFillBtnState() {
+        cityFillBtn.classList.toggle('active', cityFillEnabled);
+        cityFillBtn.setAttribute('aria-pressed', String(cityFillEnabled));
+        cityFillFloatBtn.classList.toggle('active', cityFillEnabled);
+        cityFillFloatBtn.setAttribute('aria-pressed', String(cityFillEnabled));
+    }
+    function setCityFillEnabled(on) {
+        if (cityFillEnabled === on) return;
+        cityFillEnabled = on;
+        applyCityFillBtnState();
+        saveCityFill(on);
+        if (on) {
+            buildCityFills();   // 开启后加载边界并显示（仍按缩放阈值显隐）
+        } else {
+            clearCityFills();   // 关闭时移除填充与轮廓
+        }
+    }
+    applyCityFillBtnState();
+    cityFillBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
+    cityFillFloatBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
+
+    // 系统是否要求减弱动效：入场动画、2D 切换、卡片飞行等多处共用
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // ================= 初始化 Viewer =================
     const viewer = new Cesium.Viewer('cesiumContainer', {
@@ -632,7 +688,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     // 这个高度下自动旋转看起来像原地打转；返回地球/回到票夹时若自动旋转开着，
     // 就把视角收回整个地球。只在确实被拉近（低于整球高度）时触发，避免多余飞行。
     function restoreGlobeViewForAutoRotate() {
-        if (!autoRotate) return;
+        if (!isAutoRotating()) return;
         if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) return;
         if (viewer.camera.positionCartographic.height >= INTRO_SHOW_HEIGHT) return;
         viewer.camera.cancelFlight();
@@ -947,192 +1003,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
             if (amapMode) switchTo3D();
         });
     }
-
-    // ================= 自动旋转 =================
-    const rotateBtn = document.getElementById('rotateBtn');
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // 自动旋转拆成两层，避免「打开卡片就永久关掉」「切回 3D 又自己转起来」这类不一致：
-    // - autoRotatePref：用户偏好，只由用户动作（点按钮 / 拖动地球）改变，写 localStorage；
-    // - autoRotatePauses：临时暂停原因（卡片、票根页、2D、入场动画…），对应状态退出即自动恢复。
-    // autoRotate 是「此刻是否真的在转」，只由 refreshAutoRotate() 写入。
-    const AUTO_ROTATE_STORAGE_KEY = 'travelMemoryAutoRotate';
-    function getSavedAutoRotate() {
-        try {
-            const saved = localStorage.getItem(AUTO_ROTATE_STORAGE_KEY);
-            return saved === null ? true : saved === '1';   // 默认开启：首次访问跟随入场动画
-        } catch (e) { return true; }
-    }
-    function saveAutoRotate(on) {
-        try { localStorage.setItem(AUTO_ROTATE_STORAGE_KEY, on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-    }
-    let autoRotatePref = getSavedAutoRotate();
-    const autoRotatePauses = new Set();
-    let autoRotate = false;
-
-    // 注意：Cesium 1.120 的 Clock 没有 deltaTime 属性（旧版本才有），
-    // 这里用 performance.now() 自己计算真实时间差，避免得到 NaN 卡死页面。
-    let lastRotateTime = null;
-
-    function refreshAutoRotate() {
-        const allowed = autoRotatePref && !reduceMotion;
-        const want = allowed && autoRotatePauses.size === 0;
-        // 按钮反映「用户偏好」而不是「此刻是否在转」：卡片 / 票根页 / 2D 只是临时让镜头停住，
-        // 停的不是设置本身，退出后会自动接着转。
-        rotateBtn.textContent = '自动旋转';   // 标签固定，状态用高亮表达，避免按钮宽度跳动
-        rotateBtn.title = allowed ? '暂停自动旋转' : '开启自动旋转';
-        rotateBtn.classList.toggle('active', allowed);
-        rotateBtn.setAttribute('aria-pressed', String(allowed));
-        if (want === autoRotate) return;
-        autoRotate = want;
-        lastRotateTime = null;               // 状态切换后从零计步，避免瞬移
-    }
-
-    // 临时暂停 / 恢复：同一原因重复调用是幂等的
-    function pauseAutoRotate(reason) {
-        if (autoRotatePauses.has(reason)) return;
-        autoRotatePauses.add(reason);
-        refreshAutoRotate();
-    }
-    function resumeAutoRotate(reason) {
-        if (!autoRotatePauses.delete(reason)) return;
-        refreshAutoRotate();
-    }
-
-    // 拖动地球（位移超过 5px）后自动取消自动旋转；单纯点击不取消
-    const cesiumCanvas = viewer.scene.canvas;
-    let dragActive = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
-
-    // 光标反馈：画布默认是「抓手」（可拖着转，见 CSS），按下变「抓取中」，
-    // 悬停到标记上变手型 —— 明确告诉用户这里能拖、那里能点。
-    let hoveredMarker = false;
-    let canvasHeld = false;
-    function applyCanvasCursor() {
-        // 可点目标有两类：标记（足迹/城市）与可点击的省份轮廓，两者都给手型
-        const next = canvasHeld ? 'grabbing' : ((hoveredMarker || isHoveredProvince()) ? 'pointer' : '');
-        if (cesiumCanvas.style.cursor !== next) cesiumCanvas.style.cursor = next;
-    }
-
-    cesiumCanvas.addEventListener('pointerdown', (e) => {
-        dragActive = true;
-        canvasHeld = true;
-        applyCanvasCursor();
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-    });
-    window.addEventListener('pointerup', () => {
-        dragActive = false;
-        canvasHeld = false;
-        applyCanvasCursor();
-    });
-    window.addEventListener('pointercancel', () => {
-        dragActive = false;
-        canvasHeld = false;
-        applyCanvasCursor();
-    });
-    window.addEventListener('pointermove', (e) => {
-        if (!dragActive || !autoRotate) return;
-        const dx = e.clientX - dragStartX;
-        const dy = e.clientY - dragStartY;
-        if (dx * dx + dy * dy > 25) {      // 超过 5px 视为拖动
-            dragActive = false;
-            setAutoRotate(false);          // 拖动后取消自动旋转，需手动再开
-        }
-    }, { passive: true });
-
-    // 鼠标悬停在地球表面时暂停自动旋转，移开（星空/空白/控件上方）即恢复。
-    // 用相机射线与地球椭球求交判断光标是否在地球圆盘内：
-    // 相交 = 在地球上；不相交 = 在星空/空白处。纯数学计算，无 GPU 开销。
-    let hoverPaused = false;
-    let lastHoverCheck = 0;
-    const hoverCheckInterval = 60;   // 节流到约 16 次/秒，避免高频计算
-    cesiumCanvas.addEventListener('pointermove', (e) => {
-        if (!autoRotate || viewer.scene.mode !== Cesium.SceneMode.SCENE3D) {
-            hoverPaused = false;
-            return;
-        }
-        const now = performance.now();
-        if (now - lastHoverCheck < hoverCheckInterval) return;
-        lastHoverCheck = now;
-        const rect = cesiumCanvas.getBoundingClientRect();
-        const pos = new Cesium.Cartesian2(e.clientX - rect.left, e.clientY - rect.top);
-        const ray = viewer.camera.getPickRay(pos);
-        // 与地球椭球求交：有交点 = 光标在地球圆盘内（IntersectionTests.rayEllipsoid）
-        const interval = ray
-            ? Cesium.IntersectionTests.rayEllipsoid(ray, viewer.scene.globe.ellipsoid)
-            : undefined;
-        hoverPaused = interval !== undefined;
-    });
-    cesiumCanvas.addEventListener('mouseleave', () => {
-        hoverPaused = false;
-        hoveredMarker = false;
-        setHoveredProvince(false);
-        applyCanvasCursor();
-    });
-
-    // 用户动作（点按钮）改变的是「偏好」：即使此刻正被卡片暂停，按钮也该如实反映设置本身
-    function setAutoRotate(on) {
-        autoRotatePref = on;
-        saveAutoRotate(on);
-        refreshAutoRotate();
-    }
-    refreshAutoRotate();
-
-    rotateBtn.addEventListener('click', () => {
-        if (reduceMotion) return;            // 系统减弱动效时不启用
-        setAutoRotate(!autoRotatePref);
-    });
-
-    // ================= 城市高亮开关 =================
-    // 默认关闭（首次加载不高亮），开启后放大到国内范围才显示填充+轮廓；
-    // 选择用 localStorage 记住，刷新后保持。关闭时不加载/不渲染城市边界。
-    const CITY_FILL_STORAGE_KEY = 'travelMemoryCityFill';
-    function getSavedCityFill() {
-        try { return localStorage.getItem(CITY_FILL_STORAGE_KEY) === '1'; } catch (e) { return false; }
-    }
-    function saveCityFill(on) {
-        try { localStorage.setItem(CITY_FILL_STORAGE_KEY, on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-    }
-    let cityFillEnabled = getSavedCityFill();
-    const cityFillBtn = document.getElementById('cityFillBtn');
-
-    function applyCityFillBtnState() {
-        cityFillBtn.classList.toggle('active', cityFillEnabled);
-        cityFillBtn.setAttribute('aria-pressed', String(cityFillEnabled));
-        cityFillFloatBtn.classList.toggle('active', cityFillEnabled);
-        cityFillFloatBtn.setAttribute('aria-pressed', String(cityFillEnabled));
-    }
-    function setCityFillEnabled(on) {
-        if (cityFillEnabled === on) return;
-        cityFillEnabled = on;
-        applyCityFillBtnState();
-        saveCityFill(on);
-        if (on) {
-            buildCityFills();   // 开启后加载边界并显示（仍按缩放阈值显隐）
-        } else {
-            clearCityFills();   // 关闭时移除填充与轮廓
-        }
-    }
-    applyCityFillBtnState();
-    cityFillBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
-    cityFillFloatBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
-
-    viewer.clock.onTick.addEventListener(() => {
-        if (!autoRotate) return;
-        if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) return;  // 只在 3D 旋转
-        if (hoverPaused) return;   // 鼠标悬停时暂停
-        const now = performance.now();
-        const dt = lastRotateTime === null ? 0 : Math.min((now - lastRotateTime) / 1000, 0.2);
-        lastRotateTime = now;
-        if (dt <= 0) return;
-        try {
-            viewer.camera.rotate(Cesium.Cartesian3.UNIT_Z, -Cesium.Math.toRadians(2) * dt); // 2 度/秒
-        } catch (e) {
-            console.error('自动旋转出错：', e);
-        }
-    });
 
     // ================= 底图切换 =================
     // gcj: true 表示该底图基于 GCJ-02（高德），标记需从 WGS84 转换后再放置
@@ -1543,7 +1413,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
         };
 
         // 已看过一次入场（首次进入/历史访问）：刷新后直接停在中国整球视图，
-        // 不再跨太平洋重播动画（自转与否由 autoRotatePref 决定）。
+        // 不再跨太平洋重播动画（自转与否由 isAutoRotatePreferred() 决定）。
         if (entranceSeen()) {
             settleAtChina();
             return;
@@ -2733,7 +2603,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     markerPickHandler.setInputAction((movement) => {
         const found = pickMarkerUnderPointer(movement.endPosition);
         // 光标是标记「可点」的第一层暗示（尺寸放大由 setMarkerFocus 负责）
-        hoveredMarker = !!found;
+        setHoveredMarker(!!found);
         // 没落在标记上时再看一眼是不是可点击的省份（几何判定，内部节流）
         setHoveredProvince(!found && provinceHoverAt(movement.endPosition));
         applyCanvasCursor();
@@ -2755,7 +2625,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     // 鼠标离开画布时收起名称气泡
     viewer.scene.canvas.addEventListener('mouseleave', () => {
         hideMarkerTip();
-        hoveredMarker = false;
+        setHoveredMarker(false);
         setHoveredProvince(false);
         applyCanvasCursor();
     });
