@@ -17,6 +17,15 @@ import { startCityWallWarmQueue, stopCityWallWarmQueue } from './modules/city-wa
 import { lightbox, openLightbox, closeLightbox, switchLightbox, setLightboxDeps } from './modules/lightbox.js';
 import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 import {
+    setupCityFill,
+    setCityFillVisible,
+    outlinePolylines,
+    buildCityFills,
+    clearCityFills,
+    applyCityFillHighlight,
+    cityFillAdcodeOf
+} from './modules/city-fill.js';
+import {
     setupAutoRotate,
     initAutoRotate,
     pauseAutoRotate,
@@ -84,7 +93,10 @@ import {
     firstVisibleRingItem
 } from './modules/photo-ring.js';
 import { COARSE_POINTER, SVG_NS } from './modules/env.js';
-import { PROVINCE_CITY_HL_FILL, PROVINCE_MARKER_DIM_ALPHA } from './modules/province-style.js';
+import {
+    PROVINCE_CITY_HL_FILL,
+    PROVINCE_MARKER_DIM_ALPHA
+} from './modules/province-style.js';
 import {
     setupCityWall,
     initCityWall,
@@ -339,6 +351,16 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     // 系统是否要求减弱动效：入场动画、2D 切换、卡片飞行等多处共用
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // ================= 城市淡色填充 =================
+    // 实现见 modules/city-fill.js；主题配色在 modules/province-style.js。
+    setupCityFill({
+        viewer: () => viewer,
+        footprints: () => FOOTPRINTS,
+        cityList: () => cityList,
+        baseProviders: () => baseProviders,
+        currentBaseKey: () => currentBaseKey,
+    });
+
     // ================= 初始化 Viewer =================
     const viewer = new Cesium.Viewer('cesiumContainer', {
         baseLayer: false,          // 不用 Cesium 默认底图，全部换成国内服务
@@ -481,9 +503,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     const BOUNDARY_HIDE_HEIGHT = INTRO_SHOW_HEIGHT;
     let chinaBoundarySource = null;
     let boundaryVisible = false;
-    let cityFillVisible = false;   // 城市淡色填充当前是否可见（与边界共用一套阈值状态）
-    let cityFillIndex = new Map();      // 城市高亮图层：adcode -> { entities }（悬停卡片时换色用）
-    let cityFillHighlightAdcode = '';   // 当前被换成青蓝的城市高亮
     // 城市名的显示层级比中国轮廓更深一档：轮廓刚出现时（整球仍占大半屏）不铺名字，
     // 再放大到区域尺度才标注城市。想让它更早/更晚出现，改这两个常量即可。
     const CITY_LABEL_SHOW_HEIGHT = 4000000;
@@ -505,10 +524,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     let cityFlightTimer = null;
     let cityMoveEndHandler = null;
     let cityRevealRaf = null;
-    // 城市淡色填充（提前声明，updateIntroVisibility 会控制显隐）
-    let cityFillDataSources = [];
-    let cityFillBuildId = 0;
-    let cityOutlinePolylines = [];   // 城市轮廓描边折线（悬停聚焦时统一调透明度）
     let focusedMarker = null;        // 当前聚焦（悬停/键盘选中）的标记，null 表示无
     let markerOcclusionDirty = true; // 标记遮挡需要重算（相机或标记位置变化时置位）
     let markerLabelDirty = true;     // 地名标签需要重排（标记或标签显隐变化时置位）
@@ -518,15 +533,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
     const slotBlockRects = [];                // 本帧已占用的矩形（标记 + 已放下的标签），逐帧清空复用
     const labelScreen = new Cesium.Cartesian2();
     const markerLift = new Map();             // 下标 -> 渲染抬高米数（自愈用，不影响数据坐标）
-    const cityBoundaryCache = new Map();   // 城市边界数据缓存：同一会话内按 adcode 只请求一次
-    // 城市填充主题：amber 琥珀橙 / gold 柔金 / mint 薄荷青 / ice 冰蓝
-    const CITY_FILL_THEME = 'amber';
-    const CITY_FILL_THEMES = {
-        amber: { fill: 'rgba(255, 149, 66, 0.22)' },
-        gold:  { fill: 'rgba(240, 198, 120, 0.25)' },
-        mint:  { fill: 'rgba(88, 204, 180, 0.20)' },
-        ice:   { fill: 'rgba(110, 160, 255, 0.18)' }
-    };
 
 
     // 逐帧要读的三个浮层元素：第一次取到后缓存，省掉每帧三次 getElementById。
@@ -646,13 +652,9 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
             cityLabelVisible = false;
         }
 
-        // 城市淡色填充：与边界共用同一份可见状态（边界数据加载失败时也照常工作），
-        // 并且只在状态真正翻转时才写 DataSource.show —— 逐帧赋值会反复触发
-        // Cesium 的属性变更，白白消耗在每帧的渲染回调里。
-        if (cityFillVisible !== boundaryVisible) {
-            cityFillVisible = boundaryVisible;
-            cityFillDataSources.forEach(ds => { ds.show = cityFillVisible; });
-        }
+        // 城市淡色填充：与边界共用同一份可见状态（边界数据加载失败时也照常工作）。
+        // 「只在翻转时写 DataSource.show」的判定收在模块内部。
+        setCityFillVisible(boundaryVisible);
 
         // 城市聚合切换：放大到城市范围展开为单个足迹，拉远聚合回城市标记。
         // 程序化“飞往城市”期间先不按高度切换，落地瞬间由 finishCityFlight 统一展开。
@@ -2304,7 +2306,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
         focusedMarker = entity;
         if (entity && entity.billboard) entity.billboard.scale = MARKER_HOVER_SCALE;
         const outlineMat = Cesium.Color.WHITE.withAlpha(entity ? 0.2 : 0.4);
-        cityOutlinePolylines.forEach(p => { if (p) p.material = outlineMat; });
+        outlinePolylines().forEach(p => { if (p) p.material = outlineMat; });
         refreshMarkerColors();
     }
 
@@ -2889,177 +2891,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityList, cityVie
         setMarkerFocus
     });
     initProvinceCards();
-
-    // ================= 中国轮廓 GeoJSON =================
-    // 使用阿里云 DataV 提供的公开中国边界数据（国内可访问）。
-    // 该数据默认是 GCJ-02，与高德底图对齐；切到天地图（WGS84）时会有约 500 米偏移，
-    // 国家尺度下基本不可见（城市级填充已做坐标转换，见 buildCityFills）。
-
-    // ================= 城市淡色填充 =================
-    // 给去过的城市罩一层淡色（城市级边界，clampToGround 贴合地形）。
-    // 注意：clampToGround 的多边形不渲染 outline（GeoJSON 的 stroke/strokeWidth 会静默失效），
-    // 所以边界轮廓单独提取环线，用贴合地面的折线绘制。
-    // DataV 边界是 GCJ-02：高德底图直接使用；切到天地图（WGS84）底图时整体转换坐标与标记对齐。
-
-    function loadCityBoundary(adcode) {
-        if (!cityBoundaryCache.has(adcode)) {
-            cityBoundaryCache.set(
-                adcode,
-                // DataV 服务带防盗链：请求携带站点 Referer（如 lik.cc）会返回 403，
-                // 这里显式关闭 Referer（no-referrer），与无 Referer 的 curl 结果一致（200）。
-                fetch('https://geo.datav.aliyun.com/areas_v3/bound/' + adcode + '.json', {
-                    referrerPolicy: 'no-referrer'
-                })
-                    .then(res => {
-                        if (!res.ok) throw new Error('HTTP ' + res.status);
-                        return res.json();
-                    })
-                    .catch(e => {
-                        cityBoundaryCache.delete(adcode);   // 失败允许下次重试
-                        throw e;
-                    })
-            );
-        }
-        return cityBoundaryCache.get(adcode);
-    }
-
-    // 把 DataV 的 GCJ-02 边界整体转成 WGS84（天地图底图时调用）
-    function cityBoundaryToWgs84(geojson) {
-        const clone = typeof structuredClone === 'function'
-            ? structuredClone(geojson)
-            : JSON.parse(JSON.stringify(geojson));
-        const convert = coords => {
-            if (typeof coords[0] === 'number') {
-                const w = gcj02ToWgs84(coords[0], coords[1]);
-                return [w.lng, w.lat];
-            }
-            return coords.map(convert);
-        };
-        (clone.features || []).forEach(f => {
-            if (f.geometry && f.geometry.coordinates) {
-                f.geometry.coordinates = convert(f.geometry.coordinates);
-            }
-        });
-        return clone;
-    }
-
-    function clearCityFills() {
-        cityFillDataSources.forEach(ds => viewer.dataSources.remove(ds));
-        cityFillDataSources = [];
-        cityOutlinePolylines = [];
-        cityFillIndex = new Map();   // 换了底图/数据后会整体重建，索引与"换色"状态一并清掉
-        cityFillHighlightAdcode = '';
-        cityFillVisible = false;   // 下次构建时按当前相机高度重新决定显隐
-    }
-
-    function buildCityFills() {
-        const buildId = ++cityFillBuildId;   // 防止上次异步加载残留
-        clearCityFills();
-        const fillColor = CITY_FILL_THEMES[CITY_FILL_THEME] || CITY_FILL_THEMES.amber;
-        const item = currentBaseKey ? baseProviders[currentBaseKey] : null;
-        const basemapIsGcj = !!(item && item.gcj);
-        const seen = new Set();
-        FOOTPRINTS.forEach(fp => {
-            const adcode = String(fp.cityAdcode || '');
-            if (!adcode || seen.has(adcode)) return;
-            seen.add(adcode);
-            loadCityBoundary(adcode).then(geojson => {
-                if (buildId !== cityFillBuildId) return null;   // 已被更新的构建取代
-                const data = basemapIsGcj ? geojson : cityBoundaryToWgs84(geojson);
-                return Cesium.GeoJsonDataSource.load(data, {
-                    clampToGround: true,   // 贴合地形，避免被地形盖住
-                    fill: Cesium.Color.fromCssColorString(fillColor.fill)
-                    // 轮廓用独立的贴合地面折线绘制，不交给 GeoJsonDataSource，
-                    // 避免 Cesium 对 terrain 上的 outline 报“不支持”的警告
-                });
-            }).then(ds => {
-                if (!ds) return;
-                if (buildId !== cityFillBuildId) {   // 已被更新的构建取代
-                    viewer.dataSources.remove(ds);
-                    return;
-                }
-                // 按当前高度决定显隐：用户已经放大到国内范围时，边界加载完成应立即出现，
-                // 不必等他再缩放一次
-                ds.show = cityFillVisible;
-
-                // 边界轮廓：从多边形层级中提取外环与孔洞环，闭合后画成贴合地面的折线
-                const now = Cesium.JulianDate.now();
-                const fillEntities = [];
-                ds.entities.values.forEach(entity => {
-                    const polygon = entity.polygon;
-                    if (!polygon || !polygon.hierarchy) return;
-                    fillEntities.push(entity);
-                    // clampToGround + terrain 不支持 polygon outline，轮廓统一用贴合地面的折线绘制
-                    polygon.outline = false;
-                    const hierarchy = polygon.hierarchy.getValue(now);
-                    if (!hierarchy || !hierarchy.positions || !hierarchy.positions.length) return;
-                    const rings = [hierarchy.positions];
-                    (hierarchy.holes || []).forEach(hole => {
-                        if (hole && hole.positions && hole.positions.length) rings.push(hole.positions);
-                    });
-                    rings.forEach(ring => {
-                        const closed = ring.slice();
-                        closed.push(closed[0]);   // 闭合环线
-                        const outlineEnt = ds.entities.add({
-                            polyline: {
-                                positions: closed,
-                                clampToGround: true,   // 贴合地形
-                                width: 1,
-                                material: Cesium.Color.WHITE.withAlpha(0.4)
-                            }
-                        });
-                        cityOutlinePolylines.push(outlineEnt.polyline);
-                    });
-                });
-
-                viewer.dataSources.add(ds);
-                cityFillDataSources.push(ds);
-                // 记下"这座城市的高亮面是哪些实体"：悬停卡片时要把它们从主题金色换成青蓝
-                cityFillIndex.set(String(adcode), { entities: fillEntities });
-            }).catch(e => {
-                console.warn('城市边界加载失败 ' + adcode + ':', e);
-            });
-        });
-    }
-
-    // ---------- 城市高亮换色：金色 ⇄ 青蓝 ----------
-    function cityFillBaseColor() {
-        const theme = CITY_FILL_THEMES[CITY_FILL_THEME] || CITY_FILL_THEMES.amber;
-        return Cesium.Color.fromCssColorString(theme.fill);
-    }
-
-    // 卡片 -> 该城市的 adcode（与 buildCityFills 的聚合键一致：取该城第一条足迹的 cityAdcode）
-    function cityFillAdcodeOf(ci) {
-        const city = cityList[ci];
-        if (!city) return '';
-        for (let i = 0; i < city.indices.length; i++) {
-            const fp = FOOTPRINTS[city.indices[i]];
-            if (fp && fp.cityAdcode) return String(fp.cityAdcode);
-        }
-        return '';
-    }
-
-    function paintCityFill(entry, highlight) {
-        if (!entry || !entry.entities) return;
-        const color = highlight
-            ? Cesium.Color.fromCssColorString(PROVINCE_CITY_HL_FILL)
-            : cityFillBaseColor();
-        // 每个实体单独赋新材质：同一个数据源里的实体共享材质实例，改实例会整城一起变
-        entry.entities.forEach(entity => {
-            if (entity.polygon) entity.polygon.material = new Cesium.ColorMaterialProperty(color);
-        });
-    }
-
-    // 同一时刻只换一座城：换新的之前先把上一座还原成主题金色
-    function applyCityFillHighlight(adcode) {
-        const next = adcode ? String(adcode) : '';
-        if (next === cityFillHighlightAdcode) return;
-        const previous = cityFillIndex.get(cityFillHighlightAdcode);
-        if (previous) paintCityFill(previous, false);
-        cityFillHighlightAdcode = next;
-        const entry = next ? cityFillIndex.get(next) : null;
-        if (entry) paintCityFill(entry, true);
-    }
 
     // ================= 票根册（票夹 / 重走 / 护照 / 抽票 / 明信片） =================
     // 实现见 modules/ticket-gallery.js。六块功能共用一套票根状态，整体作为一个领域迁出；
