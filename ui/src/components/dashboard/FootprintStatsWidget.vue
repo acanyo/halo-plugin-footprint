@@ -21,6 +21,7 @@ import {footprintApiClient} from "@/api";
 import type {Footprint, ProvinceStat, StatsResult} from "@/api/models";
 import {summarizeFootprints, type FootprintSummary} from "./footprint-stats";
 import {timeAgo} from "@/utils/date";
+import {TOTAL_PROVINCES, provinceCoverageRate} from "@/utils/province-coverage";
 
 const props = withDefaults(
   defineProps<{
@@ -143,9 +144,7 @@ const stats = computed<StatsResult>(() => {
 });
 const loading = computed(() => enabled.value && statsQuery.isLoading.value);
 const failed = computed(() => enabled.value && statsQuery.isError.value);
-const coverage = computed(() =>
-  Math.min(100, Math.round((stats.value.totalProvinces / 34) * 100)),
-);
+const coverage = computed(() => provinceCoverageRate(stats.value.totalProvinces));
 
 // 排行：省份或城市，两种都直接来自 stats 接口
 const ranking = computed(() => {
@@ -251,7 +250,7 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
         <div v-if="!compact" class="fp-widget__coverage">
           <div class="fp-widget__coverage-head">
             <span>全国省级行政区</span>
-            <span>{{ stats.totalProvinces }} / 34</span>
+            <span>{{ stats.totalProvinces }} / {{ TOTAL_PROVINCES }}</span>
           </div>
           <div
             class="fp-widget__bar"

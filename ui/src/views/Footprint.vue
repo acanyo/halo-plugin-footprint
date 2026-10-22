@@ -27,16 +27,15 @@ import { useQuery } from "@tanstack/vue-query";
 import { computed, onMounted, ref, watch } from "vue";
 import { formatDatetime } from "@/utils/date";
 import { parseCoordinate } from "@/utils/coordinate";
+import { TOTAL_PROVINCES } from "@/utils/province-coverage";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
+import ProvinceCoveragePanel from "../components/ProvinceCoveragePanel.vue";
 import { footprintApiClient } from "@/api";
 import type { Footprint, Option, StatsResult } from "@/api/models";
 
 defineOptions({
   name: "FootprintManagement",
 });
-
-// 全国省级行政区总数，用于计算覆盖率
-const TOTAL_PROVINCES = 34;
 
 const selectedFootprint = ref<Footprint | undefined>();
 const selectedFootprints = ref<string[]>([]);
@@ -306,7 +305,7 @@ const handleManualInput = async () => {
   <div class="p-4">
     <div
       v-if="stats"
-      class="mb-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white/90 p-3 shadow-sm md:flex-row md:items-center md:justify-between"
+      class="mb-4 flex flex-col gap-4 rounded-lg border border-gray-200 bg-white/90 p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between"
     >
       <dl class="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div class="flex items-baseline gap-1.5">
@@ -329,11 +328,16 @@ const handleManualInput = async () => {
           </dd>
         </div>
       </dl>
-      <VSpace>
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+        <ProvinceCoveragePanel
+          class="min-w-0 flex-1 lg:w-96 lg:flex-none"
+          :provinces="stats.provinces"
+          :total-provinces="stats.totalProvinces"
+        />
         <VButton size="sm" @click="showDistribution = !showDistribution">
           {{ showDistribution ? "收起分布" : "省 / 市分布" }}
         </VButton>
-      </VSpace>
+      </div>
     </div>
 
     <VCard v-if="stats && showDistribution" class="mb-4" :body-class="['!p-0']">
