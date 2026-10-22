@@ -1,4 +1,16 @@
 <script setup lang="ts">
+/**
+ * 足迹管理页。
+ *
+ * 这个文件只负责「把几块拼起来」和页头动作。具体职责已经分出去：
+ * - 列表请求与筛选条件：composables/useFootprintList
+ * - 统计数据：composables/useFootprintStats
+ * - 单行视图：components/FootprintListItem
+ * - 省/市分布：components/ProvinceCityDistribution
+ * - 覆盖率面板：components/ProvinceCoveragePanel
+ * - 手动修正经纬度：components/ManualLocationModal
+ */
+
 import {
   Dialog,
   IconAddCircle,
@@ -6,169 +18,109 @@ import {
   Toast,
   VButton,
   VCard,
-  VDropdownItem,
   VEmpty,
-  VEntity,
   VEntityContainer,
-  VEntityField,
   VLoading,
-  VModal,
   VPageHeader,
   VPagination,
   VSpace,
-  VStatusDot,
-  VTabbar,
-  VTag,
 } from "@halo-dev/components";
 import RiMapPinLine from "~icons/ri/map-pin-line";
 import RiEarthLine from "~icons/ri/earth-line";
-import RiImageLine from "~icons/ri/image-line";
-import { useQuery } from "@tanstack/vue-query";
-import { computed, onMounted, ref, watch } from "vue";
-import { formatDatetime } from "@/utils/date";
-import { parseCoordinate } from "@/utils/coordinate";
+import { computed, onMounted, ref } from "vue";
 import { TOTAL_PROVINCES } from "@/utils/province-coverage";
+import { useFootprintList } from "@/composables/useFootprintList";
+import { useFootprintStats } from "@/composables/useFootprintStats";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
+import FootprintListItem from "../components/FootprintListItem.vue";
+import ManualLocationModal from "../components/ManualLocationModal.vue";
+import ProvinceCityDistribution from "../components/ProvinceCityDistribution.vue";
 import ProvinceCoveragePanel from "../components/ProvinceCoveragePanel.vue";
 import { footprintApiClient } from "@/api";
-import type { Footprint, Option, StatsResult } from "@/api/models";
+import type { Footprint, Option } from "@/api/models";
 
 defineOptions({
   name: "FootprintManagement",
 });
 
-const selectedFootprint = ref<Footprint | undefined>();
-const selectedFootprints = ref<string[]>([]);
-const checkedAll = ref(false);
-const selectedSort = ref<string | undefined>(undefined);
-const selectedFootprintType = ref<string | undefined>(undefined);
-const page = ref(1);
-const size = ref(20);
-const keyword = ref("");
-const total = ref(0);
-const editingModal = ref(false);
-const footprintTypes = ref<Option[]>([]);
-
-const showDistribution = ref(false);
-const distributionTab = ref("province");
-const distributionKeyword = ref("");
-const activeRegionFilter = ref<string | null>(null);
-
-watch(
-  () => [selectedSort.value, selectedFootprintType.value, keyword.value],
-  () => {
-    page.value = 1;
-  },
-);
-
-const hasFilters = computed(() => {
-  return !!(
-    selectedSort.value ||
-    selectedFootprintType.value ||
-    activeRegionFilter.value ||
-    keyword.value
-  );
-});
-
-function handleClearFilters() {
-  selectedSort.value = undefined;
-  selectedFootprintType.value = undefined;
-  activeRegionFilter.value = null;
-  keyword.value = "";
-}
-
 const {
-  data: footprints,
+  page,
+  size,
+  sort,
+  footprintType,
+  keyword,
+  total,
+  footprints,
   isLoading,
   isFetching,
   refetch,
-} = useQuery({
-  queryKey: ["footprints", page, size, selectedSort, selectedFootprintType, keyword],
-  queryFn: async () => {
-    try {
-      const response = await footprintApiClient.footprint.listFootprints({
-        page: page.value,
-        size: size.value,
-        sort: selectedSort.value ? [selectedSort.value] : [],
-        footprintType: selectedFootprintType.value,
-        keyword: keyword.value,
-      });
-      total.value = response.total;
-      return response.items;
-    } catch (error) {
-      console.error("获取足迹列表失败:", error);
-      Toast.error("获取足迹列表失败");
-      return [];
-    }
-  },
-  refetchInterval: (data) => {
-    const deleting =
-      Array.isArray(data) &&
-      data.some((footprint: Footprint) => footprint.metadata.deletionTimestamp !== undefined);
-    return deleting ? 500 : false;
-  },
-});
+  hasFilters,
+  clearFilters,
+} = useFootprintList();
 
-const stats = ref<StatsResult | null>(null);
-const fetchStats = async () => {
-  try {
-    const result = await footprintApiClient.footprint.getStats();
-    if (result) {
-      result.provinces.sort((a, b) => b.count - a.count);
-      result.cities.sort((a, b) => b.count - a.count);
-      stats.value = result;
-    }
-  } catch (error) {
-    console.error("获取足迹统计失败:", error);
-  }
-};
-fetchStats();
+const { stats, refetch: refetchStats } = useFootprintStats();
 
+const footprintTypes = ref<Option[]>([]);
 onMounted(async () => {
   footprintTypes.value = await footprintApiClient.footprint.listFootprintTypes();
 });
 
-// 省/市分布：两个 Tab 共用一份搜索词与筛选状态，避免维护两套几乎相同的逻辑
-const distributionItems = computed(() => {
-  if (!stats.value) return [];
-  const source =
-    distributionTab.value === "province"
-      ? stats.value.provinces.map((p) => ({
-          key: p.adcode,
-          name: p.name,
-          count: p.count,
-          description: p.cities?.length ? p.cities.slice(0, 5).join("、") : "",
-        }))
-      : stats.value.cities.map((c) => ({
-          key: c.adcode,
-          name: c.name,
-          count: c.count,
-          description: c.province,
-        }));
+// 省/市分布里点中的地区：同时作为列表关键字与高亮依据
+const activeRegion = ref<string | null>(null);
+const showDistribution = ref(false);
+const hasRegionFilter = computed(() => activeRegion.value !== null);
 
-  const q = distributionKeyword.value.trim().toLowerCase();
-  if (!q) return source;
-  return source.filter(
-    (item) =>
-      item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q),
-  );
-});
-
-const handleRegionClick = (name: string) => {
-  const isActive = activeRegionFilter.value === name;
-  activeRegionFilter.value = isActive ? null : name;
+function handleRegionSelect(name: string) {
+  const isActive = activeRegion.value === name;
+  activeRegion.value = isActive ? null : name;
   keyword.value = isActive ? "" : name;
+}
+
+function handleClearFilters() {
+  activeRegion.value = null;
+  clearFilters();
+}
+
+// 列表与统计是一对：任何改动足迹的操作之后都要一起刷新
+const refreshAll = async () => {
+  await Promise.all([refetch(), refetchStats()]);
 };
 
-const handleCheckAllChange = (e: Event) => {
+// 编辑弹窗
+const selectedFootprint = ref<Footprint | undefined>();
+const editingModal = ref(false);
+
+function handleEdit(footprint?: Footprint) {
+  selectedFootprint.value = footprint;
+  editingModal.value = true;
+}
+
+async function onEditingModalClose() {
+  selectedFootprint.value = undefined;
+  await refreshAll();
+}
+
+// 批量选择与删除
+const selectedFootprints = ref<string[]>([]);
+const checkedAll = ref(false);
+
+function handleCheckAllChange(e: Event) {
   const { checked } = e.target as HTMLInputElement;
   checkedAll.value = checked;
   selectedFootprints.value = checked
     ? footprints.value?.map((footprint) => footprint.metadata.name) || []
     : [];
-};
+}
 
-const handleDeleteInBatch = async () => {
+function setSelected(name: string, selected: boolean) {
+  const next = new Set(selectedFootprints.value);
+  if (selected) next.add(name);
+  else next.delete(name);
+  selectedFootprints.value = [...next];
+  checkedAll.value = footprints.value?.every((f) => next.has(f.metadata.name)) ?? false;
+}
+
+async function handleDeleteInBatch() {
   if (selectedFootprints.value.length === 0) return;
   const names = [...selectedFootprints.value];
   Dialog.warning({
@@ -181,40 +133,22 @@ const handleDeleteInBatch = async () => {
         selectedFootprints.value = [];
         checkedAll.value = false;
         // 服务端为最终一致，稍等再拉一次，避免读到删除前的快照
-        setTimeout(async () => {
-          await refetch();
-          await fetchStats();
-        }, 300);
+        setTimeout(refreshAll, 300);
       } catch (e) {
         console.error("删除失败", e);
         Toast.error("删除失败");
       }
     },
   });
-};
+}
 
-const handleOpenFrontend = () => {
-  window.open("/footprints", "_blank");
-};
-
-const handleEdit = (footprint?: Footprint) => {
-  selectedFootprint.value = footprint;
-  editingModal.value = true;
-};
-
-const onEditingModalClose = async () => {
-  selectedFootprint.value = undefined;
-  await refetch();
-  await fetchStats();
-};
-
+// 刷新
 const refreshing = ref(false);
-const handleRefreshAll = async () => {
+async function handleRefreshAll() {
   if (refreshing.value) return;
   refreshing.value = true;
   try {
-    await refetch();
-    await fetchStats();
+    await refreshAll();
     Toast.success("已刷新足迹列表与统计");
   } catch (error) {
     console.error("刷新足迹列表失败:", error);
@@ -222,61 +156,40 @@ const handleRefreshAll = async () => {
   } finally {
     refreshing.value = false;
   }
-};
+}
 
+// 逆地理编码
 const awaitingGeocode = ref<string | null>(null);
-const handleGeocodeFootprint = async (footprint: Footprint) => {
+async function handleGeocodeFootprint(footprint: Footprint) {
   try {
     awaitingGeocode.value = footprint.metadata.name;
     await footprintApiClient.footprint.geocodeFootprint(footprint.metadata.name);
     Toast.success("逆地理编码成功，省/市信息已更新");
-    await refetch();
-    await fetchStats();
+    await refreshAll();
   } catch (error) {
     console.error("逆地理编码失败:", error);
     Toast.error("逆地理编码失败");
   } finally {
     awaitingGeocode.value = null;
   }
-};
+}
 
 // 手动修正经纬度
-const showManualInput = ref(false);
-const currentFootprint = ref<Footprint | null>(null);
-const manualLongitude = ref("");
-const manualLatitude = ref("");
+const manualLocationTarget = ref<Footprint | null>(null);
+const manualLocationVisible = ref(false);
 
-const handleUpdateLocation = (footprint: Footprint) => {
-  currentFootprint.value = footprint;
-  manualLongitude.value = String(footprint.spec.longitude ?? "");
-  manualLatitude.value = String(footprint.spec.latitude ?? "");
-  showManualInput.value = true;
-};
+function handleUpdateLocation(footprint: Footprint) {
+  manualLocationTarget.value = footprint;
+  manualLocationVisible.value = true;
+}
 
-const handleManualInput = async () => {
-  if (!currentFootprint.value) return;
+async function onLocationUpdated() {
+  await refetch();
+}
 
-  const result = parseCoordinate(manualLongitude.value, manualLatitude.value);
-  if (!result.ok) {
-    Toast.error(result.message);
-    return;
-  }
-
-  try {
-    currentFootprint.value.spec.longitude = result.longitude;
-    currentFootprint.value.spec.latitude = result.latitude;
-    await footprintApiClient.footprint.updateFootprint(
-      currentFootprint.value.metadata.name,
-      currentFootprint.value,
-    );
-    Toast.success("经纬度更新成功");
-    showManualInput.value = false;
-    await refetch();
-  } catch (error) {
-    console.error("更新经纬度失败:", error);
-    Toast.error("更新经纬度失败");
-  }
-};
+function handleOpenFrontend() {
+  window.open("/footprints", "_blank");
+}
 </script>
 
 <template>
@@ -340,51 +253,12 @@ const handleManualInput = async () => {
       </div>
     </div>
 
-    <VCard v-if="stats && showDistribution" class="mb-4" :body-class="['!p-0']">
-      <template #header>
-        <div class="block w-full bg-gray-50 px-4 py-3">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <VTabbar
-              v-model:active-id="distributionTab"
-              :items="[
-                { id: 'province', label: `省份 ${stats.provinces.length}` },
-                { id: 'city', label: `城市 ${stats.cities.length}` },
-              ]"
-              type="outline"
-            />
-            <div class="sm:w-64">
-              <SearchInput v-model="distributionKeyword" placeholder="搜索省份或城市" />
-            </div>
-          </div>
-        </div>
-      </template>
-      <div class="p-4">
-        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <button
-            v-for="item in distributionItems"
-            :key="item.key"
-            v-tooltip="'点击可筛选下方足迹列表'"
-            type="button"
-            class="flex items-center gap-2 rounded-base border px-3 py-2 text-left transition-all"
-            :class="
-              activeRegionFilter === item.name
-                ? 'border-primary bg-gray-50'
-                : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'
-            "
-            @click="handleRegionClick(item.name)"
-          >
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm text-gray-900">{{ item.name }}</span>
-              <span v-if="item.description" class="block truncate text-xs text-gray-500">
-                {{ item.description }}
-              </span>
-            </span>
-            <span class="shrink-0 text-xs tabular-nums text-gray-500">{{ item.count }}</span>
-          </button>
-        </div>
-        <VEmpty v-if="!distributionItems.length" message="没有匹配的地区" />
-      </div>
-    </VCard>
+    <ProvinceCityDistribution
+      v-if="stats && showDistribution"
+      :stats="stats"
+      :active-region="activeRegion"
+      @select="handleRegionSelect"
+    />
 
     <VCard :body-class="['!p-0']">
       <template #header>
@@ -393,11 +267,7 @@ const handleManualInput = async () => {
             class="relative flex flex-col flex-wrap items-start gap-4 sm:flex-row sm:items-center"
           >
             <div class="hidden items-center sm:flex">
-              <input
-                v-model="checkedAll"
-                type="checkbox"
-                @change="handleCheckAllChange"
-              />
+              <input v-model="checkedAll" type="checkbox" @change="handleCheckAllChange" />
             </div>
             <div class="flex w-full flex-1 items-center sm:w-auto">
               <SearchInput v-if="!selectedFootprints.length" v-model="keyword" />
@@ -407,9 +277,12 @@ const handleManualInput = async () => {
               </VSpace>
             </div>
             <VSpace spacing="lg" class="flex-wrap">
-              <FilterCleanButton v-if="hasFilters" @click="handleClearFilters" />
+              <FilterCleanButton
+                v-if="hasFilters || hasRegionFilter"
+                @click="handleClearFilters"
+              />
               <FilterDropdown
-                v-model="selectedFootprintType"
+                v-model="footprintType"
                 label="类型"
                 :items="[
                   { label: '全部' },
@@ -417,7 +290,7 @@ const handleManualInput = async () => {
                 ]"
               />
               <FilterDropdown
-                v-model="selectedSort"
+                v-model="sort"
                 label="排序"
                 :items="[
                   { label: '默认' },
@@ -459,90 +332,17 @@ const handleManualInput = async () => {
       </Transition>
       <Transition v-else appear name="fade">
         <VEntityContainer>
-          <VEntity
+          <FootprintListItem
             v-for="footprint in footprints"
             :key="footprint.metadata.name"
-            :is-selected="selectedFootprints.includes(footprint.metadata.name)"
-          >
-            <template #checkbox>
-              <input
-                v-model="selectedFootprints"
-                :value="footprint.metadata.name"
-                type="checkbox"
-              />
-            </template>
-            <template #start>
-              <VEntityField>
-                <template #description>
-                  <div class="h-10 w-10 overflow-hidden rounded border bg-white p-1">
-                    <img
-                      v-if="footprint.spec.image"
-                      :src="footprint.spec.image"
-                      class="h-full w-full rounded-sm object-cover"
-                      alt=""
-                    />
-                    <RiImageLine v-else class="h-full w-full text-gray-300" />
-                  </div>
-                </template>
-              </VEntityField>
-              <VEntityField :title="footprint.spec.name">
-                <template #description>
-                  <VSpace class="flex-wrap">
-                    <span class="text-xs text-gray-500">{{ footprint.spec.address }}</span>
-                    <VTag v-if="footprint.spec.footprintType">
-                      {{ footprint.spec.footprintType }}
-                    </VTag>
-                  </VSpace>
-                </template>
-              </VEntityField>
-            </template>
-            <template #end>
-              <VEntityField v-if="footprint.metadata.deletionTimestamp">
-                <template #description>
-                  <VStatusDot v-tooltip="'删除中'" state="warning" animate />
-                </template>
-              </VEntityField>
-              <VEntityField>
-                <template #description>
-                  <span
-                    class="text-xs"
-                    :class="footprint.spec.province ? 'text-gray-500' : 'text-gray-300'"
-                  >
-                    {{
-                      [footprint.spec.province, footprint.spec.city].filter(Boolean).join(" · ")
-                        || "省 / 市未解析"
-                    }}
-                  </span>
-                </template>
-              </VEntityField>
-              <VEntityField>
-                <template #description>
-                  <span class="truncate text-xs tabular-nums text-gray-500">
-                    {{ footprint.spec.longitude }}, {{ footprint.spec.latitude }}
-                  </span>
-                </template>
-              </VEntityField>
-              <VEntityField>
-                <template #description>
-                  <span class="truncate text-xs tabular-nums text-gray-500">
-                    {{ formatDatetime(footprint.spec.createTime) }}
-                  </span>
-                </template>
-              </VEntityField>
-            </template>
-            <template #dropdownItems>
-              <VDropdownItem @click="handleEdit(footprint)">编辑</VDropdownItem>
-              <VDropdownItem @click="handleUpdateLocation(footprint)">
-                手动修正经纬度
-              </VDropdownItem>
-              <VDropdownItem
-                :disabled="awaitingGeocode === footprint.metadata.name"
-                @click="handleGeocodeFootprint(footprint)"
-              >
-                重新解析省/市
-              </VDropdownItem>
-            </template>
-          </VEntity>
+            :footprint="footprint"
+            :selected="selectedFootprints.includes(footprint.metadata.name)"
+            :geocoding="awaitingGeocode === footprint.metadata.name"
+            @update:selected="setSelected(footprint.metadata.name, $event)"
+            @edit="handleEdit"
+            @update-location="handleUpdateLocation"
+            @geocode="handleGeocodeFootprint"
+          />
         </VEntityContainer>
       </Transition>
 
@@ -557,42 +357,11 @@ const handleManualInput = async () => {
     </VCard>
   </div>
 
-  <!-- 需要 Teleport：VModal 自身不做传送，直接内联会被列表容器的层叠上下文裁剪 -->
-  <Teleport to="body">
-    <VModal
-      v-model:visible="showManualInput"
-      :width="500"
-      title="手动修正经纬度"
-      :mask-closable="false"
-    >
-    <FormKit type="form" :actions="false" @submit.prevent>
-      <FormKit
-        v-model="manualLongitude"
-        name="longitude"
-        label="经度"
-        type="number"
-        step="0.000001"
-        validation="required|between:-180,180"
-        help="取值范围 -180 到 180"
-      />
-      <FormKit
-        v-model="manualLatitude"
-        name="latitude"
-        label="纬度"
-        type="number"
-        step="0.000001"
-        validation="required|between:-90,90"
-        help="取值范围 -90 到 90"
-      />
-    </FormKit>
-      <template #footer>
-        <VSpace>
-          <VButton type="secondary" @click="showManualInput = false">取消</VButton>
-          <VButton type="primary" @click="handleManualInput">确定</VButton>
-        </VSpace>
-      </template>
-    </VModal>
-  </Teleport>
+  <ManualLocationModal
+    v-model:visible="manualLocationVisible"
+    :footprint="manualLocationTarget"
+    @updated="onLocationUpdated"
+  />
 
   <FootprintEditingModal
     v-model:visible="editingModal"

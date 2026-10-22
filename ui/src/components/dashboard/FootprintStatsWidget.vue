@@ -22,6 +22,7 @@ import type {Footprint, ProvinceStat, StatsResult} from "@/api/models";
 import {summarizeFootprints, type FootprintSummary} from "./footprint-stats";
 import {timeAgo} from "@/utils/date";
 import {TOTAL_PROVINCES, provinceCoverageRate} from "@/utils/province-coverage";
+import {EMPTY_STATS} from "@/composables/useFootprintStats";
 
 const props = withDefaults(
   defineProps<{
@@ -35,14 +36,6 @@ const props = withDefaults(
     config: undefined,
   },
 );
-
-const EMPTY_STATS: StatsResult = {
-  totalFootprints: 0,
-  totalProvinces: 0,
-  totalCities: 0,
-  provinces: [],
-  cities: [],
-};
 
 // 预览数据是写死的：小组件库会一次性渲染所有小组件，不能在那里发请求
 const PREVIEW_PROVINCES: ProvinceStat[] = [
