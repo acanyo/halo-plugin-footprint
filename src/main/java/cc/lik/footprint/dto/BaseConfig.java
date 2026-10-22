@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * <p>插件前台运行所需的全部配置，由 {@code FootprintService#getConfigByGroupName()}
+ * <p>插件前台运行所需的全部配置，由 {@code FootprintConfigService#getConfigByGroupName()}
  * 从多个 Setting 分组汇总而成。</p>
  *
  * <p>这里使用 {@code @Builder} 而非位置参数构造：本类字段多达 37 个且大量为

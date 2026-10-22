@@ -4,7 +4,9 @@ import cc.lik.footprint.dto.GeoInfo;
 import cc.lik.footprint.dto.MapConfig;
 import cc.lik.footprint.dto.StatsResult;
 import cc.lik.footprint.model.Footprint;
-import cc.lik.footprint.service.FootprintService;
+import cc.lik.footprint.service.FootprintConfigService;
+import cc.lik.footprint.service.FootprintStatsService;
+import cc.lik.footprint.service.GaodeGeocodingService;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.stereotype.Component;
@@ -33,7 +35,9 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 public class FootprintEndpoint implements CustomEndpoint {
 
     private final ReactiveExtensionClient client;
-    private final FootprintService footprintService;
+    private final FootprintConfigService configService;
+    private final FootprintStatsService statsService;
+    private final GaodeGeocodingService geocodingService;
     private final String footprintTag = "footprint.lik.cc/v1alpha1/footprints";
     private static final Logger log = LoggerFactory.getLogger(FootprintEndpoint.class);
 
@@ -144,13 +148,13 @@ public class FootprintEndpoint implements CustomEndpoint {
             return ServerResponse.badRequest().bodyValue("地址参数不能为空");
         }
 
-        return footprintService.getConfigByGroupName()
+        return configService.getConfigByGroupName()
             .switchIfEmpty(Mono.error(new RuntimeException("未找到足迹配置")))
             .flatMap(config -> {
                 if (config.getGaoDeWebKey() == null || config.getGaoDeWebKey().trim().isEmpty()) {
                     return Mono.error(new RuntimeException("高德地图Key未配置"));
                 }
-                return footprintService.AddressLocationUtil(address, config.getGaoDeWebKey());
+                return geocodingService.locate(address, config.getGaoDeWebKey());
             })
             .flatMap(location -> ServerResponse.ok().bodyValue(location))
             .onErrorResume(e -> {
@@ -179,13 +183,13 @@ public class FootprintEndpoint implements CustomEndpoint {
             return ServerResponse.badRequest().bodyValue("经纬度超出有效范围");
         }
 
-        return footprintService.getConfigByGroupName()
+        return configService.getConfigByGroupName()
             .switchIfEmpty(Mono.error(new RuntimeException("未找到足迹配置")))
             .flatMap(config -> {
                 if (config.getGaoDeWebKey() == null || config.getGaoDeWebKey().trim().isEmpty()) {
                     return Mono.error(new RuntimeException("高德地图Key未配置"));
                 }
-                return footprintService.reverseGeocode(longitude, latitude,
+                return geocodingService.reverseGeocode(longitude, latitude,
                     config.getGaoDeWebKey());
             })
             .flatMap(geoInfo -> ServerResponse.ok().bodyValue(geoInfo))
@@ -204,7 +208,7 @@ public class FootprintEndpoint implements CustomEndpoint {
      * gaoDeWebKey 是服务端 Key，泄漏到浏览器等同公开。
      */
     private Mono<ServerResponse> getMapConfig(ServerRequest request) {
-        return footprintService.getConfigByGroupName()
+        return configService.getConfigByGroupName()
             .switchIfEmpty(Mono.error(new RuntimeException("未找到足迹配置")))
             .map(config -> new MapConfig(config.getGaoDeKey(), config.getMapStyle()))
             .flatMap(mapConfig -> ServerResponse.ok().bodyValue(mapConfig))
@@ -215,7 +219,7 @@ public class FootprintEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> getStats(ServerRequest request) {
-        return footprintService.getStats()
+        return statsService.getStats()
             .flatMap(stats -> ServerResponse.ok().bodyValue(stats))
             .onErrorResume(e -> {
                 log.error("获取足迹统计失败: {}", e.getMessage());
@@ -226,7 +230,7 @@ public class FootprintEndpoint implements CustomEndpoint {
     private Mono<ServerResponse> geocodeFootprint(ServerRequest request) {
         String name = request.pathVariable("name");
 
-        return footprintService.getConfigByGroupName()
+        return configService.getConfigByGroupName()
             .switchIfEmpty(Mono.error(new RuntimeException("未找到足迹配置")))
             .flatMap(config -> {
                 if (config.getGaoDeWebKey() == null || config.getGaoDeWebKey().trim().isEmpty()) {
@@ -240,7 +244,7 @@ public class FootprintEndpoint implements CustomEndpoint {
                         if (lng == null || lat == null) {
                             return Mono.error(new RuntimeException("足迹缺少经纬度信息"));
                         }
-                        return footprintService.reverseGeocode(lng, lat, config.getGaoDeWebKey())
+                        return geocodingService.reverseGeocode(lng, lat, config.getGaoDeWebKey())
                             .flatMap(geoInfo -> {
                                 if (geoInfo == null) {
                                     return Mono.error(new RuntimeException("逆地理编码失败"));

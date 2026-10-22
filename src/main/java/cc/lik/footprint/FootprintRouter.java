@@ -2,7 +2,7 @@ package cc.lik.footprint;
 
 import cc.lik.footprint.model.Footprint;
 import cc.lik.footprint.dto.BaseConfig;
-import cc.lik.footprint.service.FootprintService;
+import cc.lik.footprint.service.FootprintConfigService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -57,7 +57,7 @@ public class FootprintRouter {
 
     private final TemplateNameResolver templateNameResolver;
     private final ReactiveExtensionClient client;
-    private final FootprintService footprintSvc;
+    private final FootprintConfigService configService;
 
     /**
      * 允许代理的图片域名缓存：省掉每张图都去列一遍足迹。
@@ -261,7 +261,7 @@ public class FootprintRouter {
 
     private Mono<ServerResponse> renderFootprintPage(ServerRequest request) {
         log.info("开始渲染足迹页面");
-        return footprintSvc.getConfigByGroupName()
+        return configService.getConfigByGroupName()
             .flatMap(settings -> {
                 log.info("已加载足迹页面配置");
                 // 按创建时间倒序排序
