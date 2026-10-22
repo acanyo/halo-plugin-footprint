@@ -1,11 +1,12 @@
 /**
- * 前台主逻辑。
+ * 前台主逻辑 · 装配层。
  *
- * 这个文件正在逐块拆成 modules/ 下的模块。拆的顺序是「叶子优先」：
- * 先搬没有外部依赖的纯逻辑，每搬一块就构建、上站点点一遍、单独提交，
- * 确认无回归再动下一块。下面的 import 清单就是已经搬完的部分。
+ * 具体功能已按领域拆到 modules/ 下，这个文件只做三件事：
+ *   1) 建 Viewer 与全局配置（底图 provider、足迹数据、地形）；
+ *   2) 按依赖顺序 setup / init 各模块 —— 先注入数据与元素，再绑定事件；
+ *   3) 收尾：恢复上次视图、暴露 window.FootprintMemoryData 给书架脚本。
  *
- * 还没搬的代码仍是一整片顶层语句（当年从 <script> 里抠出来的，
+ * 还没搬走的代码仍是一整片顶层语句（当年从 <script> 里抠出来的，
  * 所以整体带着 4 格缩进）。别被缩进误导：它们都在模块顶层，互相可见。
  */
 
@@ -103,6 +104,14 @@ import {
     firstVisibleRingItem
 } from './modules/photo-ring.js';
 import { COARSE_POINTER, SVG_NS } from './modules/env.js';
+import {
+    FOOTPRINTS,
+    loadFootprintsFromJson,
+    applyFootprints,
+    updateIntroStats,
+    isFootprintDataReady,
+    markFootprintDataReady
+} from './modules/footprint-data.js';
 import {
     setupGlobeBasics,
     initGlobeBasics,
@@ -552,88 +561,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     };
     let currentBaseKey = null;   // 当前底图，供“重试”重新加载
 
-    // 足迹标记数据：完全由后端注入的 FOOTPRINT_CONFIG.footprints 提供，不内置任何兜底样例；
-    // 没有数据时保持空数组，页面不构建任何标记。
-    // coordType: 'gcj02' 表示坐标来自高德（火星坐标），'wgs84' 表示标准经纬度（天地图 CGCS2000 直接可用）
-    let FOOTPRINTS = [];
-    let footprintsDataReady = false;   // 首次足迹数据加载是否已完成（含“确实为空”）
-
-    // ================= 足迹数据加载（FOOTPRINT_CONFIG） =================
-    // window.FOOTPRINT_CONFIG.footprints 为 Footprint CRD 数组（模板注入），坐标均为高德（GCJ-02）来源。
-    // 加载失败时回退到上面的内置数据。
-    function mapTestJsonEntry(entry) {
-        const s = entry && entry.spec;
-        if (!s || !s.name) return null;
-        return {
-            key: (entry.metadata && entry.metadata.name) || '',
-            name: s.name,
-            description: s.description || '',
-            address: s.address || '',
-            lng: Number(s.longitude),
-            lat: Number(s.latitude),
-            coordType: 'gcj02',   // test.json 坐标均为高德（GCJ-02）来源
-            city: s.city || '',
-            province: s.province || '',
-            provinceAdcode: String(s.provinceAdcode || ''),
-            cityAdcode: String(s.cityAdcode || ''),
-            footprintType: s.footprintType || '',
-            createTime: formatTestDate(s.createTime),
-            article: s.article || '',
-            zoomLevel: Number(s.zoomLevel) || 12,
-            image: s.image || '',
-            ticketImage: s.ticketImage || '',
-            ticketTitle: s.ticketTitle || '',
-            ticketEnglish: s.ticketEnglish || '',
-            ticketSubtitle: s.ticketSubtitle || '',
-            ticketDate: s.ticketDate || '',
-            ticketRoute: s.ticketRoute || '',
-            ticketNo: s.ticketNo || '',
-            ticketType: s.ticketType || '',
-            galleryImages: (s.galleryImages || []).map(g => ({ url: g.url, caption: '' }))
-        };
-    }
-
-    // createTime 兼容两种格式：test.json 的 "01/05/2026 01:04:00"（MM/DD/YYYY）与
-    // FOOTPRINT_CONFIG 注入的 ISO 格式 "2026-01-05T01:04:00Z"，统一转成 YYYY-MM-DD
-    function formatTestDate(str) {
-        if (!str) return '';
-        const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(str);
-        if (m) return m[3] + '-' + m[1] + '-' + m[2];
-        const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
-        return iso ? iso[1] + '-' + iso[2] + '-' + iso[3] : str;
-    }
-
-    // 足迹数据源：只读取模板注入的 window.FOOTPRINT_CONFIG.footprints；
-    // 配置为空/无效时返回空数组，页面保持无足迹状态，不再回退样例数据。
-    async function loadFootprintsFromJson() {
-        try {
-            const cfg = window.FOOTPRINT_CONFIG || {};
-            const list = Array.isArray(cfg.footprints) ? cfg.footprints : [];
-            const mapped = list.map(mapTestJsonEntry).filter(Boolean);
-            return mapped;
-        } catch (e) {
-            console.warn('足迹配置解析失败：', e);
-            return [];
-        }
-    }
-
-    // 用加载到的数据替换足迹数组（保持数组引用不变，各处引用自动生效）
-    function applyFootprints(loaded) {
-        if (!Array.isArray(loaded)) return false;
-        FOOTPRINTS.length = 0;
-        FOOTPRINTS.push(...loaded);
-        return true;
-    }
-
-    // 统计区：总足迹数 / 去过的城市数（数据驱动）
-    function updateIntroStats() {
-        const total = document.getElementById('introTotal');
-        const cities = document.getElementById('introCities');
-        if (total) total.textContent = FOOTPRINTS.length;
-        if (cities) cities.textContent = new Set(FOOTPRINTS.map(f => f.city).filter(Boolean)).size;
-    }
-    updateIntroStats();
-
 
     const BASE_STORAGE_KEY = 'travelMemoryBaseMap';
     function getSavedBase() {
@@ -702,7 +629,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     setupEntrance({
         viewer: () => viewer,
         footprints: () => FOOTPRINTS,
-        footprintsDataReady: () => footprintsDataReady,
+        footprintsDataReady: isFootprintDataReady,
         reduceMotion: () => reduceMotion
     });
     initEntrance();
@@ -773,7 +700,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
             rebuildMarkerModeFromCamera();
             if (cityFillEnabled) buildCityFills();   // 城市高亮开关开启时才随新数据重建
         }
-        footprintsDataReady = true;
+        markFootprintDataReady();
         updateIntroStats();
         document.dispatchEvent(new CustomEvent('footprints:loaded'));
     });
