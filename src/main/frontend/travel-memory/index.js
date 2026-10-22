@@ -104,6 +104,11 @@ import {
 } from './modules/photo-ring.js';
 import { COARSE_POINTER, SVG_NS } from './modules/env.js';
 import {
+    setupGlobeBasics,
+    initGlobeBasics,
+    globeReadySignal
+} from './modules/globe-basics.js';
+import {
     setupEntrance,
     initEntrance
 } from './modules/entrance.js';
@@ -518,62 +523,9 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // 只把内存里的瓦片缓存加大，减少重复请求
     viewer.scene.globe.tileCacheSize = 800;
 
-    // ================= 相机交互（鼠标滚轮缩放） =================
-    // zoomFactor 在 Cesium 1.121 才作为公开属性暴露（更新日志 #12099），
-    // 1.120 中设置 zoomFactor 不会生效（滚轮逻辑读取的是私有字段 _zoomFactor）。
-    // 这里做特性检测：新版本用公开属性，1.120 用私有字段回退。
-    const cameraController = viewer.scene.screenSpaceCameraController;
-    const WHEEL_ZOOM_FACTOR = 3.5;   // 滚轮灵敏度系数（默认 5，越小滚一格缩放越精细）
-    if ('zoomFactor' in cameraController) {
-        cameraController.zoomFactor = WHEEL_ZOOM_FACTOR;
-    } else {
-        cameraController._zoomFactor = WHEEL_ZOOM_FACTOR;
-    }
-    // 缩放距离范围（米）：防止放大穿入地形、拉远把地球滚丢
-    cameraController.minimumZoomDistance = 50;
-    cameraController.maximumZoomDistance = 50000000;
-
-    // 瓦片全部加载完成后解除忙碌状态
-    viewer.scene.globe.tileLoadProgressEvent.addEventListener((pending) => {
-        if (pending === 0) document.body.setAttribute('aria-busy', 'false');
-    });
-    setTimeout(() => document.body.setAttribute('aria-busy', 'false'), 20000);
-
-    // 开启昼夜光照：按时钟时间计算太阳位置，夜半球变暗（2D 平面模式下不生效）
-    viewer.scene.globe.enableLighting = true;
-    // 让时间自动推进，明暗分界线随时间缓缓移动
-    viewer.clock.shouldAnimate = true;
-
-    // ---------- 「地球可用」信号 ----------
-    // 底图第一批瓦片铺完的时刻。此时用户已经看到地球，带宽也空出来了，
-    // 那些"迟一点到也不影响"的资源都挂在这个信号后面，不跟底图抢首屏。
-    //
-    // 兜一个 4 秒定时器：底图服务异常时 tileLoadProgressEvent 可能一直不归零，
-    // 没有兜底的话后面挂的东西就永远不加载了。
-    const globeReady = new Promise(resolve => {
-        const onTileProgress = queued => {
-            if (queued === 0) {
-                viewer.scene.globe.tileLoadProgressEvent.removeEventListener(onTileProgress);
-                resolve();
-            }
-        };
-        viewer.scene.globe.tileLoadProgressEvent.addEventListener(onTileProgress);
-        setTimeout(resolve, 4000);
-    });
-
-    // ---------- 星空盒延后加载 ----------
-    // 6 张 Tycho 星表贴图合计 849 KB，占首屏近三成，而地球本身一点不依赖它。
-    // Cesium 的 SkyBox 是在 update() 里才去取贴图的，且 show 为 false 时直接返回，
-    // 所以首帧之前先关掉就能把这 849 KB 整个挪出关键路径。
-    //
-    // 不能改用 Viewer 的 skyBox:false —— 那个选项会连太阳和月亮一起不创建，
-    // 而上面的 enableLighting 依赖太阳，昼夜晨昏线会直接消失。
-    if (viewer.scene.skyBox) {
-        viewer.scene.skyBox.show = false;
-        globeReady.then(() => {
-            if (viewer.scene.skyBox) viewer.scene.skyBox.show = true;
-        });
-    }
+    // ================= 首屏配置（相机 / 忙碌标志 / 光照 / 地球可用信号） =================
+    setupGlobeBasics({ viewer: () => viewer });
+    initGlobeBasics();
 
     // 3D 地球品牌文案：标题/描述使用“3D 地球”Tab 的独立配置（globeTitle/globeDesc），
     // 导航栏英文名保持默认 "Travel Memory"，不再从基本设置读取。
@@ -932,7 +884,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     //
     // 传已解析的 GeoJSON 对象而不是 URL：GeoJsonDataSource.load 两者都收，
     // 传对象就不会再发一次请求，与几何索引共用 loadProvinceGeoJson 那一次下载。
-    const chinaDataSource = globeReady
+    const chinaDataSource = globeReadySignal()
         .then(loadProvinceGeoJson)
         .then(geojson =>
             Cesium.GeoJsonDataSource.load(geojson, {
