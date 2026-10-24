@@ -38,6 +38,50 @@ export function setupCityFill(d) {
     deps = d;
 }
 
+// ================= 城市高亮开关 =================
+// 默认关闭（首次加载不高亮），开启后放大到国内范围才显示填充+轮廓；
+// 选择用 localStorage 记住，刷新后保持。关闭时不加载/不渲染城市边界。
+const CITY_FILL_STORAGE_KEY = 'travelMemoryCityFill';
+function getSavedCityFill() {
+    try { return localStorage.getItem(CITY_FILL_STORAGE_KEY) === '1'; } catch (e) { return false; }
+}
+function saveCityFill(on) {
+    try { localStorage.setItem(CITY_FILL_STORAGE_KEY, on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+}
+let cityFillEnabled = getSavedCityFill();
+const cityFillBtn = document.getElementById('cityFillBtn');
+
+/** 城市高亮是否开启（换底图、数据重建时要判）。 */
+export function isCityFillEnabled() {
+    return cityFillEnabled;
+}
+
+function applyCityFillBtnState() {
+    cityFillBtn.classList.toggle('active', cityFillEnabled);
+    cityFillBtn.setAttribute('aria-pressed', String(cityFillEnabled));
+    deps.cityFillFloatBtn().classList.toggle('active', cityFillEnabled);
+    deps.cityFillFloatBtn().setAttribute('aria-pressed', String(cityFillEnabled));
+}
+
+export function setCityFillEnabled(on) {
+    if (cityFillEnabled === on) return;
+    cityFillEnabled = on;
+    applyCityFillBtnState();
+    saveCityFill(on);
+    if (on) {
+        buildCityFills();   // 开启后加载边界并显示（仍按缩放阈值显隐）
+    } else {
+        clearCityFills();   // 关闭时移除填充与轮廓
+    }
+}
+
+/** 绑定高亮开关按钮并套用已保存的选择。必须在 setupCityFill 之后调用。 */
+export function initCityFill() {
+    applyCityFillBtnState();
+    cityFillBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
+    deps.cityFillFloatBtn().addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
+}
+
 /** 主文件的可见性阈值（updateIntroVisibility）调用：同步边界与城市填充的显隐。 */
 export function setCityFillVisible(visible) {
     if (cityFillVisible === visible) return;

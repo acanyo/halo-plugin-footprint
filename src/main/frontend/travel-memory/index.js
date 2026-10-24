@@ -29,7 +29,10 @@ import {
 } from './modules/view-mode.js';
 import {
     setupCityFill,
+    initCityFill,
     setCityFillVisible,
+    isCityFillEnabled,
+    setCityFillEnabled,
     outlinePolylines,
     buildCityFills,
     clearCityFills,
@@ -278,39 +281,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     });
     initAutoRotate();
 
-    // ================= 城市高亮开关 =================
-    // 默认关闭（首次加载不高亮），开启后放大到国内范围才显示填充+轮廓；
-    // 选择用 localStorage 记住，刷新后保持。关闭时不加载/不渲染城市边界。
-    const CITY_FILL_STORAGE_KEY = 'travelMemoryCityFill';
-    function getSavedCityFill() {
-        try { return localStorage.getItem(CITY_FILL_STORAGE_KEY) === '1'; } catch (e) { return false; }
-    }
-    function saveCityFill(on) {
-        try { localStorage.setItem(CITY_FILL_STORAGE_KEY, on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-    }
-    let cityFillEnabled = getSavedCityFill();
-    const cityFillBtn = document.getElementById('cityFillBtn');
-
-    function applyCityFillBtnState() {
-        cityFillBtn.classList.toggle('active', cityFillEnabled);
-        cityFillBtn.setAttribute('aria-pressed', String(cityFillEnabled));
-        cityFillFloatBtn.classList.toggle('active', cityFillEnabled);
-        cityFillFloatBtn.setAttribute('aria-pressed', String(cityFillEnabled));
-    }
-    function setCityFillEnabled(on) {
-        if (cityFillEnabled === on) return;
-        cityFillEnabled = on;
-        applyCityFillBtnState();
-        saveCityFill(on);
-        if (on) {
-            buildCityFills();   // 开启后加载边界并显示（仍按缩放阈值显隐）
-        } else {
-            clearCityFills();   // 关闭时移除填充与轮廓
-        }
-    }
-    applyCityFillBtnState();
-    cityFillBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
-    cityFillFloatBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
 
     // 系统是否要求减弱动效：入场动画、2D 切换、卡片飞行等多处共用
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -334,7 +304,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // 实现见 modules/basemap.js：天地图 provider、7 档底图切换、瓦片容错。
     setupBaseMap({
         viewer: () => viewer,
-        cityFillOn: () => cityFillEnabled
+        cityFillOn: isCityFillEnabled
     });
     initBaseMap();
 
@@ -528,7 +498,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
             buildMarkers();
             buildCityMarkers();
             rebuildMarkerModeFromCamera();
-            if (cityFillEnabled) buildCityFills();   // 城市高亮开关开启时才随新数据重建
+            if (isCityFillEnabled()) buildCityFills();   // 城市高亮开关开启时才随新数据重建
         }
         markFootprintDataReady();
         updateIntroStats();
@@ -691,7 +661,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     });
 
     // 初始构建城市淡色填充（足迹数据加载完成后会重建）
-    if (cityFillEnabled) buildCityFills();
+    if (isCityFillEnabled()) buildCityFills();
 
     // ================= 恢复上次视图状态 =================
     // 刷新后保持上次的 2D/3D 模式（直接恢复，不做展开动画，避免 3D 闪一下）；
