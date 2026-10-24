@@ -69,6 +69,9 @@ let deps = null;
  */
 export function setupMarkers(d) {
     deps = d;
+    // 地名标注模式来自后台配置，必须在注入后才能读（模块顶层读会撞上 deps=null）
+    const raw = String(d.footprintCfg().globeLabels || 'all').trim().toLowerCase();
+    globeLabelMode = (raw === 'off' || raw === 'city' || raw === 'all') ? raw : 'all';
 }
 
 // 详情卡（足迹卡 / 城市聚合卡）：整球视图（标题卡出现）时自动收起；初始化完成前不触发
@@ -198,12 +201,8 @@ const MARKER_URL = markerIconUrl('footprint', MARKER_REF_SIZE / MARKER_SIZE);
 // 桌面上也要逐个去碰运气。这里给已有的标记实体挂一个 label ——
 // 实体本身已经处理好了「模式切换 / 转到背面隐藏」，标签跟着实体走即可，
 // 既不新增实体，也不影响点击拾取。层级与标记一致：聚合态标城市，展开态标足迹。
-const GLOBE_LABEL_MODE = (() => {
-    const raw = String(deps.footprintCfg().globeLabels || 'all').trim().toLowerCase();
-    return (raw === 'off' || raw === 'city' || raw === 'all') ? raw : 'all';
-})();
-const SHOW_CITY_LABELS = GLOBE_LABEL_MODE !== 'off';
-const SHOW_FOOTPRINT_LABELS = GLOBE_LABEL_MODE === 'all';
+// 标注模式（off / city / all）：setupMarkers 时按后台配置赋值
+let globeLabelMode = 'all';
 const LABEL_FONT = '500 12px "PingFang SC", "Microsoft YaHei", sans-serif';
 const LABEL_FONT_PX = 12;        // 与上面的字号保持一致：避让时按它估算文字宽度
 const LABEL_LINE_HEIGHT = 17;    // 一行文字占的高度（含行距），用于屏幕空间避让
@@ -1078,13 +1077,13 @@ function placeEntityLabel(ent, x, y) {
     ent.label.show = true;
 }
 function layoutMarkerLabels() {
-    if (!SHOW_CITY_LABELS && !SHOW_FOOTPRINT_LABELS) return;
+    if (globeLabelMode === 'off') return;
     // 谁该有标签：城市名只在「聚合态 + 自动显示中国轮廓」的层级出现
     // （整球视图画面保持干净），足迹名只在展开态出现。
     // 这里也是唯一"收回"标签的地方：条件不满足就把对应的标签全部收掉——
     // 缩放回整球时轮廓先在 updateIntroVisibility 里收起，接着由这里收名字。
-    const cityLabelsOn = SHOW_CITY_LABELS && cityMode && deps.boundaryVisible() && deps.cityLabelVisible();
-    const footprintLabelsOn = SHOW_FOOTPRINT_LABELS && !cityMode;
+    const cityLabelsOn = globeLabelMode !== 'off' && cityMode && deps.boundaryVisible() && deps.cityLabelVisible();
+    const footprintLabelsOn = globeLabelMode === 'all' && !cityMode;
     if (!cityLabelsOn) cityMarkerEntities.forEach(hideEntityLabel);
     if (!footprintLabelsOn) markerEntities.forEach(hideEntityLabel);
     if (!cityLabelsOn && !footprintLabelsOn) return;
