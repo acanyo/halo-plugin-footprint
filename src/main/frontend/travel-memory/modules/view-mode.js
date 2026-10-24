@@ -371,8 +371,3 @@ export function restoreSavedViewMode() {
 export function isAmapMode() {
     return amapMode;
 }
-
-/** 启动时若记住的是 2D，由主文件在数据就绪后调一次。 */
-export function enterSaved2DIfNeeded() {
-    if (startIn2D() && !amapMode) startIn2D();
-}

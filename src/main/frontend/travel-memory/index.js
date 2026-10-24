@@ -10,33 +10,28 @@
  * 所以整体带着 4 格缩进）。别被缩进误导：它们都在模块顶层，互相可见。
  */
 
-import { wgs84ToGcj02, gcj02ToWgs84 } from './modules/coordinate.js';
-import { countTdtProvider, tdtTodayUsage, setTileBatchHandler } from './modules/tianditu-usage.js';
-import { amapVec, amapImg, amapImgLabel } from './modules/amap-basemap.js';
-import { compareTicketByTime, ticketHasCoordinate, isSameTicketCity } from './modules/ticket-utils.js';
-import { startCityWallWarmQueue, stopCityWallWarmQueue } from './modules/city-wall-prewarm.js';
-import { lightbox, openLightbox, closeLightbox, switchLightbox, setLightboxDeps } from './modules/lightbox.js';
+;
+import {
+    setTileBatchHandler
+} from './modules/tianditu-usage.js';
+;
+;
+;
+import {
+    lightbox,
+    closeLightbox,
+    setLightboxDeps
+} from './modules/lightbox.js';
 import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 import {
     setupViewMode,
     restoreSavedViewMode,
-    isAmapMode,
-    finishSwitchTo2D,
-    forceGlobeForTickets,
-    saveViewMode,
-    startIn2D,
-    view2d,
-    view3d
+    forceGlobeForTickets
 } from './modules/view-mode.js';
 import {
     setupCityFill,
-    initCityFill,
-    setCityFillVisible,
     isCityFillEnabled,
-    setCityFillEnabled,
-    outlinePolylines,
     buildCityFills,
-    clearCityFills,
     applyCityFillHighlight,
     cityFillAdcodeOf
 } from './modules/city-fill.js';
@@ -44,79 +39,46 @@ import {
     setupAutoRotate,
     initAutoRotate,
     pauseAutoRotate,
-    resumeAutoRotate,
-    refreshAutoRotate,
-    applyCanvasCursor,
-    cesiumCanvas,
-    isAutoRotating,
-    isAutoRotatePreferred,
-    setHoveredMarker
+    resumeAutoRotate
 } from './modules/auto-rotate.js';
 import {
     setupCityView,
     initCityView,
     cityView,
     openCityView,
-    closeCityView,
-    openCityViewAtFootprint,
-    selectCityViewTab,
     cityWallImages,
     formatCityDate,
     formatLightboxDate,
     loadCardCoverImage,
     renderCardCover,
-    enqueueCardCover,
-    showCardCover
+    enqueueCardCover
 } from './modules/city-view.js';
 import {
     setupProvinceCards,
     initProvinceCards,
-    activateAllCityCards,
-    activateProvinceCards,
-    cancelAllCityFlight,
-    cityCardsEnabled,
     closeProvinceCards,
     loadProvinceGeoJson,
-    maybeShowProvinceHint,
     normalizeProvinceName,
-    openProvinceCards,
     provinceAdcodeOfEntity,
-    provinceAtScreenPoint,
-    provinceHoverAt,
-    provincePickingEnabled,
-    syncProvinceAllAvailability,
     isProvinceCardsActive,
-    provinceBrightEntitySet,
-    isHoveredProvince,
-    setHoveredProvince,
-    isProvinceAllFlying,
-    takeProvinceRestorePending,
     clearProvinceRestorePending,
     setProvinceEntityIndex
 } from './modules/province-cards.js';
 import {
     setupPhotoRing,
     initPhotoRing,
-    showPhotoRing,
-    hidePhotoRing,
-    photoRingIsOpenFor,
-    focusWhenVisible,
-    exitPhotoRingView,
-    switchPhotoRingView,
-    isPhotoRingActive,
-    isPhotoRingViewing,
-    firstVisibleRingItem
+    hidePhotoRing
 } from './modules/photo-ring.js';
-import { COARSE_POINTER, SVG_NS } from './modules/env.js';
+import {
+    COARSE_POINTER
+} from './modules/env.js';
 import {
     setupBaseMap,
     initBaseMap,
     baseProviderMap,
     currentBase,
     hasTiandituKey,
-    tiandituKey,
-    switchBase,
-    attachTileError
+    tiandituKey
 } from './modules/basemap.js';
 import {
     FOOTPRINTS,
@@ -139,15 +101,11 @@ import {
 import {
     setupNavigation,
     initNavigation,
-    isIntroVisible,
     isBoundaryVisible,
     isCityLabelVisible,
-    isEntranceActive,
-    setEntranceActive,
     setChinaBoundarySource,
     setTerrainNote,
     refreshStatusText,
-    cityFillFloatBtn,
     applyGlobeBranding
 } from './modules/navigation.js';
 import {
@@ -161,18 +119,13 @@ import {
     markerFocusLayer,
     buildMarkers,
     buildCityMarkers,
-    applyMarkerMode,
     applyMarkerPositions,
     rebuildMarkerModeFromCamera,
-    syncMarkerModeByHeight,
     removeAllMarkers,
-    areDetailCardsReady,
-    hideDetailCardsForIntro,
     cityKeyOf,
     cityCenter,
     cityViewItems,
     cityPhotoItems,
-    finishCityFlight,
     hideMarkerCard,
     showMarkerCard,
     hideCityCard,
@@ -186,14 +139,10 @@ import {
     cityMarkerEntityList,
     cityListSnapshot,
     isCityMode,
-    isCityFlightActive,
     focusedMarkerEntity,
     currentPositionList
 } from './modules/markers.js';
-import {
-    PROVINCE_CITY_HL_FILL,
-    PROVINCE_MARKER_DIM_ALPHA
-} from './modules/province-style.js';
+;
 import {
     setupCityWall,
     initCityWall,
@@ -219,56 +168,17 @@ import {
     loadPostcardImage,
     postcardToBlob,
     canvasSafeImageUrl,
-    closeInsight,
-    closePostcard,
-    closeTimeCapsule,
-    openPostcard,
-    insightView,
-    postcardPreview,
-    timeCapsule
+    openPostcard
 } from './modules/creative-overlays.js';
 import {
     setupTicketGallery,
     initTicketGallery,
     ticketImageUrl,
-    ticketDate,
-    ticketItemsFromFootprints,
-    wrapTicketLetterText,
-    isTicketsView,
-    openTicketGalleryForCity,
-    setTicketView
+    openTicketGalleryForCity
 } from './modules/ticket-gallery.js';
+;
 import {
-    clampNumber,
-    round1,
-    snapDevicePx,
-    overlapArea,
-    ringSampleIndexes,
-    fitBox,
-    offsetCenteredRects,
-    rectsBBox,
-    totalOverlapArea,
-    pushVector,
-    angleGap
-} from './modules/geometry.js';
-import {
-    haversineKm,
-    setInsightDeps,
-    insightSpotDate,
-    insightKm,
-    insightPlaceName,
-    insightTimeStats,
-    insightProvinceStats,
-    insightSegmentStats,
-    insightTypeStats,
-    insightYearStats,
-    insightDerived,
-    insightAchievements,
-    insightTitlesOf,
-    insightFallbackTitle,
-    insightTitleOf,
-    insightMetrics,
-    insightSentences
+    setInsightDeps
 } from './modules/footprints-insight.js';
 
 // 状态栏重绘来自 navigation 模块，这里可以安全地先注入
@@ -379,16 +289,12 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         hideMarkerCard
     });
 
-
     // ================= 首屏配置（相机 / 忙碌标志 / 光照 / 地球可用信号） =================
     setupGlobeBasics({ viewer: () => viewer });
     initGlobeBasics();
 
     // 3D 地球品牌文案（实现见 modules/navigation.js）
     applyGlobeBranding();
-
-
-
 
     // ================= 天地图三维地形（可选开关，默认关闭） =================
     // 实现见 modules/tdt-terrain.js；专有地形格式，默认不启用，导航栏「三维地形」
@@ -402,7 +308,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         tdtKey: tiandituKey(),
         enableDefault: !!(window.FOOTPRINT_CONFIG && window.FOOTPRINT_CONFIG.enableTerrainDefault)
     });
-
 
     // ================= 初始视角与开场动画 =================
     // 实现见 modules/entrance.js：入场动画、已看过判断、减弱动效与 2D 恢复。
