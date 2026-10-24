@@ -44,6 +44,7 @@ let terrainNote = '';   // 由 setupNavigation 按是否配置天地图 Key 初�
  * @param d.currentBaseKey         () => string | null
  * @param d.statusText / d.statusRetry  () => HTMLElement
  * @param d.hasTdtKey              () => boolean
+ * @param d.footprintCfg           () => object
  */
 export function setupNavigation(d) {
     deps = d;
@@ -403,6 +404,20 @@ function updateStatusText() {
 // 高德底图基于 GCJ-02，天地图底图基于 CGCS2000（≈WGS84）。
 
 // 底图选择持久化：localStorage 保存，刷新后继续使用上次选择的底图
+/**
+ * 3D 地球品牌文案：标题/描述使用「3D 地球」Tab 的独立配置（globeTitle/globeDesc），
+ * 导航栏英文名保持默认 "Travel Memory"，不再从基本设置读取。
+ */
+export function applyGlobeBranding() {
+    const cfg = deps.footprintCfg();
+    const navBrandZh = document.querySelector('.nav-brand-zh');
+    const introTitleEl = document.querySelector('.intro-title');
+    const introDescEl = document.querySelector('.intro-desc');
+    if (navBrandZh && cfg.globeTitle) navBrandZh.textContent = cfg.globeTitle;
+    if (introTitleEl && cfg.globeTitle) introTitleEl.textContent = cfg.globeTitle;
+    if (introDescEl && cfg.globeDesc) introDescEl.textContent = cfg.globeDesc;
+}
+
 /** 标题卡 / 导航栏当前是否处于整球视图（其他模块判层级时用）。 */
 export function isIntroVisible() {
     return introVisible;

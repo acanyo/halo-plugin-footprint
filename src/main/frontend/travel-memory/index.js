@@ -146,7 +146,8 @@ import {
     setChinaBoundarySource,
     setTerrainNote,
     refreshStatusText,
-    cityFillFloatBtn
+    cityFillFloatBtn,
+    applyGlobeBranding
 } from './modules/navigation.js';
 import {
     setupMarkers,
@@ -297,7 +298,8 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         currentBaseKey: currentBase,
         statusText: () => document.getElementById('statusText'),
         statusRetry: () => document.getElementById('statusRetry'),
-        hasTdtKey: hasTiandituKey
+        hasTdtKey: hasTiandituKey,
+        footprintCfg: () => window.FOOTPRINT_CONFIG || {}
     });
     initNavigation();
 
@@ -398,15 +400,8 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     setupGlobeBasics({ viewer: () => viewer });
     initGlobeBasics();
 
-    // 3D 地球品牌文案：标题/描述使用“3D 地球”Tab 的独立配置（globeTitle/globeDesc），
-    // 导航栏英文名保持默认 "Travel Memory"，不再从基本设置读取。
-    const footprintCfg = window.FOOTPRINT_CONFIG || {};
-    const navBrandZh = document.querySelector('.nav-brand-zh');
-    const introTitleEl = document.querySelector('.intro-title');
-    const introDescEl = document.querySelector('.intro-desc');
-    if (navBrandZh && footprintCfg.globeTitle) navBrandZh.textContent = footprintCfg.globeTitle;
-    if (introTitleEl && footprintCfg.globeTitle) introTitleEl.textContent = footprintCfg.globeTitle;
-    if (introDescEl && footprintCfg.globeDesc) introDescEl.textContent = footprintCfg.globeDesc;
+    // 3D 地球品牌文案（实现见 modules/navigation.js）
+    applyGlobeBranding();
 
 
 
