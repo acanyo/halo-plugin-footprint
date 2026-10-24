@@ -262,8 +262,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         footprintCfg: () => footprintCfg,
         reduceMotion: () => reduceMotion,
         boundaryVisible: isBoundaryVisible,
-        cityLabelVisible: isCityLabelVisible,
-        applyScreenSpaceError
+        cityLabelVisible: isCityLabelVisible
     });
     // ================= 城市淡色填充 =================
     // 实现见 modules/city-fill.js；主题配色在 modules/province-style.js。
@@ -279,11 +278,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // 实现见 modules/view-mode.js；morph 动画与视图模式记忆都在那边。
     setupViewMode({
         viewer: () => viewer,
-        markerCard: () => markerCard,
-        markerTip: () => markerTip,
-        reduceMotion: () => reduceMotion,
-        hideCityCard,
-        hideMarkerCard
+        reduceMotion: () => reduceMotion
     });
     // ================= 首屏配置（相机 / 忙碌标志 / 光照 / 地球可用信号） =================
     setupGlobeBasics({ viewer: () => viewer });
@@ -292,7 +287,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // 实现见 modules/tdt-terrain.js；专有地形格式，默认不启用，导航栏「三维地形」
     // 开启时先探测授权，成功才启用，失败自动回退平面。
     setTdtTerrainDeps({
-        setTerrainNote,
         updateStatusText: refreshStatusText
     });
     // ================= 初始视角与开场动画 =================
@@ -307,9 +301,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
 
     // ================= 城市卡片墙（「城记」） =================
     // 实现见 modules/city-wall.js。封面懒加载、悬停轮播、省市筛选都在那边。
-    setupCityWall({
-        footprints: () => FOOTPRINTS,
-        cityList: () => cityListSnapshot(),
+    setupCityWall({        cityList: () => cityListSnapshot(),
         cityViewItems,
         cityWallImages,
         formatCityDate,
@@ -382,7 +374,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         cityWallImages,
         loadCardCoverImage,
         markerScreenPosition,
-        cardLayoutRect,
         pauseAutoRotate,
         resumeAutoRotate
     });
@@ -453,8 +444,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         hideCityCard,
         closeProvinceCards,
         forceGlobeForTickets,
-        openCityView,
-        openCityWall,
         pauseAutoRotate,
         resumeAutoRotate,
         restoreGlobeViewForAutoRotate,
