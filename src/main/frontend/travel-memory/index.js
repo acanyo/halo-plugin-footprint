@@ -19,6 +19,7 @@ import { lightbox, openLightbox, closeLightbox, switchLightbox, setLightboxDeps 
 import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 import {
     setupViewMode,
+    restoreSavedViewMode,
     isAmapMode,
     finishSwitchTo2D,
     forceGlobeForTickets,
@@ -663,32 +664,8 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // 初始构建城市淡色填充（足迹数据加载完成后会重建）
     if (isCityFillEnabled()) buildCityFills();
 
-    // ================= 恢复上次视图状态 =================
-    // 刷新后保持上次的 2D/3D 模式（直接恢复，不做展开动画，避免 3D 闪一下）；
-    // 带 ?view=tickets 进来时 startIn2D() 为 false，即保持 3D 并把票根页正常显示出来
-    try {
-        if (startIn2D() && !isAmapMode()) {
-            // 恢复 2D 时只换页面显隐是不够的：Cesium 场景本身还停在 3D 球体上，
-            // 之后点“3D 地球”时 morphTo3D 会因为“本来就在 3D”被 Cesium 跳过、不触发 morphComplete，
-            // 表现就是瞬间切页、没有合并动画，还要等 2.3 秒兜底超时才收尾。
-            // 所以这里用 0 秒 morph 把场景状态补齐（不播动画，用户看不到），
-            // 起点用当前相机投影到平面，落点约等于整球视角下的中国，和手动切换 2D 的落点基本一致。
-            try {
-                viewer.resize();   // 此刻 #view-3d 仍可见，先保证宽高比有效（morph 内部要用画布宽高）
-                if (viewer.scene.mode !== Cesium.SceneMode.SCENE2D) viewer.scene.morphTo2D(0);
-            } catch (e) {
-                console.warn('2D 场景状态初始化失败（切回 3D 时可能没有动画）：', e);
-            }
-            finishSwitchTo2D();
-        }
-    } catch (e) {
-        console.warn('恢复视图状态失败，使用默认 3D 视图：', e);
-        saveViewMode('3d');
-        document.body.classList.remove('mode-2d');
-        document.body.classList.add('mode-3d');
-        if (view3d) view3d.hidden = false;
-        if (view2d) view2d.hidden = true;
-    }
+    // 恢复上次的 2D/3D 视图（实现见 modules/view-mode.js）
+    restoreSavedViewMode();
 
     // ================= 对外只读接口（供「世界这本书」memory-shelf.js 使用） =================
     // 书架是独立脚本（static/js/memory-shelf.js），拿不到本文件的闭包变量，

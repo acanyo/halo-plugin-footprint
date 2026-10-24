@@ -337,6 +337,36 @@ if (back3dBtn) {
     });
 }
 
+/**
+ * 恢复上次的 2D/3D 模式（刷新后保持，不做展开动画，避免 3D 闪一下）。
+ *
+ * 恢复 2D 时只换页面显隐不够：Cesium 场景本身还停在 3D 球体上，
+ * 之后点「3D 地球」时 morphTo3D 会因「本来就在 3D」被跳过、不触发 morphComplete，
+ * 表现是瞬间切页、没有合并动画。所以这里用 0 秒 morph 把场景状态补齐。
+ */
+export function restoreSavedViewMode() {
+    try {
+        if (startIn2D() && !amapMode) {
+            try {
+                deps.viewer().resize();   // 此刻 #view-3d 仍可见，先保证宽高比有效
+                if (deps.viewer().scene.mode !== Cesium.SceneMode.SCENE2D) {
+                    deps.viewer().scene.morphTo2D(0);
+                }
+            } catch (e) {
+                console.warn('2D 场景状态初始化失败（切回 3D 时可能没有动画）：', e);
+            }
+            finishSwitchTo2D();
+        }
+    } catch (e) {
+        console.warn('恢复视图状态失败，使用默认 3D 视图：', e);
+        saveViewMode('3d');
+        document.body.classList.remove('mode-2d');
+        document.body.classList.add('mode-3d');
+        if (view3d) view3d.hidden = false;
+        if (view2d) view2d.hidden = true;
+    }
+}
+
 /** 当前是否在 2D 高德视图（标题卡显隐、导航栏常驻、票根页强制 3D 都要用）。 */
 export function isAmapMode() {
     return amapMode;
