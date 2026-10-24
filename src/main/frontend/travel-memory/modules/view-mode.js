@@ -281,61 +281,8 @@ export function forceGlobeForTickets() {
     });
 }
 
-// morph 动画结束：按目标模式完成视图交换
-deps.viewer().scene.morphComplete.addEventListener(() => {
-    try {
-        updateSceneModeBtn();
-        if (pendingMode === '2d') {
-            // 展开完成后保持平面地球可见，先平滑缩放到中国范围，再切换高德页面，
-            // 避免直接从“整张平面世界地图”跳到“中国高德地图”的违和感。
-            clearTimeout(morphTimeoutId);
-            const ZOOM_DURATION = 1.2;   // 平面视角飞到中国范围的时长（秒）
-            morphTimeoutId = setTimeout(() => {
-                if (pendingMode === '2d') begin2dCrossfade();
-            }, ZOOM_DURATION * 1000 + 600);
-            try {
-                animateCameraToRect(CHINA_VIEW, ZOOM_DURATION, () => {
-                    clearTimeout(morphTimeoutId);
-                    begin2dCrossfade();
-                });
-            } catch (e) {
-                console.warn('平面视角定位失败：', e);
-                clearTimeout(morphTimeoutId);
-                begin2dCrossfade();
-            }
-        } else if (pendingMode === '3d') {
-            finishSwitchTo3D();
-            // 视角归位：morph 从平面回到球体后相机常贴近地表，地球会显得“扁”。
-            // 不用 flyTo（飞行状态可能挂起导致无法拖拽），直接 setView 回到整球视角。
-            deps.viewer().camera.cancelFlight();   // 兜底：清理可能残留的飞行状态
-            deps.viewer().camera.setView({
-                destination: Cesium.Cartesian3.fromDegrees(104.0, 35.0, 21000000),
-            });
-        } else {
-            morphing = false;
-        }
-    } catch (e) {
-        console.error('2D/3D 切换失败：', e);
-        morphing = false;
-        pendingMode = null;
-    }
-});
 
-sceneModeBtn.addEventListener('click', () => {
-    if (amapMode) {
-        switchTo3D();
-    } else {
-        switchTo2D();
-    }
-});
 
-// 2D 视图：顶部导航栏隐藏，由高德页底部控制栏的“3D 地球”按钮切回 3D
-const back3dBtn = document.getElementById('back3dBtn');
-if (back3dBtn) {
-    back3dBtn.addEventListener('click', () => {
-        if (amapMode) switchTo3D();
-    });
-}
 
 /**
  * 恢复上次的 2D/3D 模式（刷新后保持，不做展开动画，避免 3D 闪一下）。
@@ -370,4 +317,66 @@ export function restoreSavedViewMode() {
 /** 当前是否在 2D 高德视图（标题卡显隐、导航栏常驻、票根页强制 3D 都要用）。 */
 export function isAmapMode() {
     return amapMode;
+}
+
+/**
+ * 绑定 morph 完成回调与 2D/3D 按钮。必须在 setupViewMode 之后调用一次。
+ */
+export function initViewMode() {
+    // morph 动画结束：按目标模式完成视图交换
+    deps.viewer().scene.morphComplete.addEventListener(() => {
+        try {
+            updateSceneModeBtn();
+            if (pendingMode === '2d') {
+                // 展开完成后保持平面地球可见，先平滑缩放到中国范围，再切换高德页面，
+                // 避免直接从“整张平面世界地图”跳到“中国高德地图”的违和感。
+                clearTimeout(morphTimeoutId);
+                const ZOOM_DURATION = 1.2;   // 平面视角飞到中国范围的时长（秒）
+                morphTimeoutId = setTimeout(() => {
+                    if (pendingMode === '2d') begin2dCrossfade();
+                }, ZOOM_DURATION * 1000 + 600);
+                try {
+                    animateCameraToRect(CHINA_VIEW, ZOOM_DURATION, () => {
+                        clearTimeout(morphTimeoutId);
+                        begin2dCrossfade();
+                    });
+                } catch (e) {
+                    console.warn('平面视角定位失败：', e);
+                    clearTimeout(morphTimeoutId);
+                    begin2dCrossfade();
+                }
+            } else if (pendingMode === '3d') {
+                finishSwitchTo3D();
+                // 视角归位：morph 从平面回到球体后相机常贴近地表，地球会显得“扁”。
+                // 不用 flyTo（飞行状态可能挂起导致无法拖拽），直接 setView 回到整球视角。
+                deps.viewer().camera.cancelFlight();   // 兜底：清理可能残留的飞行状态
+                deps.viewer().camera.setView({
+                    destination: Cesium.Cartesian3.fromDegrees(104.0, 35.0, 21000000),
+                });
+            } else {
+                morphing = false;
+            }
+        } catch (e) {
+            console.error('2D/3D 切换失败：', e);
+            morphing = false;
+            pendingMode = null;
+        }
+    });
+
+    sceneModeBtn.addEventListener('click', () => {
+        if (amapMode) {
+            switchTo3D();
+        } else {
+            switchTo2D();
+        }
+    });
+
+    // 2D 视图：顶部导航栏隐藏，由高德页底部控制栏的“3D 地球”按钮切回 3D
+    const back3dBtn = document.getElementById('back3dBtn');
+    if (back3dBtn) {
+        back3dBtn.addEventListener('click', () => {
+            if (amapMode) switchTo3D();
+        });
+    }
+
 }

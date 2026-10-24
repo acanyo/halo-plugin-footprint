@@ -75,7 +75,10 @@ export function resumeAutoRotate(reason) {
 }
 
 // 拖动地球（位移超过 5px）后自动取消自动旋转；单纯点击不取消
-export const cesiumCanvas = deps.viewer().scene.canvas;
+/** Cesium 画布。模块顶层不能碰 viewer（此时 deps 还是 null），所以惰性取。 */
+export function cesiumCanvas() {
+    return deps.viewer().scene.canvas;
+}
 let dragActive = false;
 let dragStartX = 0;
 let dragStartY = 0;
@@ -87,93 +90,9 @@ let canvasHeld = false;
 export function applyCanvasCursor() {
     // 可点目标有两类：标记（足迹/城市）与可点击的省份轮廓，两者都给手型
     const next = canvasHeld ? 'grabbing' : ((hoveredMarker || isHoveredProvince()) ? 'pointer' : '');
-    if (cesiumCanvas.style.cursor !== next) cesiumCanvas.style.cursor = next;
+    if (cesiumCanvas().style.cursor !== next) cesiumCanvas().style.cursor = next;
 }
 
-cesiumCanvas.addEventListener('pointerdown', (e) => {
-    dragActive = true;
-    canvasHeld = true;
-    applyCanvasCursor();
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-});
-window.addEventListener('pointerup', () => {
-    dragActive = false;
-    canvasHeld = false;
-    applyCanvasCursor();
-});
-window.addEventListener('pointercancel', () => {
-    dragActive = false;
-    canvasHeld = false;
-    applyCanvasCursor();
-});
-window.addEventListener('pointermove', (e) => {
-    if (!dragActive || !autoRotate) return;
-    const dx = e.clientX - dragStartX;
-    const dy = e.clientY - dragStartY;
-    if (dx * dx + dy * dy > 25) {      // 超过 5px 视为拖动
-        dragActive = false;
-        setAutoRotate(false);          // 拖动后取消自动旋转，需手动再开
-    }
-}, { passive: true });
-
-// 鼠标悬停在地球表面时暂停自动旋转，移开（星空/空白/控件上方）即恢复。
-// 用相机射线与地球椭球求交判断光标是否在地球圆盘内：
-// 相交 = 在地球上；不相交 = 在星空/空白处。纯数学计算，无 GPU 开销。
-let hoverPaused = false;
-let lastHoverCheck = 0;
-const hoverCheckInterval = 60;   // 节流到约 16 次/秒，避免高频计算
-cesiumCanvas.addEventListener('pointermove', (e) => {
-    if (!autoRotate || deps.viewer().scene.mode !== Cesium.SceneMode.SCENE3D) {
-        hoverPaused = false;
-        return;
-    }
-    const now = performance.now();
-    if (now - lastHoverCheck < hoverCheckInterval) return;
-    lastHoverCheck = now;
-    const rect = cesiumCanvas.getBoundingClientRect();
-    const pos = new Cesium.Cartesian2(e.clientX - rect.left, e.clientY - rect.top);
-    const ray = deps.viewer().camera.getPickRay(pos);
-    // 与地球椭球求交：有交点 = 光标在地球圆盘内（IntersectionTests.rayEllipsoid）
-    const interval = ray
-        ? Cesium.IntersectionTests.rayEllipsoid(ray, deps.viewer().scene.globe.ellipsoid)
-        : undefined;
-    hoverPaused = interval !== undefined;
-});
-cesiumCanvas.addEventListener('mouseleave', () => {
-    hoverPaused = false;
-    hoveredMarker = false;
-    setHoveredProvince(false);
-    applyCanvasCursor();
-});
-
-// 用户动作（点按钮）改变的是「偏好」：即使此刻正被卡片暂停，按钮也该如实反映设置本身
-function setAutoRotate(on) {
-    autoRotatePref = on;
-    saveAutoRotate(on);
-    refreshAutoRotate();
-}
-refreshAutoRotate();
-
-rotateBtn.addEventListener('click', () => {
-    if (reduceMotion) return;                   // 系统减弱动效时不启用
-    setAutoRotate(!autoRotatePref);
-});
-
-deps.viewer().clock.onTick.addEventListener(() => {
-    if (!autoRotate) return;
-    if (deps.viewer().scene.mode !== Cesium.SceneMode.SCENE3D) return;  // 只在 3D 旋转
-    if (hoverPaused) return;   // 鼠标悬停时暂停
-    const now = performance.now();
-    const dt = lastRotateTime === null ? 0 : Math.min((now - lastRotateTime) / 1000, 0.2);
-    lastRotateTime = now;
-    if (dt <= 0) return;
-    try {
-        deps.viewer().camera.rotate(Cesium.Cartesian3.UNIT_Z, -Cesium.Math.toRadians(2) * dt); // 2 度/秒
-    } catch (e) {
-        console.error('自动旋转出错：', e);
-    }
-});
 /** 此刻是否真的在转（票根页恢复视角等逻辑要读）。 */
 export function isAutoRotating() {
     return autoRotate;
@@ -194,6 +113,76 @@ export function setHoveredMarker(value) {
  * 启动旋转时钟。必须在 setupAutoRotate 之后调用一次。
  */
 export function initAutoRotate() {
+    cesiumCanvas().addEventListener('pointerdown', (e) => {
+        dragActive = true;
+        canvasHeld = true;
+        applyCanvasCursor();
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+    });
+    window.addEventListener('pointerup', () => {
+        dragActive = false;
+        canvasHeld = false;
+        applyCanvasCursor();
+    });
+    window.addEventListener('pointercancel', () => {
+        dragActive = false;
+        canvasHeld = false;
+        applyCanvasCursor();
+    });
+    window.addEventListener('pointermove', (e) => {
+        if (!dragActive || !autoRotate) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        if (dx * dx + dy * dy > 25) {      // 超过 5px 视为拖动
+            dragActive = false;
+            setAutoRotate(false);          // 拖动后取消自动旋转，需手动再开
+        }
+    }, { passive: true });
+
+    // 鼠标悬停在地球表面时暂停自动旋转，移开（星空/空白/控件上方）即恢复。
+    // 用相机射线与地球椭球求交判断光标是否在地球圆盘内：
+    // 相交 = 在地球上；不相交 = 在星空/空白处。纯数学计算，无 GPU 开销。
+    let hoverPaused = false;
+    let lastHoverCheck = 0;
+    const hoverCheckInterval = 60;   // 节流到约 16 次/秒，避免高频计算
+    cesiumCanvas().addEventListener('pointermove', (e) => {
+        if (!autoRotate || deps.viewer().scene.mode !== Cesium.SceneMode.SCENE3D) {
+            hoverPaused = false;
+            return;
+        }
+        const now = performance.now();
+        if (now - lastHoverCheck < hoverCheckInterval) return;
+        lastHoverCheck = now;
+        const rect = cesiumCanvas().getBoundingClientRect();
+        const pos = new Cesium.Cartesian2(e.clientX - rect.left, e.clientY - rect.top);
+        const ray = deps.viewer().camera.getPickRay(pos);
+        // 与地球椭球求交：有交点 = 光标在地球圆盘内（IntersectionTests.rayEllipsoid）
+        const interval = ray
+            ? Cesium.IntersectionTests.rayEllipsoid(ray, deps.viewer().scene.globe.ellipsoid)
+            : undefined;
+        hoverPaused = interval !== undefined;
+    });
+    cesiumCanvas().addEventListener('mouseleave', () => {
+        hoverPaused = false;
+        hoveredMarker = false;
+        setHoveredProvince(false);
+        applyCanvasCursor();
+    });
+
+    // 用户动作（点按钮）改变的是「偏好」：即使此刻正被卡片暂停，按钮也该如实反映设置本身
+    function setAutoRotate(on) {
+        autoRotatePref = on;
+        saveAutoRotate(on);
+        refreshAutoRotate();
+    }
+    refreshAutoRotate();
+
+    rotateBtn.addEventListener('click', () => {
+        if (reduceMotion) return;                   // 系统减弱动效时不启用
+        setAutoRotate(!autoRotatePref);
+    });
+
     deps.viewer().clock.onTick.addEventListener(() => {
         if (!autoRotate) return;
         if (deps.viewer().scene.mode !== Cesium.SceneMode.SCENE3D) return;  // 只在 3D 旋转

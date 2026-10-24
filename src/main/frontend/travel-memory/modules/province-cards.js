@@ -1462,7 +1462,6 @@ function updateProvinceOverlays() {
     if (!provinceCameraMoved() && !provinceLayoutDirty) return;
     layoutProvinceCards();
 }
-deps.viewer().scene.postRender.addEventListener(updateProvinceOverlays);
 
 // “拉出来”的生长动画：线沿自身长度铺开；动画结束后清掉 dash，
 // 否则线随地球移动、长度变化时会出现断口。
@@ -1626,33 +1625,6 @@ function toggleAllCityCards() {
     return activateAllCityCards();
 }
 
-(function wireProvinceAllBtn() {
-    const btn = provinceAllBtnEl();
-    if (!btn) return;
-    btn.addEventListener('click', () => toggleAllCityCards());
-    syncProvinceAllBtn();
-    syncProvinceAllAvailability();
-})();
-
-// 视口变化：重排；窄屏直接整组收起（门控与样式断点一致）
-window.addEventListener('resize', () => {
-    if (!provinceCardsActive) return;
-    if (!provinceCardsEnabled()) {
-        closeProvinceCards();
-        return;
-    }
-    measureProvinceCards();
-    provinceLayoutDirty = true;
-});
-
-// 足迹数据重载后：省市对应关系可能变了，收起已打开的卡片组
-document.addEventListener('footprints:loaded', () => {
-    if (provinceCardsActive) closeProvinceCards();
-    hidePhotoRing();   // 数据重载后照片可能已变，收起照片环
-});
-
-loadProvinceIndex();   // 提前取一次边界数据，首次点击省份时不必等网络
-
 /** 卡片组是否打开（标记明暗、Esc 逐级退、各入口开关都要读）。 */
 export function isProvinceCardsActive() {
     return provinceCardsActive;
@@ -1704,5 +1676,4 @@ export function setProvinceEntityIndex(entityMap, materialSnapshot) {
  * 绑定与相机帧同步的省份浮层更新。必须在 setupProvinceCards 之后调用一次。
  */
 export function initProvinceCards() {
-    deps.viewer().scene.postRender.addEventListener(updateProvinceOverlays);
-}
+    }

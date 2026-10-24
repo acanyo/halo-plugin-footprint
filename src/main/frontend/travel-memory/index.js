@@ -25,11 +25,13 @@ import {
 import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 import {
     setupViewMode,
+    initViewMode,
     restoreSavedViewMode,
     forceGlobeForTickets
 } from './modules/view-mode.js';
 import {
     setupCityFill,
+    initCityFill,
     isCityFillEnabled,
     buildCityFills,
     applyCityFillHighlight,
@@ -106,11 +108,13 @@ import {
     setChinaBoundarySource,
     setTerrainNote,
     refreshStatusText,
-    applyGlobeBranding
+    applyGlobeBranding,
+    cityFillFloatBtn
 } from './modules/navigation.js';
 import {
     setupMarkers,
     initMarkers,
+    initMarkersInput,
     initMarkersOverlay,
     markerCard,
     cityCard,
@@ -266,6 +270,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         applyScreenSpaceError
     });
     initMarkers();
+    initMarkersInput();
     initMarkersOverlay();
 
     // ================= 城市淡色填充 =================
@@ -276,7 +281,9 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         cityList: () => cityListSnapshot(),
         baseProviders: baseProviderMap,
         currentBaseKey: currentBase,
+        cityFillFloatBtn: () => cityFillFloatBtn()
     });
+    initCityFill();
 
     // ================= 2D/3D 视图切换 =================
     // 实现见 modules/view-mode.js；morph 动画与视图模式记忆都在那边。
@@ -288,6 +295,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         hideCityCard,
         hideMarkerCard
     });
+    initViewMode();
 
     // ================= 首屏配置（相机 / 忙碌标志 / 光照 / 地球可用信号） =================
     setupGlobeBasics({ viewer: () => viewer });
