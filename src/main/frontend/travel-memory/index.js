@@ -277,16 +277,47 @@ setTileBatchHandler(refreshStatusText);
 setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
 // 洞察的统计口径同样靠注入拿数据：FOOTPRINTS / cityList 是 let，要取值函数而不是快照
 setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(), cityViewItems, cityWallImages, ticketImageUrl, cityKeyOf });
+    // ================= 初始化 Viewer =================
+    const viewer = new Cesium.Viewer('cesiumContainer', {
+        baseLayer: false,          // 不用 Cesium 默认底图，全部换成国内服务
+        animation: false,          // 隐藏左下角动画控件
+        timeline: false,           // 隐藏底部时间轴
+        fullscreenButton: false,   // 隐藏右下角全屏按钮
+        baseLayerPicker: false,    // 隐藏右上角底图选择器
+        geocoder: false,           // 隐藏右上角搜索框
+        homeButton: false,         // 隐藏右上角 Home 按钮
+        sceneModePicker: false,    // 隐藏右上角 2D/3D 模式切换按钮
+        navigationHelpButton: false, // 隐藏右上角导航帮助按钮
+        infoBox: false,            // 隐藏点击实体后的信息框
+        selectionIndicator: false, // 隐藏点击实体后的四角选中框
+        useBrowserRecommendedResolution: true // 渲染倍率交给下面的 resolutionScale 统一控制
+        // 已移除 Cesium.Terrain.fromWorldTerrain()（依赖海外 Ion 服务），地形改由天地图提供
+    });
+
+    viewer.cesiumWidget.creditContainer.style.display = 'none';
+
+    // Cesium 默认的双击会 `viewer.trackedEntity = 拾取到的实体`：相机被拖进"跟随实体"模式，
+    // 表现为镜头突然变成斜面、之后旋转缩放都不跟手。本页不需要这个默认行为，直接移除；
+    // 顺手清一次跟踪状态，避免之前误触留下的跟随残留。
+    viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+    viewer.trackedEntity = undefined;
+
+    // 高分屏渲染倍率封顶：useBrowserRecommendedResolution=false 时有效倍率会直接等于
+    // window.devicePixelRatio，3 倍屏手机等于按 9 倍像素渲染，拖动和捏合会明显掉帧。
+    // 这里改成显式指定：桌面最多 2 倍，触屏 1.5 倍（清晰度几乎无损，帧率更稳）。
+    viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, COARSE_POINTER ? 1.5 : 2);
+
+    // 后台注入的前台配置（模板里 window.FOOTPRINT_CONFIG）
+    const footprintCfg = window.FOOTPRINT_CONFIG || {};
+    // 系统是否要求减弱动效：入场动画、2D 切换、卡片飞行等多处共用
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     // ================= 自动旋转与画布光标 =================
     setupAutoRotate({
         viewer: () => viewer,
-        reduceMotion: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        reduceMotion: () => reduceMotion
     });
     initAutoRotate();
-
-
-    // 系统是否要求减弱动效：入场动画、2D 切换、卡片飞行等多处共用
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // ================= 顶部导航与左侧标题卡 =================
     // 实现见 modules/navigation.js：标题卡/导航显隐、状态栏、底图菜单、Esc 逐级关闭。
@@ -300,7 +331,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         statusText: () => document.getElementById('statusText'),
         statusRetry: () => document.getElementById('statusRetry'),
         hasTdtKey: hasTiandituKey,
-        footprintCfg: () => window.FOOTPRINT_CONFIG || {}
+        footprintCfg: () => footprintCfg
     });
     initNavigation();
 
@@ -348,35 +379,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         hideMarkerCard
     });
 
-    // ================= 初始化 Viewer =================
-    const viewer = new Cesium.Viewer('cesiumContainer', {
-        baseLayer: false,          // 不用 Cesium 默认底图，全部换成国内服务
-        animation: false,          // 隐藏左下角动画控件
-        timeline: false,           // 隐藏底部时间轴
-        fullscreenButton: false,   // 隐藏右下角全屏按钮
-        baseLayerPicker: false,    // 隐藏右上角底图选择器
-        geocoder: false,           // 隐藏右上角搜索框
-        homeButton: false,         // 隐藏右上角 Home 按钮
-        sceneModePicker: false,    // 隐藏右上角 2D/3D 模式切换按钮
-        navigationHelpButton: false, // 隐藏右上角导航帮助按钮
-        infoBox: false,            // 隐藏点击实体后的信息框
-        selectionIndicator: false, // 隐藏点击实体后的四角选中框
-        useBrowserRecommendedResolution: true // 渲染倍率交给下面的 resolutionScale 统一控制
-        // 已移除 Cesium.Terrain.fromWorldTerrain()（依赖海外 Ion 服务），地形改由天地图提供
-    });
-
-    viewer.cesiumWidget.creditContainer.style.display = 'none';
-
-    // Cesium 默认的双击会 `viewer.trackedEntity = 拾取到的实体`：相机被拖进"跟随实体"模式，
-    // 表现为镜头突然变成斜面、之后旋转缩放都不跟手。本页不需要这个默认行为，直接移除；
-    // 顺手清一次跟踪状态，避免之前误触留下的跟随残留。
-    viewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
-    viewer.trackedEntity = undefined;
-
-    // 高分屏渲染倍率封顶：useBrowserRecommendedResolution=false 时有效倍率会直接等于
-    // window.devicePixelRatio，3 倍屏手机等于按 9 倍像素渲染，拖动和捏合会明显掉帧。
-    // 这里改成显式指定：桌面最多 2 倍，触屏 1.5 倍（清晰度几乎无损，帧率更稳）。
-    viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, COARSE_POINTER ? 1.5 : 2);
 
     // ================= 首屏配置（相机 / 忙碌标志 / 光照 / 地球可用信号） =================
     setupGlobeBasics({ viewer: () => viewer });
