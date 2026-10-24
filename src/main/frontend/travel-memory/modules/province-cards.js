@@ -156,7 +156,7 @@ export function cityCardsEnabled() {
 
 // 省份可点还多一条：中国轮廓已经显示（放大到国内范围）
 export function provincePickingEnabled() {
-    return deps.cityCardsEnabled() && deps.boundaryVisible();
+    return cityCardsEnabled() && deps.boundaryVisible();
 }
 
 // ---------- 省份边界 GeoJSON（共享请求） ----------
@@ -361,7 +361,7 @@ function provinceCitiesOf(adcode, name) {
     const byName = [];
     const targetName = normalizeProvinceName(name);
     deps.cityList().forEach((city, ci) => {
-        const fp = deps.FOOTPRINTS()[city.indices[0]];
+        const fp = deps.footprints()[city.indices[0]];
         if (!fp) return;
         if (fp.provinceAdcode) {
             if (String(fp.provinceAdcode) === String(adcode)) exact.push(ci);
@@ -645,7 +645,7 @@ function startProvinceMarkerPulse(items) {
 
 // 一键展开：所有去过的城市各一张卡片 + 一条连线
 export function activateAllCityCards() {
-    if (!deps.cityCardsEnabled()) return false;
+    if (!cityCardsEnabled()) return false;
     const cities = deps.cityList().map((city, ci) => ci);
     if (!cities.length) return false;
     const open = () => activateCityCards({
@@ -680,7 +680,7 @@ function flyToChinaForCityCards(done) {
         }
         if (!provinceAllFlight) return;   // 飞行途中已被取消
         provinceAllFlight = false;
-        if (deps.cityCardsEnabled()) done();
+        if (cityCardsEnabled()) done();
         syncProvinceAllBtn();
     };
     if (provinceAllFlightTimer !== null) {
@@ -1609,7 +1609,7 @@ function syncProvinceAllBtn() {
 export function syncProvinceAllAvailability() {
     const btn = provinceAllBtnEl();
     if (!btn) return;
-    const enabled = deps.cityCardsEnabled();
+    const enabled = cityCardsEnabled();
     if (provinceAllAvailable === enabled) return;
     provinceAllAvailable = enabled;
     btn.disabled = !enabled;

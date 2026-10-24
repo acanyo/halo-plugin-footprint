@@ -96,7 +96,7 @@ function timeCapsuleItems() {
     const now = new Date();
     const today = String(now.getMonth() + 1).padStart(2, '0') + '-' +
         String(now.getDate()).padStart(2, '0');
-    return deps.FOOTPRINTS()
+    return deps.footprints()
         .filter(fp => {
             const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(fp.createTime || '');
             if (!m) return false;
@@ -164,7 +164,7 @@ function renderTimeCapsule() {
     galleryBtn.type = 'button';
     galleryBtn.textContent = '打开图片墙';
     galleryBtn.addEventListener('click', () => {
-        const fpIndex = deps.FOOTPRINTS().indexOf(fp);
+        const fpIndex = deps.footprints().indexOf(fp);
         const ci = fpIndex >= 0 ? deps.cityList().findIndex(city => city.indices.includes(fpIndex)) : -1;
         closeTimeCapsule(false);
         if (ci >= 0) deps.openCityView(ci, null);
@@ -389,7 +389,7 @@ function insightYearMetrics(item) {
 }
 
 function refreshInsightYearCard(index) {
-    const years = insightYearStats(deps.FOOTPRINTS());
+    const years = insightYearStats(deps.footprints());
     if (!years.length) return;
     insightYearIndex = Math.max(0, Math.min(index, years.length - 1));
     const active = years[insightYearIndex];
@@ -454,11 +454,11 @@ function insightFilterProvince(name) {
 
 function insightCardsData() {
     const m = insightMetrics();
-    const time = insightTimeStats(deps.FOOTPRINTS());
-    const province = insightProvinceStats(deps.FOOTPRINTS());
-    const segment = insightSegmentStats(deps.FOOTPRINTS());
-    const type = insightTypeStats(deps.FOOTPRINTS());
-    const years = insightYearStats(deps.FOOTPRINTS());
+    const time = insightTimeStats(deps.footprints());
+    const province = insightProvinceStats(deps.footprints());
+    const segment = insightSegmentStats(deps.footprints());
+    const type = insightTypeStats(deps.footprints());
+    const years = insightYearStats(deps.footprints());
     const derived = insightDerived(segment);
     const badges = insightAchievements(m, time, province, segment, derived);
     const titles = insightTitlesOf(m, time, province, segment, derived);
@@ -467,7 +467,7 @@ function insightCardsData() {
     const title = titles.length
         ? titles[insightTitleVariant % titles.length]
         : insightFallbackTitle(m);
-    if (!deps.FOOTPRINTS().length) {
+    if (!deps.footprints().length) {
         return {
             title: '',
             cards: [{

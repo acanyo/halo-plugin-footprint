@@ -35,7 +35,7 @@ export function setupCityWall(d) {
 }
 
 // ================= 城市卡片墙（城市总览目录） =================
-// 与城市图片墙共用 deps.FOOTPRINTS() / deps.cityList()：卡片点击后直接进入现有 openCityView，
+// 与城市图片墙共用 deps.footprints() / deps.cityList()：卡片点击后直接进入现有 openCityView，
 // 不做重复的城市详情实现。卡片按“最近去过时间”倒序排列。
 export const cityWall = document.getElementById('cityWall');
 export const cityWallBtn = document.getElementById('cityWallBtn');

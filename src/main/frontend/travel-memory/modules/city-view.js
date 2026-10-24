@@ -55,7 +55,7 @@ let cityViewFromWall = false;    // 当前图片墙是否从城市卡片墙展�
 
 function cityViewFootprints() {
     const city = deps.cityList()[cityViewCityIndex];
-    return city ? city.indices.map(i => deps.FOOTPRINTS()[i]).filter(Boolean) : [];
+    return city ? city.indices.map(i => deps.footprints()[i]).filter(Boolean) : [];
 }
 export function cityWallImages(fp) {
     let gallery = fp && fp.galleryImages;
@@ -637,7 +637,7 @@ function cityListMeta(ci) {
     const city = deps.cityList()[ci];
     if (!city) return { count: 0, photos: 0 };
     const photos = city.indices.reduce(
-        (n, fi) => n + cityWallImages(deps.FOOTPRINTS()[fi]).length, 0
+        (n, fi) => n + cityWallImages(deps.footprints()[fi]).length, 0
     );
     return { count: city.indices.length, photos };
 }
@@ -697,7 +697,7 @@ function toggleCitySwitcher() {
 
 // 关闭全屏视图，飞到该足迹在地球上的位置（不打开详情卡）
 function flyToCityFootprint(fp) {
-    const idx = deps.FOOTPRINTS().indexOf(fp);
+    const idx = deps.footprints().indexOf(fp);
     closeCityView(false);
     if (idx < 0) return;
     const pos = deps.currentPositions()[idx];
@@ -792,7 +792,7 @@ export function closeCityView(returnFocus = true) {
             return;
         }
         if (restore) {
-            const fp = deps.FOOTPRINTS()[restore.fpIndex];
+            const fp = deps.footprints()[restore.fpIndex];
             if (fp) {
                 deps.showMarkerCard(fp, restore.fpIndex);
                 const target = restore.trigger && restore.trigger.isConnected
@@ -818,7 +818,7 @@ export function closeCityView(returnFocus = true) {
  */
 export function openCityViewAtFootprint(fp, triggerEl) {
     if (!fp) return;
-    const fpIndex = deps.FOOTPRINTS().indexOf(fp);
+    const fpIndex = deps.footprints().indexOf(fp);
     if (fpIndex < 0) return;
     const cities = deps.cityList();
     const cityIndex = cities.findIndex(city => city.indices.includes(fpIndex));

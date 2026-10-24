@@ -164,7 +164,7 @@ export function buildCityFills() {
     const item = deps.currentBaseKey() ? deps.baseProviders()[deps.currentBaseKey()] : null;
     const basemapIsGcj = !!(item && item.gcj);
     const seen = new Set();
-    deps.FOOTPRINTS().forEach(fp => {
+    deps.footprints().forEach(fp => {
         const adcode = String(fp.cityAdcode || '');
         if (!adcode || seen.has(adcode)) return;
         seen.add(adcode);
@@ -238,7 +238,7 @@ export function cityFillAdcodeOf(ci) {
     const city = deps.cityList()[ci];
     if (!city) return '';
     for (let i = 0; i < city.indices.length; i++) {
-        const fp = deps.FOOTPRINTS()[city.indices[i]];
+        const fp = deps.footprints()[city.indices[i]];
         if (fp && fp.cityAdcode) return String(fp.cityAdcode);
     }
     return '';

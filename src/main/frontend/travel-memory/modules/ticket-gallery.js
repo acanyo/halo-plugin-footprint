@@ -523,7 +523,7 @@ function nextTicketStopSuggestion() {
     // 与城市聚合同一套键：adcode 优先，避免同一座城市因为写法不同被当成"没去过"
     const ticketCities = new Set(ticketItems.map(fp => deps.cityKeyOf(fp)).filter(Boolean));
     const candidates = [];
-    deps.FOOTPRINTS().forEach(fp => {
+    deps.footprints().forEach(fp => {
         if (ticketImageUrl(fp.ticketImage) || !fp.city) return;
         const key = deps.cityKeyOf(fp);
         if (!key || ticketCities.has(key) || candidates.includes(fp.city)) return;
@@ -1234,7 +1234,7 @@ function finishTicketReplay() {
     }
     // 重走只放映「带票根图」的足迹，这里说明一下总数，免得用户以为别的足迹丢了
     if (ticketReplayEndNote) {
-        const withoutTicket = Math.max(0, deps.FOOTPRINTS().length - ticketItems.length);
+        const withoutTicket = Math.max(0, deps.footprints().length - ticketItems.length);
         ticketReplayEndNote.textContent = withoutTicket
             ? '重走只放映有票根图的足迹，另有 ' + withoutTicket + ' 个足迹未附票根'
             : '';
@@ -1376,7 +1376,7 @@ export function ticketDate(value) {
 }
 
 export function ticketItemsFromFootprints() {
-    return deps.FOOTPRINTS().filter(fp =>
+    return deps.footprints().filter(fp =>
         ticketImageUrl(fp.ticketImage) &&
         (!ticketCityFilter || deps.cityKeyOf(fp) === ticketCityFilter));
 }
