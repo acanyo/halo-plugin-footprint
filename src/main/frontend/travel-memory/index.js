@@ -129,7 +129,8 @@ import {
 import {
     setupGlobeBasics,
     initGlobeBasics,
-    globeReadySignal
+    globeReadySignal,
+    applyScreenSpaceError
 } from './modules/globe-basics.js';
 import {
     setupEntrance,
@@ -376,25 +377,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // window.devicePixelRatio，3 倍屏手机等于按 9 倍像素渲染，拖动和捏合会明显掉帧。
     // 这里改成显式指定：桌面最多 2 倍，触屏 1.5 倍（清晰度几乎无损，帧率更稳）。
     viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, COARSE_POINTER ? 1.5 : 2);
-
-    // LOD 容差改成「按高度自适应」：整球 / 中远距离用 Cesium 默认的 2.0，
-    // 只有贴近地面看城市细节时才收紧到 1.0 保证文字锐利。
-    // 阈值每减半，屏幕上的瓦片数大约翻两番（1.0 时是 2.0 的约 4 倍请求量）——
-    // 天地图每天只有一万次额度，这笔账必须省。
-    const GLOBE_SSE_FAR = 2.0;
-    const GLOBE_SSE_NEAR = 1.0;
-    const GLOBE_SSE_NEAR_HEIGHT = 2500000;   // 相机低于此高度算「贴近」
-    function applyScreenSpaceError() {
-        const h = viewer.camera.positionCartographic.height;
-        const next = h < GLOBE_SSE_NEAR_HEIGHT ? GLOBE_SSE_NEAR : GLOBE_SSE_FAR;
-        if (viewer.scene.maximumScreenSpaceError !== next) viewer.scene.maximumScreenSpaceError = next;
-    }
-    viewer.camera.moveEnd.addEventListener(applyScreenSpaceError);
-    applyScreenSpaceError();
-
-    // 预取保持 Cesium 默认（preloadAncestors 打开），转动/平移时瓦片衔接才顺；
-    // 只把内存里的瓦片缓存加大，减少重复请求
-    viewer.scene.globe.tileCacheSize = 800;
 
     // ================= 首屏配置（相机 / 忙碌标志 / 光照 / 地球可用信号） =================
     setupGlobeBasics({ viewer: () => viewer });
