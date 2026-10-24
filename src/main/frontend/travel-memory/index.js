@@ -109,6 +109,7 @@ import {
     setTerrainNote,
     refreshStatusText,
     applyGlobeBranding,
+    restoreGlobeViewForAutoRotate,
     cityFillFloatBtn
 } from './modules/navigation.js';
 import {
@@ -131,6 +132,7 @@ import {
     cityViewItems,
     cityPhotoItems,
     hideMarkerCard,
+    hideMarkerTip,
     showMarkerCard,
     hideCityCard,
     showCityCard,
@@ -271,7 +273,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         cityList: () => cityListSnapshot(),
         baseProviders: baseProviderMap,
         currentBaseKey: currentBase,
-        cityFillFloatBtn: () => cityFillFloatBtn()
+        cityFillFloatBtn: () => cityFillFloatBtn
     });
     // ================= 2D/3D 视图切换 =================
     // 实现见 modules/view-mode.js；morph 动画与视图模式记忆都在那边。

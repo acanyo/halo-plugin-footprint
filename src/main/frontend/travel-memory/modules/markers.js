@@ -960,7 +960,7 @@ function showMarkerTip(entity, text) {
     updateMarkerTipPosition();
 }
 
-function hideMarkerTip() {
+export function hideMarkerTip() {
     markerTipEntity = null;
     hoveredMarkerKey = '';   // 气泡被别的入口收起后，指针再动一次可以重新弹出来
     markerTip.classList.remove('show');

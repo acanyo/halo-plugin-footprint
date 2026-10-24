@@ -227,7 +227,7 @@ if (navBackGlobeBtn) navBackGlobeBtn.addEventListener('click', flyBackToGlobe);
 // 票根页（重走放映）会把镜头停在某个城市附近，
 // 这个高度下自动旋转看起来像原地打转；返回地球/回到票夹时若自动旋转开着，
 // 就把视角收回整个地球。只在确实被拉近（低于整球高度）时触发，避免多余飞行。
-function restoreGlobeViewForAutoRotate() {
+export function restoreGlobeViewForAutoRotate() {
     if (!isAutoRotating()) return;
     if (deps.viewer().scene.mode !== Cesium.SceneMode.SCENE3D) return;
     if (deps.viewer().camera.positionCartographic.height >= INTRO_SHOW_HEIGHT) return;
