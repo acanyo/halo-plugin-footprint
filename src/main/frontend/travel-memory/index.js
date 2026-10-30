@@ -114,6 +114,7 @@ import {
 import {
     setupMarkers,
     initMarkers,
+    prewarmMarkerLabels,
     initMarkersOverlay,
     markerTip,
     markerFocusLayer,
@@ -395,6 +396,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
             buildMarkers();
             buildCityMarkers();
             rebuildMarkerModeFromCamera();
+            prewarmMarkerLabels();   // 新数据里可能有没见过的字
             if (isCityFillEnabled()) buildCityFills();   // 城市高亮开关开启时才随新数据重建
         }
         markFootprintDataReady();
@@ -522,6 +524,9 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     //
     // 传已解析的 GeoJSON 对象而不是 URL：GeoJsonDataSource.load 两者都收，
     // 传对象就不会再发一次请求，与几何索引共用 loadProvinceGeoJson 那一次下载。
+    // 地名字形预热也挂在首批瓦片之后：首屏不和它抢时间，用户放大前已经备好
+    globeReadySignal().then(prewarmMarkerLabels);
+
     const chinaDataSource = globeReadySignal()
         .then(loadProvinceGeoJson)
         .then(geojson =>

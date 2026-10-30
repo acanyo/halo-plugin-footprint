@@ -40,7 +40,8 @@ import {
     resetMarkerLabelLayout,
     forgetMarkerLabel,
     updateMarkerOcclusion,
-    layoutMarkerLabels
+    layoutMarkerLabels,
+    prewarmLabelGlyphs
 } from './marker-visibility.js';
 
 let deps = null;
@@ -694,6 +695,14 @@ export function initMarkers() {
     buildMarkers();
     buildCityMarkers();
     applyMarkerMode(true);   // 初始整球视图：城市聚合
+}
+
+/** 地球铺完首批瓦片后调用：把地名字形提前栅格化，第一次飞到展开层级时不再卡一下。 */
+export function prewarmMarkerLabels() {
+    prewarmLabelGlyphs(deps.viewer(), [
+        ...deps.footprints().map(fp => fp.name || ''),
+        ...cityList.map(city => city.city || '')
+    ]);
 }
 
 /** 清空全部标记实体（重建前调用）。 */

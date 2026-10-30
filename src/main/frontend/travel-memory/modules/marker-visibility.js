@@ -42,6 +42,52 @@ const LABEL_SLOT_DIRS = [
 // 名字宁可放得远一点，也不能整个消失——消失会让人以为"这个点没显示出来"。
 const LABEL_SLOT_RINGS = [1, 1.9, 2.6];
 
+/**
+ * 预热地名用到的字形。
+ *
+ * Cesium 的标签按「单个字」栅格化并缓存（每个字一次 canvas 绘制 + getImageData + 距离场计算），
+ * 缓存挂在标签集合上，第一次真正显示某个字时才做。地名里几乎全是汉字、互不重复，
+ * 实测第一次飞到展开层级时一帧里要栅格化约 200 个字形，主线程多出一百多毫秒——
+ * 就是「飞下去时顿一下」。这里在地球铺完瓦片后的空闲时间里，用一个藏在地球背面、
+ * 透明度为 0 的临时标签把所有地名的字过一遍：字形进了缓存，之后显示就只是排版。
+ * 分批做，每批一帧，不和首屏抢时间。
+ *
+ * @param viewer  Cesium.Viewer
+ * @param texts   要预热的文本（地名 / 足迹名）
+ */
+export function prewarmLabelGlyphs(viewer, texts) {
+    const chars = [...new Set(texts.join(''))].filter(ch => ch.trim());
+    if (!chars.length) return;
+    const BATCH = 40;   // 一帧栅格化的字数，约 20ms
+    const ghost = viewer.entities.add({
+        // 放在地球中心：永远在相机看不见的位置，也不会挡住拾取
+        position: Cesium.Cartesian3.ZERO,
+        label: {
+            text: '',
+            font: LABEL_FONT,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            fillColor: Cesium.Color.TRANSPARENT,
+            outlineColor: Cesium.Color.TRANSPARENT,
+            outlineWidth: 2.5,
+            // 字形缓存的键 = 字 + 字体 + 竖直对齐，必须和真实标签（markerLabelGraphics）一致
+            verticalOrigin: Cesium.VerticalOrigin.TOP
+        }
+    });
+    let i = 0;
+    const step = () => {
+        if (i >= chars.length) {
+            viewer.entities.remove(ghost);
+            return;
+        }
+        ghost.label.text = chars.slice(i, i + BATCH).join('');
+        i += BATCH;
+        const next = () => requestAnimationFrame(step);
+        if ('requestIdleCallback' in window) window.requestIdleCallback(next, { timeout: 500 });
+        else setTimeout(next, 16);
+    };
+    step();
+}
+
 export function markerLabelGraphics(text, markerSize) {
     return {
         text: text,
