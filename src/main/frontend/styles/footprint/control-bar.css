@@ -1,6 +1,6 @@
 /*
- * 底部控制栏：一块白图纸面，按钮是描边/无底的小控件。
- * 当前图层（标准 / 卫星）用等高线绿表示选中；没有投影、没有毛玻璃。
+ * 底部控制栏：居中的一枚白玻璃胶囊（圆角 24px、背景模糊 12px），里面是无描边的浅底胶囊按钮。
+ * 当前图层（标准 / 卫星）用强调色浅底 + 强调色字表示选中。入场时整条去模糊弹出。
  */
 .map-controls {
     position: fixed;
@@ -9,19 +9,29 @@
     z-index: 1000;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     padding: 6px;
-    background: var(--fp-paper);
-    border: 1px solid var(--fp-rule);
-    border-radius: var(--fp-radius-panel);
+    border-radius: 24px;
+    background: var(--fp-glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--fp-shadow);
     white-space: nowrap;
     font-family: var(--fp-font-text);
     opacity: 0;
     transform: translateX(-50%);
-    transition: opacity 0.24s var(--fp-ease);
+    transition: left var(--fp-dur) var(--fp-ease), right var(--fp-dur) var(--fp-ease);
 }
 .map-controls.show {
-    opacity: 1;
+    animation: mapControlsIn var(--fp-dur) var(--fp-ease) both;
+}
+@keyframes mapControlsIn {
+    from { opacity: 0; filter: blur(8px); transform: translateX(-50%) translateY(8px) scale(0.92); }
+    to { opacity: 1; filter: none; transform: translateX(-50%); }
+}
+@keyframes mapControlsInDocked {
+    from { opacity: 0; filter: blur(8px); transform: translateY(8px) scale(0.92); }
+    to { opacity: 1; filter: none; transform: none; }
 }
 .map-controls > * {
     flex-shrink: 0;
@@ -32,8 +42,11 @@
     right: calc(500px + 12px + var(--safe-right));
     transform: none;
 }
+.map-controls.show.open {
+    animation-name: mapControlsInDocked;
+}
 
-/* 一组按钮：一圈格线框起来 */
+/* 一组按钮：组与组之间一道浅分隔，组内不画框 */
 .map-controls .zoom-buttons,
 .map-controls .button-group {
     position: relative;
@@ -41,10 +54,17 @@
     align-items: center;
     gap: 2px;
     margin: 0;
-    padding: 2px;
-    border: 1px solid var(--fp-rule);
-    border-radius: var(--fp-radius-control);
+    padding: 0 4px 0 0;
+    border: 0;
+    border-radius: 0;
     background: transparent;
+}
+.map-controls .button-group::after {
+    content: '';
+    width: 1px;
+    height: 18px;
+    margin-left: 4px;
+    background: var(--fp-rule-strong);
 }
 /* 底部控制栏不显示地图放大/缩小按钮 */
 #map-controls #zoom-buttons {
@@ -64,16 +84,26 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    min-height: 32px;
-    padding: 0 12px;
-    border: 1px solid transparent;
+    min-height: 34px;
+    padding: 0 14px;
+    border: 0;
     border-radius: var(--fp-radius-control);
     background: transparent;
     color: var(--fp-ink-soft);
     font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
     cursor: pointer;
     overflow: visible;
-    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.map-controls .control-btn:active,
+.map-controls .zoom-btn:active,
+.map-controls #timeline-btn:active,
+.map-controls #zoom-restore:active,
+.map-controls #messageBoards:active,
+.map-controls #map-fullscreen:active,
+.map-controls #back3dBtn:active,
+.map-controls .plane-switch:active {
+    transform: scale(0.96);
 }
 .map-controls .control-btn:hover,
 .map-controls .zoom-btn:hover,
@@ -91,15 +121,14 @@
 .map-controls #messageBoards:focus-visible,
 .map-controls #map-fullscreen:focus-visible,
 .map-controls #back3dBtn:focus-visible {
-    outline: 2px solid var(--fp-water);
+    outline: 2px solid var(--fp-accent);
     outline-offset: 2px;
 }
 /* 当前图层 */
 .map-controls .control-btn.active,
 .map-controls .control-btn.active:hover {
-    color: var(--fp-ink);
-    background: color-mix(in srgb, var(--fp-contour) 16%, transparent);
-    border-color: var(--fp-contour);
+    color: var(--fp-accent);
+    background: var(--fp-accent-soft);
 }
 .map-controls .zoom-btn {
     width: 32px;

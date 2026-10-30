@@ -138,7 +138,7 @@ export const addVisitedCityLayer = (map, footprintData) => {
                         // 隐藏国家外围边框，避免与地图底图边界重复显示
                         'nation-stroke': '',
                         // 使用主题色显示海岸线，同时降低透明度避免过于抢眼
-                        'coastline-stroke': getThemeRgba(0.62),
+                        'coastline-stroke': getThemeRgba(0.45),
                         // 隐藏省级边框，只保留城市级别的边界
                         'province-stroke': '',
                         // 统一设置行政区边界线宽度
@@ -147,14 +147,14 @@ export const addVisitedCityLayer = (map, footprintData) => {
                         'city-stroke': properties => {
                             const cityAdcode = properties?.adcode_cit;
                             return visitedCitySet.has(String(cityAdcode))
-                                    ? getThemeRgba(0.92)
+                                    ? getThemeRgba(0.6)
                                     : '';
                         },
-                        // 只填充已去过的城市，未去过的城市保持透明
+                        // 只填充已去过的城市，未去过的城市保持透明；填色压得很淡，放大到街道级时不盖住底图
                         fill: properties => {
                             const cityAdcode = properties?.adcode_cit;
                             return visitedCitySet.has(String(cityAdcode))
-                                    ? getThemeRgba(0.28)
+                                    ? getThemeRgba(0.12)
                                     : '';
                         }
                     }

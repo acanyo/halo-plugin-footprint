@@ -1,9 +1,13 @@
 /*
  * 标记点图片墙（点有多张照片的标记时打开）与大图预览。
  *
- * 图片墙是一张白图纸面，标题用文楷、日期是等宽数字；五种排法（后台「图片墙样式」）
- * 只在照片怎么摆上不同，见 gallery-modes-and-timeline-polish.css。
- * 这里是共用部分，也是默认「散放」排法（original）：照片带白边、轻微倾斜、一角贴纸胶带。
+ * 图片墙是一块白玻璃面板，标题快看世界体，照片一律圆角、不倾斜、不贴胶带。
+ * 面板宽高跟着内容走（照片格子尺寸固定，列数由 photo-wall.js 按张数挑），不留大片空白。
+ * 五种排法（后台「图片墙样式」）的差别见 gallery-modes-and-timeline-polish.css；
+ * 这里是共用部分，以及默认的「经典」排法（original）：方格拼图，张数合适时第一张占 2×2。
+ *
+ * 动效：面板从标记点方向去模糊弹出（transform-origin 由 footprint-markers.js 算好写在行内），
+ * 照片每张晚 40ms 依次弹入，悬停上浮并换深一档阴影，按下缩到 0.96。
  */
 .photo-wall-layer {
     position: absolute;
@@ -20,14 +24,14 @@
     opacity: 0;
     pointer-events: none;
 }
+/* 外层：footprint-markers.js 负责定位与开合；里层：createPhotoWall() 的输出，画玻璃面板 */
 .photo-wall-window {
-    --wall-photo-frame: var(--fp-paper-raised);
-    --wall-photo-empty: var(--fp-rule);
-    --wall-tape: color-mix(in srgb, var(--fp-ink-faint) 22%, var(--fp-paper-raised));
+    --wall-cell: 112px;
+    --wall-gap: 8px;
+    --wall-pad: 16px;
     position: absolute;
-    width: 620px;
-    height: 440px;
-    overflow: visible;
+    width: max-content;
+    max-width: calc(100vw - 56px);
     color: var(--fp-ink);
     font-family: var(--fp-font-text);
     pointer-events: auto;
@@ -35,16 +39,22 @@
     user-select: none;
     -webkit-user-select: none;
     caret-color: transparent;
-    animation: photoWallShow 0.24s var(--fp-ease) both;
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
 }
-/* footprint-markers.js 建一个外层 .photo-wall-window 负责定位与开合动画，
-   createPhotoWall() 的输出是里层 .photo-wall-window，带各排法自己的尺寸。纸面画在里层。 */
 .photo-wall-window > .photo-wall-window {
-    top: 0;
-    left: 0;
-    background: var(--fp-paper);
-    border: 1px solid var(--fp-rule);
-    border-radius: var(--fp-radius-panel);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: auto;
+    min-width: 320px;
+    max-width: none;
+    padding: var(--wall-pad);
+    border-radius: calc(var(--fp-radius-panel) + 4px);
+    background: var(--fp-glass);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow-lift);
     animation: none;
 }
 .photo-wall-window.photo-wall-closing {
@@ -64,42 +74,38 @@
     outline: none;
 }
 .photo-wall-window button:focus-visible {
-    outline: 2px solid var(--fp-water);
+    outline: 2px solid var(--fp-accent);
     outline-offset: 2px;
 }
 
-/* 标题区：左边足迹名 + 日期 + 描述，右边页码与翻页 */
-.photo-wall-heading,
-.photo-wall-footer {
-    position: absolute;
-    right: 24px;
-    left: 24px;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
+/* 标题区：左边地址 / 足迹名 + 日期 / 描述，右边页码与翻页 */
 .photo-wall-heading {
-    top: 18px;
+    display: flex;
     align-items: flex-start;
-    gap: 20px;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 2px 4px 0;
 }
 .photo-wall-heading-copy {
     min-width: 0;
-    max-width: 440px;
+    flex: 1 1 auto;
 }
 .photo-wall-heading-meta {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    padding-top: 2px;
 }
 .photo-wall-kicker {
     display: block;
     margin-bottom: 2px;
+    overflow: hidden;
     color: var(--fp-ink-faint);
     font-size: var(--fp-size-xs);
     line-height: 1.5;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .photo-wall-kicker:empty {
     display: none;
@@ -107,25 +113,28 @@
 .photo-wall-title-row {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
 }
 .photo-wall-heading h3 {
+    min-width: 0;
     margin: 0;
+    overflow: hidden;
     font-family: var(--fp-font-title);
     font-size: var(--fp-size-xl);
     font-weight: 400;
     line-height: 1.25;
-    letter-spacing: 0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .photo-wall-date {
     flex: 0 0 auto;
     color: var(--fp-ink-faint);
-    font-size: var(--fp-size-sm);
+    font-size: var(--fp-size-xs);
     font-variant-numeric: tabular-nums;
 }
 .photo-wall-description {
-    max-width: 410px;
+    max-width: 36em;
     margin: 4px 0 0;
     overflow: hidden;
     color: var(--fp-ink-soft);
@@ -137,7 +146,7 @@
 }
 .photo-wall-counter {
     color: var(--fp-ink-faint);
-    font-size: var(--fp-size-sm);
+    font-size: var(--fp-size-xs);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -145,21 +154,22 @@
     display: flex;
     gap: 4px;
 }
+/* 翻页与关闭：浅底小圆钮 */
 .photo-wall-nav,
 .photo-wall-close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 30px;
-    height: 28px;
+    height: 30px;
     padding: 0;
-    border: 1px solid var(--fp-rule-strong);
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: transparent;
+    background: var(--fp-rule);
     color: var(--fp-ink);
-    font: 400 var(--fp-size-md)/1 var(--fp-font-text);
+    font: 400 var(--fp-size-sm)/1 var(--fp-font-text);
     cursor: pointer;
-    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
 }
 .photo-wall-close {
     flex: 0 0 30px;
@@ -167,134 +177,159 @@
 }
 .photo-wall-nav:not(:disabled):hover,
 .photo-wall-close:hover {
-    background: var(--fp-rule);
-    border-color: var(--fp-ink-soft);
+    background: var(--fp-rule-strong);
+}
+.photo-wall-nav:not(:disabled):active,
+.photo-wall-close:active {
+    transform: scale(0.96);
 }
 .photo-wall-nav:disabled {
     opacity: 0.35;
     cursor: default;
 }
 
-/* 照片区 */
-.photo-wall-canvas {
-    position: absolute;
-    inset: 88px 22px 47px;
-    overflow: visible;
-}
-.photo-wall-thread {
-    display: none;
-}
-/* 从标记点拉到图片墙的一条细线，两端各一个小圆点 */
+/* 从标记点拉到面板的一条淡线：标记一端一颗强调色小点，面板一端不画头 */
 .photo-wall-connector {
     position: absolute;
     z-index: 1;
     height: 1px;
-    background: var(--fp-ink-soft);
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--fp-accent), color-mix(in srgb, var(--fp-accent) 25%, transparent));
     transform-origin: left center;
     pointer-events: none;
+    animation: photoWallConnectorIn var(--fp-dur) var(--fp-ease) both;
 }
-.photo-wall-connector::before,
-.photo-wall-connector::after {
+.photo-wall-connector::before {
     content: '';
     position: absolute;
     top: 50%;
-    width: 7px;
-    height: 7px;
-    border: 1.5px solid var(--fp-ink-soft);
+    left: -3px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: var(--fp-paper);
+    background: var(--fp-accent);
+    box-shadow: 0 0 0 3px var(--fp-accent-soft);
     transform: translateY(-50%);
 }
-.photo-wall-connector::before { left: -3px; }
-.photo-wall-connector::after { right: -3px; }
 .photo-wall-connector.photo-wall-closing {
     opacity: 0;
     transition: opacity 0.2s ease;
 }
+@keyframes photoWallConnectorIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
 
-/* 一张照片：白边相纸，按 --card-rotation 微斜，悬停摆正抬起 */
-.photo-wall-card {
-    position: absolute;
-    z-index: 2;
-    width: 116px;
-    height: 142px;
+/* 照片：圆角方图，依次弹入；悬停上浮 */
+.photo-wall-canvas {
+    position: relative;
+}
+.photo-wall-card,
+.photo-wall-feature,
+.photo-wall-focus-core {
+    position: relative;
+    display: block;
     padding: 0;
     border: 0;
-    background: transparent;
+    border-radius: var(--fp-radius-photo);
+    background: var(--fp-accent-soft);
     cursor: zoom-in;
-    transform: rotate(var(--card-rotation, 0deg));
-    transition: transform var(--fp-dur) var(--fp-ease), z-index 0s var(--fp-dur);
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) var(--card-delay, 0ms) both;
+    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
 }
 .photo-wall-card:hover,
-.photo-wall-card:focus-visible {
-    z-index: 8;
-    outline: none;
-    transform: rotate(0deg) translateY(-6px) scale(1.06);
-    transition-delay: 0s;
+.photo-wall-card:focus-visible,
+.photo-wall-feature:hover,
+.photo-wall-focus-core:hover {
+    z-index: 2;
+    box-shadow: var(--fp-shadow-lift);
+    transform: translateY(-4px);
+}
+.photo-wall-card:active,
+.photo-wall-feature:active,
+.photo-wall-focus-core:active {
+    transform: scale(0.96);
 }
 .photo-wall-card-inner {
-    position: relative;
     display: block;
     width: 100%;
     height: 100%;
-    padding: 6px 6px 18px;
-    border: 1px solid var(--fp-rule);
-    background: var(--wall-photo-frame);
+    overflow: hidden;
+    border-radius: inherit;
 }
-.photo-wall-card img {
+.photo-wall-card img,
+.photo-wall-feature img,
+.photo-wall-focus-core img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: var(--fp-radius-photo);
-    background: var(--wall-photo-empty);
+    border-radius: inherit;
+    transition: transform 0.5s var(--fp-ease);
 }
-/* 纸胶带：一小条半透明的淡墨色 */
-.photo-wall-tape {
-    position: absolute;
-    top: -8px;
-    left: 50%;
-    z-index: 4;
-    width: 40px;
-    height: 12px;
-    background: var(--wall-tape);
-    opacity: 0.85;
-    transform: translateX(-50%) rotate(var(--tape-rotation, -10deg));
+.photo-wall-card:hover img,
+.photo-wall-feature:hover img,
+.photo-wall-focus-core:hover img {
+    transform: scale(1.04);
 }
-.photo-wall-tape-right { --tape-rotation: 8deg; }
-.photo-wall-tape-left { --tape-rotation: -10deg; }
-/* 散放排法中心的一枚淡菱形，给照片一个视觉重心 */
-.photo-wall-center-mark {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: 0;
-    width: 84px;
-    height: 84px;
-    border: 1px solid var(--fp-rule);
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-.photo-wall-footer {
-    bottom: 14px;
-    color: var(--fp-ink-faint);
-    font-size: var(--fp-size-xs);
+.photo-wall-feature,
+.photo-wall-focus-core {
+    overflow: hidden;
 }
 
-@keyframes photoWallShow {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+/* ===== 经典（original）：方格拼图 ===== */
+.photo-wall-mosaic {
+    display: grid;
+    grid-template-columns: repeat(var(--mosaic-cols, 3), var(--wall-cell));
+    grid-auto-rows: var(--wall-cell);
+    grid-auto-flow: dense;
+    gap: var(--wall-gap);
 }
+.photo-wall-mosaic .photo-wall-card.is-lead {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
 @keyframes photoWallClose {
     from {
         opacity: var(--photo-wall-zoom-opacity, 1);
         transform: scale(var(--photo-wall-zoom-scale, 1));
+        filter: none;
     }
-    to { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to { opacity: 0; transform: scale(0.92) translateY(8px); filter: blur(8px); }
+}
+@keyframes photoWallFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .photo-wall-window,
+    .photo-wall-card,
+    .photo-wall-feature,
+    .photo-wall-focus-core {
+        animation-name: photoWallFade;
+    }
+    .photo-wall-window.photo-wall-closing {
+        animation-name: none;
+        opacity: 0;
+    }
+    .photo-wall-card:hover,
+    .photo-wall-card:focus-visible,
+    .photo-wall-feature:hover,
+    .photo-wall-focus-core:hover,
+    .photo-wall-card:active,
+    .photo-wall-feature:active,
+    .photo-wall-focus-core:active,
+    .photo-wall-card:hover img,
+    .photo-wall-feature:hover img,
+    .photo-wall-focus-core:hover img {
+        transform: none;
+    }
 }
 
-/* ===== 大图预览（挂在 body 上，不在 #view-2d 里，用默认的夜图配色） ===== */
+/* ===== 大图预览（挂在 body 上，不在 #view-2d 里）：浅色毛玻璃遮罩，按钮是玻璃圆钮 ===== */
 .photo-lightbox {
-    --lightbox-scrim: color-mix(in srgb, var(--fp-paper) 94%, transparent);
+    --lightbox-scrim: var(--fp-scrim);
     position: fixed;
     inset: 0;
     z-index: 3000;
@@ -307,6 +342,8 @@
     position: absolute;
     inset: 0;
     background: var(--lightbox-scrim);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
     animation: lightboxFadeIn 0.2s var(--fp-ease) both;
 }
 .photo-lightbox-dialog {
@@ -319,14 +356,15 @@
     min-height: 220px;
     max-width: min(88vw, 1200px);
     max-height: 88vh;
-    animation: lightboxFadeIn 0.2s var(--fp-ease) both;
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
 }
 .photo-lightbox-image {
     display: block;
     max-width: min(78vw, 1100px);
     max-height: 80vh;
     object-fit: contain;
-    border-radius: var(--fp-radius-photo);
+    border-radius: var(--fp-radius-panel);
+    box-shadow: var(--fp-shadow-lift);
     opacity: 1;
     transition: opacity var(--fp-dur) ease;
 }
@@ -361,18 +399,21 @@
     z-index: 2;
     display: grid;
     place-items: center;
-    border: 1px solid var(--fp-rule-strong);
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: var(--fp-paper);
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
     color: var(--fp-ink);
     cursor: pointer;
-    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+    transition: background-color var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
 }
 @media (hover: hover) {
     .photo-lightbox-close:hover,
     .photo-lightbox-arrow:hover {
         background: var(--fp-paper-raised);
-        border-color: var(--fp-ink-soft);
+        box-shadow: var(--fp-shadow-lift);
     }
 }
 .photo-lightbox-close {
@@ -394,7 +435,7 @@
 .photo-lightbox-next { right: 24px; }
 .photo-lightbox-close:focus-visible,
 .photo-lightbox-arrow:focus-visible {
-    outline: 2px solid var(--fp-water);
+    outline: 2px solid var(--fp-accent);
     outline-offset: 2px;
 }
 .photo-lightbox-caption {

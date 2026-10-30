@@ -1,117 +1,134 @@
 /**
  * 标记点与信息窗口的 HTML 内容。
  *
- * createMarker 生成高德 Marker 的 DOM；createInfoWindow 生成无图片足迹的信息窗体。
+ * createMarker 生成高德 Marker 的 DOM；createInfoWindow 生成无图片墙足迹的信息卡。
  * SVG_ICONS 也被时间线卡片的位置图标使用。
+ *
+ * 标记点的四种样式（后台「标记点样式」）共用同一份 DOM，只靠 body 上的 marker-style-* 类换外形，
+ * 见 styles/footprint/marker-styles.css。
  */
 
 import { getCachedImage, processFootprintImageUrl } from './footprint-data.js';
-import { escapeHtml } from './format.js';
+import { escapeHtml, formatDateToYMD } from './format.js';
+import { normalizeGalleryImages } from './photo-wall.js';
+
+// 标记点用哪张图：封面，没有封面用图片墙第一张；都没有返回空串，由调用方画首字
+const getMarkerImageSource = (spec) => {
+    const cover = String(spec.image || '').trim();
+    if (cover) return cover;
+    return normalizeGalleryImages(spec.galleryImages)[0] || '';
+};
+
+// 没有图时的占位：足迹名的第一个字
+const getInitial = (name) => Array.from(String(name || '').trim())[0] || '迹';
+
+const createInitialElement = (name) => {
+    const initial = document.createElement('span');
+    initial.className = 'marker-initial';
+    initial.textContent = getInitial(name);
+    return initial;
+};
 
 export const createMarker = (spec) => {
     const markerContent = document.createElement('div');
     markerContent.className = 'custom-marker';
 
+    const name = spec.name || '';
+    const imageSource = getMarkerImageSource(spec);
     // 标记点图片：按后台“标记点”规则压缩，未配置时使用原 URL
-    const compressedImageUrl = processFootprintImageUrl(spec.image, 'marker');
+    const imageHtml = imageSource
+        ? `<img src="${escapeHtml(processFootprintImageUrl(imageSource, 'marker'))}" alt="${escapeHtml(name || '足迹标记')}" decoding="async">`
+        : '';
 
     markerContent.innerHTML = `
-        <div class="marker-label">${spec.name || ''}</div>
-        <div class="marker-image">
-            <img src="${compressedImageUrl}"
-                 alt="${spec.name || '足迹标记'}"
-                 decoding="async">
-        </div>
-        <div class="marker-badge">${spec.footprintType ? spec.footprintType.charAt(0) : ''}</div>
+        <div class="marker-label">${escapeHtml(name)}</div>
+        <div class="marker-image">${imageHtml}</div>
+        <div class="marker-badge">${escapeHtml(spec.footprintType ? spec.footprintType.charAt(0) : '')}</div>
         <div class="marker-arrow"></div>
     `;
+
+    const imageBox = markerContent.querySelector('.marker-image');
+    const img = imageBox.querySelector('img');
+    if (!img) {
+        imageBox.appendChild(createInitialElement(name));
+    } else {
+        // 图片加载失败时换成首字，不留一个破图标
+        img.addEventListener('error', () => {
+            img.remove();
+            imageBox.appendChild(createInitialElement(name));
+        }, {once: true});
+    }
 
     return markerContent;
 };
 
 // 常量定义
 export const SVG_ICONS = {
-    type: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z"></path>
-        <path d="M9 12h6"></path>
+    type: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"></path>
+        <circle cx="7.5" cy="7.5" r="1.5"></circle>
     </svg>`,
-    date: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="16" y1="2" x2="16" y2="6"></line>
-        <line x1="8" y1="2" x2="8" y2="6"></line>
+    date: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+        <line x1="16" y1="2.5" x2="16" y2="6"></line>
+        <line x1="8" y1="2.5" x2="8" y2="6"></line>
         <line x1="3" y1="10" x2="21" y2="10"></line>
     </svg>`,
-    location: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+    location: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
         <circle cx="12" cy="10" r="3"></circle>
+    </svg>`,
+    city: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21h18"></path>
+        <path d="M5 21V7l7-4v18"></path>
+        <path d="M19 21V11l-7-4"></path>
+        <path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"></path>
+    </svg>`,
+    view: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
     </svg>`
 };
 
 export function createInfoWindow(spec) {
-    // 默认值处理和转义
     const {
         image = '',
         name = '',
-        footprintType = '未知类型',
+        footprintType = '',
         createTime = '',
-        address = '未知位置',
+        address = '',
+        city = '',
         description = '',
         article = ''
     } = spec;
 
-    // 格式化时间
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-            }).replace(/\//g, '-');
-        } catch {
-            return '';
-        }
-    };
+    const row = (icon, text) => text
+        ? `<li class="info-window-row">${icon}<span>${escapeHtml(String(text))}</span></li>`
+        : '';
 
-    // 构建公共HTML部分
-    const buildCommonHtml = () => `
-        <h3 class="title">${escapeHtml(name)}</h3>
-        <div class="meta">
-            <span>${SVG_ICONS.type} ${escapeHtml(footprintType)}</span>
-        </div>
-        <div class="meta">
-            <span>${SVG_ICONS.date} ${formatDate(createTime)}</span>
-        </div>
-        <div class="meta">
-            <span>${SVG_ICONS.location} ${escapeHtml(address)}</span>
-        </div>
-        ${description ? `<p class="description">${escapeHtml(description)}</p>` : ''}
-        ${article ? `
-            <a href="${escapeHtml(article)}" target="_blank" class="article-btn">
-                查看文章
-                <div class="arrow-wrapper">
-                    <div class="arrow"></div>
-                </div>
-            </a>
-        ` : ''}
-    `;
-
-    // 构建图片HTML
-    // 优化图片内容生成逻辑
-    const imageContent = (() => {
-        const processed = processFootprintImageUrl(image, 'timeline');
-        const cachedImage = getCachedImage(processed);
-        return `<img src="${cachedImage}" alt="${escapeHtml(name)}" loading="lazy" decoding="async" style="position: absolute; width: 100%; height: 100%; object-fit: cover;">`;
-    })();
+    const processed = processFootprintImageUrl(image, 'timeline');
+    const cachedImage = getCachedImage(processed);
 
     return `
         <div class="info-window">
             <div class="image">
-            ${imageContent}
-                <div class="image-info">
-                    ${buildCommonHtml()}
-                </div>
+                <img src="${escapeHtml(cachedImage)}" alt="${escapeHtml(name)}" loading="lazy" decoding="async">
+            </div>
+            <div class="image-info">
+                <h3 class="title">${escapeHtml(name)}</h3>
+                ${description ? `<p class="description">${escapeHtml(description)}</p>` : ''}
+                <ul class="info-window-rows">
+                    ${row(SVG_ICONS.location, address || '未知位置')}
+                    ${row(SVG_ICONS.city, city)}
+                    ${row(SVG_ICONS.type, footprintType)}
+                    ${row(SVG_ICONS.date, formatDateToYMD(createTime))}
+                </ul>
+                ${article ? `
+                    <a href="${escapeHtml(article)}" target="_blank" rel="noopener" class="article-btn">
+                        ${SVG_ICONS.view}
+                        <span>查看</span>
+                    </a>
+                ` : ''}
             </div>
         </div>
     `;

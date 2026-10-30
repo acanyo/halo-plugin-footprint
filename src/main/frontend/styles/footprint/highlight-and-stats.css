@@ -1,78 +1,80 @@
 /*
- * 标记点高亮方案（后台「高亮方案」：glow / pulse / bounce / ring）与右上角统计表。
+ * 标记点高亮方案（后台「高亮方案」：glow / pulse / bounce / ring）与右上角统计面板。
  *
- * 高亮只在时间线滚动、悬停到某条足迹时出现，是对操作的回应；
- * 原先 pulse / bounce 会无限循环，改为动两下就停在高亮态。
+ * 高亮只在时间线滚动、悬停到某条足迹时出现，是对操作的回应。四种方案都是「放大 + 强调色」，
+ * 区别只在强调色怎么出现：glow 一圈柔光，pulse 一圈扩散两次的环，bounce 跳一下停住，ring 一道细环。
+ * 缩放挂在高德的 .amap-marker-content 上（以底边中点为原点），不和各样式自己的 transform 打架。
  */
-.marker-style-pin .marker-image,
-.marker-style-circle .marker-image,
-.marker-style-card .marker-image {
-    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+#view-2d {
+    --marker-highlight-ring: color-mix(in srgb, var(--fp-accent) 70%, var(--fp2d-accent));
+    --marker-highlight-glow: color-mix(in srgb, var(--marker-highlight-ring) 38%, transparent);
+}
+.amap-marker .amap-marker-content {
+    transform-origin: 50% 100%;
+    transition: transform var(--fp-dur) var(--fp-ease);
+}
+.amap-marker.marker-highlight .custom-marker {
+    box-shadow: var(--fp-shadow-lift);
 }
 
-/* 光晕（glow，默认）：放大 + 品牌色晕 */
-.highlight-scheme-glow .amap-marker.marker-highlight .marker-image,
-.highlight-scheme-glow .amap-marker.marker-highlight .custom-marker:hover .marker-image {
-    transform: scale(1.25);
-    box-shadow: 0 0 0 3px var(--fp-paper-raised), 0 0 14px 4px var(--fp2d-accent-ring);
+/* 光晕（glow）：放大 + 一圈强调色柔光 */
+.highlight-scheme-glow .amap-marker.marker-highlight .amap-marker-content {
+    transform: scale(1.18);
+}
+.highlight-scheme-glow .amap-marker.marker-highlight .custom-marker {
+    box-shadow: 0 0 0 3px var(--marker-highlight-glow), 0 0 22px 6px var(--marker-highlight-glow), var(--fp-shadow-lift);
 }
 
-/* 脉冲（pulse）：一圈品牌色环扩散两次，停成一圈淡环 */
-.highlight-scheme-pulse .amap-marker.marker-highlight .marker-image {
-    transform: scale(1.15);
-}
-.highlight-scheme-pulse .amap-marker.marker-highlight .custom-marker {
-    position: relative;
+/* 脉冲（pulse）：一圈强调色环扩散两次，停成一圈淡环 */
+.highlight-scheme-pulse .amap-marker.marker-highlight .amap-marker-content {
+    transform: scale(1.12);
 }
 .highlight-scheme-pulse .amap-marker.marker-highlight .custom-marker::before {
     content: '';
     position: absolute;
-    inset: -12px;
+    inset: -8px;
     z-index: -1;
-    border: 2px solid var(--fp2d-accent);
-    border-radius: 50%;
+    border: 2px solid var(--marker-highlight-ring);
+    border-radius: inherit;
     pointer-events: none;
     animation: highlight-pulse 0.9s var(--fp-ease) 2 both;
 }
 @keyframes highlight-pulse {
-    from { transform: scale(0.8); opacity: 1; }
-    to { transform: scale(1.3); opacity: 0.35; }
+    from { transform: scale(0.85); opacity: 1; }
+    to { transform: scale(1.25); opacity: 0.3; }
 }
 
 /* 弹跳（bounce）：跳一下，停在抬起的位置 */
-.highlight-scheme-bounce .amap-marker.marker-highlight .marker-image,
-.highlight-scheme-bounce .amap-marker.marker-highlight .custom-marker:hover .marker-image {
-    animation: highlight-bounce 0.36s var(--fp-ease) both;
-    box-shadow: 0 6px 12px var(--fp2d-mark-shadow);
+.highlight-scheme-bounce .amap-marker.marker-highlight .amap-marker-content {
+    animation: highlight-bounce 0.42s var(--fp-ease) both;
 }
 @keyframes highlight-bounce {
     0% { transform: translateY(0) scale(1); }
-    55% { transform: translateY(-10px) scale(1.14); }
+    55% { transform: translateY(-12px) scale(1.14); }
     100% { transform: translateY(-6px) scale(1.12); }
 }
 
-/* 环（ring）：两道同心描边 */
-.highlight-scheme-ring .amap-marker.marker-highlight .marker-image,
-.highlight-scheme-ring .amap-marker.marker-highlight .custom-marker:hover .marker-image {
-    transform: scale(1.15);
-    box-shadow: 0 0 0 3px var(--fp-paper-raised), 0 0 0 5px var(--fp2d-accent), 0 0 0 9px var(--fp2d-accent-ring);
+/* 环（ring）：玻璃圈外一道强调色细环 */
+.highlight-scheme-ring .amap-marker.marker-highlight .amap-marker-content {
+    transform: scale(1.14);
+}
+.highlight-scheme-ring .amap-marker.marker-highlight .custom-marker {
+    box-shadow: 0 0 0 2px var(--marker-highlight-ring), 0 0 0 6px var(--marker-highlight-glow), var(--fp-shadow-lift);
 }
 
 @media (prefers-reduced-motion: reduce) {
     .highlight-scheme-pulse .amap-marker.marker-highlight .custom-marker::before {
         animation: none;
         opacity: 0.6;
-        transform: scale(1.1);
     }
-    .highlight-scheme-bounce .amap-marker.marker-highlight .marker-image,
-    .highlight-scheme-bounce .amap-marker.marker-highlight .custom-marker:hover .marker-image {
+    .highlight-scheme-bounce .amap-marker.marker-highlight .amap-marker-content {
         animation: none;
-        transform: scale(1.15);
+        transform: scale(1.12);
     }
 }
 
-/* ===== 右上角统计：手簿式小表格 =====
-   标题一行文楷；下面每行「名称 …… 数字」，行间一条格线；省份构成在细线下另起一组，字小一号。 */
+/* ===== 右上角统计：玻璃面板 =====
+   标题快看世界体；三个大数一行一项「名称 …… 数字」；省份构成在浅分隔下另起一组，字小一号。 */
 .map-stats-panel {
     position: fixed;
     top: calc(24px + var(--safe-top));
@@ -80,32 +82,34 @@
     z-index: 90;
     width: min(220px, calc(100vw - 32px));
     padding: 14px 16px 12px;
-    background: var(--fp-paper);
-    border: 1px solid var(--fp-rule);
     border-radius: var(--fp-radius-panel);
+    background: var(--fp-glass);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
     color: var(--fp-ink);
     font-family: var(--fp-font-text);
     opacity: 0;
     pointer-events: none;
     user-select: none;
-    transition: opacity 0.24s var(--fp-ease);
 }
 .map-stats-panel.show {
-    opacity: 1;
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) 120ms both;
+    transform-origin: top right;
 }
 .stats-heading {
-    padding-bottom: 6px;
+    padding: 0 2px 8px;
 }
 .stats-title {
     font-family: var(--fp-font-title);
     font-size: var(--fp-size-lg);
     line-height: 1.25;
-    letter-spacing: 0.02em;
     color: var(--fp-ink);
 }
 .stats-main {
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 .stats-item {
     /* DOM 里数字在前、名称在后；桌面端反过来排成「名称 …… 数字」 */
@@ -115,11 +119,11 @@
     justify-content: space-between;
     gap: 12px;
     min-width: 0;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--fp-rule);
+    padding: 6px 10px;
+    border-radius: var(--fp-radius-photo);
 }
-.stats-item:last-child {
-    border-bottom: 0;
+.stats-item.stats-total {
+    background: var(--fp-accent-soft);
 }
 .stats-label {
     color: var(--fp-ink-soft);
@@ -130,19 +134,24 @@
 .stats-number {
     color: var(--fp-ink);
     font-size: var(--fp-size-md);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
+.stats-total .stats-number {
+    color: var(--fp-accent);
+    font-size: var(--fp-size-lg);
+}
 .stats-divider {
     height: 1px;
-    margin: 4px 0 6px;
-    background: var(--fp-rule-strong);
+    margin: 6px 10px 8px;
+    background: var(--fp-rule);
 }
 .stats-detail {
     display: flex;
     flex-direction: column;
+    padding: 0 10px;
 }
 .stats-cat {
     display: flex;
@@ -170,7 +179,8 @@
         right: 10px;
         width: auto;
         max-width: calc(100vw - 20px);
-        padding: 6px 10px;
+        padding: 6px 12px;
+        border-radius: var(--fp-radius-control);
     }
     .map-stats-panel .stats-heading,
     .map-stats-panel .stats-divider,
@@ -185,12 +195,19 @@
         flex-direction: row;
         gap: 3px;
         padding: 0;
-        border: 0;
+        background: none;
     }
-    .map-stats-panel .stats-number {
+    .map-stats-panel .stats-number,
+    .map-stats-panel .stats-total .stats-number {
         font-size: var(--fp-size-sm);
     }
     .map-stats-panel .stats-label {
         font-size: var(--fp-size-xs);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .map-stats-panel.show {
+        animation: none;
+        opacity: 1;
     }
 }

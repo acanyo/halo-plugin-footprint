@@ -30,9 +30,7 @@ export const loadParabolaAnimation = (card, map) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const accent = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? '#d65a4f'
-        : '#b8322a';   // 标注红（--fp-mark 夜图 / 白图），canvas 读不到 CSS 变量，这里写死同值
+    const accent = '#7c7bc0';   // --fp-accent（淡紫），canvas 读不到 CSS 变量，这里写死同值
 
     // 使用设备像素比，避免 Retina 屏幕上的轨迹发糊。
     const resizeCanvas = () => {
@@ -254,7 +252,7 @@ export const loadParabolaAnimation = (card, map) => {
         ctx.fill();
 
         ctx.shadowBlur = 0;
-        ctx.fillStyle = '#fbfbf9';   // --fp-paper-raised（白图）
+        ctx.fillStyle = '#ffffff';   // --fp-paper-raised
         ctx.beginPath();
         ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
         ctx.fill();

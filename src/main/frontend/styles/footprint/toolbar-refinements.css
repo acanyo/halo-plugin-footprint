@@ -2,19 +2,25 @@
  * 控制栏里的开关（路网 / 路况 / 标记点）与移动端控制栏排版。
  *
  * 开关原先是一套飞机过云的动画皮肤，模板里的 svg 和 .cloud / .street-middle 还在，
- * 这里统一画成一个朴素的滑块：关是格线色，开是等高线绿。
+ * 这里画成一枚浅底胶囊：左边一颗小滑块，关是浅灰，开是强调色；开着时整枚胶囊也换成强调色浅底。
  */
 .map-controls .plane-switch {
     display: flex;
     align-items: center;
     gap: 6px;
-    min-height: 32px;
-    padding: 0 8px 0 6px;
+    min-height: 34px;
+    padding: 0 12px 0 10px;
     border-radius: var(--fp-radius-control);
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    transition: background-color var(--fp-dur) var(--fp-ease);
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.map-controls .plane-switch:has(input:checked) {
+    background: var(--fp-accent-soft);
+}
+.map-controls .plane-switch:has(input:checked) .switch-text {
+    color: var(--fp-accent);
 }
 .map-controls .plane-switch:hover {
     background: var(--fp-rule);
@@ -30,11 +36,11 @@
 }
 .map-controls .plane-switch input + div {
     position: relative;
-    width: 30px;
+    width: 26px;
     height: 16px;
     padding: 2px;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: var(--fp-radius-control);
     background: var(--fp-rule-strong);
     transition: background-color var(--fp-dur) var(--fp-ease);
 }
@@ -50,6 +56,7 @@
     padding: 0;
     border-radius: 50%;
     background: var(--fp-paper-raised);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
     transform: translateX(0);
     transition: transform var(--fp-dur) var(--fp-ease);
 }
@@ -57,10 +64,10 @@
     display: none;
 }
 .map-controls .plane-switch input:checked + div {
-    background: var(--fp-contour);
+    background: var(--fp-accent);
 }
 .map-controls .plane-switch input:checked + div > div {
-    transform: translateX(14px);
+    transform: translateX(10px);
 }
 
 /* 防止开关点击后出现文本光标 */
@@ -90,7 +97,11 @@
         align-items: stretch;
         gap: 6px;
         padding: 6px;
+        border-radius: calc(var(--fp-radius-panel) + 4px);
         transform: translateX(-50%);
+    }
+    .map-controls .button-group::after {
+        display: none;
     }
     .map-controls.open {
         left: 50%;
@@ -123,7 +134,7 @@
         width: 100%;
         min-height: 44px;
         padding: 0 8px;
-        border-color: var(--fp-rule);
+        background: var(--fp-rule);
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }

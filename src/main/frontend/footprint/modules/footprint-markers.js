@@ -20,7 +20,10 @@ export const addFootprintMarkers = async (map, footprintData) => {
     let infoWindow = new AMap.InfoWindow({
         isCustom: true,
         autoMove: false,
-        offset: new AMap.Pixel(0, -40)
+        // 桌面端卡片挂在标记右侧、与标记竖直居中：卡片有 370px 高，放在标记上方时屏幕中间的标记会把它顶出视口。
+        // 手机屏窄，右侧放不下，改回标记正上方
+        anchor: isMobile ? 'bottom-center' : 'middle-left',
+        offset: isMobile ? new AMap.Pixel(0, -76) : new AMap.Pixel(40, -40)
     });
 
     // 用于存储当前打开的标记
@@ -207,6 +210,8 @@ export const addFootprintMarkers = async (map, footprintData) => {
         const top = Math.max(margin, Math.min(selectedPosition.top, markerPoint.height - wallHeight - margin));
         photoWallElement.style.left = `${left}px`;
         photoWallElement.style.top = `${top}px`;
+        // 弹出动画从标记点方向长出来
+        photoWallElement.style.transformOrigin = `${Math.round(markerPoint.x - left)}px ${Math.round(markerPoint.y - top)}px`;
 
         const anchorX = markerPoint.x < left ? left : markerPoint.x > left + wallWidth ? left + wallWidth : left + wallWidth / 2;
         const anchorY = Math.max(top + 48, Math.min(markerPoint.y, top + wallHeight - 48));
@@ -588,7 +593,9 @@ export const addFootprintMarkers = async (map, footprintData) => {
                 };
 
                 // 添加事件监听器
-                marker.on('click', handleMarkerClick);
+                // 高德回调的第一个参数是事件对象，不是 marker；这里显式传 marker，
+                // 否则 currentMarker 拿不到 getPosition，图片墙无法定位、连接线也画不出来
+                marker.on('click', () => handleMarkerClick(marker));
 
                 // 为移动端添加触摸事件
                 const markerElement = marker.getContent();
@@ -599,7 +606,8 @@ export const addFootprintMarkers = async (map, footprintData) => {
                 }
 
                 // 缓存标记点DOM引用，供抛物线动画使用
-                const imgElement = markerContent.querySelector('img');
+                // 缓存照片框而不是 img：没有图的标记画的是首字，图片加载失败时 img 也会被换掉
+                const imgElement = markerContent.querySelector('.marker-image');
                 if (imgElement) {
                     markerCache.set(footprint.spec.name, imgElement);
                 }

@@ -29,8 +29,8 @@ export const initializeApp = async () => {
             zoom: 4.1,
             center: [116.397428, 39.90923],
             zooms: [2, 26],
-            // mapStyle: 'amap://styles/whitesmoke',
-            mapStyle: window.FOOTPRINT_CONFIG.mapStyle || 'amap://styles/grey',
+            // 后台没选样式时用浅色的「远山黛」，和白玻璃面板最搭；选了就按后台的来
+            mapStyle: window.FOOTPRINT_CONFIG.mapStyle || 'amap://styles/whitesmoke',
             viewMode: '3D',
             pitch: 0,
             pitchEnable: false, // 禁止右键拖拽调整仰角

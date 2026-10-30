@@ -1,8 +1,8 @@
 /*
  * 时间线抽屉的头部，与左侧那条时间轨道。
  *
- * 头部：文楷标题「旅行时间线」，下面一句说明，右边关闭按钮，底下一条格线。
- * 轨道：一条细格线贯穿，每条足迹一个品牌色节点，用一小段横线接到照片卡。
+ * 头部：快看世界体标题「旅行时间线」，下面一句说明，右边浅底圆形关闭钮。
+ * 轨道：一条浅线贯穿，每条足迹一个强调色节点，用一小段横线接到照片卡。
  */
 .timeline-drawer .drawer-header {
     position: relative;
@@ -12,9 +12,9 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 18px;
-    padding: 22px 24px 16px;
-    background: var(--fp-paper);
-    border-bottom: 1px solid var(--fp-rule);
+    padding: 22px 24px 14px;
+    background: transparent;
+    box-shadow: 0 1px 0 var(--fp-rule);
     color: var(--fp-ink);
     user-select: none;
     -webkit-user-select: none;
@@ -44,7 +44,6 @@
     font-size: var(--fp-size-xl);
     font-weight: 400;
     line-height: 1.25;
-    letter-spacing: 0.02em;
 }
 /* 标题前的 Font Awesome 时钟图标：手簿不配图标，隐藏 */
 .timeline-drawer .drawer-header h2 i {
@@ -56,7 +55,7 @@
     font-size: var(--fp-size-sm);
     line-height: 1.7;
 }
-/* 关闭按钮：描边小方钮，× 用两条线画 */
+/* 关闭按钮：浅底圆钮，× 用两条线画 */
 .timeline-drawer .time-close-btn {
     position: relative;
     display: flex;
@@ -66,13 +65,13 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    border: 1px solid var(--fp-rule-strong);
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: transparent;
+    background: var(--fp-rule);
     color: var(--fp-ink-soft);
     font-size: 0;
     cursor: pointer;
-    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
 }
 .timeline-drawer .time-close-btn::before,
 .timeline-drawer .time-close-btn::after {
@@ -87,14 +86,16 @@
 .timeline-drawer .time-close-btn::after { transform: rotate(-45deg); }
 .timeline-drawer .time-close-btn:hover {
     color: var(--fp-ink);
-    background: var(--fp-rule);
-    border-color: var(--fp-ink-soft);
+    background: var(--fp-rule-strong);
+}
+.timeline-drawer .time-close-btn:active {
+    transform: scale(0.96);
 }
 .timeline-drawer .time-close-btn:focus {
     outline: none;
 }
 .timeline-drawer .time-close-btn:focus-visible {
-    outline: 2px solid var(--fp-water);
+    outline: 2px solid var(--fp-accent);
     outline-offset: 2px;
 }
 @media (max-width: 768px) {
@@ -122,13 +123,35 @@
     width: 1px;
     background: var(--fp-rule-strong);
 }
-/* timeline.js 会按序号错峰给条目加 .visible；那是非操作触发的入场，这里不让它产生淡入 */
+/* timeline.js 会在页面加载时按序号给条目加 .visible，那时抽屉还关着；
+   入场改成每次打开抽屉时播一次：前 8 条每条晚 40ms 弹入 */
 .timeline-drawer .timeline-item {
     position: relative;
     margin: 0;
     padding: 0 0 28px 78px;
 }
-/* 节点：品牌色实心点，外面一圈纸色把轨道断开 */
+.timeline-drawer.open .timeline-item {
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+    animation-delay: 360ms;
+}
+.timeline-drawer.open .timeline-item:nth-child(1) { animation-delay: 80ms; }
+.timeline-drawer.open .timeline-item:nth-child(2) { animation-delay: 120ms; }
+.timeline-drawer.open .timeline-item:nth-child(3) { animation-delay: 160ms; }
+.timeline-drawer.open .timeline-item:nth-child(4) { animation-delay: 200ms; }
+.timeline-drawer.open .timeline-item:nth-child(5) { animation-delay: 240ms; }
+.timeline-drawer.open .timeline-item:nth-child(6) { animation-delay: 280ms; }
+.timeline-drawer.open .timeline-item:nth-child(7) { animation-delay: 320ms; }
+.timeline-drawer.open .timeline-item:nth-child(n + 9) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+    .timeline-drawer.open .timeline-item {
+        animation-name: timelineItemFade;
+    }
+}
+@keyframes timelineItemFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+/* 节点：强调色实心点，外面一圈白把轨道断开 */
 .timeline-drawer .timeline-item::before {
     content: "";
     position: absolute;
@@ -137,10 +160,10 @@
     z-index: 3;
     width: 13px;
     height: 13px;
-    border: 3px solid var(--fp-paper);
+    border: 3px solid var(--fp-paper-raised);
     border-radius: 50%;
-    background: var(--fp2d-accent);
-    box-shadow: 0 0 0 1px var(--fp2d-accent-ink);
+    background: var(--marker-highlight-ring, var(--fp-accent));
+    box-shadow: 0 0 0 3px var(--fp-accent-soft);
     transition: transform var(--fp-dur) var(--fp-ease);
 }
 /* 节点到照片卡的一小段横线 */
@@ -155,7 +178,7 @@
     background: var(--fp-rule-strong);
 }
 .timeline-drawer .timeline-item:has(.timeline-content-card:hover)::before {
-    transform: scale(1.2);
+    transform: scale(1.25);
 }
 @media (max-width: 768px) {
     .timeline-drawer .timeline {
