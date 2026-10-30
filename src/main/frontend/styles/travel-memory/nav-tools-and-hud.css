@@ -21,7 +21,7 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            margin-left: 6px;
+            margin-left: 4px;
         }
         #topNav .nav-group-more {
             display: none;
@@ -31,30 +31,37 @@
         }
         #terrainBtn[hidden] ~ .nav-sep-tools { display: none; }
 
-        /* 放大模式（3D 看不到整球）：导航保持可见，追加“回到整球”入口；
-           PC 端工具仍平铺展示，窄屏才收进“工具”菜单 */
+        /* 放大模式（3D 看不到整球）：导航保持可见，追加“回到整球”入口 */
         body.nav-zoom #navBackGlobeBtn { display: inline-flex; }
         body.nav-zoom .nav-sep-back { display: inline-block; }
         body.nav-zoom #backGlobeBtn.show,
         body.nav-zoom #cityFillFloatBtn.show { display: none; }
 
-        /* “工具”弹出菜单 */
+        /* “工具”弹出菜单：玻璃下拉，从「工具」按钮这一角弹出 */
         #topNav.tools-open .nav-group-more {
             display: flex;
             flex-direction: column;
             align-items: stretch;
             position: absolute;
-            top: calc(100% + 10px);
-            right: 0;
-            min-width: 200px;
+            top: calc(100% + 18px);
+            right: -4px;
+            min-width: 212px;
             max-width: calc(100vw - 32px);
-            padding: 7px;
+            padding: 6px;
             gap: 2px;
-            border: 1px solid var(--fp-rule);
             border-radius: var(--fp-radius-panel);
-            background: var(--fp-paper-raised);
+            --nav-menu-glass: rgba(255, 255, 255, 0.92);
+            background: var(--nav-menu-glass);
+            -webkit-backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            box-shadow: var(--fp-shadow-lift);
             z-index: 10001;
-            animation: navPanelIn 0.18s ease;
+            transform-origin: top right;
+            animation: fpPopIn var(--fp-dur) var(--fp-ease);
+        }
+        #topNav.tools-open #navMoreBtn {
+            color: var(--fp-ink);
+            background: var(--fp-rule);
         }
         #topNav.tools-open #navMoreBtn .nav-chev {
             transform: rotate(180deg);
@@ -63,43 +70,43 @@
             width: 100%;
             justify-content: flex-start;
             text-align: left;
-            border-radius: var(--fp-radius-control);
+            border-radius: 10px;
             padding: 9px 12px;
         }
-        #topNav.tools-open .nav-group-more > button::after,
         #topNav.tools-open .nav-group-more .nav-sep { display: none; }
-        #topNav.tools-open .nav-group-more > button:hover:not(:disabled) {
-            color: var(--fp-ink);
-            background: var(--fp-rule);
-        }
-        /* 菜单里的开关：开着时左边一枚标注红小点，比底色更像「勾上了」 */
-        #topNav.tools-open .nav-group-more > button[aria-pressed="true"] {
-            color: var(--fp-ink);
-            padding-left: 26px;
-        }
-        #topNav.tools-open .nav-group-more > button[aria-pressed="true"]::before {
+        /* 菜单里的开关：开着时是淡紫浅底 + 右侧一枚强调色小点，像「勾上了」 */
+        #topNav.tools-open .nav-group-more > button[aria-pressed="true"]::after {
             content: "";
             position: absolute;
-            left: 12px;
+            right: 12px;
             top: 50%;
             width: 6px;
             height: 6px;
             margin-top: -3px;
             border-radius: 50%;
-            background: var(--fp-mark);
+            background: var(--fp-accent);
         }
         #topNav.tools-open .nav-group-more .nav-menu { width: 100%; }
+        #topNav.tools-open .nav-group-more .nav-menu > button {
+            width: 100%;
+            justify-content: space-between;
+            border-radius: 10px;
+            padding: 9px 12px;
+        }
+        /* 菜单里的底图列表：不再是第二层浮层，直接在菜单里展开，用一条细分隔线隔开 */
         #topNav.tools-open #layerButtons.nav-menu-panel {
             position: static;
             min-width: 0;
             width: 100%;
             margin: 2px 0 0;
-            padding: 2px;
-            border: 0;
+            padding: 4px 0 0;
             border-radius: 0;
+            border-top: 1px solid var(--fp-rule);
             background: transparent;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
             box-shadow: none;
-            animation: none;
+            animation: fpFadeIn var(--fp-dur) var(--fp-ease);
         }
         #topNav.tools-open #layerButtons.nav-menu-panel button { width: 100%; }
 
@@ -108,30 +115,39 @@
             #topNav .nav-brand { display: none; }
             #topNav .nav-actions {
                 max-width: 100%;
-                gap: 6px;
+                gap: 2px;
                 margin-left: auto;
+                margin-right: auto;
             }
             .nav-sep-back { display: none; }
         }
         @media (max-width: 520px) {
             #topNav .nav-group-primary button,
             #topNav #navMoreBtn {
-                padding: 8px 8px;
+                padding: 8px 10px;
                 font-size: var(--fp-size-xs);
             }
             #topNav .nav-group-primary { gap: 0; }
+            #topNav.tools-open .nav-group-more { top: calc(100% + 14px); right: -2px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #topNav.tools-open .nav-group-more { animation: fpFadeIn var(--fp-dur) linear; }
         }
 
-        /* 左下角状态/版权提示 */
+        /* 左下角状态/版权提示：一枚小玻璃胶囊 */
         #status {
             position: fixed;
-            left: 12px;
-            bottom: 12px;
+            left: 14px;
+            bottom: 14px;
             z-index: 9999;
-            padding: 4px 10px;
+            padding: 5px 12px;
             font: var(--fp-size-xs)/1.6 var(--fp-font-text);
             color: var(--fp-ink-soft);
-            background: var(--fp-scrim);
+            --status-glass: rgba(255, 255, 255, 0.82);
+            background: var(--status-glass);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             border-radius: var(--fp-radius-control);
             font-variant-numeric: tabular-nums;
             pointer-events: none;
@@ -141,33 +157,50 @@
             pointer-events: auto;
             margin-left: 10px;
             padding: 2px 10px;
-            border: 1px solid var(--fp-rule-strong);
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
-            color: var(--fp-ink);
-            font: var(--fp-size-xs)/1.4 var(--fp-font-text);
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+            font: 500 var(--fp-size-xs)/1.4 var(--fp-font-text);
             cursor: pointer;
-            transition: background 0.2s ease;
+            transition: filter var(--fp-dur) var(--fp-ease), transform 160ms var(--fp-ease);
         }
         #statusRetry:hover {
-            background: var(--fp-rule);
+            filter: brightness(1.06);
+        }
+        #statusRetry:active {
+            transform: scale(0.96);
         }
         #statusRetry:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
 
-        /* 右下角浮动按钮：纯图标、圆形、单色极简，3D 放大后显示 */
+        /* 窄屏的详情卡是底部抽屉，状态条会压在卡片按钮上：开卡期间先收起来 */
+        @media (max-width: 820px) {
+            #status {
+                transition: opacity var(--fp-dur) var(--fp-ease);
+            }
+            body:has(#markerCard.visible) #status,
+            body:has(#cityCard.visible) #status {
+                opacity: 0;
+            }
+        }
+
+        /* 右下角浮动按钮：圆形玻璃、单色图标，3D 放大后显示 */
         #backGlobeBtn,
         #cityFillFloatBtn {
             position: fixed;
             right: 24px;
             z-index: 9998;
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            border: 1px solid var(--fp-rule-strong);
-            background: var(--fp-paper);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             color: var(--fp-ink-soft);
             display: flex;
             align-items: center;
@@ -176,38 +209,47 @@
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.35s ease, visibility 0.35s, color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+            transform: scale(0.92) translateY(8px);
+            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur), transform var(--fp-dur) var(--fp-ease),
+                        color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
         }
         #backGlobeBtn {
             bottom: 24px;
         }
         #cityFillFloatBtn {
-            bottom: 70px;
+            bottom: 74px;
         }
         #backGlobeBtn svg,
         #cityFillFloatBtn svg {
-            width: 17px;
-            height: 17px;
+            width: 18px;
+            height: 18px;
         }
         #backGlobeBtn.show,
         #cityFillFloatBtn.show {
             opacity: 1;
             visibility: visible;
             pointer-events: auto;
+            transform: none;
         }
-        /* 开着的开关：图标换成标注红，边框跟着加深；不做整块反色 */
+        /* 开着的开关：淡紫图标 + 淡紫浅底 */
         #cityFillFloatBtn.active {
-            border-color: var(--fp-mark);
-            color: var(--fp-mark);
+            color: var(--fp-accent);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow), inset 0 0 0 40px var(--fp-accent-soft);
         }
-        #backGlobeBtn:hover,
-        #cityFillFloatBtn:hover {
-            border-color: var(--fp-ink-soft);
+        #backGlobeBtn.show:hover,
+        #cityFillFloatBtn.show:hover {
             color: var(--fp-ink);
+            transform: translateY(-2px);
+            box-shadow: var(--fp-shadow-lift);
+        }
+        #backGlobeBtn.show:active,
+        #cityFillFloatBtn.show:active {
+            transform: scale(0.96);
         }
         #backGlobeBtn:focus-visible,
         #cityFillFloatBtn:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
 
@@ -226,18 +268,21 @@
             top: 0;
         }
         .marker-focus-btn:focus-visible {
-            left: 12px;
+            left: 14px;
             top: auto;
-            bottom: 48px;
+            bottom: 52px;
             padding: 8px 14px;
-            border: 1px solid var(--fp-rule-strong);
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             color: var(--fp-ink);
             font: var(--fp-size-sm) var(--fp-font-text);
             cursor: pointer;
             z-index: 9999;
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
 
@@ -251,7 +296,7 @@
             bottom: auto;
         }
 
-        /* 悬停名称：标注式引导线（名称在标记右侧，细线连接），无背景 */
+        /* 悬停名称：标记旁一枚小玻璃胶囊（短引线 + 名称），从标记一侧弹出 */
         #markerTip {
             position: fixed;
             z-index: 9997;
@@ -261,11 +306,6 @@
             font-family: var(--fp-font-title);
             font-size: var(--fp-size-md);
             color: var(--fp-ink);
-            /* 压在影像底图上：一圈紧贴字形的暗边，不做底板 */
-            text-shadow:
-                0 0 2px rgba(0, 0, 0, 0.95),
-                0 1px 2px rgba(0, 0, 0, 0.8),
-                0 0 10px rgba(0, 0, 0, 0.5);
             white-space: nowrap;
             opacity: 0;
             visibility: hidden;
@@ -277,40 +317,39 @@
             visibility: visible;
         }
         .marker-tip-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--fp-mark);
-            box-shadow: 0 0 0 1.5px var(--fp-ink);
-            opacity: 0;
-            transform: scale(0);
-            transition: opacity 0.18s ease 0.1s, transform 0.18s ease 0.1s;
-        }
-        #markerTip.show .marker-tip-dot {
-            opacity: 1;
-            transform: scale(1);
+            display: none;
         }
         .marker-tip-line {
-            width: 16px;
-            height: 1px;
-            background: var(--fp-ink-soft);
-            box-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+            width: 14px;
+            height: 1.5px;
+            border-radius: 1px;
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
             transform-origin: left center;
             transform: scaleX(0);
-            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.24s var(--fp-ease);
         }
         #markerTip.show .marker-tip-line {
             transform: scaleX(1);
         }
         .marker-tip-name {
-            padding-left: 7px;
+            padding: 6px 13px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
+            line-height: 1.2;
             opacity: 0;
-            transform: translateX(-3px);
-            transition: opacity 0.2s ease 0.1s, transform 0.2s ease 0.1s;
+            transform-origin: left center;
+            transform: scale(0.92) translateX(-4px);
+            filter: blur(4px);
+            transition: opacity 0.2s var(--fp-ease) 0.06s, transform 0.24s var(--fp-ease) 0.06s, filter 0.24s var(--fp-ease) 0.06s;
         }
         #markerTip.show .marker-tip-name {
             opacity: 1;
-            transform: translateX(0);
+            transform: none;
+            filter: none;
         }
 
         /* 靠近屏幕右缘时镜像到标记左侧 */
@@ -321,28 +360,30 @@
             transform-origin: right center;
         }
         #markerTip.left .marker-tip-name {
-            padding-left: 0;
-            padding-right: 7px;
-            transform: translateX(3px);
+            transform-origin: right center;
+            transform: scale(0.92) translateX(4px);
         }
         #markerTip.left.show .marker-tip-name {
-            transform: translateX(0);
+            transform: none;
         }
 
         @media (prefers-reduced-motion: reduce) {
-            #backGlobeBtn {
-                transition: none;
-            }
+            #backGlobeBtn,
             #cityFillFloatBtn {
-                transition: none;
+                transform: none;
+                transition: opacity var(--fp-dur) linear, visibility var(--fp-dur);
+            }
+            #backGlobeBtn.show:hover,
+            #cityFillFloatBtn.show:hover {
+                transform: none;
             }
             #markerTip {
                 transition: none;
             }
             #markerTip .marker-tip-line,
-            #markerTip .marker-tip-name,
-            #markerTip .marker-tip-dot {
-                transition: none;
+            #markerTip .marker-tip-name {
+                transform: none;
+                filter: none;
+                transition: opacity 0.15s linear;
             }
         }
-

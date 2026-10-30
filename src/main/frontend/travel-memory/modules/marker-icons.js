@@ -1,53 +1,163 @@
 /**
- * 足迹标记与城市标记的图标：尺寸档位与 SVG 图块。
+ * 足迹标记与城市标记的图标：尺寸档位、玻璃圆环图块与照片标记的合成。
  *
- * 从 markers.js 拆出。只有常量与纯函数，不持有任何状态。
+ * 从 markers.js 拆出。尺寸与 SVG 图块是常量与纯函数；照片标记另有一份按图片地址的缓存
+ * （合成结果是 data URL，Cesium 的贴图集按字符串去重，同一张图的多个标记只占一格）。
  */
 
 import { COARSE_POINTER } from './env.js';
+import { canvasSafeImageUrl } from './postcard.js';
 
-// ================= 足迹标记点 =================
-// 图标统一画在 56×56 的 viewBox 里，拆成「命中层」和「可见图形」两部分，
-// 这样可以把可点击区域做大，而视觉上的圆点/圆环保持原样：
-// - 命中层：r=27 的圆，填充 1% 透明度。Cesium 拾取会丢弃 alpha 为 0 的像素，
-//   因此用几乎看不见的填充把命中区撑满整块图（旧版只有中间 r=22 能点到，
-//   25px 的图标实际可点直径不到 20px，触屏很难点中）。
-// - 可见图形：按 k 缩放。图块尺寸变大时图形画得更小，视觉大小保持不变。
-const MARKER_BOX = 56;
-const MARKER_HIT_R = 27;
-export const MARKER_REF_SIZE = 26;          // 视觉基准：图块 26px 时圆环直径约 20px（与旧版一致）
-export const CITY_MARKER_REF_SIZE = 30;     // 城市标记视觉基准
-// 触屏设备整体放大命中区：视觉大小不变，只让手指更容易点中
-export const MARKER_SIZE = COARSE_POINTER ? 38 : MARKER_REF_SIZE;
-export const CITY_MARKER_SIZE = COARSE_POINTER ? 42 : CITY_MARKER_REF_SIZE;
-export const MARKER_SIZE_SELECTED = Math.round(MARKER_SIZE * 34 / MARKER_REF_SIZE);   // 选中态沿用 34/26 的比例
+// ================= 尺寸 =================
+// 图块是正方形；可见图形（白玻璃圆环）占图块的 MARKER_RING_RATIO，外圈留给柔阴影。
+// 整块图都铺一层 1% 透明度的命中层：Cesium 拾取会丢弃 alpha 为 0 的像素，
+// 不铺的话只有圆环本身能点中，触屏很难点准。
+// marker-input.js 的悬停命中半径 = 图块尺寸 × 0.55，和圆环半径（0.41）相比留出了一点余量。
+export const MARKER_SIZE = COARSE_POINTER ? 46 : 42;
+export const CITY_MARKER_SIZE = COARSE_POINTER ? 46 : 40;
+export const MARKER_SIZE_SELECTED = Math.round(MARKER_SIZE * 1.24);   // 选中态放大一档
+const MARKER_RING_RATIO = 0.82;   // 圆环直径 / 图块边长
+const MARKER_RING_PAD = 4 / 58;   // 白圈厚度占圆环直径的比例（参考：58px 圆环里放 50px 照片）
 
-// 配色与页面的测绘手簿色板一致（styles/shared/tokens.css）：标注红只用来表示「去过」。
-// SVG 是数据 URL，读不到 CSS 变量，所以这里写死同样的色值。
-const MARK_RED = '#d65a4f';
-const PAPER_INK = '#e9ece8';
-const NIGHT_PAPER = '#12171c';
+// 配色与 styles/shared/tokens.css 一致。SVG / canvas 读不到 CSS 变量，所以写死同样的色值。
+const GLASS = 'rgba(255, 255, 255, 0.95)';       // 比 --fp-glass-strong 更实：压在深色影像上不发灰
+const ACCENT = '#7c7bc0';                        // --fp-accent
+const ACCENT_SOFT = 'rgba(124, 123, 192, 0.16)'; // --fp-accent-soft（略加实，压在影像上）
+const SHADOW = 'rgba(0, 0, 0, 0.32)';
+const NUMBER_FONT = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
 
-export function markerIconUrl(kind, k, count) {
-    const parts = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="' + MARKER_BOX + '" height="' + MARKER_BOX + '" viewBox="0 0 56 56">',
-        '<circle cx="28" cy="28" r="' + MARKER_HIT_R + '" fill="#ffffff" opacity="0.01"/>'
-    ];
-    if (kind === 'city') {
-        // 城市：深底圆牌 + 标注红描边 + 足迹数（文楷没进 SVG，用系统字即可，数字本来就是等宽的）
-        parts.push('<circle cx="28" cy="28" r="' + (21 * k) + '" fill="' + NIGHT_PAPER + '" fill-opacity="0.82" stroke="' + MARK_RED + '" stroke-width="' + (2.4 * k) + '"/>');
-        parts.push('<text x="28" y="' + (28 + 5 * k) + '" fill="' + PAPER_INK + '" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="600" font-size="' + (15 * k) + '" text-anchor="middle">' + count + '</text>');
-    } else {
-        // 足迹：测量点的画法——实心红点 + 一圈纸色细环，压在任何底图上都分得出来
-        parts.push('<circle cx="28" cy="28" r="' + (13 * k) + '" fill="none" stroke="' + PAPER_INK + '" stroke-width="' + (2 * k) + '" opacity="0.92"/>');
-        parts.push('<circle cx="28" cy="28" r="' + (7.5 * k) + '" fill="' + MARK_RED + '" stroke="' + NIGHT_PAPER + '" stroke-width="' + (1.6 * k) + '"/>');
-    }
-    parts.push('</svg>');
-    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(parts.join(''));
+// ================= SVG 图块：照片未就绪 / 没有照片的足迹、城市聚合 =================
+// 同一个 56×56 的 viewBox：外圈白玻璃 + 柔阴影；足迹是中间一枚强调色圆点，城市是强调色数字。
+function glassRingSvg(inner) {
+    const r = 28 * MARKER_RING_RATIO;
+    return [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">',
+        '<defs><filter id="s" x="-30%" y="-30%" width="160%" height="160%">',
+        '<feDropShadow dx="0" dy="1.6" stdDeviation="1.8" flood-color="#000000" flood-opacity="0.3"/>',
+        '</filter></defs>',
+        '<circle cx="28" cy="28" r="27.5" fill="#ffffff" opacity="0.01"/>',
+        '<circle cx="28" cy="28" r="' + r + '" fill="' + GLASS + '" filter="url(#s)"/>',
+        inner(r),
+        '</svg>'
+    ].join('');
 }
-export const MARKER_URL = markerIconUrl('footprint', MARKER_REF_SIZE / MARKER_SIZE);
+function svgDataUrl(svg) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
 
+/** 足迹标记的兜底图：白玻璃圆环 + 强调色圆点（照片加载前、或这条足迹没有照片）。 */
+export const MARKER_URL = svgDataUrl(glassRingSvg((r) =>
+    '<circle cx="28" cy="28" r="' + (r - 4) + '" fill="' + ACCENT_SOFT + '"/>' +
+    '<circle cx="28" cy="28" r="' + (r * 0.3) + '" fill="' + ACCENT + '"/>'
+));
+
+/** 城市聚合标记：白玻璃圆环 + 强调色数字（这座城市的足迹数）。 */
 export function cityMarkerUrl(count) {
-    // 绘制统一走 markerIconUrl（与足迹标记共用同一套命中层，见文件下方标记点一节）
-    return markerIconUrl('city', CITY_MARKER_REF_SIZE / CITY_MARKER_SIZE, count);
+    const text = String(count);
+    const size = text.length > 2 ? 15 : 19;
+    return svgDataUrl(glassRingSvg(() =>
+        '<text x="28" y="' + (28 + size * 0.36) + '" fill="' + ACCENT + '" font-family="' +
+        NUMBER_FONT.replace(/"/g, "'") + '" font-weight="700" font-size="' + size +
+        '" text-anchor="middle">' + text + '</text>'
+    ));
+}
+
+// ================= 照片标记：canvas 合成 =================
+// Billboard 的图只能是同源可读的位图（SVG 数据 URL 里引用远程图会被浏览器拦掉），
+// 所以照片标记在 canvas 上画好：柔阴影 → 白玻璃圆环 → 裁成圆形的照片，再导出成 data URL。
+// 跨域图走插件的同源代理（canvasSafeImageUrl），否则 canvas 被污染、toDataURL 直接抛错。
+const PHOTO_TILE_PX = 112;        // 合成画布边长：按 2 倍屏画，选中放大后也不糊
+const PHOTO_LOAD_CONCURRENCY = 3; // 同时加载的照片数：别和地球瓦片抢带宽
+
+const photoCache = new Map();     // 图片地址 -> data URL | null（null = 加载失败，不再重试）
+const photoWaiters = new Map();   // 图片地址 -> 回调列表
+const photoQueue = [];
+let photoActive = 0;
+
+function composePhotoTile(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = PHOTO_TILE_PX;
+    const ctx = canvas.getContext('2d');
+    const c = PHOTO_TILE_PX / 2;
+    const ringR = c * MARKER_RING_RATIO;
+    const photoR = ringR * (1 - MARKER_RING_PAD * 2);
+    // 命中层（与 SVG 图块一致）
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.01)';
+    ctx.fillRect(0, 0, PHOTO_TILE_PX, PHOTO_TILE_PX);
+    // 白玻璃圆环 + 柔阴影
+    ctx.save();
+    ctx.shadowColor = SHADOW;
+    ctx.shadowBlur = PHOTO_TILE_PX * 0.07;
+    ctx.shadowOffsetY = PHOTO_TILE_PX * 0.028;
+    ctx.fillStyle = GLASS;
+    ctx.beginPath();
+    ctx.arc(c, c, ringR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // 照片：按短边居中裁成正方形，再裁成圆
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    const sx = (img.naturalWidth - side) / 2;
+    const sy = (img.naturalHeight - side) / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(c, c, photoR, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, sx, sy, side, side, c - photoR, c - photoR, photoR * 2, photoR * 2);
+    ctx.restore();
+    return canvas.toDataURL('image/png');
+}
+
+function finishPhoto(url, result) {
+    photoCache.set(url, result);
+    const waiters = photoWaiters.get(url) || [];
+    photoWaiters.delete(url);
+    waiters.forEach(fn => fn(result));
+    photoActive--;
+    drainPhotoQueue();
+}
+
+function drainPhotoQueue() {
+    while (photoActive < PHOTO_LOAD_CONCURRENCY && photoQueue.length) {
+        const url = photoQueue.shift();
+        photoActive++;
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.decoding = 'async';
+        img.onload = () => {
+            let result = null;
+            try {
+                if (img.naturalWidth && img.naturalHeight) result = composePhotoTile(img);
+            } catch (e) {
+                result = null;   // 画布被污染（代理没生效）：停在兜底图
+            }
+            finishPhoto(url, result);
+        };
+        img.onerror = () => finishPhoto(url, null);
+        img.src = canvasSafeImageUrl(url);
+    }
+}
+
+/** 已合成好的照片标记（data URL）；还没好或加载失败时返回空串。 */
+export function cachedMarkerPhoto(url) {
+    return (url && photoCache.get(url)) || '';
+}
+
+/**
+ * 排队合成一张照片标记；完成后回调 data URL（失败回调 null）。
+ * 同一地址只加载一次，多次请求共用一个结果。
+ */
+export function requestMarkerPhoto(url, done) {
+    if (!url) return;
+    if (photoCache.has(url)) {
+        const cached = photoCache.get(url);
+        Promise.resolve().then(() => done(cached));
+        return;
+    }
+    if (photoWaiters.has(url)) {
+        photoWaiters.get(url).push(done);
+        return;
+    }
+    photoWaiters.set(url, [done]);
+    photoQueue.push(url);
+    drainPhotoQueue();
 }

@@ -10,10 +10,10 @@
  */
 
 const PROVINCE_GEOJSON_URL = '/plugins/footprint/assets/static/data/china-full.json';
-// 选中的省份用「等高线」绿（--fp-contour 夜图 #8fa070）：设计说明里它就是「选中」色。
+// 选中的省份用强调色淡紫（--fp-accent #7c7bc0）：设计说明里它就是「选中」色。
 // 填充压到很淡，影像仍然看得清；轮廓线稍实一些，把边界交代清楚。
-const PROVINCE_HL_FILL = 'rgba(143, 160, 112, 0.10)';
-const PROVINCE_HL_STROKE = 'rgba(143, 160, 112, 0.85)';
+const PROVINCE_HL_FILL = 'rgba(124, 123, 192, 0.14)';
+const PROVINCE_HL_STROKE = 'rgba(255, 255, 255, 0.9)';
 const PROVINCE_HL_STROKE_WIDTH = 1.4;
 
 let provinceHighlightAdcode = '';   // 当前高亮的省份（材质改写）

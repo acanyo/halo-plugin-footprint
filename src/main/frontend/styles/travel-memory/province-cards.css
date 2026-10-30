@@ -1,6 +1,6 @@
         /* ============ 省份城市卡片（点击 3D 地球上的省份后展示） ============
            每个有足迹的城市一张小卡片，从该城市的聚合标记拉一条细引线连到卡片。
-           浮在地球上，用夜图一套；纸面、边框、圆角与地图卡（map-cards.css）是同一家人。
+           白玻璃小卡，材质、圆角、阴影与地图卡（map-cards.css）是同一家人。
            连线画在屏幕空间的 SVG 覆盖层上（卡片是 DOM，三维折线够不到卡片边缘），
            层级：地球 canvas < 连线 < 省名标签 < 卡片 < 导航栏。
            仅桌面端生效，窄屏由 JS 与下方媒体查询一起关闭。 */
@@ -13,21 +13,21 @@
             overflow: visible;
             pointer-events: none;
         }
-        /* 引线：一条淡墨细线，底下垫一层很淡的纸色描边（浅色影像上靠它把线托出来）。
-           起点是标注红的小圆点，即「去过」的那座城。 */
-        .prop-leader-stop-from { stop-color: var(--fp-ink-soft); }
-        .prop-leader-stop-to { stop-color: var(--fp-ink-faint); }
+        /* 引线：一条柔白细线，底下垫一层很淡的暗影（亮色影像上靠它把线托出来）。
+           起点是一枚白边淡紫圆点，即「去过」的那座城。 */
+        .prop-leader-stop-from { stop-color: rgba(255, 255, 255, 0.95); }
+        .prop-leader-stop-to { stop-color: rgba(255, 255, 255, 0.55); }
         .prop-leader {
             fill: none;
-            stroke-width: 1;
+            stroke-width: 1.4;
             stroke-linecap: round;
             transition: stroke-width 160ms var(--fp-ease);
         }
         .prop-leader-base {
             fill: none;
-            stroke: var(--fp-paper);
-            stroke-opacity: 0.5;
-            stroke-width: 2.6;
+            --prop-leader-shade: rgba(0, 0, 0, 0.22);
+            stroke: var(--prop-leader-shade);
+            stroke-width: 3.4;
             stroke-linecap: round;
             transition: stroke-width 160ms var(--fp-ease);
         }
@@ -36,9 +36,9 @@
             transition: opacity var(--fp-dur) var(--fp-ease);
         }
         .prop-leader-dot {
-            fill: var(--fp-mark);
-            stroke: var(--fp-paper);
-            stroke-width: 1;
+            fill: var(--fp-accent);
+            stroke: rgba(255, 255, 255, 0.95);
+            stroke-width: 2;
             transition: opacity var(--fp-dur) var(--fp-ease);
         }
         /* 悬停某张卡片：自己那条线加粗、拉满，其余压暗一档。不做流动和闪烁。 */
@@ -49,10 +49,10 @@
             opacity: 1;
         }
         #leaderOverlay.has-focus .prop-leader-group.is-active .prop-leader {
-            stroke-width: 1.6;
+            stroke-width: 2.2;
         }
         #leaderOverlay.has-focus .prop-leader-group.is-active .prop-leader-base {
-            stroke-width: 3.2;
+            stroke-width: 4.2;
         }
         /* 隐藏规则必须排在最后：转到地球背面 / 收起过程中的线不能被 hover 状态点亮 */
         #leaderOverlay .prop-leader-group.is-active.is-hidden,
@@ -75,13 +75,16 @@
             top: 0;
             z-index: 2;
             transform: translate(-50%, -100%);
+            padding: 6px 16px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
             color: var(--fp-ink);
             font: 400 var(--fp-size-lg)/1.25 var(--fp-font-title);
             letter-spacing: 0.02em;
             white-space: nowrap;
-            /* 直接压在影像上的地名：只留一层贴字的暗影保证可读 */
-            --province-label-halo: rgba(0, 0, 0, 0.85);
-            text-shadow: 0 0 3px var(--province-label-halo), 0 1px 2px var(--province-label-halo);
             pointer-events: none;
             opacity: 0;
             visibility: hidden;
@@ -98,39 +101,47 @@
             left: 50%;
             bottom: 92px;
             z-index: 3;
-            padding: 6px 10px;
+            padding: 8px 16px;
             border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
-            border: 1px solid var(--fp-rule);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             color: var(--fp-ink-soft);
             font: var(--fp-size-sm)/1.4 var(--fp-font-text);
             white-space: nowrap;
             pointer-events: none;
             opacity: 0;
             visibility: hidden;
-            transform: translateX(-50%) translateY(6px);
-            transition: opacity 240ms var(--fp-ease), visibility 240ms, transform 240ms var(--fp-ease);
+            transform: translateX(-50%) translateY(8px) scale(0.92);
+            filter: blur(6px);
+            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur),
+                        transform var(--fp-dur) var(--fp-ease), filter var(--fp-dur) var(--fp-ease);
         }
         #provinceHint.show {
             opacity: 1;
             visibility: visible;
-            transform: translateX(-50%) translateY(0);
+            transform: translateX(-50%);
+            filter: none;
         }
 
         /* 小城市卡：cityCard 的缩小横版（左图右文），
            只有封面 + 城市名 + 数量 + 最近到访，没有任何按钮。
-           纸面、格线边框、面板圆角与 #cityCard 相同；层次靠边框，不加投影。 */
+           白玻璃 + 6px 内边距里嵌一张圆角照片，与 #cityCard 同一种材质。 */
         .prop-city-card {
             position: absolute;
             left: 0;
             top: 0;
             display: grid;
-            grid-template-columns: 40% minmax(0, 1fr);
+            grid-template-columns: 84px minmax(0, 1fr);
+            box-sizing: border-box;
             width: 244px;
-            border-radius: var(--fp-radius-panel);
-            overflow: hidden;
-            background: var(--fp-paper);
-            border: 1px solid var(--fp-rule);
+            padding: 6px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.86);
+            -webkit-backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.1);
             color: var(--fp-ink);
             font-family: var(--fp-font-text);
             cursor: pointer;
@@ -139,9 +150,11 @@
             user-select: none;
             -webkit-user-select: none;
             opacity: 0;
-            transition: opacity var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+            transition: opacity var(--fp-dur) var(--fp-ease), filter var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
         }
         .prop-city-card.show { opacity: 1; }
+        /* 入场起点带一点模糊：.show 与终点位置同一帧加上，飞行过渡里一起去模糊 */
+        .prop-city-card:not(.show) { filter: blur(6px); }
         /* 入场飞行态：只有展开那一小段时间启用 transform 过渡。
            常驻的话，相机转动时的逐帧重排会被过渡拖成"追着跑"，拖拽也会发黏。 */
         .prop-city-card.is-flying {
@@ -151,7 +164,8 @@
             /* 时长与 province-card-entrance.js 的 PROVINCE_CARD_FLY_MS 一致 */
             transition: transform 240ms var(--fp-ease),
                         opacity 240ms var(--fp-ease),
-                        border-color var(--fp-dur) var(--fp-ease);
+                        filter 240ms var(--fp-ease),
+                        box-shadow var(--fp-dur) var(--fp-ease);
         }
         .prop-city-card.is-hidden {
             opacity: 0;
@@ -159,7 +173,7 @@
         }
         .prop-city-card.is-dragging {
             cursor: grabbing;
-            border-color: var(--fp-ink-soft);
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34), 0 0 0 2px var(--fp-accent);
             /* 拖拽必须立刻跟手：入场飞行态残留的 transform 过渡不能把拖动拖成"黏手" */
             transition: none;
             will-change: transform;
@@ -167,21 +181,22 @@
         .prop-city-card:hover,
         .prop-city-card:focus-visible {
             outline: none;
-            /* 悬停描边与引线同为淡墨 */
-            border-color: var(--fp-ink-soft);
+            /* 悬停：阴影加深一档，一圈淡紫描边说明它和高亮的那条引线是一对 */
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32), 0 0 0 2px var(--fp-accent);
         }
         .prop-city-card:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
         .prop-card-media {
             grid-area: 1 / 1 / 2 / 2;
             position: relative;
-            min-height: 96px;
-            background: var(--fp-paper-raised);
+            min-height: 84px;
+            overflow: hidden;
+            border-radius: 12px;
+            background: var(--fp-accent-soft);
             background-size: cover;
             background-position: center;
-            border-right: 1px solid var(--fp-rule);
         }
         /* 卡片可点的提示：只在悬停/键盘聚焦时浮在封面区（那一片没有文字，不会挡内容） */
         .prop-card-hint {
@@ -195,8 +210,9 @@
             padding: 0 4px;
             text-align: center;
             /* 压在封面照片上的提示：照片可读性暗影 */
-            --prop-card-hint-scrim: rgba(0, 0, 0, 0.55);
+            --prop-card-hint-scrim: rgba(0, 0, 0, 0.45);
             background: var(--prop-card-hint-scrim);
+            color: rgba(255, 255, 255, 0.96);
             opacity: 0;
             transition: opacity var(--fp-dur) var(--fp-ease);
             pointer-events: none;
@@ -204,11 +220,10 @@
         .prop-card-hint em {
             font-style: normal;
             font-size: var(--fp-size-xs);
-            color: var(--fp-ink);
         }
         .prop-card-hint small {
             font-size: 11px;
-            color: var(--fp-ink-soft);
+            opacity: 0.8;
         }
         .prop-city-card:hover .prop-card-hint,
         .prop-city-card:focus-visible .prop-card-hint {
@@ -220,7 +235,7 @@
             flex-direction: column;
             justify-content: center;
             min-width: 0;
-            padding: 12px 14px;
+            padding: 4px 6px 4px 12px;
         }
         .prop-card-title {
             margin: 0;
@@ -243,8 +258,8 @@
         }
         .prop-card-stats b {
             font-size: var(--fp-size-sm);
-            font-weight: 500;
-            color: var(--fp-ink);
+            font-weight: 600;
+            color: var(--fp-accent);
             font-variant-numeric: tabular-nums;
         }
         .prop-card-date {
@@ -265,6 +280,8 @@
             .prop-leader-base,
             .prop-leader-group,
             .prop-leader-dot { transition: none; }
+            .prop-city-card:not(.show) { filter: none; }
+            #provinceHint { filter: none; transform: translateX(-50%); }
             .card-cover-photo { transition: none; }
         }
         /* 窄屏不生效（与 JS 门控 > 820px 一致） */

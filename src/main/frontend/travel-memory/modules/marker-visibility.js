@@ -25,16 +25,17 @@ export function setGlobeLabelMode(mode) {
     globeLabelMode = mode;
 }
 
-const LABEL_FONT = '500 12px "PingFang SC", "Microsoft YaHei", sans-serif';
+const LABEL_FONT = '600 12px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
 const LABEL_FONT_PX = 12;        // 与上面的字号保持一致：避让时按它估算文字宽度
 const LABEL_LINE_HEIGHT = 17;    // 一行文字占的高度（含行距），用于屏幕空间避让
 const LABEL_PAD = 3;             // 避让时给每个标签留的余量
 const LABEL_GAP = 4;             // 标签与标记之间的间隙（贴着圆点写，字小的时候更自然）
 const LABEL_MARGIN = 4;          // 与视口边缘的最小距离
 const LABEL_MAX = 160;           // 单帧参与避让的标签上限（按离视口中心由近到远取）
-// 与测绘手簿夜图色板一致（styles/shared/tokens.css 的 --fp-paper / --fp-ink）
-const LABEL_OUTLINE_COLOR = Cesium.Color.fromCssColorString('#12171c').withAlpha(0.9);
-const LABEL_FILL_COLOR = Cesium.Color.fromCssColorString('#e9ece8');
+// 柔光玻璃色板（styles/shared/tokens.css）：深墨字 --fp-ink + 一圈白晕，压在星空和影像上都读得清
+const LABEL_OUTLINE_COLOR = Cesium.Color.WHITE.withAlpha(0.92);
+const LABEL_FILL_COLOR = Cesium.Color.fromCssColorString('#3a3a40');
+const LABEL_OUTLINE_WIDTH = 3.5;
 // 标签候选位：8 个方向 × 2 圈（先试第一圈，放不下再整体外推一档）
 const LABEL_SLOT_DIRS = [
     { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 },
@@ -70,7 +71,7 @@ export function prewarmLabelGlyphs(viewer, texts) {
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             fillColor: Cesium.Color.TRANSPARENT,
             outlineColor: Cesium.Color.TRANSPARENT,
-            outlineWidth: 2.5,
+            outlineWidth: LABEL_OUTLINE_WIDTH,
             // 字形缓存的键 = 字 + 字体 + 竖直对齐，必须和真实标签（markerLabelGraphics）一致
             verticalOrigin: Cesium.VerticalOrigin.TOP
         }
@@ -97,7 +98,7 @@ export function markerLabelGraphics(text, markerSize) {
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
         fillColor: LABEL_FILL_COLOR,
         outlineColor: LABEL_OUTLINE_COLOR,
-        outlineWidth: 2.5,        // 等价于原来的 text-shadow 描边，压在影像底图上也能读清
+        outlineWidth: LABEL_OUTLINE_WIDTH,   // 白晕：等价于 CSS 的白色 text-shadow 描边
         horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
         verticalOrigin: Cesium.VerticalOrigin.TOP,
         pixelOffset: new Cesium.Cartesian2(0, Math.round(markerSize * 0.42) + LABEL_GAP),

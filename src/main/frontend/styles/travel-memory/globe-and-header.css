@@ -52,33 +52,41 @@
         }
 
         /* ============ 顶部导航 ============
-           左侧一枚文楷字标，右侧导航。导航本身没有底板，只在顶上铺一层很淡的暗角，
-           让文字压在亮色底图上也读得清。当前状态用一条标注红短线表示。 */
+           一条浮在地球上方的玻璃胶囊：左侧快看世界体字标，右侧导航。
+           当前状态是一块淡紫浅底；悬停是一块浅灰底。 */
         #topNav {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 14px;
+            left: 20px;
+            right: 20px;
             z-index: 10000;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            height: 60px;
-            padding: 0 28px;
+            height: 56px;
+            padding: 0 10px 0 24px;
             box-sizing: border-box;
-            background: linear-gradient(180deg, var(--fp-scrim), transparent);
+            border-radius: 28px;
+            /* 背后是深色星空：玻璃要比浅底页面上更实，才不会被压成灰色 */
+            --nav-glass: rgba(255, 255, 255, 0.94);
+            background: var(--nav-glass);
+            -webkit-backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            box-shadow: var(--fp-shadow);
             font-family: var(--fp-font-text);
             user-select: none;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.6s ease, visibility 0.6s;
+            transform: translateY(-8px) scale(0.98);
+            transition: opacity var(--fp-dur) var(--fp-ease), transform 0.5s var(--fp-ease), visibility var(--fp-dur);
         }
         #topNav.visible {
             opacity: 1;
             visibility: visible;
             pointer-events: auto;
+            transform: none;
         }
         .nav-brand {
             display: flex;
@@ -87,7 +95,7 @@
         }
         .nav-brand-zh {
             font-family: var(--fp-font-title);
-            font-size: 21px;
+            font-size: 20px;
             letter-spacing: 0.04em;
             color: var(--fp-ink);
         }
@@ -101,53 +109,42 @@
             width: 1px;
             height: 14px;
             margin: 0 6px;
-            background: var(--fp-rule);
+            background: var(--fp-rule-strong);
         }
 
         #topNav button {
             appearance: none;
             border: 0;
+            border-radius: var(--fp-radius-control);
             background: transparent;
-            padding: 8px 12px;
-            font: 400 var(--fp-size-sm)/1.4 var(--fp-font-text);
+            padding: 9px 14px;
+            font: 500 var(--fp-size-sm)/1.4 var(--fp-font-text);
             white-space: nowrap;
             color: var(--fp-ink-soft);
             cursor: pointer;
             position: relative;
-            transition: color var(--fp-dur) var(--fp-ease);
-        }
-        #topNav button::after {
-            content: "";
-            position: absolute;
-            left: 50%;
-            bottom: 3px;
-            width: 14px;
-            height: 2px;
-            margin-left: -7px;
-            border-radius: 1px;
-            background: var(--fp-mark);
-            opacity: 0;
-            transition: opacity var(--fp-dur) var(--fp-ease);
+            transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease),
+                        transform 160ms var(--fp-ease);
         }
         #topNav button:hover:not(:disabled) {
             color: var(--fp-ink);
+            background: var(--fp-rule);
+        }
+        #topNav button:active:not(:disabled) {
+            transform: scale(0.96);
         }
         #topNav button.active,
         #topNav button[aria-pressed="true"] {
-            color: var(--fp-ink);
-        }
-        #topNav button.active::after,
-        #topNav button[aria-pressed="true"]::after {
-            opacity: 1;
+            color: var(--fp-accent);
+            background: var(--fp-accent-soft);
         }
         #topNav button:disabled {
             opacity: 0.35;
             cursor: default;
         }
         #topNav button:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 1px;
-            border-radius: var(--fp-radius-control);
         }
 
         /* 视角按钮：它说的是「切到哪里」，不是状态，所以不加强调色 */
@@ -166,31 +163,30 @@
         }
         .nav-chev {
             opacity: 0.7;
-            transition: transform 0.2s ease;
+            transition: transform var(--fp-dur) var(--fp-ease);
         }
         .nav-menu.open .nav-chev {
             transform: rotate(180deg);
         }
         #layerButtons.nav-menu-panel {
             position: absolute;
-            top: calc(100% + 10px);
+            top: calc(100% + 12px);
             right: 0;
             min-width: 212px;
             padding: 6px;
             border-radius: var(--fp-radius-panel);
-            border: 1px solid var(--fp-rule);
-            background: var(--fp-paper-raised);
+            background: rgba(255, 255, 255, 0.92);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow-lift);
             display: flex;
             flex-direction: column;
             gap: 2px;
-            animation: navPanelIn 0.18s ease;
+            transform-origin: top right;
+            animation: fpPopIn var(--fp-dur) var(--fp-ease);
         }
         #layerButtons.nav-menu-panel[hidden] {
             display: none;
-        }
-        @keyframes navPanelIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to   { opacity: 1; transform: translateY(0); }
         }
         #layerButtons.nav-menu-panel button {
             display: flex;
@@ -198,55 +194,54 @@
             justify-content: space-between;
             text-align: left;
             padding: 9px 12px;
-            border-radius: var(--fp-radius-control);
+            border-radius: 10px;
         }
         #layerButtons.nav-menu-panel button::after {
             content: none;
-            position: static;
-            transform: none;
-            background: none;
-            opacity: 1;
             margin-left: 12px;
-            font-size: 12px;
-            line-height: 1;
-        }
-        #layerButtons.nav-menu-panel button:hover:not(:disabled) {
-            background: var(--fp-rule);
         }
         #layerButtons.nav-menu-panel button.active {
-            color: var(--fp-ink);
+            color: var(--fp-accent);
+            background: var(--fp-accent-soft);
         }
         #layerButtons.nav-menu-panel button.active::after {
             content: "";
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--fp-mark);
+            background: var(--fp-accent);
         }
 
+        /* 只淡入不位移：prefers-reduced-motion 下替代 fpPopIn */
+        @keyframes fpFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
         @media (prefers-reduced-motion: reduce) {
             #topNav {
-                transition: none;
+                transform: none;
+                transition: opacity var(--fp-dur) linear, visibility var(--fp-dur);
             }
             #topNav button,
-            #topNav button::after,
             .nav-chev {
                 transition: none;
             }
             #layerButtons.nav-menu-panel {
-                animation: none;
+                animation: fpFadeIn var(--fp-dur) linear;
             }
         }
 
         @media (max-width: 820px) {
             #topNav {
-                flex-wrap: wrap;
-                height: auto;
-                padding: 10px 16px;
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                height: 48px;
+                padding: 0 6px;
                 gap: 8px;
+                border-radius: 24px;
             }
             .nav-brand-zh {
                 font-size: 18px;
             }
         }
-

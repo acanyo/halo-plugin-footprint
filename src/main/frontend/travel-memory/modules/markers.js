@@ -32,7 +32,9 @@ import {
     MARKER_SIZE,
     CITY_MARKER_SIZE,
     MARKER_URL,
-    cityMarkerUrl
+    cityMarkerUrl,
+    cachedMarkerPhoto,
+    requestMarkerPhoto
 } from './marker-icons.js';
 import {
     setGlobeLabelMode,
@@ -152,13 +154,42 @@ export function buildMarkers() {
             name: fp.name,
             position: Cesium.Cartesian3.fromDegrees(pos.lng, pos.lat, markerLift.get(i) || 0),
             billboard: {
-                image: MARKER_URL,
+                image: markerImageOf(fp),
                 width: MARKER_SIZE,
                 height: MARKER_SIZE,
                 verticalOrigin: Cesium.VerticalOrigin.CENTER,
                 disableDepthTestDistance: Number.POSITIVE_INFINITY   // 背面隐藏由 updateMarkerOcclusion 处理
             },
             label: markerLabelGraphics(fp.name || '', MARKER_SIZE)
+        });
+    });
+    loadMarkerPhotos();
+}
+
+// 照片标记：封面合成好之前先用玻璃圆点顶着，合成完再换图（marker-icons.js 负责加载与缓存）。
+// 换图按下标找当前实体：体检自愈可能已经把实体换掉了，闭包里的旧实体不能用。
+// Cesium 换图后要等新贴图进图集才会画出来，这一小段时间里 pick 拾取不到它；
+// 记下换图时刻，渲染体检在这段时间内跳过它，免得把「正在换图」误判成「没画出来」而去抬高。
+const MARKER_IMAGE_SETTLE_MS = 1000;
+const markerImageSwapAt = new Map();   // 下标 -> 换图时刻（performance.now）
+function markerCoverUrl(fp) {
+    const first = fp && cityWallImages(fp)[0];
+    return first ? first.url : '';
+}
+function markerImageOf(fp) {
+    return cachedMarkerPhoto(markerCoverUrl(fp)) || MARKER_URL;
+}
+function loadMarkerPhotos() {
+    const list = markerEntities;
+    deps.footprints().forEach((fp, i) => {
+        const url = markerCoverUrl(fp);
+        if (!url || cachedMarkerPhoto(url)) return;
+        requestMarkerPhoto(url, (image) => {
+            if (!image || list !== markerEntities) return;   // 失败停在圆点；标记已整批重建则作废
+            const ent = markerEntities[i];
+            if (!ent || !ent.billboard) return;
+            ent.billboard.image = image;
+            markerImageSwapAt.set(i, performance.now());
         });
     });
 }
@@ -404,6 +435,10 @@ function auditMarkerRendering() {
             waiting = true;                     // 尺寸还在动画里，先不算它
             return;
         }
+        if (performance.now() - (markerImageSwapAt.get(i) || -Infinity) < MARKER_IMAGE_SETTLE_MS) {
+            waiting = true;                     // 刚换成照片，贴图还没进图集，等它画出来再看
+            return;
+        }
         const pos = ent.position && ent.position.getValue(now);
         if (!pos) return;
         const sp = Cesium.SceneTransforms.worldToWindowCoordinates(deps.viewer().scene, pos, auditScreen);
@@ -420,7 +455,7 @@ function auditMarkerRendering() {
             name: fp.name,
             position: Cesium.Cartesian3.fromDegrees(center.lng, center.lat, nextStep),
             billboard: {
-                image: MARKER_URL,
+                image: markerImageOf(fp),
                 width: MARKER_SIZE,
                 height: MARKER_SIZE,
                 verticalOrigin: Cesium.VerticalOrigin.CENTER,

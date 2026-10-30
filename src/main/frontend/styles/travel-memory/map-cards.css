@@ -1,31 +1,38 @@
         /* ============ 地图浮层卡：足迹卡（单条记录）与城市卡（一座城市的汇总） ============
-           两张卡共用骨架：同一块纸面、同一套按钮、同一个入场方式。
-           区别交给内容：足迹卡是一页记录（照片在上、条目在下），城市卡是一行汇总（照片在左、数字在右）。 */
+           两张卡共用骨架：同一块白玻璃、同一套胶囊按钮、同一个弹出方式。
+           照片嵌在玻璃里（四周留 8px、圆角 14px），下面是图标行，最底下是整宽的胶囊按钮。
+           地球背后是深色星空，玻璃要比浅底页面上更实一些、阴影更深一些才托得住。 */
         #markerCard,
         #cityCard {
             /* 入场方向：--card-enter-* 是起点偏移，--card-origin-* 是缩放原点。
-               默认「从右侧滑入」是容器卡的侧边语义；足迹卡开卡前由 JS 按被点标记的位置覆盖这组变量。 */
-            --card-enter-x: 28px;
-            --card-enter-y: 0px;
-            --card-enter-scale: 0.97;
+               默认「从右侧弹出」是容器卡的侧边语义；足迹卡开卡前由 JS 按被点标记的位置覆盖这组变量。 */
+            --card-enter-x: 24px;
+            --card-enter-y: 8px;
+            --card-enter-scale: 0.92;
             --card-origin-x: 50%;
             --card-origin-y: 50%;
+            --map-card-glass: rgba(255, 255, 255, 0.94);
             position: fixed;
             right: 4.5%;
             top: 50%;
             z-index: 9997;
-            overflow: hidden;
-            border-radius: var(--fp-radius-panel);
+            box-sizing: border-box;
+            padding: 8px;
+            border-radius: 22px;
             font-family: var(--fp-font-text);
             color: var(--fp-ink);
-            background: var(--fp-paper);
-            border: 1px solid var(--fp-rule);
+            background: var(--map-card-glass);
+            -webkit-backdrop-filter: blur(var(--fp-blur)) saturate(1.5);
+            backdrop-filter: blur(var(--fp-blur)) saturate(1.5);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32), 0 3px 12px rgba(0, 0, 0, 0.12);
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
             transform-origin: var(--card-origin-x) var(--card-origin-y);
             transform: translateY(-50%) translate(var(--card-enter-x), var(--card-enter-y)) scale(var(--card-enter-scale));
-            transition: opacity 0.24s ease, visibility 0.24s, transform 0.24s var(--fp-ease);
+            filter: blur(8px);
+            /* 关闭：200ms 反向收回 */
+            transition: opacity 200ms var(--fp-ease), visibility 200ms, transform 200ms var(--fp-ease), filter 200ms var(--fp-ease);
         }
         #markerCard.visible,
         #cityCard.visible {
@@ -33,8 +40,11 @@
             visibility: visible;
             pointer-events: auto;
             transform: translateY(-50%) translate(0, 0) scale(1);
+            filter: none;
+            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur),
+                        transform var(--fp-dur) var(--fp-ease), filter var(--fp-dur) var(--fp-ease);
         }
-        /* 标题用文楷：地名与足迹名是这张卡的主角 */
+        /* 标题用快看世界体：地名与足迹名是这张卡的主角 */
         #markerCard h2,
         #cityCard h2 {
             margin: 0;
@@ -43,51 +53,120 @@
             line-height: 1.25;
             letter-spacing: 0.02em;
         }
-        /* 两张卡的按钮是同一套：
-           主按钮是标注红实底，一张卡只放一个；其余是描边按钮。 */
+        /* 两张卡的按钮是同一套胶囊：一张卡只有一个淡紫主按钮，其余浅灰底 */
         #markerCard .marker-card-actions button,
         #cityCard .city-card-actions button {
             appearance: none;
             display: inline-flex;
+            flex: 1 1 0;
             align-items: center;
             justify-content: center;
             gap: 6px;
-            min-height: 32px;
-            padding: 0 12px;
+            min-height: 38px;
+            padding: 0 14px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            border: 1px solid var(--fp-rule-strong);
-            background: transparent;
+            background: var(--fp-rule);
             color: var(--fp-ink);
             font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            white-space: nowrap;
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), transform 160ms var(--fp-ease),
+                        box-shadow var(--fp-dur) var(--fp-ease), filter var(--fp-dur) var(--fp-ease);
         }
         #markerCard .marker-card-actions button:hover,
         #cityCard .city-card-actions button:hover {
-            background: var(--fp-rule);
-            border-color: var(--fp-ink-soft);
+            background: var(--fp-rule-strong);
+            transform: translateY(-2px);
+        }
+        #markerCard .marker-card-actions button:active,
+        #cityCard .city-card-actions button:active {
+            transform: scale(0.96);
         }
         #markerCard .marker-card-actions button.is-primary,
         #cityCard .city-card-actions button.is-primary {
-            background: var(--fp-mark);
-            border-color: var(--fp-mark);
-            color: var(--fp-mark-ink);
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+            box-shadow: 0 6px 16px var(--fp-accent-soft);
         }
         #markerCard .marker-card-actions button.is-primary:hover,
         #cityCard .city-card-actions button.is-primary:hover {
-            background: var(--fp-mark);
-            filter: brightness(1.08);
+            background: var(--fp-accent);
+            filter: brightness(1.06);
+            box-shadow: var(--fp-shadow-lift);
         }
 
-        /* ============ 足迹卡：一页记录 ============ */
+        /* 关闭按钮：压在照片右上角的小玻璃圆钮 */
+        #markerCardClose,
+        #cityCardClose {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 1;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
+            color: var(--fp-ink-soft);
+            font: 300 20px/1 var(--fp-font-text);
+            cursor: pointer;
+            transition: color var(--fp-dur) var(--fp-ease), transform 160ms var(--fp-ease);
+        }
+        #markerCardClose:hover,
+        #cityCardClose:hover {
+            color: var(--fp-ink);
+            transform: scale(1.06);
+        }
+        #markerCardClose:active,
+        #cityCardClose:active {
+            transform: scale(0.96);
+        }
+        #markerCardClose:focus-visible,
+        #cityCardClose:focus-visible,
+        #markerCardTicket:focus-visible,
+        #markerCardGallery:focus-visible,
+        #cityCardGallery:focus-visible,
+        #cityCardLocate:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+
+        /* 图标行：图标用 mask 画（颜色跟随文字），信息本身由 JS 用 textContent 写入 */
+        .marker-card-meta::before,
+        .city-card-desc::before {
+            content: "";
+            flex: none;
+            width: 14px;
+            height: 14px;
+            background: currentColor;
+            -webkit-mask: var(--row-icon) center / contain no-repeat;
+            mask: var(--row-icon) center / contain no-repeat;
+            opacity: 0.8;
+        }
+        .marker-card-meta {
+            --row-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.3'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cellipse cx='8' cy='8' rx='2.6' ry='6'/%3E%3Cpath d='M2 8h12'/%3E%3C/svg%3E");
+        }
+        .city-card-desc {
+            --row-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.3' stroke-linecap='round'%3E%3Crect x='2.2' y='3' width='11.6' height='10.6' rx='2'/%3E%3Cpath d='M2.2 6.4h11.6M5.4 1.8v2.4M10.6 1.8v2.4'/%3E%3C/svg%3E");
+        }
+
+        /* ============ 足迹卡：照片在上的一页记录 ============ */
         #markerCard {
-            width: min(336px, 30vw);
+            width: min(300px, 28vw);
         }
         .marker-card-media {
             position: relative;
-            height: auto;
-            aspect-ratio: 3 / 2;   /* 主图比例：比 16:9 更饱满，不再扁长 */
-            background-color: var(--fp-paper-raised);   /* 图片未就绪时的底色，避免闪一下 */
+            overflow: hidden;
+            aspect-ratio: 1 / 1;
+            border-radius: 15px;
+            background-color: var(--fp-paper);   /* 图片未就绪时的底色，避免闪一下 */
             background-size: cover;
             background-position: center;
         }
@@ -96,84 +175,105 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            gap: 6px;
-            background: var(--fp-paper-raised);
+            gap: 8px;
+            aspect-ratio: 16 / 9;
+            background: var(--fp-accent-soft);
         }
         .marker-card-monogram {
             font-family: var(--fp-font-title);
-            font-size: 72px;
+            font-size: 64px;
             line-height: 1;
-            color: var(--fp-ink-faint);
+            color: var(--fp-accent);
+            opacity: 0.7;
         }
         .marker-card-retry {
-            padding: 5px 12px;
-            border: 1px solid var(--fp-rule-strong);
+            padding: 5px 14px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
+            background: var(--fp-glass-strong);
             color: var(--fp-ink-soft);
             font: var(--fp-size-xs)/1.4 var(--fp-font-text);
             cursor: pointer;
         }
         .marker-card-retry:hover {
-            border-color: var(--fp-ink-soft);
             color: var(--fp-ink);
         }
         .marker-card-body {
             position: relative;
-            padding: 16px 18px 16px;
-            border-top: 1px solid var(--fp-rule);
+            padding: 14px 8px 4px;
         }
-        /* 眉标位放的是足迹类型（旅游 / 美食…），是一条真信息，所以按正常小字写 */
+        /* 类型与日期同一行：类型是一枚淡紫胶囊，日期是弱墨数字 */
+        .marker-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
         .marker-card-eyebrow {
             margin: 0;
+            padding: 3px 10px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-accent-soft);
+            color: var(--fp-accent);
             font-size: var(--fp-size-xs);
-            color: var(--fp-contour);
+            line-height: 1.4;
         }
         .marker-card-eyebrow[hidden] { display: none; }
+        .marker-card-stamp {
+            flex: none;
+            margin-left: auto;
+            color: var(--fp-ink-faint);
+            font: var(--fp-size-xs)/1.4 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .marker-card-stamp[hidden] { display: none; }
         .marker-card-title {
-            margin: 4px 0 0;
+            margin: 10px 0 0;
             font-size: var(--fp-size-xl);
         }
+        .marker-card-head:has(> [hidden]:first-child + [hidden]) + .marker-card-title {
+            margin-top: 0;
+        }
+        .marker-card-meta,
         .marker-card-addr {
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin: 8px 0 0;
+            gap: 8px;
+            margin: 6px 0 0;
             font-size: var(--fp-size-xs);
+            line-height: 24px;
             color: var(--fp-ink-soft);
+            font-variant-numeric: tabular-nums;
         }
-        /* 地址前的定位图标：跟随文字颜色与基线，不参与缩放 */
-        .marker-card-addr-icon {
-            flex: none;
-            opacity: 0.9;
-        }
-        /* display:flex 会压过 UA 的 [hidden]{display:none}，没有地址时这里兜底 */
+        .marker-card-meta { margin-top: 8px; }
+        .marker-card-meta[hidden],
         .marker-card-addr[hidden] {
             display: none;
         }
+        .marker-card-addr { margin-top: 0; }
+        .marker-card-addr-icon {
+            flex: none;
+            width: 14px;
+            height: 14px;
+            opacity: 0.8;
+        }
         .marker-card-desc {
-            margin: 12px 0 0;
-            max-width: 30em;
+            margin: 8px 0 0;
             font-size: var(--fp-size-sm);
             line-height: 1.7;
             color: var(--fp-ink-soft);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
-        /* 城市与坐标：真实数据，等宽数字，弱墨 */
-        .marker-card-meta {
-            margin: 6px 0 0;
-            font-size: var(--fp-size-xs);
-            color: var(--fp-ink-faint);
-            font-variant-numeric: tabular-nums;
-        }
+        .marker-card-desc:empty { display: none; }
         .marker-card-actions {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            flex-wrap: wrap;
             gap: 8px;
             margin-top: 14px;
-            padding-top: 13px;
-            border-top: 1px solid var(--fp-rule);
         }
         .marker-card-actions[hidden] { display: none; }
         #markerCardTicket[hidden],
@@ -184,102 +284,83 @@
             width: 13px;
             height: 13px;
             flex: none;
-            opacity: 0.7;
-            transition: opacity 0.2s ease;
-        }
-        #markerCardGallery:hover svg {
-            opacity: 1;
-        }
-        #markerCardTicket:focus-visible,
-        #markerCardGallery:focus-visible {
-            outline: 2px solid var(--fp-water);
-            outline-offset: 2px;
-        }
-        #markerCard .marker-card-actions button.is-primary svg { opacity: 0.85; }
-
-        /* 类型与日期同一行：日期写成一枚标注红的小戳，是「去过」的那一天 */
-        .marker-card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-        .marker-card-stamp {
-            flex: none;
-            padding: 2px 6px;
-            border: 1px solid var(--fp-mark);
-            border-radius: var(--fp-radius-photo);
-            color: var(--fp-mark);
-            font: var(--fp-size-xs)/1.35 var(--fp-font-text);
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-        }
-        .marker-card-stamp[hidden] { display: none; }
-
-        #markerCardClose {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* 关闭按钮压在照片上：加一层柔和底衬，任何明暗的照片上都看得清 */
-            /* 压在照片上：一块纸面色的方底，任何明暗的照片上都看得清 */
-            border: 0;
-            border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
-            color: var(--fp-ink-soft);
-            font: 300 20px/1 var(--fp-font-text);
-            cursor: pointer;
-            transition: color var(--fp-dur) var(--fp-ease);
-        }
-        #markerCardClose:hover {
-            color: var(--fp-ink);
-        }
-        #markerCardClose:focus-visible {
-            outline: 2px solid var(--fp-water);
-            outline-offset: 2px;
+            opacity: 0.75;
         }
         @media (prefers-reduced-motion: reduce) {
-            #markerCard {
-                transition: none;
+            #markerCard,
+            #markerCard.visible,
+            #cityCard,
+            #cityCard.visible {
+                filter: none;
+                transform: translateY(-50%);
+                transition: opacity 200ms linear, visibility 200ms;
             }
         }
         @media (max-width: 820px) {
             #markerCard {
-                right: 12px;
-                left: 12px;
+                right: 10px;
+                left: 10px;
                 width: auto;
                 top: auto;
-                bottom: 12px;
-                /* 窄屏是底部抽屉：保留向上的位移，水平方向仍交给标记方向 */
+                bottom: 10px;
+                display: grid;
+                grid-template-columns: 112px minmax(0, 1fr);
+                column-gap: 4px;
+                /* 窄屏是底部抽屉：从下方弹起，水平方向仍交给标记方向 */
                 transform: translateY(16px) translateX(var(--card-enter-x)) scale(var(--card-enter-scale));
+                transform-origin: 50% 100%;
             }
             #markerCard.visible {
-                transform: translateY(0) translateX(0) scale(1);
+                transform: none;
             }
-            .marker-card-media {
-                aspect-ratio: 16 / 10;   /* 窄屏底部抽屉保持紧凑 */
+            .marker-card-media,
+            .marker-card-media.no-image {
+                aspect-ratio: auto;
+                min-height: 112px;
+                align-self: stretch;
+                border-radius: 14px;
+            }
+            .marker-card-monogram { font-size: 44px; }
+            .marker-card-body { padding: 4px 6px 2px 8px; }
+            .marker-card-head { padding-right: 34px; }
+            .marker-card-title { margin-top: 6px; font-size: var(--fp-size-lg); }
+            .marker-card-desc { -webkit-line-clamp: 2; font-size: var(--fp-size-xs); }
+            .marker-card-actions { margin-top: 10px; }
+            #markerCard .marker-card-actions button { min-height: 34px; font-size: var(--fp-size-xs); }
+            #markerCardClose,
+            #cityCardClose {
+                top: 12px;
+                right: 12px;
+                width: 28px;
+                height: 28px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) and (max-width: 820px) {
+            #markerCard,
+            #markerCard.visible,
+            #cityCard,
+            #cityCard.visible {
+                transform: none;
             }
         }
 
         /* ============ 城市卡：一座城市的汇总 ============
-           照片在左、数字在右；数字是这座城市里有几条足迹、几张照片。 */
+           照片在左、内容在右；两个数字（足迹、照片）是两块浅灰小格。 */
         #cityCard {
             display: grid;
-            grid-template-columns: 38% minmax(0, 1fr);
-            width: min(410px, 37vw);
+            grid-template-columns: 148px minmax(0, 1fr);
+            column-gap: 4px;
+            width: min(420px, 38vw);
         }
         .city-card-media {
             grid-area: 1 / 1 / 2 / 2;
             position: relative;
+            overflow: hidden;
             min-height: 100%;
-            background: var(--fp-paper-raised);
+            border-radius: 15px;
+            background: var(--fp-accent-soft);
             background-size: cover;
             background-position: center;
-            border-right: 1px solid var(--fp-rule);
         }
         /* ============ 卡片封面：首字常驻做底，图片加载成功后淡入盖上去 ============
            加载慢或加载失败都只是"还没盖上"，所以永远不会出现空白，
@@ -290,61 +371,68 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--fp-ink-faint);
+            color: var(--fp-accent);
+            opacity: 0.7;
             font-family: var(--fp-font-title);
             line-height: 1;
             pointer-events: none;
         }
         #cityCard .card-cover-monogram { font-size: 44px; }
-        .prop-card-media .card-cover-monogram { font-size: 30px; }
+        .prop-card-media .card-cover-monogram { font-size: 26px; }
         .card-cover-photo {
             position: absolute;
             inset: 0;
             background-size: cover;
             background-position: center;
             opacity: 0;
-            transition: opacity 0.25s ease;
+            transition: opacity var(--fp-dur) var(--fp-ease);
             pointer-events: none;
         }
         .card-cover-photo.is-loaded { opacity: 1; }
         .city-card-body {
             grid-area: 1 / 2 / 2 / 3;
-            padding: 15px 17px 16px;
+            min-width: 0;
+            padding: 10px 8px 4px 12px;
         }
-        /* 眉标位放所在省份 */
+        /* 眉标位放所在省份：淡紫胶囊 */
         .city-card-eyebrow {
+            display: inline-block;
             margin: 0;
-            color: var(--fp-contour);
+            padding: 3px 10px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-accent-soft);
+            color: var(--fp-accent);
             font-size: var(--fp-size-xs);
+            line-height: 1.4;
         }
         .city-card-eyebrow[hidden] { display: none; }
-        /* 城市名比足迹名大一档：汇总 > 单条 */
         .city-card-title {
-            margin: 4px 0 0;
+            margin: 8px 0 0;
+            padding-right: 34px;
             font-size: var(--fp-size-2xl);
         }
-        /* 数字统计：等宽数字保证不同城市之间纵向对齐 */
+        /* 数字统计：两块浅灰小格，等宽数字 */
         .city-card-stats {
             display: grid;
-            grid-template-columns: auto auto;
-            justify-content: start;
-            align-items: flex-end;
-            gap: 4px 26px;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid var(--fp-rule);
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 12px;
         }
         .city-card-stat {
             display: flex;
-            flex-direction: column;
-            gap: 3px;
+            align-items: baseline;
+            gap: 6px;
             min-width: 0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: var(--fp-rule);
         }
         .city-card-stat b {
             font-family: var(--fp-font-title);
             font-size: var(--fp-size-xl);
             font-weight: 400;
             line-height: 1;
+            color: var(--fp-accent);
             font-variant-numeric: tabular-nums;
         }
         .city-card-stat span {
@@ -352,81 +440,63 @@
             color: var(--fp-ink-faint);
         }
         .city-card-desc {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
             margin: 10px 0 0;
             color: var(--fp-ink-soft);
             font-size: var(--fp-size-xs);
             line-height: 1.6;
         }
+        .city-card-desc::before { margin-top: 2px; }
         .city-card-desc[hidden] { display: none; }
         .city-card-actions {
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
             gap: 8px;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--fp-rule);
+            margin-top: 14px;
         }
+        #cityCardLocate { flex: 0 0 auto; }
         #cityCardGallery svg {
             width: 13px;
             height: 13px;
             flex: none;
-            opacity: 0.8;
-            transition: opacity 0.2s ease;
+            opacity: 0.85;
         }
-        #cityCardGallery:hover svg { opacity: 1; }
-        #cityCardGallery:focus-visible,
-        #cityCardLocate:focus-visible {
-            outline: 2px solid var(--fp-water);
-            outline-offset: 2px;
-        }
-        #cityCardClose {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 0;
-            border-radius: var(--fp-radius-control);
-            background: transparent;
-            color: var(--fp-ink-faint);
-            font: 300 20px/1 var(--fp-font-text);
-            cursor: pointer;
-            transition: color var(--fp-dur) var(--fp-ease);
-        }
-        #cityCardClose:hover { color: var(--fp-ink); }
-        #cityCardClose:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
-        @media (prefers-reduced-motion: reduce) {
-            #cityCard { transition: none; }
-        }
-        /* 窄屏：横向容器改回纵向，统计仍然保留 */
+        /* 窄屏：底部抽屉；照片收成左侧一小块 */
         @media (max-width: 820px) {
             #cityCard {
-                display: block;
-                right: 12px;
-                left: 12px;
+                grid-template-columns: 104px minmax(0, 1fr);
+                right: 10px;
+                left: 10px;
                 width: auto;
                 top: auto;
-                bottom: 12px;
+                bottom: 10px;
                 transform: translateY(16px) translateX(var(--card-enter-x)) scale(var(--card-enter-scale));
+                transform-origin: 50% 100%;
             }
-            #cityCard.visible { transform: translateY(0) translateX(0) scale(1); }
-            .city-card-media { aspect-ratio: 16 / 10; min-height: 0; }
-            .city-card-body { padding: 14px 16px 15px; }
+            #cityCard.visible { transform: none; }
+            .city-card-media { min-height: 104px; border-radius: 14px; }
+            .city-card-body { padding: 6px 4px 2px 10px; }
+            .city-card-title { font-size: var(--fp-size-xl); margin-top: 6px; }
+            .city-card-stats { margin-top: 8px; }
+            .city-card-stat { padding: 6px 10px; }
+            .city-card-desc { display: none; }
+            .city-card-actions { margin-top: 10px; }
+            #cityCard .city-card-actions button { min-height: 34px; font-size: var(--fp-size-xs); }
         }
         /* 足迹点展开后，移动端把城市卡收成紧凑条，避免遮挡城市点位 */
         @media (max-width: 820px) {
+            #cityCard.is-revealed {
+                display: block;
+            }
             #cityCard.is-revealed .city-card-media,
             #cityCard.is-revealed .city-card-eyebrow,
             #cityCard.is-revealed .city-card-desc {
                 display: none;
             }
-            #cityCard.is-revealed .city-card-body { padding: 12px 14px 13px; }
-            #cityCard.is-revealed .city-card-title { font-size: var(--fp-size-xl); margin-top: 2px; }
+            #cityCard.is-revealed .city-card-body { padding: 6px 6px 2px; }
+            #cityCard.is-revealed .city-card-title { margin-top: 0; }
             #cityCard.is-revealed .city-card-stats { margin-top: 8px; }
-            #cityCard.is-revealed .city-card-actions { margin-top: 11px; }
+            #cityCard.is-revealed .city-card-actions { margin-top: 10px; }
         }
-

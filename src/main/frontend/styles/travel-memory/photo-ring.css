@@ -2,10 +2,9 @@
            不取代足迹卡（卡片照旧从右侧滑入），环另外浮在标记周围：
            整圈 360° 排布固定 5 张缩略图；全量入口在足迹卡上的「图片墙」按钮。
            点某张 → 原地放大成窗口化查看器（不全屏），←/→ 切换。
-           浮在地球上，用夜图一套：照片是 2px 圆角 + 1px 纸色边，不加投影和毛玻璃。 */
+           每张缩略图是一块白玻璃相框：4px 玻璃边 + 圆角照片 + 柔阴影，与照片标记同一种材质。 */
         #photoRing {
-            /* 照片外框：纸色细边，压在任何明暗的影像上都能把照片边界交代清楚 */
-            --photo-ring-frame: var(--fp-paper);
+            --photo-ring-frame: rgba(255, 255, 255, 0.86);
             position: fixed;
             left: 0;
             top: 0;
@@ -46,8 +45,11 @@
             top: 0;
             appearance: none;
             pointer-events: auto;
-            border: 1px solid var(--fp-rule-strong);
-            background: var(--fp-paper);
+            border: 0;
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             color: var(--fp-ink);
             font-family: var(--fp-font-text);
             cursor: pointer;
@@ -56,20 +58,22 @@
             /* 尺寸由 JS 按每张图片的实际宽高比设置；这里只是尚未测量时的兜底 */
             width: 160px;
             height: 120px;
-            border-color: var(--photo-ring-frame);
-            border-radius: var(--fp-radius-photo);
+            box-sizing: border-box;
+            border-radius: 16px;
             overflow: hidden;
-            background: var(--fp-paper-raised);
+            background: var(--photo-ring-frame);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.12);
             transition: transform 240ms var(--fp-ease),
                         opacity var(--fp-dur) var(--fp-ease),
-                        border-color var(--fp-dur) var(--fp-ease);
+                        box-shadow var(--fp-dur) var(--fp-ease);
         }
         /* 图片单独一层：加载成功才淡入，骨架/失败时不会让方块变形 */
         .photo-ring-photo {
             position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
+            inset: 4px;
+            width: calc(100% - 8px);
+            height: calc(100% - 8px);
+            border-radius: 12px;
             background-position: center;
             /* contain：极端比例（被上下限夹过）时也不会裁掉画面，最多两侧留一点底色 */
             background-size: contain;
@@ -81,11 +85,11 @@
         }
         .photo-ring-photo.is-loaded { opacity: 1; }
         .photo-ring-item.is-loading {
-            background-image: linear-gradient(120deg, var(--fp-paper-raised),
-                var(--fp-rule-strong), var(--fp-paper-raised));
+            background-image: linear-gradient(120deg, var(--photo-ring-frame),
+                var(--fp-accent-soft), var(--photo-ring-frame));
         }
         /* 加载失败：压暗 + 一个"⚠"提示，和"还在加载"区分开（自动重试两次，点进查看模式也会重取） */
-        .photo-ring-item.is-error { background-image: none; background-color: var(--fp-paper); color: var(--fp-ink-faint); }
+        .photo-ring-item.is-error { background-image: none; background-color: var(--photo-ring-frame); color: var(--fp-ink-faint); }
         .photo-ring-item.is-error::after {
             content: "⚠";
             position: absolute;
@@ -110,13 +114,16 @@
             pointer-events: none;
         }
         .photo-ring-guide-line {
-            stroke: var(--fp-ink-soft);
-            stroke-width: 1;
+            stroke: rgba(255, 255, 255, 0.85);
+            stroke-width: 1.5;
+            stroke-linecap: round;
             opacity: 0;
             transition: opacity 160ms var(--fp-ease);
         }
         .photo-ring-guide-dot {
-            fill: var(--fp-mark);
+            fill: var(--fp-accent);
+            stroke: rgba(255, 255, 255, 0.92);
+            stroke-width: 2;
             opacity: 0;
             transition: opacity 160ms var(--fp-ease);
         }
@@ -125,7 +132,7 @@
         .photo-ring-item:hover:not(.is-viewer),
         .photo-ring-item:focus-visible {
             outline: none;
-            border-color: var(--fp-ink);
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36), 0 0 0 2px var(--fp-accent);
         }
         .photo-ring-item.is-dim {
             opacity: 0;
@@ -137,9 +144,15 @@
             /* 实际宽高由 JS 按图片比例写在内联样式上，这里只是兜底 */
             width: 480px;
             height: 340px;
-            border-radius: var(--fp-radius-photo);
+            border-radius: 20px;
             cursor: zoom-out;
-            border-color: var(--photo-ring-frame);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.14);
+        }
+        #photoRing .photo-ring-item.is-viewer .photo-ring-photo {
+            inset: 6px;
+            width: calc(100% - 12px);
+            height: calc(100% - 12px);
+            border-radius: 15px;
         }
         /* 查看模式的控件：平时隐藏，进入查看模式才出现 */
         .photo-ring-nav {
@@ -152,7 +165,7 @@
             font-size: var(--fp-size-lg);
             line-height: 1;
             padding-bottom: 2px;
-            transition: border-color var(--fp-dur) var(--fp-ease);
+            transition: transform 160ms var(--fp-ease), color var(--fp-dur) var(--fp-ease);
         }
         .photo-ring-counter {
             position: absolute;
@@ -164,8 +177,10 @@
             height: 22px;
             padding: 0 8px;
             border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
-            border: 1px solid var(--fp-rule);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             color: var(--fp-ink-soft);
             font: var(--fp-size-xs)/1 var(--fp-font-text);
             font-variant-numeric: tabular-nums;
@@ -187,12 +202,13 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--fp-rule-strong);
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
             transition: background-color 180ms var(--fp-ease), transform 180ms var(--fp-ease);
         }
-        .photo-ring-dots span.is-in-ring { background: var(--fp-ink-faint); }
+        .photo-ring-dots span.is-in-ring { background: rgba(255, 255, 255, 0.75); }
         .photo-ring-dots span.is-current {
-            background: var(--fp-ink);
+            background: var(--fp-accent);
             transform: scale(1.2);
         }
         /* 一行说明：环上只是均匀采样出的几张，全量在「图片墙」（环上已是全量时不显示） */
@@ -201,9 +217,12 @@
             left: 0;
             top: 0;
             display: none;
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             color: var(--fp-ink-soft);
             font: var(--fp-size-xs)/1.4 var(--fp-font-text);
             font-variant-numeric: tabular-nums;
@@ -222,18 +241,23 @@
             font-size: var(--fp-size-lg);
             font-weight: 300;
             line-height: 1;
-            transition: border-color var(--fp-dur) var(--fp-ease);
+            transition: transform 160ms var(--fp-ease), color var(--fp-dur) var(--fp-ease);
         }
         #photoRing.is-viewing .photo-ring-nav,
         #photoRing.is-viewing .photo-ring-close { display: inline-flex; }
         #photoRing.is-viewing .photo-ring-counter { display: flex; }
         #photoRing.is-viewing .photo-ring-nav:hover,
         #photoRing.is-viewing .photo-ring-close:hover {
-            border-color: var(--fp-ink-soft);
+            transform: scale(1.08);
+            box-shadow: var(--fp-shadow-lift);
+        }
+        #photoRing.is-viewing .photo-ring-nav:active,
+        #photoRing.is-viewing .photo-ring-close:active {
+            transform: scale(0.96);
         }
         .photo-ring-nav:focus-visible,
         .photo-ring-close:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
         @media (max-width: 820px) {
