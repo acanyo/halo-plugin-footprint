@@ -59,13 +59,15 @@ import {
     setupProvinceCards,
     initProvinceCards,
     closeProvinceCards,
+    isProvinceCardsActive,
+    clearProvinceRestorePending
+} from './modules/province-cards.js';
+import {
     loadProvinceGeoJson,
     normalizeProvinceName,
     provinceAdcodeOfEntity,
-    isProvinceCardsActive,
-    clearProvinceRestorePending,
     setProvinceEntityIndex
-} from './modules/province-cards.js';
+} from './modules/province-index.js';
 import {
     setupPhotoRing,
     initPhotoRing,
@@ -115,11 +117,7 @@ import {
 import {
     setupMarkers,
     initMarkers,
-    initMarkersInput,
     initMarkersOverlay,
-    markerCard,
-    cityCard,
-    markerCardGallery,
     markerTip,
     markerFocusLayer,
     buildMarkers,
@@ -131,16 +129,9 @@ import {
     cityCenter,
     cityViewItems,
     cityPhotoItems,
-    hideMarkerCard,
     hideMarkerTip,
-    showMarkerCard,
-    hideCityCard,
-    showCityCard,
-    markerScreenPosition,
-    cardLayoutRect,
     refreshMarkerColors,
     setMarkerFocus,
-    setOverlayHidden,
     markerEntityList,
     cityMarkerEntityList,
     cityListSnapshot,
@@ -148,6 +139,21 @@ import {
     focusedMarkerEntity,
     currentPositionList
 } from './modules/markers.js';
+import {
+    setupMarkerDetailCard,
+    markerCard,
+    cityCard,
+    markerCardGallery,
+    hideMarkerCard,
+    showMarkerCard,
+    hideCityCard,
+    showCityCard,
+    markerScreenPosition,
+    cardLayoutRect,
+    setOverlayHidden,
+    rememberKeyboardMarkerBtn
+} from './modules/marker-detail-card.js';
+import { setupMarkerInput, initMarkersInput } from './modules/marker-input.js';
 ;
 import {
     setupCityWall,
@@ -170,12 +176,17 @@ import {
 import {
     setupCreativeOverlays,
     initCreativeOverlays,
-    refreshCityWallFeatureActions,
+    refreshCityWallFeatureActions
+} from './modules/creative-overlays.js';
+import { setupTimeCapsule } from './modules/time-capsule.js';
+import { setupInsightView } from './modules/insight-view.js';
+import {
+    setupPostcard,
     loadPostcardImage,
     postcardToBlob,
     canvasSafeImageUrl,
     openPostcard
-} from './modules/creative-overlays.js';
+} from './modules/postcard.js';
 import {
     setupTicketGallery,
     initTicketGallery,
@@ -254,7 +265,8 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         cityFillOn: isCityFillEnabled
     });
     // ================= 足迹标记与详情卡 =================
-    // 实现见 modules/markers.js：标记构建、城市聚合、详情卡、悬停与标签避让。
+    // 标记构建、城市聚合与悬停见 modules/markers.js；详情卡见 marker-detail-card.js，
+    // 指针拾取见 marker-input.js，遮挡与标签避让见 marker-visibility.js。
     setupMarkers({
         footprints: () => FOOTPRINTS,
         viewer: () => viewer,
@@ -262,7 +274,20 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         footprintCfg: () => footprintCfg,
         reduceMotion: () => reduceMotion,
         boundaryVisible: isBoundaryVisible,
-        cityLabelVisible: isCityLabelVisible
+        cityLabelVisible: isCityLabelVisible,
+        // 键盘焦点按钮打开详情卡：走注入，避免 markers.js 与 marker-detail-card.js 互相 import
+        showMarkerCard,
+        showCityCard,
+        rememberKeyboardMarkerBtn
+    });
+    setupMarkerDetailCard({
+        footprints: () => FOOTPRINTS,
+        viewer: () => viewer,
+        reduceMotion: () => reduceMotion
+    });
+    setupMarkerInput({
+        footprints: () => FOOTPRINTS,
+        viewer: () => viewer
     });
     // ================= 城市淡色填充 =================
     // 实现见 modules/city-fill.js；主题配色在 modules/province-style.js。
@@ -322,17 +347,10 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         setOverlayHidden
     });
     // ================= 创意覆盖层（时间胶囊 / 足迹洞察 / 旅行明信片） =================
-    // 实现见 modules/creative-overlays.js。三块都叠在城市卡片墙之上，共享同一套层级约定。
+    // 入口与共用的遮罩关闭见 modules/creative-overlays.js；三块各自的实现在
+    // time-capsule.js / insight-view.js / postcard.js。三块都叠在城市卡片墙之上，共享同一套层级约定。
     setupCreativeOverlays({
-        footprints: () => FOOTPRINTS,
-        cityList: () => cityListSnapshot(),
-        cityViewItems,
-        cityWallImages,
         featureEnabled,
-        formatCityDate,
-        cityWallCardData,
-        openCityView,
-        setOverlayHidden,
         setCityWallProvinceFilter,
         closeCityWall,
         openCityWall,
@@ -343,6 +361,32 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         cityWallInsightBtn: () => cityWallInsightBtn,
         cityWallTimeCapsuleBtn: () => cityWallTimeCapsuleBtn,
         cityWallProvinceFilter: () => cityWallProvinceFilter
+    });
+    setupTimeCapsule({
+        footprints: () => FOOTPRINTS,
+        cityList: () => cityListSnapshot(),
+        cityWallImages,
+        featureEnabled,
+        formatCityDate,
+        openCityView,
+        closeCityWall,
+        setOverlayHidden
+    });
+    setupInsightView({
+        footprints: () => FOOTPRINTS,
+        cityList: () => cityListSnapshot(),
+        featureEnabled,
+        openCityView,
+        setOverlayHidden,
+        setCityWallProvinceFilter
+    });
+    setupPostcard({
+        cityList: () => cityListSnapshot(),
+        cityViewItems,
+        featureEnabled,
+        formatCityDate,
+        cityWallCardData,
+        setOverlayHidden
     });
     // ================= 加载足迹数据并重建标记 =================
     loadFootprintsFromJson().then(loaded => {

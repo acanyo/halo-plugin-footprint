@@ -51,6 +51,16 @@ export const cityWallProvinceFilter = document.getElementById('cityWallProvinceF
 // 只看某个省（从足迹洞察的省份排行点进来）；关闭卡片墙时自动清掉
 let cityWallProvinceFilterName = '';
 
+// 叠在卡片墙之上的覆盖层（时间胶囊 / 足迹洞察 / 明信片）关闭后，把焦点还给卡片墙顶部的返回按钮
+export function focusCityWallTop() {
+    setTimeout(() => {
+        if (cityWallBack && cityWallBack.isConnected &&
+            cityWall.classList.contains('show')) {
+            cityWallBack.focus();
+        }
+    }, 260);
+}
+
 // 4 个创意功能的开关统一从后台 globe3d 设置读取（默认开启）
 export function featureEnabled(key) {
     const value = deps.footprintCfg() && deps.footprintCfg()[key];
