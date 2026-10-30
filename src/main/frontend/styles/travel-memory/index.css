@@ -1,4 +1,7 @@
 /* travel-memory.css 入口：按 @import 顺序拼回原文件的规则顺序，顺序即层叠，勿随意调换。 */
+/* 视觉变量与字体排在最前：后面的片段只引用它们。足迹页的三个样式包都在同一页上，变量只在这里定义一次。 */
+@import "../shared/wenkai.css";
+@import "../shared/tokens.css";
 @import "./globe-and-header.css";
 @import "./nav-tools-and-hud.css";
 @import "./intro-card.css";

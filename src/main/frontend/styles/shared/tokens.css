@@ -1,0 +1,129 @@
+/*
+ * 前台视觉变量：测绘手簿。设计说明见 ../DESIGN.md。
+ *
+ * 默认是「夜图」：浮在地球（深色太空）上的界面用这一套。
+ * 全屏翻阅的界面（城记、洞察、书架外框等）在自己的根元素上加 .fp-sheet，换成「白图」。
+ * 两套只换明度、不换色相；标注红只用于「去过」。
+ *
+ * 足迹页是插件自己的模板，这些变量挂在 :root 上不会影响主题的其它页面。
+ */
+:root {
+    --fp-paper: #12171c;
+    --fp-paper-raised: #1a2027;
+    --fp-ink: #e9ece8;
+    --fp-ink-soft: #aeb6b2;
+    --fp-ink-faint: #7b8682;
+    --fp-rule: rgba(233, 236, 232, 0.14);
+    --fp-rule-strong: rgba(233, 236, 232, 0.28);
+    --fp-contour: #8fa070;
+    --fp-water: #7fa8c4;
+    --fp-mark: #d65a4f;
+    --fp-mark-ink: #ffffff;
+    --fp-scrim: rgba(10, 13, 16, 0.72);
+
+    --fp-font-title: "LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif;
+    --fp-font-text: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+
+    --fp-size-xs: 12px;
+    --fp-size-sm: 13px;
+    --fp-size-md: 15px;
+    --fp-size-lg: 18px;
+    --fp-size-xl: 24px;
+    --fp-size-2xl: 34px;
+    --fp-size-3xl: 56px;
+
+    --fp-radius-control: 6px;
+    --fp-radius-panel: 10px;
+    --fp-radius-photo: 2px;
+
+    --fp-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --fp-dur: 200ms;
+}
+
+/* 白图：全屏翻阅的界面 */
+.fp-sheet {
+    --fp-paper: #f3f4f1;
+    --fp-paper-raised: #fbfbf9;
+    --fp-ink: #1e2a33;
+    --fp-ink-soft: #4d5a62;
+    --fp-ink-faint: #7d878b;
+    --fp-rule: rgba(30, 42, 51, 0.14);
+    --fp-rule-strong: rgba(30, 42, 51, 0.3);
+    --fp-contour: #6b7a4f;
+    --fp-water: #3e6e8e;
+    --fp-mark: #b8322a;
+    --fp-scrim: rgba(243, 244, 241, 0.86);
+}
+
+/*
+ * 共用的小部件。只放每个界面都会用、且长得完全一样的东西；各界面自己的版式留在各自的片段里。
+ */
+
+/* 标题：文楷 */
+.fp-title {
+    margin: 0;
+    font-family: var(--fp-font-title);
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    color: var(--fp-ink);
+}
+
+/* 标题下面那一句说明 */
+.fp-lede {
+    margin: 0;
+    font-family: var(--fp-font-text);
+    font-size: var(--fp-size-sm);
+    line-height: 1.7;
+    color: var(--fp-ink-soft);
+}
+
+/* 坐标、日期、里程：真实数据，等宽数字 */
+.fp-figure {
+    font-variant-numeric: tabular-nums;
+    color: var(--fp-ink-faint);
+}
+
+/* 按钮：默认是描边的次要按钮；.is-primary 是标注红实底，一个界面里只放一个 */
+.fp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--fp-rule-strong);
+    border-radius: var(--fp-radius-control);
+    background: transparent;
+    color: var(--fp-ink);
+    font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+    cursor: pointer;
+    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+}
+.fp-btn:hover:not(:disabled) {
+    border-color: var(--fp-ink-soft);
+    background: var(--fp-rule);
+}
+.fp-btn.is-primary {
+    border-color: var(--fp-mark);
+    background: var(--fp-mark);
+    color: var(--fp-mark-ink);
+}
+.fp-btn.is-primary:hover:not(:disabled) {
+    background: var(--fp-mark);
+    filter: brightness(1.08);
+}
+.fp-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.fp-btn:focus-visible {
+    outline: 2px solid var(--fp-water);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fp-btn {
+        transition: none;
+    }
+}
