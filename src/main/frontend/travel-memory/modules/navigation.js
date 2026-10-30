@@ -45,7 +45,7 @@ let terrainNote = '';   // 由 setupNavigation 按是否配置天地图 Key 初�
  * @param d.footprints             () => Footprint[]
  * @param d.baseProviders          () => Record<string, provider>
  * @param d.currentBaseKey         () => string | null
- * @param d.statusText / d.statusRetry  () => HTMLElement
+ * @param d.statusText           () => HTMLElement
  * @param d.hasTdtKey              () => boolean
  * @param d.footprintCfg           () => object
  */

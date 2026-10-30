@@ -241,8 +241,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
 
     // ================= 自动旋转与画布光标 =================
     setupAutoRotate({
-        viewer: () => viewer,
-        reduceMotion: () => reduceMotion
+        viewer: () => viewer
     });
     // ================= 顶部导航与左侧标题卡 =================
     // 实现见 modules/navigation.js：标题卡/导航显隐、状态栏、底图菜单、Esc 逐级关闭。
@@ -254,7 +253,6 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         baseProviders: baseProviderMap,
         currentBaseKey: currentBase,
         statusText: () => document.getElementById('statusText'),
-        statusRetry: () => document.getElementById('statusRetry'),
         hasTdtKey: hasTiandituKey,
         footprintCfg: () => footprintCfg
     });

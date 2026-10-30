@@ -17,7 +17,6 @@ let deps = null;
 /**
  * @param {object} d 宿主注入的依赖集合
  * @param d.viewer        () => Cesium.Viewer
- * @param d.reduceMotion  () => boolean
  */
 export function setupAutoRotate(d) {
     deps = d;
