@@ -19,7 +19,7 @@ export function bgStyle(url) {
 // ---------------- 左侧竖栏（A 档：顶部竖排词标 + 省份书脊轨）----------------
 // 由后台设置 shelfLeftRail 决定：both / rail / wordmark / none。
 // 书脊轨是**导航**：点一条即 setActive，和滚轮、←/→ 共用同一套逻辑；
-// 词标是纯装饰（竖排"旅行记忆 · TRAVEL LIBRARY"）。两者纵向分工，不重叠。
+// 词标是纯装饰（竖排题签「世界这本书」）。两者纵向分工，不重叠。
 function leftRailMode() {
     var cfg = window.FOOTPRINT_CONFIG || {};
     var mode = cfg.shelfLeftRail || 'both';
@@ -36,7 +36,7 @@ function renderLeftRail() {
     if (mode === 'none') return;
     var html = '';
     if (mode === 'both' || mode === 'wordmark') {
-        html += '<div class="ms-rail-word" aria-hidden="true"><span>旅行记忆 · TRAVEL LIBRARY</span></div>';
+        html += '<div class="ms-rail-word" aria-hidden="true"><span>世界这本书</span></div>';
     }
     if (mode === 'both' || mode === 'rail') {
         // ③ 紧凑模式：书超过 16 本时只显示省名首字（hover/聚焦仍是全名），
@@ -142,28 +142,20 @@ function infoHtml(book) {
 function infoInnerHtml(book) {
     if (!book) return '';
     var dateText = book.latestTime ? formatDate(book.latestTime) : '时间未记录';
-    // A1/面板改造：城市做成标签（比"威海市 · 青岛市 · 泰安市"好扫），超过 6 个收成 +N。
-    // 原来那段"长按拖动…"的操作说明整段去掉 —— 舞台底部已有同样的提示，重复且是噪声。
-    var shown = book.cities.slice(0, 6);
-    var rest = book.cities.length - shown.length;
-    var chips = shown.map(function (city) {
-        return '<li>' + esc(city.name) + '</li>';
-    }).join('') + (rest > 0 ? '<li class="more">+' + rest + '</li>' : '');
-    // （缩略带按用户要求去掉：卡片保持"扣掉照片也就是一张藏书票"的干净样子）
+    // 手簿式小表：标签一列、数据一列。城市用顿号连起来，超过 6 座写「等 N 座」。
+    var shown = book.cities.slice(0, 6).map(function (city) { return city.name; });
+    var cityText = shown.join('、') +
+        (book.cities.length > shown.length ? ' 等 ' + book.cities.length + ' 座' : '');
     return (
-        // ④ 大号水印序号：本书在书架里的位次，压在卡片一角当装饰
-        '<span class="ms-info-wm" aria-hidden="true">' +
-            String(state.active + 1).padStart(2, '0') + '</span>' +
-        '<span class="ms-info-seal" aria-hidden="true">' + esc(book.name.charAt(0)) + '</span>' +
-        '<span class="ms-info-count">第 ' + (state.active + 1) + ' / ' + state.books.length + ' 本</span>' +
+        '<span class="ms-info-count">第 ' + (state.active + 1) + ' 本，共 ' + state.books.length + ' 本</span>' +
         '<h3 class="ms-info-name' + nameSizeClass(book.name) + '">' + esc(book.name) + '</h3>' +
-        '<div class="ms-info-rule" aria-hidden="true"></div>' +
-        '<div class="ms-info-stats">' +
-          '<span><b>' + book.cityCount + '</b>座城市</span>' +
-          '<span><b>' + book.photoCount + '</b>张照片</span>' +
-        '</div>' +
-        '<div class="ms-info-date">最近到访<strong>' + esc(dateText) + '</strong></div>' +
-        (book.cities.length ? '<ul class="ms-info-cities">' + chips + '</ul>' : ''));
+        '<dl class="ms-info-log">' +
+          '<div><dt>记录</dt><dd>' + book.cityCount + ' 座城市，' + book.photoCount + ' 张照片</dd></div>' +
+          '<div><dt>最近到访</dt><dd>' + esc(dateText) + '</dd></div>' +
+          (shown.length
+            ? '<div class="ms-info-row-cities"><dt>城市</dt><dd class="ms-info-cities">' + esc(cityText) + '</dd></div>'
+            : '') +
+        '</dl>');
 }
 
 // 交叉淡入用的"幽灵"（旧卡的克隆体）：**同一时刻只允许存在一张**。
@@ -331,7 +323,7 @@ export function renderFallbackShelf() {
               '<span class="ms-fbook-face" style="--fb-ink:' + colors[2] + '">' +
                 '<b>' + esc(book.name) + '</b>' +
                 '<span class="ms-fbook-photo"' + bgStyle(book.cover) + '></span>' +
-                '<small>' + book.cityCount + ' 城 · ' + book.photoCount + ' 张</small>' +
+                '<small>' + book.cityCount + ' 座城市，' + book.photoCount + ' 张照片</small>' +
               '</span>' +
             '</span>' +
           '</button>';

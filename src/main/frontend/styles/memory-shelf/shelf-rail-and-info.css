@@ -1,5 +1,5 @@
-/* ===== 左侧竖栏：顶部竖排词标 + 省份书脊轨（后台设置 shelfLeftRail 控制显隐）=====
-   两者纵向分工：词标只占顶部一小段，书脊轨从它下面开始往下排，互不重叠。 */
+/* ===== 左侧竖栏：顶部竖排题签 + 省份书脊轨（后台设置 shelfLeftRail 控制显隐）=====
+   两者纵向分工：题签只占顶部一小段，书脊轨从它下面开始往下排，互不重叠。 */
 .ms-rail {
     position: absolute;
     left: 22px;
@@ -9,20 +9,19 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     padding: 22px 0;
     pointer-events: none;          /* 只有书脊轨条目吃指针 */
-    /* ③ 书本模式里书脊轨要**和卡片一起**收进左侧（两者是一对：卡片的位置本来
+    /* 书本模式里书脊轨要**和卡片一起**收进左侧（两者是一对：卡片的位置本来
        就是挂在轨道上的）。离开书本模式时立刻恢复可见，再谈淡入。 */
     transition: opacity 0.34s ease,
         transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
         visibility 0s linear 0s;
 }
 
-/* ② 书本模式：淡出 + 左移，和卡片同一组时间；淡出结束后用 visibility 把它
-   彻底抽离 —— 只靠 pointer-events: none 只是不吃鼠标，Tab 键仍能聚焦到那 11 个
-   按钮上，读屏也照样能念到。visibility: hidden 让子元素同时退出命中测试和
-  无障碍树。延迟写在**这条规则**里（进入书本模式后的"变化后样式"取自它），
+/* 书本模式：淡出 + 左移，和卡片同一组时间；淡出结束后用 visibility 把它
+   彻底抽离 —— 只靠 pointer-events: none 只是不吃鼠标，Tab 键仍能聚焦到那些
+   按钮上，读屏也照样能念到。延迟写在**这条规则**里（进入书本模式后的"变化后样式"取自它），
    基础规则里那条 0 延迟负责"离开书本模式时立刻恢复可见"。 */
 #memoryShelf.book-mode .ms-rail {
     opacity: 0;
@@ -34,25 +33,26 @@
         visibility 0s linear 0.5s;
 }
 
+/* 竖排题签：「世界这本书」，文楷，淡墨 */
 .ms-rail-word {
     writing-mode: vertical-rl;
-    /* 回到原来那版（用户反馈"改之前的那版好"）：小一号、淡一点，纯装饰 */
     flex: 0 0 auto;                  /* 不参与伸缩 */
-    letter-spacing: 0.3em;
-    font-size: 11px;
-    color: var(--ms-faint);
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-sm);
+    letter-spacing: 0.04em;
+    color: var(--fp-ink-faint);
     user-select: none;
 }
 
 .ms-rail-list {
     /* 关键：书脊轨可以收缩并滚动，但**里面的条目不许被压扁** ——
-       否则竖排省名会被折成"两个一排"（用户报的现象）。 */
+       否则竖排省名会被折成"两个一排"。 */
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     overflow-y: auto;
     padding: 2px;
     pointer-events: auto;
@@ -61,23 +61,24 @@
 
 .ms-rail-list::-webkit-scrollbar { display: none; }
 
-/* ② 溢出时才出现的渐隐遮罩：提示"下面还有"（不显示滚动条） */
+/* 溢出时才出现的渐隐遮罩：提示"下面还有"（不显示滚动条）。
+   遮罩只认 alpha，黑色在这里不是颜色。 */
 .ms-rail-list.is-scrollable {
-    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 16px,
-        #000 calc(100% - 16px), transparent 100%);
-    mask-image: linear-gradient(180deg, transparent 0, #000 16px,
-        #000 calc(100% - 16px), transparent 100%);
+    --ms-mask: linear-gradient(180deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    -webkit-mask-image: var(--ms-mask);
+    mask-image: var(--ms-mask);
 }
 
-/* ③ 紧凑模式（>16 本）：只显示省名首字，条目更矮更小 */
+/* 紧凑模式（>16 本）：只显示省名首字，条目更矮更小 */
 .ms-rail.is-compact .ms-rail-item {
     min-height: 30px;
     padding: 7px 0;
-    font-size: 10px;
-    letter-spacing: 0;
+    font-size: var(--fp-size-xs);
 }
 
+/* 书脊条：纸面 + 格线；选中的那本左边一道等高线色短线 */
 .ms-rail-item {
+    position: relative;
     writing-mode: vertical-rl;
     flex: 0 0 auto;                  /* 条目按自身高度排，不被压缩 */
     min-height: 46px;
@@ -86,222 +87,73 @@
     justify-content: center;
     width: 30px;
     padding: 9px 0;
-    border: 1px solid var(--ms-line);
-    border-radius: 4px;
-    background: rgba(255, 252, 244, 0.55);
-    color: var(--ms-muted);
-    font-size: 12px;
-    letter-spacing: 0.12em;
+    border: 1px solid var(--fp-rule);
+    border-radius: var(--fp-radius-control);
+    background: color-mix(in srgb, var(--fp-paper-raised) 70%, transparent);
+    color: var(--fp-ink-soft);
+    font: 400 var(--fp-size-sm)/1.2 var(--fp-font-title);
+    letter-spacing: 0.04em;
     cursor: pointer;
-    transition: color 0.18s, border-color 0.18s, background 0.18s, transform 0.18s;
+    transition: color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease),
+        background-color var(--fp-dur) var(--fp-ease);
 }
 
 .ms-rail-item:hover {
-    color: var(--ms-ink);
-    border-color: rgba(155, 112, 78, 0.5);
-    background: rgba(255, 252, 244, 0.82);
+    color: var(--fp-ink);
+    border-color: var(--fp-rule-strong);
+    background: var(--fp-paper-raised);
 }
 
 .ms-rail-item.active {
-    color: var(--ms-paper-ink);
-    border-color: var(--ms-gold);
-    background: linear-gradient(180deg, rgba(255, 250, 238, 0.95), rgba(246, 238, 222, 0.9));
-    transform: translateX(2px);
-    box-shadow: 0 6px 14px -8px rgba(60, 45, 28, 0.5);
+    color: var(--fp-ink);
+    border-color: var(--fp-contour);
+    background: var(--fp-paper-raised);
 }
 
-.ms-rail-item:focus-visible { outline: 2px solid var(--ms-accent); outline-offset: 2px; }
+.ms-rail-item.active::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    width: 2px;
+    height: 16px;
+    margin-top: -8px;
+    border-radius: 1px;
+    background: var(--fp-contour);
+}
+
+.ms-rail-item:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
 
 /* 有书脊轨时信息卡右移，两者不叠（轨道宽度 + 间隙） */
 #memoryShelf.has-rail .ms-info { margin-left: 74px; }
 
 @media (max-width: 1180px) {
-    /* 窄屏横向空间不够：书脊轨收起（书比导航更重要），词标保留，卡片回到左缘 */
+    /* 窄屏横向空间不够：书脊轨收起（书比导航更重要），题签保留，卡片回到左缘 */
     .ms-rail-list { display: none; }
     #memoryShelf.has-rail .ms-info { margin-left: 26px; }
 }
 
-/* ① 入场方向跟着左缘书脊轨：卡片从左边（书脊轨那一侧）滑出来，
-   和"从轨道里抽出这张票"的动作对得上；③ 位移收小（14px→更贴），
-   时间也压短，切换读起来是"抽换"而不是"翻页"。
-   from/to 都带上基础旋转 -0.6deg，动画接回静态样式时不会有 0.6° 的跳。
-   ⑤ 竖直位移带上方向（--ms-dir）：往下选时卡片从略低处升上来，往上选时
-   反过来 —— 动作本身就能"说出"你在书脊轨上往哪走。
-   ⚠️ 竖直分量必须留在 transform 里，不能挪到 translate：卡片的滑动过渡用的
-   就是 translate，动画若也占着 translate，过渡会被动画整段时间压住，
-   变成"动画跑完再瞬移到位"。 */
+/* 换省：整张卡淡入（不再逐行错峰、不再带位移和旋转） */
 @keyframes msInfoIn {
-    from { opacity: 0; transform: translate(-14px, calc(var(--ms-dir, 1) * 9px)) rotate(-0.6deg); }
-    to { opacity: 1; transform: translate(0, 0) rotate(-0.6deg); }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-/* ② 内容分层入场：标题、分隔线、统计、日期、城市标签依次浮出，
-   不再整块一起淡 —— 视线会顺着"省名 → 数字 → 城市"读下去。
-   只在书架态启用（书本模式卡片要缩回左侧，别和它抢 transform）。 */
-/* ② 节拍对齐：卡片本体晚 70ms 进场（见 msInfoIn），内容就从同一刻起按 20ms
-   一档排下去，最后一行在 ~0.43s 落定 —— 和卡片滑到位（0.45s）、房间换色
-   （0.45s）大致同拍收尾。原来内容要 0.52s 才排完，比幽灵消失（0.34s）还晚
-   0.18s，那段时间卡片是半空的，像没加载完。 */
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > * {
-    animation: msLineIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > *:nth-child(1) { animation-delay: 0.07s; }
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > *:nth-child(2) { animation-delay: 0.09s; }
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > *:nth-child(3) { animation-delay: 0.11s; }
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > *:nth-child(4) { animation-delay: 0.13s; }
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > *:nth-child(5) { animation-delay: 0.15s; }
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > *:nth-child(6) { animation-delay: 0.17s; }
-#memoryShelf:not(.book-mode) .ms-info:not(.ms-info-ghost) > *:nth-child(n+7) { animation-delay: 0.19s; }
-
-/* ⚠️ 这条动画带 both 填充，**动画的终值会一直压住元素自己声明的样式**，所以
-   终值必须写成"元素本来的样子"，否则静态样式会被抹平：
-     · 位移用 translate（独立属性，和 transform 叠加）而不是 transform ——
-       卡片里那些"数字基线微调"靠 transform: translateY(--ms-num-nudge) 实现，
-       若用 transform 的终值 transform:none 会把它们全部抹掉（数字又偏下），
-       任何 hover 位移也一样会被永久钉住；
-     · 透明度终值取 --ms-line-op：水印 0.06、印记 0.85。写死 opacity:1 的话
-       卡角那枚大号序号会从"极淡装饰"变成一整块深色数字（用户报的
-       "序号数字样式好像和之前不一样了"）。 */
-@keyframes msLineIn {
-    from { opacity: 0; translate: 0 5px; }
-    to { opacity: var(--ms-line-op, 1); translate: none; }
-}
-
-/* ④ 交叉淡入的另一半：被"取走"的旧卡克隆体钉在原地淡出，
-   和原位淡入的新卡叠化，中间不留空档。 */
-/* ③ 幽灵先走：0.22s、ease-in 起步（先留住、后段快速落下去），配合新卡晚
-   70ms 进场，叠字区间就只有很短的一瞬，而不是整段都是"两张卡的文字压在一起"。
-   ⑤ 退场方向也带 --ms-dir：往下选时旧卡往上退（被新卡顶下去的感觉）。 */
+/* 交叉淡入的另一半：被"取走"的旧卡克隆体钉在原地淡出，和原位淡入的新卡叠化 */
 .ms-info-ghost {
-    animation: msGhostOut 0.22s cubic-bezier(0.55, 0, 0.85, 0.55) forwards !important;
+    animation: msGhostOut var(--fp-dur) var(--fp-ease) forwards !important;
 }
 
 @keyframes msGhostOut {
-    from { opacity: 1; transform: translateY(0) rotate(-0.6deg); }
-    to { opacity: 0; transform: translateY(calc(var(--ms-dir, 1) * -7px)) rotate(-0.6deg); }
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
-/* ③ 兜底：极少数走到 .leaving 的路径也用收小后的位移 */
+/* 兜底：极少数走到 .leaving 的路径 */
 .ms-info.leaving {
     opacity: 0;
-    transform: translateY(-3px) rotate(-0.6deg);
-    transition: opacity 0.16s ease, transform 0.16s ease;
+    transition: opacity 0.16s ease;
 }
-
-.ms-info-count {
-    color: var(--ms-accent);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-}
-
-.ms-info-name {
-    margin: 0;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
-    font-size: 62px;
-    font-weight: 600;
-    line-height: 1.06;
-    letter-spacing: 0.02em;
-    word-break: break-all;
-}
-
-.ms-info-name.long { font-size: 44px; }
-.ms-info-name.extra-long { font-size: 32px; }
-
-.ms-info-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 26px;
-    color: var(--ms-muted);
-    font-size: 13px;
-    line-height: 1.25;
-}
-
-.ms-info-stats span {
-    display: inline-flex;
-    /* 改成**居中**而不是基线对齐：20px 的数字与 13px 的中文同处一条基线时，
-       中文字形在 em 盒里的落点天生比数字低 2~3px，怎么微调都还是"看着不齐"。
-       居中对齐让标签对准数字的视觉中心，才是这类"大数字 + 小标签"该有的样子。 */
-    align-items: center;
-    gap: 5px;
-}
-
-.ms-info-stats b {
-    /* 数字与标签**同基线**并排：原来是 display:block（数字独占一行、
-       标签掉到下一行），看起来就像"数字没和文字对齐" */
-    display: inline;
-    margin-bottom: 0;
-    color: var(--ms-ink);
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 1;                  /* 盒高贴住字形，居中才是真的居中 */
-    font-variant-numeric: tabular-nums;
-    /* 数字必须和中文**用同一个字体**：默认字体栈里拉丁数字会落到栈里第一个字体、
-       "座城市"落到 CJK 回退字体，两套字体的基线在同一 em 盒里高度不同 ——
-       这正是"数字和文字怎么都对不齐"的原因（改 flex/display 都治不了）。
-       把 CJK 字体排在前面，数字也由它出字形，基线自然一致。 */
-    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", "Source Han Sans SC",
-        "Hiragino Sans GB", sans-serif;
-    /* 字体度量修正（**不是布局问题**）：中文与数字来自不同字体时，即便同在
-       baseline 上，字形在 em 盒里的落点也会差 1~3px —— 用户看到的就是
-       "数字偏下"。这里给一个光学位移，默认上移 2px；嫌多/嫌少只改这一个值，
-       例如： #memoryShelf { --ms-num-nudge: -3px; } */
-    transform: translateY(var(--ms-num-nudge, 0px));   /* 默认不再位移，需要时再调 */
-}
-
-.ms-info-cities {
-    /* 城市改成标签（chips）：原来是一行 "威海市 · 青岛市 · 泰安市"，长省名会挤成两行 */
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 2px 0 0;
-    padding: 0;
-    list-style: none;
-    max-height: 5.6em;
-    overflow: hidden;
-    color: var(--ms-muted);
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.ms-info-cities li {
-    padding: 3px 9px;
-    border: 1px solid var(--ms-line);
-    border-radius: 999px;
-    white-space: nowrap;
-}
-
-.ms-info-cities li.more {
-    border-color: transparent;
-    color: var(--ms-accent);
-    padding-left: 2px;
-    padding-right: 2px;
-}
-
-.ms-info-date {
-    align-self: flex-start;
-    display: inline-flex;
-    /* 原来 center → 14px 数字与 12px 标签按盒子中心对齐 = 基线错位 */
-    align-items: baseline;
-    gap: 8px;
-    padding: 6px 13px;
-    border: 1px solid rgba(155, 112, 78, 0.38);
-    border-radius: 999px;
-    color: var(--ms-accent);
-    font-size: 12px;
-}
-
-.ms-info-date strong {
-    color: var(--ms-ink);
-    font-size: 14px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", "Source Han Sans SC",
-        "Hiragino Sans GB", sans-serif;   /* 同上：与"最近到访"同一字体，基线才一致 */
-    transform: translateY(var(--ms-num-nudge-sm, -1px));
-}
-
-.ms-info-hint { color: var(--ms-faint); font-size: 12px; line-height: 1.75; }
 
 .ms-stage {
     position: relative;
@@ -310,9 +162,7 @@
     overflow: hidden;
     /* WebGL 还没起来（或不可用）时兜底的墙与地：和 3D 场景同一组颜色变量，
        所以「正在装订书架…」那几秒与建好之后的观感是连着的 */
-    background:
-        radial-gradient(780px 500px at 60% 6%, rgba(255, 252, 244, 0.8), transparent 60%),
-        linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
+    background: linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
     transition: --ms-room-wall 0.45s ease, --ms-room-floor 0.45s ease;
     perspective: 1600px;
     perspective-origin: 48% 46%;
@@ -328,7 +178,7 @@
 .ms-stage:active { cursor: grabbing; }
 .ms-stage.rotating { cursor: ew-resize; }
 /* 舞台是画布区域，键盘操作反馈靠 aria-live 播报；这里不画焦点圈 ——
-   之前用方向键翻页时，舞台上会出现一圈棕色描边，看着像界面破了 */
+   之前用方向键翻页时，舞台上会出现一圈描边，看着像界面破了 */
 .ms-stage:focus-visible,
 .ms-stage:focus { outline: none; }
 
@@ -340,6 +190,7 @@
     height: 100%;
 }
 
+/* DOM 回退书架脚下的一道地影（WebGL 起来后由 3D 场景自己给） */
 .ms-floor {
     position: absolute;
     left: 4%;
@@ -347,13 +198,11 @@
     bottom: 62px;
     height: 26px;
     border-radius: 50%;
-    background: radial-gradient(ellipse, rgba(74, 58, 38, 0.5), rgba(74, 58, 38, 0.18) 52%, transparent 74%);
+    background: radial-gradient(ellipse, var(--ms-shade), transparent 72%);
     filter: blur(7px);
     pointer-events: none;
 }
 
-/* WebGL 画布起来之后，地面与投影由 3D 场景给（房间里的地台 + 每本书脚下的
-   接触阴影），这层 DOM 阴影只会变成浮在画面上的褐色污渍 */
 .ms-stage.has-canvas .ms-floor { display: none; }
 
 .ms-stage-hint {
@@ -361,22 +210,20 @@
     left: 50%;
     bottom: 22px;
     transform: translateX(-50%);
-    color: var(--ms-faint);
-    font-size: 12px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
     white-space: nowrap;
     pointer-events: none;
 }
 
 /* 顶栏那对「‹ ›」中间的计数：「第几 / 共几本」（一次翻一屏，见 pageStep）。
-   它唯一的职责是让"一次跳一屏"看起来有规律、可预期（而不是随机跳），
-   所以做得极淡极小，绝不跟标题抢视线；按钮隐藏时一起隐藏。
+   做得极淡极小，不跟标题抢视线；按钮隐藏时一起隐藏。
    定宽 + 等宽数字：数字从 1/11 变到 11/11 时，两侧箭头不会左右挪。 */
 .ms-page-count {
     min-width: 54px;
-    color: var(--ms-faint);
-    font-size: 11px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
     line-height: 1;
-    letter-spacing: 0.02em;
     font-variant-numeric: tabular-nums;
     text-align: center;
     -webkit-user-select: none;
@@ -386,14 +233,12 @@
 .ms-page-count[hidden] { display: none; }
 
 /* 书本模式：信息板只是淡出并向左滑走。
-   这里**不动网格列宽** —— 舞台保持原尺寸，所以不会有拉伸和闪动。
-   （信息板本身是浮在舞台之上的，淡出之后底下就是完整宽度的舞台。） */
+   这里**不动网格列宽** —— 舞台保持原尺寸，所以不会有拉伸和闪动。 */
 .ms-info {
     overflow: hidden;
-    /* ② 一次切换的节拍收在 0.45s 左右。这条是**唯一**生效的 .ms-info transition
-       （同优先级、位置靠后，会覆盖前面那条），所以三样都得写在这里：
-         · opacity/transform —— 书本模式淡出并左移（0.34 / 0.5s，保持原样）；
-         · translate —— 跟随书脊轨上下滑动（0.45s，和内容分层、房间换色同拍）。 */
+    /* 这条是**唯一**生效的 .ms-info transition（同优先级、位置靠后，会覆盖前面那条）：
+         · opacity/transform —— 书本模式淡出并左移；
+         · translate —— 跟随书脊轨上下滑动（0.45s，和房间换色同拍）。 */
     transition: opacity 0.34s ease,
         transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
         translate 0.45s cubic-bezier(0.22, 1, 0.36, 1);
@@ -406,4 +251,3 @@
 }
 
 /* 书本模式不改鼠标样式：光标保持和书架态一致，避免「换个界面」的观感 */
-

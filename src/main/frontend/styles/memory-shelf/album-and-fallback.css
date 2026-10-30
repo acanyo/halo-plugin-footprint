@@ -6,16 +6,20 @@
     justify-content: space-between;
     gap: 12px;
     padding-bottom: 10px;
-    border-bottom: 1px solid rgba(59, 49, 40, 0.16);
+    border-bottom: 1px solid var(--fp-rule);
 }
 
 .ms-album-head strong {
-    font-family: "Noto Serif SC", "Songti SC", serif;
-    font-size: 18px;
-    font-weight: 600;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-lg);
+    font-weight: 400;
 }
 
-.ms-album-head span { color: var(--ms-paper-muted); font-size: 12px; }
+.ms-album-head span {
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+}
 
 .ms-album-grid {
     flex: 1 1 auto;
@@ -33,34 +37,34 @@
     min-height: 0;
     padding: 0;
     border: 0;
-    border-radius: 4px;
-    background: rgba(59, 49, 40, 0.07);
+    border-radius: var(--fp-radius-photo);
+    background: var(--ms-shade);
     overflow: hidden;
     cursor: zoom-in;
 }
 
-.ms-album-slot.is-empty { background: transparent; border: 1px dashed rgba(59, 49, 40, 0.18); cursor: default; }
+.ms-album-slot.is-empty { background: transparent; border: 1px dashed var(--fp-rule-strong); cursor: default; }
 
 .ms-album-slot img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.ms-album-slot:hover img { transform: scale(1.035); }
-.ms-album-slot:focus-visible { outline: 2px solid #9b704e; outline-offset: 2px; }
+.ms-album-slot:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
 
 .ms-album-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: var(--ms-paper-muted);
-    font-size: 12px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
 }
 
-/* 翻页：两阶段动画（当前页飞出 -> 下一页翻回） */
+/* 翻页：两阶段动画（当前页飞出 -> 下一页翻回）。
+   时长和 album.js 里的 620ms 定时器绑在一起，这里不改。 */
 
 .ms-album-stage.turning { pointer-events: none; }
 
@@ -106,7 +110,7 @@
     to { transform: rotateY(0deg); opacity: 1; }
 }
 
-/* 原地放大 */
+/* 原地放大：纸色遮罩铺满，不做毛玻璃 */
 
 .ms-photo-view {
     position: absolute;
@@ -116,9 +120,7 @@
     align-items: center;
     justify-content: center;
     padding: 4vh 4vw;
-    background: rgba(247, 243, 235, 0.9);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    background: var(--fp-scrim);
 }
 
 .ms-photo-view.show { display: flex; }
@@ -127,8 +129,7 @@
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    border-radius: 4px;
-    box-shadow: 0 30px 70px rgba(96, 78, 56, 0.34);
+    border-radius: var(--fp-radius-photo);
 }
 
 .ms-photo-view-bar {
@@ -137,14 +138,14 @@
     bottom: 22px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 8px 14px;
-    border: 1px solid var(--ms-line);
-    border-radius: 999px;
-    background: rgba(255, 253, 248, 0.96);
-    box-shadow: 0 8px 22px rgba(96, 78, 56, 0.16);
-    color: var(--ms-ink);
-    font-size: 12px;
+    gap: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--fp-rule-strong);
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-paper-raised);
+    color: var(--fp-ink);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
     transform: translateX(-50%);
 }
 
@@ -153,16 +154,21 @@
     border: 0;
     background: transparent;
     color: inherit;
-    font-size: 17px;
+    font-size: var(--fp-size-lg);
     line-height: 1;
     cursor: pointer;
 }
 
-.ms-photo-view-bar button:disabled { opacity: 0.32; cursor: default; }
+.ms-photo-view-bar button:disabled { opacity: 0.45; cursor: default; }
+.ms-photo-view-bar button:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
 
-/* ---------------- CSS 3D 回退书架（WebGL 不可用） ---------------- */
+/* ---------------- CSS 3D 回退书架（WebGL 不可用） ----------------
+   书本身的布色（--fb-cover / --fb-spine / --fb-ink）由 JS 按 BOOK_COLORS 写进来，
+   和 3D 书架同一套；这里只给书体的明暗，用墨色混出来。 */
 
 .ms-fallback {
+    --ms-book-shade: color-mix(in srgb, var(--fp-ink) 30%, transparent);
+    --ms-book-cast: color-mix(in srgb, var(--fp-ink) 26%, transparent);
     display: flex;
     align-items: flex-end;
     gap: 16px;
@@ -184,17 +190,18 @@
     cursor: pointer;
     transform: rotateY(68deg);
     transform-origin: left center;
-    transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    transition: transform 0.24s var(--fp-ease), opacity var(--fp-dur) var(--fp-ease);
 }
 
 .ms-fbook.active { transform: rotateY(-8deg) scale(1.12) translateY(-8px); cursor: zoom-in; }
 
+/* 书体：布面 + 书脊暗角；脚下一道落影，表示书立在架上（物体的投影，不是卡片层次） */
 .ms-fbook-body {
     position: absolute;
     inset: 0;
-    border-radius: 2px 6px 6px 2px;
-    background: linear-gradient(105deg, var(--fb-cover), var(--fb-cover) 62%, rgba(0, 0, 0, 0.3));
-    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.5), inset -10px 0 18px rgba(0, 0, 0, 0.22);
+    border-radius: var(--fp-radius-photo);
+    background: linear-gradient(105deg, var(--fb-cover), var(--fb-cover) 62%, var(--ms-book-shade));
+    box-shadow: 0 14px 24px -10px var(--ms-book-cast), inset -10px 0 18px var(--ms-book-shade);
     overflow: hidden;
 }
 
@@ -205,7 +212,7 @@
     bottom: 0;
     width: 22px;
     background: var(--fb-spine);
-    box-shadow: inset -6px 0 12px rgba(0, 0, 0, 0.3);
+    box-shadow: inset -6px 0 12px var(--ms-book-shade);
 }
 
 .ms-fbook-face {
@@ -218,20 +225,24 @@
 }
 
 .ms-fbook-face b {
-    font-family: "Noto Serif SC", "Songti SC", serif;
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 1.16;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
     word-break: break-all;
 }
 
-.ms-fbook-face small { font-size: 11px; opacity: 0.78; }
+.ms-fbook-face small {
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.8;
+}
 
 .ms-fbook-photo {
     flex: 1 1 auto;
     min-height: 0;
-    border-radius: 2px;
-    background-color: rgba(0, 0, 0, 0.22);
+    border-radius: var(--fp-radius-photo);
+    background-color: var(--ms-book-shade);
     background-size: cover;
     background-position: center;
 }
@@ -240,43 +251,43 @@
 
 @media (max-width: 1060px) {
     .ms-scene { grid-template-columns: minmax(250px, 292px) minmax(0, 1fr); }
-    .ms-info { padding: 26px 22px; gap: 13px; }
-    .ms-info-name { font-size: 46px; }
-    .ms-info-name.long { font-size: 34px; }
-    .ms-info-name.extra-long { font-size: 26px; }
-    .ms-info-stats { gap: 18px; font-size: 12px; }
-    .ms-info-stats b { font-size: 21px; }
-    /* 窄窗口：卡片收小、去掉微旋与印记、隐藏城市标签，少挤舞台 */
+    .ms-info-name { font-size: var(--fp-size-2xl); }
+    .ms-info-name.long { font-size: var(--fp-size-xl); }
+    .ms-info-name.extra-long { font-size: var(--fp-size-lg); }
+    /* 窄窗口：卡片收小、隐藏城市那一行，少挤舞台 */
     .ms-info {
         width: min(248px, 30vw);
         margin-left: 16px;
         padding: 16px;
-        transform: none;
+        gap: 10px;
     }
-    .ms-info-seal { display: none; }
-    .ms-info-cities { display: none; }
+    .ms-info-log > .ms-info-row-cities { display: none; }
     .ms-view { padding: 16px 20px 20px; }
     .ms-page { padding: 20px; }
     .ms-album-page { padding: 18px; }
-    .ms-chapter-name { font-size: 28px; }
-    .ms-head h2 { font-size: 22px; }
+    .ms-chapter-name { font-size: var(--fp-size-xl); }
+    .ms-head h2 { font-size: var(--fp-size-lg); }
     .ms-fbook { width: 132px; height: 198px; }
-    .ms-fbook-face b { font-size: 19px; }
+    .ms-fbook-face b { font-size: var(--fp-size-lg); }
 }
 
 /* ---------------- 动效偏好 ---------------- */
 
 @media (prefers-reduced-motion: reduce) {
+    #memoryShelf,
+    .ms-stage { transition: none; }
     #memoryShelf.show { animation: none; }
     .ms-loading-bar i { width: 100%; animation: none; }
     .ms-page-turner { animation: none !important; }
     .ms-info { animation: none; }
-    .ms-scene { transition: none; }
+    .ms-scene,
+    .ms-top,
+    .ms-head > *,
+    .ms-rail,
+    #memoryShelf.book-mode .ms-rail,
+    .ms-building,
     .ms-fbook,
-    .ms-album-slot img,
     .ms-info { transition: none; }
-    /* ② 内容分层入场 / ④ 交叉淡入的幽灵：动效偏好为 reduce 时全部关掉
-       （JS 那边也会跳过克隆，这里只是 CSS 兜底） */
-    #memoryShelf .ms-info > * { animation: none; }
+    /* 交叉淡入的幽灵：JS 那边也会跳过克隆，这里只是 CSS 兜底 */
     .ms-info-ghost { animation: none !important; opacity: 0; }
 }

@@ -185,7 +185,7 @@ function showEmpty() {
     els.body.innerHTML =
         '<div class="ms-empty">' +
           '<strong>书架上还没有书</strong>' +
-          '<span>点亮第一座城市，它就会成为这里的第一本。</span>' +
+          '<span>添加足迹后，每个去过的省份会成为书架上的一本书。</span>' +
           '<button id="msEmptyClose" type="button">回到地图</button>' +
         '</div>';
     var button = $('msEmptyClose');

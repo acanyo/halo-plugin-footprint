@@ -25,7 +25,7 @@ export function openChapters(book) {
         // 用 preparedPageSpecs：翻开动画前已经画好过这叠页，交回同一个数组，
         // loadBookPages 就不会清缓存重画（见 prepareBookPages 的说明）
         loadBookPages(preparedPageSpecs(book), 0,
-            book.name + ' · 城市章节', '点右页的城市条目，翻开它的旅行相册。',
+            book.name + '，城市章节', '点右页的城市条目，翻开它的旅行相册。',
             [{ label: '世界这本书', to: 'shelf' }, { label: book.name }]);
         return;
     }
@@ -40,7 +40,7 @@ function openChaptersDom(book) {
     state.city = null;
     state.photos = [];
     state.page = 0;
-    setHeader(book.name + ' · 城市章节', '选择一座到达过的城市，翻开它的旅行相册。',
+    setHeader(book.name + '，城市章节', '选择一座到达过的城市，翻开它的旅行相册。',
         [{ label: '世界这本书', to: 'shelf' }, { label: book.name }]);
 
     var entries = book.cities.map(function (city, index) {
@@ -58,21 +58,17 @@ function openChaptersDom(book) {
             // 这里原来挂着「‹ 返回书架」。返回统一收给顶栏面包屑（见 setHeader）：
             // 同一件事只在一个地方出现。两侧各留一个等宽占位，标题才是真居中。
             '<span class="ms-tools-spacer" aria-hidden="true"></span>' +
-            '<div class="ms-title"><span>城市章节</span><h3>' + esc(book.name) + '旅行记忆</h3></div>' +
+            '<div class="ms-title"><h3>' + esc(book.name) + '</h3><span>城市章节</span></div>' +
             '<span class="ms-tools-spacer" aria-hidden="true"></span>' +
           '</div>' +
           '<div class="ms-spread">' +
             '<section class="ms-page left">' +
               '<div class="ms-chapter-cover" id="msChapterCover"' + bgStyle(book.cover) + '></div>' +
-              '<p class="ms-chapter-label">省份旅行记忆</p>' +
               '<h4 class="ms-chapter-name">' + esc(book.name) + '</h4>' +
+              '<p class="ms-chapter-label">' + book.cityCount + ' 座城市，' + book.photoCount + ' 张照片</p>' +
               '<p class="ms-chapter-cities">' + esc(book.cities.map(function (city) {
                   return city.name;
-              }).join(' · ')) + '</p>' +
-              '<div class="ms-chapter-totals">' +
-                '<span><b>' + book.cityCount + '</b>城市章节</span>' +
-                '<span><b>' + book.photoCount + '</b>旅行照片</span>' +
-              '</div>' +
+              }).join('、')) + '</p>' +
             '</section>' +
             '<section class="ms-page right">' +
               '<div class="ms-chapter-list">' + entries + '</div>' +

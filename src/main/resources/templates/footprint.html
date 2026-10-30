@@ -217,7 +217,7 @@
     </div>
     <!-- 世界这本书：省份书架 → 城市章节 → 旅行相册，三层共用一个沉浸式覆盖层。
          内容全部由 memory-shelf.js 渲染，这里只放外壳。 -->
-    <div id="memoryShelf" role="dialog" aria-modal="true" aria-label="世界这本书" aria-hidden="true">
+    <div id="memoryShelf" class="fp-sheet" role="dialog" aria-modal="true" aria-label="世界这本书" aria-hidden="true">
         <div id="memoryShelfLive" class="ms-sr-only" aria-live="polite" aria-atomic="true"></div>
         <div class="ms-top">
             <button id="memoryShelfBack" class="ms-back" type="button" aria-label="关闭世界这本书">
@@ -227,7 +227,6 @@
                 <span>关闭</span>
             </button>
             <div class="ms-head">
-                <p class="ms-eyebrow">TRAVEL LIBRARY · 旅行记忆书库</p>
                 <h2 id="memoryShelfTitle">世界这本书</h2>
                 <p id="memoryShelfIntro">一省一卷，一城一章。</p>
             </div>

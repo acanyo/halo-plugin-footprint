@@ -67,15 +67,15 @@ function renderAlbumSpread() {
 
     if (!total) {
         stage.innerHTML = '<section class="ms-album-page left"><div class="ms-album-head">' +
-            '<strong>' + esc(city.name) + '</strong><span>旅行照片册</span></div>' +
+            '<strong>' + esc(city.name) + '</strong><span>0 张照片</span></div>' +
             '<div class="ms-album-grid"><span class="ms-album-slot is-empty"></span>' +
             '<span class="ms-album-slot is-empty"></span></div>' +
-            '<div class="ms-album-foot"><span>这座城市还没有照片</span><span>00</span></div></section>' +
+            '<div class="ms-album-foot"><span>这座城市还没有照片</span><span>01</span></div></section>' +
             '<section class="ms-album-page right"><div class="ms-album-head">' +
-            '<strong>' + esc(city.name) + '</strong><span>旅行照片册</span></div>' +
+            '<strong>' + esc(city.name) + '</strong><span>0 张照片</span></div>' +
             '<div class="ms-album-grid"><span class="ms-album-slot is-empty"></span>' +
             '<span class="ms-album-slot is-empty"></span></div>' +
-            '<div class="ms-album-foot"><span>在足迹里补几张照片吧</span><span>00</span></div></section>';
+            '<div class="ms-album-foot"><span>暂无照片</span><span>02</span></div></section>';
         syncAlbumPager(1);
         return;
     }
@@ -85,7 +85,7 @@ function renderAlbumSpread() {
           '<div class="ms-album-head"><strong>' + esc(city.name) + '</strong>' +
             '<span>' + esc(city.latestTime ? formatMonth(city.latestTime) : '时间未记录') + '</span></div>' +
           '<div class="ms-album-grid">' + albumSlots(slice.slice(0, ALBUM_PER_PAGE), offset) + '</div>' +
-          '<div class="ms-album-foot"><span>旅行照片册</span>' +
+          '<div class="ms-album-foot"><span>' + esc(state.province ? state.province.name : '') + '</span>' +
             '<span>' + String(state.page * 2 + 1).padStart(2, '0') + '</span></div>' +
         '</section>' +
         '<section class="ms-album-page right">' +
@@ -172,7 +172,7 @@ export function openAlbum(book, city, spread) {
         state.photoList = collectPhotos(city);
         if (state.photoList.length) {
             loadBookPages(albumPageSpecs(book, city), spread || 0,
-                city.name + ' · 旅行相册',
+                city.name + '，旅行相册',
                 // 顶栏那颗「返回城市章节」已收掉，返回入口现在是面包屑里的省名
                 '左右翻页看照片；点标题里的「' + book.name + '」可以回到城市章节。',
                 [{ label: '世界这本书', to: 'shelf' },
@@ -190,7 +190,7 @@ function openAlbumDom(book, city) {
     state.page = 0;
     state.turning = false;
     state.photos = collectPhotos(city);
-    setHeader(city.name + ' · 旅行相册', '单击照片原地放大；按住照片拖动可以调整构图。',
+    setHeader(city.name + '，旅行相册', '单击照片原地放大；按住照片拖动可以调整构图。',
         [{ label: '世界这本书', to: 'shelf' },
          { label: book.name, to: 'chapters' }, { label: city.name }]);
 
@@ -199,7 +199,7 @@ function openAlbumDom(book, city) {
           '<div class="ms-tools">' +
             // 同上：返回交给顶栏面包屑（点路径里的「省名」回城市章节）
             '<span class="ms-tools-spacer" aria-hidden="true"></span>' +
-            '<div class="ms-title"><span>旅行照片册</span><h3>' + esc(city.name) + '</h3></div>' +
+            '<div class="ms-title"><h3>' + esc(city.name) + '</h3><span>' + esc(book.name) + '，' + state.photos.length + ' 张照片</span></div>' +
             '<span class="ms-tools-spacer" aria-hidden="true"></span>' +
           '</div>' +
           '<div class="ms-album-frame">' +

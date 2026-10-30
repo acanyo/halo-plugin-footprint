@@ -2,37 +2,45 @@
    世界这本书（memory-shelf.css）
    省份书架 -> 城市章节 -> 旅行相册，三层共用一个全屏沉浸层。
    只作用于 #memoryShelf 及其后代，类名统一 ms- 前缀，不碰 travel-memory.css。
-   设计基调：暗色书房墙面 + 木书架；翻开的书页用米色纸张，和暗场形成对比。
+   外框走「白图」（模板里 #memoryShelf 带 .fp-sheet），颜色、字体都取 --fp-*
+   （tokens.css 在 travel-memory.css 里，同页先加载）。3D 房间的墙与地由 JS 按省份给。
    ========================================================================== */
 
-/* 房间的两个主色由 JS 按「当前这本是哪个省份」写进来（见 memory-shelf.js 的
+/* 房间的两个主色由 JS 按「当前这本是哪个省份」写进来（见 room-theme.js 的
    syncPanelTheme），@property 让它们可以**过渡**而不是硬切：
-   没有 @property 的浏览器会忽略这两条，只是颜色切换时不做补间，不影响可用性。 */
+   没有 @property 的浏览器会忽略这两条，只是颜色切换时不做补间，不影响可用性。
+   initial-value 只能写字面量、不能引用 --fp-*；而 #memoryShelf 上总会声明这两个变量
+   （白图纸色与深一档的灰绿），初始值实际用不到，所以写 transparent，色值只留在下面一处。 */
 @property --ms-room-wall {
     syntax: '<color>';
     inherits: true;
-    initial-value: #e9dcc4;
+    initial-value: transparent;
 }
 
 @property --ms-room-floor {
     syntax: '<color>';
     inherits: true;
-    initial-value: #c3ae88;
+    initial-value: transparent;
 }
 
 #memoryShelf {
-    --ms-ink: #2f2a24;                    /* 亮色书房：整体是深墨字 + 暖白墙 */
-    --ms-muted: rgba(47, 42, 36, 0.62);
-    --ms-faint: rgba(47, 42, 36, 0.42);
-    --ms-line: rgba(47, 42, 36, 0.14);
-    --ms-accent: #9b704e;
-    --ms-gold: #b08a45;
-    --ms-paper: #fdfaf3;                  /* 书页纸色 */
-    --ms-paper-2: #f2ebdc;
-    --ms-paper-ink: #3b3128;              /* 纸上的字 */
-    --ms-paper-muted: rgba(59, 49, 40, 0.56);
-    --ms-room-wall: #e9dcc4;              /* 场景里的墙面（JS 按省份重算） */
-    --ms-room-floor: #c3ae88;             /* 场景里的地面（JS 按省份重算） */
+    /* 外框的墨色、格线全部映射到 --fp-*（白图）。
+       ⚠️ room-theme.js 会把 --ms-accent / --ms-gold 按省份写成行内样式，
+       行内样式压过这里的映射，所以下面的规则**不再读**这两个变量，
+       直接用 --fp-contour / --fp-water / --fp-mark；这里的映射只是 JS 写入前的默认值。 */
+    --ms-ink: var(--fp-ink);
+    --ms-muted: var(--fp-ink-soft);
+    --ms-faint: var(--fp-ink-faint);
+    --ms-line: var(--fp-rule);
+    --ms-accent: var(--fp-contour);
+    --ms-gold: var(--fp-contour);
+    --ms-paper: var(--fp-paper-raised);   /* 书页纸色（DOM 回退的章节 / 相册） */
+    --ms-paper-2: var(--fp-paper);
+    --ms-paper-ink: var(--fp-ink);
+    --ms-paper-muted: var(--fp-ink-soft);
+    --ms-shade: color-mix(in srgb, var(--fp-ink) 12%, transparent);   /* 订口暗角、空槽底色 */
+    --ms-room-wall: #eceee9;              /* 场景里的墙面（JS 按省份重算） */
+    --ms-room-floor: #d3d7cf;             /* 场景里的地面（JS 按省份重算） */
 
     position: fixed;
     inset: 0;
@@ -40,21 +48,19 @@
     display: none;
     flex-direction: column;
     overflow: hidden;
-    color: var(--ms-ink);
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
     /* 墙与地跟着选中的省份走；3D 画布盖住大部分画面，这里主要是给
        左侧信息板背后的底色、顶栏和 WebGL 回退态用 */
-    background:
-        radial-gradient(1200px 760px at 58% -12%, rgba(255, 250, 236, 0.9), transparent 62%),
-        radial-gradient(900px 600px at 2% 102%, rgba(122, 128, 116, 0.34), transparent 66%),
-        linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
-    /* ② 房间换色跟卡片落位同拍（0.45s）：一次切换只该有一个节拍 */
+    background: linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
+    /* 房间换色跟卡片落位同拍（0.45s）：一次切换只该有一个节拍 */
     transition: --ms-room-wall 0.45s ease, --ms-room-floor 0.45s ease;
     -webkit-font-smoothing: antialiased;
 }
 
 #memoryShelf.show {
     display: flex;
-    animation: msOverlayIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: msOverlayIn var(--fp-dur) var(--fp-ease) both;
 }
 
 /* 打开书架时：页面不再滚动，顶栏与首屏标题一起隐掉。
@@ -91,9 +97,7 @@ body.memory-shelf-open #pageIntro {
     border: 0;
 }
 
-/* 检视态的「复位视角」：一枚半透明的深色药丸浮在书角上。
-   之前是白底描边的方按钮，压在暖色纸面和木板上显得很"贴上去"，
-   跟书架那套纸感不搭。 */
+/* 检视态的「复位视角」：书角上一枚描边小按钮，和顶栏按钮同一套写法。 */
 .ms-view-reset {
     position: absolute;
     right: 20px;
@@ -101,63 +105,48 @@ body.memory-shelf-open #pageIntro {
     z-index: 6;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     min-height: 30px;
-    padding: 0 13px 1px;
-    border: 1px solid rgba(255, 252, 244, 0.28);
-    border-radius: 999px;
-    background: rgba(56, 44, 32, 0.42);
-    color: rgba(255, 252, 243, 0.95);
-    font-size: 12px;
-    letter-spacing: 0.04em;
+    padding: 0 12px;
+    border: 1px solid var(--fp-rule-strong);
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-paper-raised);
+    color: var(--fp-ink);
+    font: 500 var(--fp-size-xs)/1 var(--fp-font-text);
     cursor: pointer;
-    -webkit-backdrop-filter: blur(7px);
-    backdrop-filter: blur(7px);
-    box-shadow: 0 8px 20px rgba(48, 36, 24, 0.26);
-    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
 }
 
 .ms-view-reset::before {
     content: '↺';
-    font-size: 13px;
+    font-size: var(--fp-size-sm);
     line-height: 1;
-    opacity: 0.9;
 }
 
-.ms-view-reset:hover {
-    background: rgba(56, 44, 32, 0.58);
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(48, 36, 24, 0.3);
-}
-
-.ms-view-reset:active { transform: translateY(0); }
-.ms-view-reset:focus-visible { outline: 2px solid rgba(255, 252, 244, 0.85); outline-offset: 2px; }
+.ms-view-reset:hover { border-color: var(--fp-ink-soft); background: var(--fp-paper); }
+.ms-view-reset:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
 .ms-view-reset[hidden] { display: none; }
 
 .ms-top {
     flex: 0 0 auto;
     display: grid;
-    /* 三列：左右两列**等宽**（1fr auto 1fr）。
-       原来是 auto / 1fr / auto，右列（上一本+下一本+声音控件）比左列宽，
-       中间标题就按"中间那一栏"居中 → 视觉上偏左。等宽之后才是真正居中。 */
+    /* 三列：左右两列**等宽**（1fr auto 1fr），中间标题才是真正居中。 */
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 22px;
-    padding: 20px 28px 16px;
-    border-bottom: 1px solid var(--ms-line);
-    background: linear-gradient(180deg, rgba(250, 244, 232, 0.95), rgba(250, 244, 232, 0.4));
+    padding: 18px 28px 14px;
+    border-bottom: 1px solid var(--fp-rule);
+    background: color-mix(in srgb, var(--fp-paper) 94%, transparent);
     /* 书本模式收窄顶栏这一下必须是**平滑**的：顶栏一矮，它下面整个网格
-       （含 3D 画布和左侧信息卡）就整体上移。原来是瞬变 —— 卡片会先"跳"90px
-       再淡出。另外几段过渡在 .ms-head > * 上（那两行说明文字和标题字号）。
-       这条是唯一会让整页布局动起来的地方，所以时间和卡片退场同拍（0.45s）。 */
+       （含 3D 画布和左侧信息卡）就整体上移。时间和卡片退场同拍（0.45s）。 */
     transition: padding 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .ms-back { justify-self: start; }
 .ms-actions { justify-self: end; }
 
-/* 静音键：图标按钮，内边距按图标收窄（原先是给 emoji 留的宽边距） */
-.ms-sound { padding: 0 11px; }
+/* 静音键：图标按钮，内边距按图标收窄 */
+.ms-sound { padding: 0 8px; }
 
 .ms-sound-icon {
     display: block;
@@ -171,8 +160,8 @@ body.memory-shelf-open #pageIntro {
 #memoryShelfMute[aria-pressed="true"] .ms-sound-on { display: none; }
 #memoryShelfMute[aria-pressed="true"] .ms-sound-off { display: block; }
 
-/* 音量滑杆：和顶栏按钮同一排，暗色细轨 + 圆头。
-   轨道左侧那段用主色填出"当前音量"，取值来自 --ms-vol（JS 每次同步音量时写）。 */
+/* 音量滑杆：细轨 + 圆头。轨道左侧那段用等高线色填出"当前音量"，
+   取值来自 --ms-vol（JS 每次同步音量时写）。 */
 .ms-volume {
     width: 74px;
     height: 18px;
@@ -181,15 +170,15 @@ body.memory-shelf-open #pageIntro {
     appearance: none;
     background: transparent;
     cursor: pointer;
-    transition: opacity 0.18s ease;
+    transition: opacity var(--fp-dur) var(--fp-ease);
 }
 
 .ms-volume::-webkit-slider-runnable-track {
     height: 3px;
     border-radius: 2px;
     background: linear-gradient(90deg,
-        var(--ms-accent) var(--ms-vol, 55%),
-        rgba(47, 42, 36, 0.24) var(--ms-vol, 55%));
+        var(--fp-contour) var(--ms-vol, 55%),
+        var(--fp-rule-strong) var(--ms-vol, 55%));
 }
 
 .ms-volume::-webkit-slider-thumb {
@@ -198,135 +187,111 @@ body.memory-shelf-open #pageIntro {
     height: 11px;
     margin-top: -4px;
     border-radius: 50%;
-    background: var(--ms-accent);
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: var(--fp-contour);
+    border: 1px solid var(--fp-paper-raised);
 }
 
 .ms-volume::-moz-range-track {
     height: 3px;
     border-radius: 2px;
-    background: rgba(47, 42, 36, 0.24);
+    background: var(--fp-rule-strong);
 }
 
 .ms-volume::-moz-range-progress {
     height: 3px;
     border-radius: 2px;
-    background: var(--ms-accent);
+    background: var(--fp-contour);
 }
 
 .ms-volume::-moz-range-thumb {
     width: 11px;
     height: 11px;
     border-radius: 50%;
-    background: var(--ms-accent);
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: var(--fp-contour);
+    border: 1px solid var(--fp-paper-raised);
 }
 
-.ms-volume:focus-visible { outline: 2px solid var(--ms-accent); outline-offset: 3px; }
+.ms-volume:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 3px; }
 
-/* 静音时把滑杆压暗，一眼看出"现在没有声音"；仍然可以调
-   （取消静音后沿用调好的音量，不会被锁住）。 */
+/* 静音时把滑杆压暗，一眼看出"现在没有声音"；仍然可以调。 */
 #memoryShelfMute[aria-pressed="true"] ~ .ms-volume { opacity: 0.45; }
 
+/* 顶栏按钮：和 .fp-btn 同一套描边次要按钮 */
 .ms-back,
 .ms-nav {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    min-height: 38px;
-    padding: 0 14px;
-    border: 1px solid rgba(47, 42, 36, 0.16);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.72);
-    color: var(--ms-ink);
-    font-size: 13px;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--fp-rule-strong);
+    border-radius: var(--fp-radius-control);
+    background: transparent;
+    color: var(--fp-ink);
+    font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(80, 64, 46, 0.08);
-    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+    transition: border-color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease);
 }
 
 .ms-back svg { width: 15px; height: 15px; }
 
-/* 书本摊开时顶栏要收窄：那本书本身就占满画面竖向，原来那条 100px 高的
-   标题栏会把书的上缘压掉一截。这里只留标题 + 两侧按钮，压到 ~44px。 */
+/* 书本摊开时顶栏要收窄：那本书本身就占满画面竖向。这里只留标题 + 两侧按钮。 */
 #memoryShelf.book-mode .ms-top {
     gap: 14px;
     padding: 6px 16px;
 }
 
-/* 眉标：书本模式收掉。归零收拢而不是 display:none —— 见 .ms-head > * 那条注释。
-   字号 0 + 行高 0 + 上边距 0 ⇒ 高度精确为 0；overflow 兜底。 */
-#memoryShelf.book-mode .ms-eyebrow {
-    font-size: 0;
-    line-height: 0;
-    margin-top: 0;
-    opacity: 0;
-    overflow: hidden;
-}
-
-/* 副标题**不能跟着一起收掉**：setHeader() 每一层都会传一句指导语
-   （书架层「滚轮或 ←/→ 选省份…」、城市章节「点右页的城市条目…」、
-   旅行相册「左右翻页看照片…」），整行收掉等于把三层的说明全丢了 ——
-   而那几句话在别处都没有替代品。这里只把它压小、贴近标题，
-   顶栏照样能从 133px 矮到 ~60px 给书本让位。 */
+/* 副标题**不能跟着收掉**：setHeader() 每一层都会传一句指导语，
+   整行收掉等于把三层的说明全丢了。这里只把它压小、贴近标题。 */
 #memoryShelf.book-mode #memoryShelfIntro {
     margin-top: 2px;
-    font-size: 12px;
-    opacity: 0.9;
+    font-size: var(--fp-size-xs);
     /* 兜底：即便某条路径传了空文本，也**占住这一行的高度**（12px × 1.5），
-       否则顶栏会矮 18px，下面的画布/书本跟着重排一次 —— 观感是"屏幕突然变大"。 */
+       否则顶栏会矮 18px，下面的画布/书本跟着重排一次。 */
     min-height: 18px;
 }
 
 #memoryShelf.book-mode #memoryShelfTitle {
-    font-size: 15px;
-    letter-spacing: 0.01em;
+    font-size: var(--fp-size-md);
 }
 
 #memoryShelf.book-mode .ms-back,
 #memoryShelf.book-mode .ms-nav {
-    min-height: 30px;
-    padding: 0 11px;
-    font-size: 12px;
-    border-radius: 999px;
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: var(--fp-size-xs);
 }
 
+#memoryShelf.book-mode .ms-sound { padding: 0 6px; }
 #memoryShelf.book-mode .ms-back svg { width: 13px; height: 13px; }
 
 .ms-back:hover,
 .ms-nav:hover:not(:disabled) {
-    border-color: rgba(155, 112, 78, 0.5);
-    background: rgba(155, 112, 78, 0.12);
+    border-color: var(--fp-ink-soft);
+    background: var(--fp-rule);
 }
-
-.ms-back:active,
-.ms-nav:active:not(:disabled) { transform: translateY(1px); }
 
 .ms-back:focus-visible,
 .ms-nav:focus-visible,
 .ms-actions button:focus-visible,
 .ms-empty button:focus-visible,
-.ms-fbook:focus-visible { outline: 2px solid var(--ms-accent); outline-offset: 2px; }
+.ms-fbook:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
 
 .ms-nav {
-    min-width: 40px;
+    min-width: 34px;
     justify-content: center;
-    padding: 0 10px;
-    font-size: 20px;
-    line-height: 1;
+    padding: 0 8px;
+    font-size: var(--fp-size-lg);
 }
 
-.ms-nav:disabled { opacity: 0.32; cursor: default; }
+.ms-nav:disabled { opacity: 0.45; cursor: default; }
 
-.ms-actions { display: flex; align-items: center; gap: 10px; }
+.ms-actions { display: flex; align-items: center; gap: 8px; }
 
 .ms-head { min-width: 0; text-align: center; }
 
-/* 顶栏这三块（眉标 / 标题 / 一句话简介）在书本模式下要"收"掉一部分，
-   全都要能过渡。⚠️ 别用 display: none 收起任何一块 —— display 不可过渡，
-   顶栏会在一帧里矮掉 90px，3D 画布和左侧卡片跟着瞬移（用户报的"卡片先往上
-   跳一下才消失"）。改用字号/行高/上边距归零（见下面 .book-mode 那条）：
-   高度精确收到 0，也不会像 max-height 那样把换行后的长文本裁掉。
+/* 标题与说明在书本模式下要缩小，都要能过渡。⚠️ 别用 display: none 收起任何一块 ——
+   display 不可过渡，顶栏会在一帧里矮一截，3D 画布和左侧卡片跟着瞬移。
    前提是 line-height 得是数值（当前由 .ms-head p 给出 1.5），normal 不可插值。 */
 .ms-head > * {
     transition: font-size 0.45s cubic-bezier(0.22, 1, 0.36, 1),
@@ -335,36 +300,27 @@ body.memory-shelf-open #pageIntro {
         opacity 0.22s ease;
 }
 
-.ms-eyebrow {
-    margin: 0;
-    color: var(--ms-accent);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-}
-
 .ms-head h2 {
-    margin: 6px 0 0;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
-    font-size: 27px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    margin: 0;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
 }
 
 /* 顶栏标题 = 面包屑：「世界这本书 › 山东 › 青岛」。
-   最后一段是当前位置（深色、不可点），前面的段是可点的返回入口；
-   所有字体样式都从 h2 继承，只额外补一条 hover 下划线，提示"这段能点"。 */
+   最后一段是当前位置（深墨、不可点），前面的段是可点的返回入口（水系色）。 */
 .ms-crumb-sep {
-    margin: 0 9px;
+    margin: 0 8px;
     font-size: 0.72em;
-    color: var(--ms-faint);
+    color: var(--fp-ink-faint);
 }
 
-.ms-crumb-current { color: var(--ms-ink); }
+.ms-crumb-current { color: var(--fp-ink); }
 
-/* ③ 面包屑不换行：名字长了宁可截断，也不要把顶栏顶成两行 ——
-   顶栏一高，下面的画布 / 书本 / 卡片都会跟着重排一次（和之前"卡片跳一下"同类）。
+/* 面包屑不换行：名字长了宁可截断，也不要把顶栏顶成两行 ——
+   顶栏一高，下面的画布 / 书本 / 卡片都会跟着重排一次。
    全名留在 title / aria-label 上，鼠标悬停能看到。 */
 .ms-head h2 { white-space: nowrap; }
 
@@ -378,12 +334,12 @@ body.memory-shelf-open #pageIntro {
     vertical-align: bottom;
 }
 
-/* ④ 当前段的层级后缀：城市章节 / 旅行相册 / 足迹点 */
+/* 当前段的层级后缀：目录 / 旅行相册 / 足迹点 */
 .ms-crumb-tag {
-    margin-left: 5px;
-    font-size: 0.62em;
-    letter-spacing: 0.06em;
-    color: var(--ms-faint);
+    margin-left: 6px;
+    font-family: var(--fp-font-text);
+    font-size: var(--fp-size-xs);
+    color: var(--fp-ink-faint);
 }
 
 .ms-crumb-link {
@@ -393,26 +349,22 @@ body.memory-shelf-open #pageIntro {
     background: none;
     font: inherit;
     letter-spacing: inherit;
-    color: var(--ms-muted);
+    color: var(--fp-water);
     cursor: pointer;
-    transition: color 0.18s ease, border-color 0.18s ease;
+    transition: border-color var(--fp-dur) var(--fp-ease);
 }
 
-.ms-crumb-link:hover {
-    color: var(--ms-ink);
-    border-bottom-color: rgba(155, 112, 78, 0.55);
-}
+.ms-crumb-link:hover { border-bottom-color: currentColor; }
 
 .ms-crumb-link:focus-visible {
-    outline: 2px solid var(--ms-accent);
+    outline: 2px solid var(--fp-water);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: var(--fp-radius-photo);
 }
 
 .ms-head p {
-    margin: 6px 0 0;
-    color: var(--ms-muted);
-    font-size: 13px;
+    margin: 4px 0 0;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
     line-height: 1.5;
 }
-
