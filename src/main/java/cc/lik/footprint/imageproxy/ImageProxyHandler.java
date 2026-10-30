@@ -85,10 +85,12 @@ public class ImageProxyHandler {
         if (!cached.isEmpty() && now < imageHostsExpireAt) {
             return Mono.just(cached);
         }
-        return client.list(Footprint.class, null, null, 0, 1000)
+        // 不分页取全部：原先只看前 1000 条，之后的足迹里的图床域名会被当成「不在白名单」拒掉
+        return client.list(Footprint.class, null, null)
+            .collectList()
             .map(list -> {
                 Set<String> hosts = new HashSet<>();
-                list.getItems().forEach(footprint -> {
+                list.forEach(footprint -> {
                     var spec = footprint.getSpec();
                     collectHost(hosts, spec.getTicketImage());
                     collectHost(hosts, spec.getImage());

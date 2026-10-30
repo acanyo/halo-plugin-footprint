@@ -29,25 +29,21 @@ public class FootprintPageHandler {
     private final FootprintConfigService configService;
 
     public Mono<ServerResponse> render(ServerRequest request) {
-        log.info("开始渲染足迹页面");
         return configService.getConfigByGroupName()
             .flatMap(settings -> {
-                log.info("已加载足迹页面配置");
                 // 按创建时间倒序排序
                 Comparator<Footprint> comparator =
                     (f1, f2) -> f2.getSpec().getCreateTime()
                         .compareTo(f1.getSpec().getCreateTime());
 
-                return client.list(Footprint.class,
-                        null,
-                        comparator,
-                        0,
-                        1000) // 获取所有足迹
+                // 不分页取全部：原先写死 0..1000，超过 1000 条时多出的足迹会悄悄不显示
+                return client.list(Footprint.class, null, comparator)
+                    .collectList()
                     .flatMap(footprints -> {
-                        log.info("获取到足迹数据: {} 条", footprints.getItems().size());
+                        log.debug("渲染足迹页面: {} 条足迹", footprints.size());
                         Map<String, Object> model = new HashMap<>();
                         model.put("settings", settings);
-                        model.put("footprints", footprints.getItems());
+                        model.put("footprints", footprints);
                         // 给 Head 处理器等渲染扩展一个稳定的页面标识（Halo 约定）：
                         // FootprintHeadProcessor 靠它判断"这是足迹页"，才注入 3D 地球那套资源。
                         model.put(ModelConst.TEMPLATE_ID, "plugin:footprint:footprints");
@@ -57,7 +53,7 @@ public class FootprintPageHandler {
                                 "footprint"
                             )
                             .flatMap(templateName -> {
-                                log.info("使用模板: {}", templateName);
+                                log.debug("足迹页面使用模板: {}", templateName);
                                 return ServerResponse.ok()
                                     .render(templateName, model);
                             });
