@@ -1,6 +1,8 @@
 /*
  * 底部控制栏：居中的一枚白玻璃胶囊（圆角 24px、背景模糊 12px），里面是无描边的浅底胶囊按钮。
  * 当前图层（标准 / 卫星）用强调色浅底 + 强调色字表示选中。入场时整条去模糊弹出。
+ * 宽度不超过可用空间（时间线打开时是抽屉左边那一块）：中等宽度先收紧按钮内边距，
+ * 还放不下就折成两行，而不是伸出屏幕左边。
  */
 .map-controls {
     position: fixed;
@@ -8,8 +10,13 @@
     bottom: calc(24px + var(--safe-bottom));
     z-index: 1000;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 4px;
+    /* left:50% 时自动宽度只按半屏算，会提前折行；按内容定宽，由 max-width 决定什么时候折 */
+    width: max-content;
+    max-width: calc(100vw - 24px - var(--safe-left) - var(--safe-right));
     padding: 6px;
     border-radius: 24px;
     background: var(--fp-glass);
@@ -40,6 +47,7 @@
 .map-controls.open {
     left: auto;
     right: calc(500px + 12px + var(--safe-right));
+    max-width: calc(100vw - 500px - 24px - var(--safe-left) - var(--safe-right));
     transform: none;
 }
 .map-controls.show.open {
@@ -134,6 +142,34 @@
     width: 32px;
     padding: 0;
     font-size: var(--fp-size-lg);
+}
+/* 中等宽度（窄的桌面窗口、时间线开着）：按钮内边距收紧，多数情况下仍是一行 */
+@media screen and (min-width: 769px) and (max-width: 1100px) {
+    .map-controls .control-btn,
+    .map-controls #timeline-btn,
+    .map-controls #zoom-restore,
+    .map-controls #messageBoards,
+    .map-controls #back3dBtn {
+        padding: 0 10px;
+    }
+}
+@media screen and (min-width: 769px) and (max-width: 900px) {
+    .map-controls .control-btn,
+    .map-controls #timeline-btn,
+    .map-controls #zoom-restore,
+    .map-controls #messageBoards,
+    .map-controls #back3dBtn {
+        padding: 0 8px;
+    }
+}
+@media screen and (min-width: 769px) and (max-width: 1400px) {
+    .map-controls.open .control-btn,
+    .map-controls.open #timeline-btn,
+    .map-controls.open #zoom-restore,
+    .map-controls.open #messageBoards,
+    .map-controls.open #back3dBtn {
+        padding: 0 10px;
+    }
 }
 
 /* 时间线、留言板按钮前的小图标：用遮罩画，颜色跟随文字 */
