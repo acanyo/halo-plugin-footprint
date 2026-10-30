@@ -73,14 +73,18 @@ const COMMON = {
   logLevel: 'warning',
 };
 
+/** bundle 的源码体积：metafile 里所有被打进来的输入文件之和（只算入口文件会严重低估） */
+const sourceBytes = (result) =>
+  Object.values(result.metafile.inputs).reduce((sum, input) => sum + input.bytes, 0);
+
 let before = 0;
 let after = 0;
 let count = 0;
 
 for (const [name, entry] of Object.entries(BUNDLES)) {
   const out = join(OUT, 'js', `${name}.js`);
-  before += statSync(entry).size;
-  await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, format: 'iife' });
+  const result = await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, format: 'iife', metafile: true });
+  before += sourceBytes(result);
   after += statSync(out).size;
   count++;
 }
@@ -98,9 +102,8 @@ const CSS_BUNDLES = {
 
 for (const [name, entry] of Object.entries(CSS_BUNDLES)) {
   const out = join(OUT, 'css', `${name}.css`);
-  const srcDir = dirname(entry);
-  for (const f of readdirSync(srcDir)) before += statSync(join(srcDir, f)).size;
-  await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, external: ['../font/*', '../img/*'] });
+  const result = await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, external: ['../font/*', '../img/*'], metafile: true });
+  before += sourceBytes(result);
   after += statSync(out).size;
   count++;
 }
