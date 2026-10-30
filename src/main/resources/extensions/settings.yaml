@@ -50,7 +50,7 @@ spec:
           step: 1
           validation: required|number|between:1,12
           help: "每个足迹图片墙单页最多展示的图片数量，超出后可使用左右箭头翻页(1-12)"
-        - $formkit: select
+        - $formkit: toggle
           label: 图片墙样式
           name: photoWallStyle
           value: original
@@ -112,7 +112,7 @@ spec:
               value: amap://styles/darkblue
             - label: 酱籽
               value: amap://styles/wine
-        - $formkit: select
+        - $formkit: toggle
           name: markerStyle
           label: 标记点样式
           value: 'photo'
@@ -125,7 +125,7 @@ spec:
               value: card
             - label: 照片徽章
               value: photo
-        - $formkit: select
+        - $formkit: toggle
           name: highlightScheme
           label: 悬停高亮方案
           value: 'ring'
@@ -160,25 +160,25 @@ spec:
           label: 3D 地球标题
           name: globeTitle
           value: '旅行记忆'
-          help: "3D 地球导航栏与首页标题卡的标题（不读取基本设置中的左下角标题）"
+          help: "3D 地球首页卡片的标题（不读取基本设置中的左下角标题）"
         - $formkit: textarea
           label: 3D 地球描述
           name: globeDesc
           value: ''
           help: "首页标题下面的一句话，可留空（不读取基本设置中的足迹描述）"
-        - $formkit: select
+        - $formkit: toggle
           label: 地球地名标注
           name: globeLabels
           value: all
           options:
             - label: 关闭（仅悬停显示）
-              value: off
+              value: 'off'
             - label: 只显示城市名
               value: city
             - label: 城市名 + 足迹名
               value: all
           help: "地名的常驻显示方式：整球视图标注去过的城市，放大到城市后标注各条足迹（同名城市下按到访顺序编号）。
-                 使用「无字」底图（高德卫星·无字 / 天地图无标注）时尤其建议开启，否则画面上没有任何地名参照"
+                 使用无字底图（高德卫星无字、天地图无标注）时尤其建议开启，否则画面上没有任何地名参照"
     - group: tianditu
       label: 天地图
       formSchema:
@@ -200,7 +200,7 @@ spec:
     - group: ticket
       label: 票根页
       formSchema:
-        - $formkit: select
+        - $formkit: toggle
           label: 切换样式
           name: ticketGalleryStyle
           value: fan
