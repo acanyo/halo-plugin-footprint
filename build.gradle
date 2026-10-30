@@ -74,12 +74,28 @@ tasks.register('minifyFrontendInstall', com.github.gradle.node.npm.task.NpmTask)
     outputs.dir('frontend-build/node_modules')
 }
 
+// 前台模块契约检查：注入键、顶层 deps 访问、setup/init 顺序这类 esbuild 不报的错，
+// 在打包前拦下，而不是等浏览器里炸。脚本纯 Node、无依赖，详见 tools/check-frontend-contract.mjs。
+tasks.register('checkFrontendContract', com.github.gradle.node.task.NodeTask) {
+    group = 'verification'
+    description = '检查前台模块注入契约与装配顺序'
+    script = file('tools/check-frontend-contract.mjs')
+
+    inputs.dir('src/main/frontend/travel-memory')
+    inputs.file('tools/check-frontend-contract.mjs')
+    // 无产物；声明一个标记文件，让输入不变时可跳过
+    def marker = layout.buildDirectory.file('tmp/checkFrontendContract/ok')
+    outputs.file(marker)
+    doLast { marker.get().asFile.text = 'ok' }
+}
+
 tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
     group = 'build'
     description = '压缩前台 js/css（源文件不动，只改构建产物）'
     workingDir = file('frontend-build')
     args = ['run', 'minify']
 
+    dependsOn tasks.named('checkFrontendContract')
     dependsOn tasks.named('minifyFrontendInstall')
     dependsOn tasks.named('processResources')
 
