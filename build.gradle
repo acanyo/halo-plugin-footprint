@@ -89,6 +89,23 @@ tasks.register('checkFrontendContract', com.github.gradle.node.task.NodeTask) {
     doLast { marker.get().asFile.text = 'ok' }
 }
 
+// 前台纯函数单测：Node 自带的 node:test，不引入测试框架依赖。挂在 test 上，./gradlew build 会跑。
+tasks.register('testFrontend', com.github.gradle.node.task.NodeTask) {
+    group = 'verification'
+    description = '运行前台纯函数单测（src/test/frontend）'
+    script = file('tools/run-frontend-tests.mjs')
+
+    inputs.dir('src/main/frontend')
+    inputs.dir('src/test/frontend')
+    def marker = layout.buildDirectory.file('tmp/testFrontend/ok')
+    outputs.file(marker)
+    doLast { marker.get().asFile.text = 'ok' }
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('testFrontend')
+}
+
 tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
     group = 'build'
     description = '压缩前台 js/css（源文件不动，只改构建产物）'

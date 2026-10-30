@@ -1,0 +1,5 @@
+{
+  "//": "前台源码都是 ES 模块；声明出来，免得 Node 跑测试时每个文件都先按 CommonJS 试一遍再报警告",
+  "private": true,
+  "type": "module"
+}
