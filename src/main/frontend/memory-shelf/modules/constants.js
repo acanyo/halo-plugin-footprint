@@ -35,3 +35,9 @@ export var FOIL_COLORS = [
     '#dcbd76',   // 芥末金 -> 浅金
     '#c8a257'    // 深胡桃 -> 暖金
 ];
+
+// 书页纸色：与测绘手簿白图（styles/shared/tokens.css 的 --fp-paper-raised）同一色，
+// 比原来的米黄偏冷一点。3D 页面材质、canvas 页面底色共用这一个值。
+export var PAGE_PAPER = '#fbfbf9';
+// 书口（书页侧面）比纸面略深一档，看得出是一叠纸
+export var PAGE_EDGE = '#e8e9e4';

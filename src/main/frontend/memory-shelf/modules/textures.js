@@ -1,6 +1,7 @@
 /**
  * 程序化纹理：布面、书口纸纹、接触阴影与木纹，按需生成并缓存。
  */
+import { PAGE_EDGE } from './constants.js';
 
 // ---------------- 程序化纹理 ----------------
 
@@ -131,7 +132,7 @@ export function pageEdgeTexture(THREE) {
     var h = 768;
     var canvas = makeCanvas(w, h);
     var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#efe8d8';
+    ctx.fillStyle = PAGE_EDGE;
     ctx.fillRect(0, 0, w, h);
     // 纸边细线要"数得出来"。
     // 原来是每 2px 一根、纹理再 repeat 4 次 —— 等于上千根挤在书口上，

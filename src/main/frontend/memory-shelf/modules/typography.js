@@ -28,7 +28,7 @@ export function assignPageSides(pages) {
 }
 
 // ==========================================================================
-// A1 · 统一的排版规范（模块级：页面、书脊、封底这些"有文字的画布"共用一套）
+// A1 统一的排版规范（模块级：页面、书脊、封底这些"有文字的画布"共用一套）
 // --------------------------------------------------------------------------
 // M    = 版心边距（逻辑坐标 400×564 下）
 // TYPE = 字阶：书名 / 章节名 / 照片页标题 / 正文 / 图注 / 书眉页码 / 序号
@@ -39,8 +39,10 @@ export function assignPageSides(pages) {
 var PAGE_MARGIN = { left: 26, right: 26, top: 46, bottom: 40 };
 // 小字用的黑体栈（内页的图注 / 日期 / 标签 / 书眉 / 页码）。见 TYPE 里的说明：
 // 宋体细横在缩小采样后发灰，小字必须走黑体才清楚。
-export var SANS = '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", ' +
-    '"Source Han Sans SC", "Hiragino Sans GB", sans-serif';
+export var SANS = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
+// 标题：霞鹜文楷（与页面同一套，见 styles/shared/wenkai.css）。canvas 只能用**已经加载好**的
+// 网页字体，所以书架建场前要先等 ensureTitleFont()，否则第一次画出来会落到兜底的楷体。
+export var TITLE = '"LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif';
 // 订口（内侧）比外缘再多留的宽度：翻开之后文字不会挤进书脊那道暗角里。
 // 左右页由**页序的奇偶**决定（第 2s 页在左、第 1+2s 页在右），见 assignPageSides()。
 var PAGE_GUTTER_EXTRA = 9;
@@ -59,9 +61,9 @@ export var TOC_POINT_ROW_H = 22;
 // 0.186 世界单位 ≈ 页宽的 12.5% ≈ 400 逻辑 px × 0.125 ≈ 50，留到 60 更稳。
 export var COVER_OUTER_SAFE = 60;
 export var TYPE = {
-    book: '700 34px "Songti SC", "SimSun", serif',
-    head: '600 21px "Songti SC", "SimSun", serif',
-    title: '600 25px "Songti SC", "SimSun", serif',
+    book: '400 34px ' + TITLE,
+    head: '400 21px ' + TITLE,
+    title: '400 25px ' + TITLE,
     // ⚠️ 小字一律走**黑体**（微软雅黑 / 苹方），不要用宋体：
     // 宋体的横是发丝级的细线，页面在屏幕上只有约 500px 高、贴图要经 mipmap
     // 缩小 2.8 倍，细横一缩就发灰 —— 用户反复反馈的"文字不清晰"就是这个，
@@ -74,21 +76,16 @@ export var TYPE = {
     folio: '600 16px ' + SANS,
     index: '700 18px ' + SANS,
     eyebrow: '700 13px ' + SANS,
-    display: '600 42px "Songti SC", "SimSun", serif',
-    subName: '600 28px "Songti SC", serif',
+    display: '400 42px ' + TITLE,
+    subName: '400 28px ' + TITLE,
     // 最小一档保持 14px（上上轮定的大小），只加粗 + 换黑体
     tiny: '600 14px ' + SANS,
     label: '700 14px ' + SANS,
-    // 封面底部那两行元信息（城市数/照片数、时间）。
-    // ⚠️ 这里**不能**用 Georgia 之类的西文衬线打头：那会让数字命中西文字体、
-    // 中文落到宋体，两套字体在**同一行**里的基线落点不同 —— 看起来就是
-    // "数字偏下、没和文字对齐"。统一走 CJK 字体，数字与中文出自同一套字形。
-    coverMeta: '500 19px "Songti SC", "SimSun", serif',
-    coverMetaSmall: '500 15px "Songti SC", "SimSun", serif',
-    // 封面元信息里的**西文段**（数字、字母、半角符号）：保留 Georgia 的观感，
-    // 但绘制时按"对齐到中文基线"做微调 —— 见 drawMixedLine
-    coverMetaLatin: '500 19px Georgia, "Times New Roman", serif',
-    coverMetaLatinSmall: '500 15px Georgia, "Times New Roman", serif'
+    // 封面底部那两行元信息（城市数/照片数、时间）：数字与中文同一套黑体，基线天然对齐
+    coverMeta: '500 19px ' + SANS,
+    coverMetaSmall: '500 15px ' + SANS,
+    coverMetaLatin: '500 19px ' + SANS,
+    coverMetaLatinSmall: '500 15px ' + SANS
 };
 
 // 封面元信息的西文基线微调（px，负数=把数字往上抬）。
@@ -135,4 +132,21 @@ export function drawMixedLine(ctx, runs, centerX, y, alpha) {
     });
     ctx.globalAlpha = prevAlpha;
     ctx.textAlign = 'center';
+}
+
+
+/**
+ * 等标题字体就绪：书名、章节名这些字都画进 canvas 贴图，画的那一刻字体没到就会落到兜底字体，
+ * 而且贴图不会自己重画。所以建场前先按书里会出现的字把对应的切片拉下来。
+ * 最多等 2.5 秒：网络慢时宁可用楷体兜底，也不要让书架一直起不来。
+ */
+export function ensureTitleFont(sampleText) {
+    if (!document.fonts || !document.fonts.load) return Promise.resolve();
+    var text = String(sampleText || '旅行记忆目录');
+    var wait = Promise.all([
+        document.fonts.load('400 34px "LXGW WenKai Screen"', text),
+        document.fonts.load('400 34px "LXGW WenKai Screen"', '0123456789')
+    ]).catch(function () {});
+    var timeout = new Promise(function (resolve) { setTimeout(resolve, 2500); });
+    return Promise.race([wait, timeout]);
 }

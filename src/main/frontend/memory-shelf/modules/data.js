@@ -55,12 +55,14 @@ export function buildBookList() {
             cityCount: 0,
             photoCount: photoCount,
             latestTime: items.length ? String(items[0].createTime || '') : '',
+            yearRange: yearRangeOf(items),
             cover: cover,
             items: items
         });
     });
 
     books.forEach(function (book) { book.cityCount = book.cities.length; });
+    // 封面顶部那行：这本书收了哪几年，「2019」或「2019–2025」
     books.sort(function (a, b) {
         return String(b.latestTime || '').localeCompare(String(a.latestTime || '')) ||
             String(a.name).localeCompare(String(b.name), 'zh-CN');
@@ -118,4 +120,16 @@ function buildCityList(d, items) {
             String(a.name).localeCompare(String(b.name), 'zh-CN');
     });
     return cities;
+}
+
+
+// 一组足迹的年份范围：「2023」或「2019–2025」；没有日期时为空串
+function yearRangeOf(items) {
+    var years = items
+        .map(function (fp) { return Number(String(fp.createTime || '').slice(0, 4)); })
+        .filter(function (y) { return y > 1900; });
+    if (!years.length) return '';
+    var min = Math.min.apply(null, years);
+    var max = Math.max.apply(null, years);
+    return min === max ? String(min) : min + '–' + max;
 }

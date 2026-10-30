@@ -3,7 +3,7 @@
  */
 
 import { formatMonth, palette } from './utils.js';
-import { TYPE, mixedRuns, drawMixedLine } from './typography.js';
+import { TYPE, TITLE, SANS, mixedRuns, drawMixedLine } from './typography.js';
 import { makeCanvas } from './textures.js';
 
 // 书封：布面底 + 烫金细框 + 书名 + 封面照片 + 底部元信息。
@@ -50,12 +50,12 @@ export function paintCover(canvas, book, index, foilOnly) {
     ctx.strokeRect(19, 19, w - 38, h - 38);
     ctx.globalAlpha = 1;
 
-    // 顶部小字
+    // 顶部：这本书收了哪些年份（真实信息，取代原来的「旅 行 手 册」装饰字）
     ctx.fillStyle = foilOnly ? '#ffffff' : colors[2];
     ctx.globalAlpha = 0.86;
-    ctx.font = '600 15px "Songti SC", "SimSun", serif';
+    ctx.font = '500 15px ' + SANS;
     ctx.textAlign = 'center';
-    ctx.fillText('旅 行 手 册', w / 2, 66);
+    ctx.fillText(book.yearRange || '', w / 2, 66);
     ctx.globalAlpha = 0.4;
     ctx.fillRect(w / 2 - 34, 80, 68, 1);
     ctx.globalAlpha = 1;
@@ -63,7 +63,7 @@ export function paintCover(canvas, book, index, foilOnly) {
     // 书名（按字数自适应 + 逐字换行）
     var chars = String(book.name || '').split('');
     var titleSize = chars.length > 7 ? 42 : chars.length > 4 ? 52 : 62;
-    ctx.font = '600 ' + titleSize + 'px "Songti SC", "SimSun", serif';
+    ctx.font = '400 ' + titleSize + 'px ' + TITLE;
     ctx.fillStyle = foilOnly ? '#ffffff' : colors[2];
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -75,12 +75,8 @@ export function paintCover(canvas, book, index, foilOnly) {
         ctx.fillText(text, w / 2, 132 + li * (titleSize + 10));
     }
 
-    // 副标题：紧贴在书名下方，再往下才是照片位
+    // 书名下方留白，再往下才是照片位（原来的「私人旅行纪念册」装饰字去掉）
     var titleBlockBottom = 132 + lines * (titleSize + 10);
-    ctx.globalAlpha = 0.6;
-    ctx.font = '500 15px "Songti SC", "SimSun", serif';
-    ctx.fillText('私人旅行纪念册', w / 2, titleBlockBottom - 4);
-    ctx.globalAlpha = 1;
 
     var photoTop = titleBlockBottom + 22;
     var photoHeight = h - photoTop - 108;
@@ -114,10 +110,8 @@ export function paintCover(canvas, book, index, foilOnly) {
         // ② 字体换成"数字走西文衬线、中文走宋体"的一套真实字体栈。
         ctx.fillStyle = colors[2];
         ctx.textBaseline = 'alphabetic';
-        // 数字走 Georgia（西文衬线的观感）、中文走宋体，西文段单独做基线偏移，
-        // 这样数字不再比中文低一截（见 drawMixedLine）
         drawMixedLine(ctx,
-            mixedRuns(book.cityCount + ' 座城市 · ' + book.photoCount + ' 张照片',
+            mixedRuns(book.cityCount + ' 座城市，' + book.photoCount + ' 张照片',
                 TYPE.coverMetaLatin, TYPE.coverMeta),
             w / 2, h - 60, 0.9);
         drawMixedLine(ctx,
@@ -266,20 +260,20 @@ export function spineFoilTexture(THREE, book, index) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.globalAlpha = 0.82;
-    ctx.font = '600 20px "Songti SC", serif';
-    ctx.fillText(String(index + 1).padStart(2, '0'), w / 2, 62);
+    ctx.font = '500 18px ' + SANS;
+    ctx.fillText(String(index + 1), w / 2, 62);
     ctx.globalAlpha = 1;
     var chars = String(book.name || '').split('');
     var available = h - 190;
     // 与布面层不再重复：这里**是唯一**画书脊文字的地方
     var step = Math.min(64, available / Math.max(1, chars.length));
     var size = Math.min(46, step * 0.8);
-    ctx.font = '600 ' + size + 'px "Songti SC", "SimSun", serif';
+    ctx.font = '400 ' + size + 'px ' + TITLE;
     var startY = h / 2 - (chars.length - 1) * step / 2;
     for (var i = 0; i < chars.length; i++) ctx.fillText(chars[i], w / 2, startY + i * step);
     ctx.globalAlpha = 0.6;
     ctx.font = TYPE.tiny;
-    ctx.fillText('旅行记忆', w / 2, h - 64);
+    ctx.fillText(book.cityCount + ' 城', w / 2, h - 64);
     ctx.globalAlpha = 1;
     var texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -313,16 +307,16 @@ export function backCoverTexture(THREE, book, index) {
     ctx.strokeStyle = colors[2];
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.font = '600 13px "Songti SC", serif';
+    ctx.font = '400 15px ' + TITLE;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('旅', w / 2, h - 95);
+    ctx.fillText(String(book.name || '').charAt(0), w / 2, h - 95);
     ctx.globalAlpha = 0.55;
     ctx.font = TYPE.tiny;
     // 封底同一行也走混排绘制，和封面保持一致（偏移按字号等比缩小）
     ctx.globalAlpha = 1;
     drawMixedLine(ctx,
-        mixedRuns(book.cityCount + ' 座城市 · ' + book.photoCount + ' 张照片',
+        mixedRuns(book.cityCount + ' 座城市，' + book.photoCount + ' 张照片',
             TYPE.coverMetaLatinSmall, TYPE.tiny),
         w / 2, h - 60, 0.55);
     ctx.globalAlpha = 1;

@@ -2,6 +2,7 @@
  * 展开的书：三维精装书的尺寸与机位常量、书本运行时，以及纸页（叶）的结构与卷曲。
  */
 
+import { PAGE_PAPER } from './constants.js';
 import { shelf, reduceMotion } from './state.js';
 import { clamp } from './utils.js';
 import { BOOK_W, BOOK_T, PAGE_DEPTH } from './book-dimensions.js';
@@ -143,7 +144,7 @@ export function addLeaf(THREE, host, index) {
     function face(sign) {
         var geometry = new THREE.PlaneGeometry(1, 1, LEAF_SEG_X, LEAF_SEG_Y);
         var material = new THREE.MeshStandardMaterial({
-            map: null, color: '#fdfaf3', roughness: 0.95, metalness: 0
+            map: null, color: PAGE_PAPER, roughness: 0.95, metalness: 0
         });
         var mesh = new THREE.Mesh(geometry, material);
         mesh.scale.set(dims.pageW, dims.pageH, 1);

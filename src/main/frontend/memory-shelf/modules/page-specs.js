@@ -21,11 +21,11 @@ export function bookPageSpecs(book) {
     pages.push({
         // 封面内侧那页：照片 + 省名 + 统计。城市名单搬到对面的「目录」去了，
         // 免得同一串名字在一个跨页里印两遍。
-        kind: 'cover', title: book.name, subtitle: '',
+        kind: 'cover', title: book.name, subtitle: '', kicker: book.yearRange || '',
         image: null, photo: book.cover,
         stats: [
-            { value: book.cityCount, label: '城市章节' },
-            { value: book.photoCount, label: '旅行照片' }
+            { value: book.cityCount, label: '座城市' },
+            { value: book.photoCount, label: '张照片' }
         ],
         headLeft: book.name, headRight: book.name
     });
@@ -138,7 +138,7 @@ export function bookPageSpecs(book) {
             kind: 'contents', title: book.name,
             cities: book.cities,
             rows: rows,
-            note: '共 ' + book.cityCount + ' 座城市 · ' + book.photoCount + ' 张照片',
+            note: '共 ' + book.cityCount + ' 座城市，' + book.photoCount + ' 张照片',
             headLeft: book.name, headRight: book.name
         });
     });
@@ -174,7 +174,7 @@ export function bookPageSpecs(book) {
             : (block.city.latestTime ? formatMonth(block.city.latestTime) : '');
         block.firstPage = pages.length;          // 扉页的下标
         pages.push({
-            kind: 'title', title: block.city.name, range: rangeText,
+            kind: 'title', title: block.city.name, range: rangeText, kicker: book.name,
             statsLine: '共 ' + photos.length + ' 张照片',
             photo: photos.length ? photos[0].url : '', image: null,
             headLeft: book.name, headRight: block.city.name,
@@ -184,7 +184,7 @@ export function bookPageSpecs(book) {
         block.items.forEach(function (item) {
             item.pageIndex = pages.length;
             pages.push({
-                kind: 'spot', title: item.name,
+                kind: 'spot', title: item.name, kicker: block.city.name,
                 spotName: item.name,             // 面包屑用：这个点自己的名字
                 desc: item.desc, date: item.time, address: item.address,
                 statsLine: item.shots.length
@@ -213,8 +213,8 @@ export function bookPageSpecs(book) {
     // 尾页：一行总数 + 出处。一页就把这本书收住了。
     pages.push({
         kind: 'colophon',
-        headline: book.cityCount + ' 座城市 · ' + book.photoCount + ' 张照片',
-        lines: ['《' + book.name + '》旅行记忆', '足迹所至 · ' + todayCn() + '整理'],
+        headline: book.cityCount + ' 座城市，' + book.photoCount + ' 张照片',
+        lines: ['《' + book.name + '》', todayCn() + '整理'],
         headLeft: book.name, headRight: book.name
     });
     return finishPageSpecs(fillTocPageNumbers(pages, cityBlocks), chaptersPage, tocPage);
@@ -232,6 +232,7 @@ export function albumPageSpecs(book, city) {
     // 第 0 页是城市扉页：城市名 + 时间范围 + 卷首图 + 照片数（纯排版页）
     var pages = [{
         kind: 'title',
+        kicker: book.name,
         title: city.name,
         range: rangeText,
         statsLine: '共 ' + photos.length + ' 张照片',
@@ -258,7 +259,7 @@ export function albumPageSpecs(book, city) {
         headline: photos.length + ' 张照片',
         lines: ['《' + city.name + '》旅行相册',
             rangeText ? '记录于 ' + rangeText : '',
-            '足迹所至 · ' + todayCn() + '整理'].filter(Boolean),
+            todayCn() + '整理'].filter(Boolean),
         headLeft: book.name, headRight: city.name
     });
     return finishPageSpecs(pages);

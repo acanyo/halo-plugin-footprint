@@ -2,6 +2,7 @@
  * 进入检视态：把书架上那本书变成可翻阅的书，准备并加载页面贴图、同步面包屑。
  */
 
+import { PAGE_PAPER } from './constants.js';
 import { state, els, shelf, reduceMotion } from './state.js';
 import { BOOK_RETREAT_MS, startRigTimeline, syncPageCount } from './shelf-scene.js';
 import { api, clamp } from './utils.js';
@@ -43,7 +44,7 @@ function makeRigBook(rig) {
     // 前面内侧的扉页：封面掀开后左边看到的那一整页
     var insideMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(1, 1, LEAF_SEG_X, LEAF_SEG_Y),
-        new THREE.MeshStandardMaterial({ map: null, color: '#fdfaf3', roughness: 0.95, metalness: 0 }));
+        new THREE.MeshStandardMaterial({ map: null, color: PAGE_PAPER, roughness: 0.95, metalness: 0 }));
     // 内侧扉页几乎铺满整个封板内表面（只留 3mm 布边）。
     // 原来是让出 TURN_IN(0.018) —— 那圈布边本身就是"黑边"：
     // 无头浏览器量出来它只有 72~89 亮度，而纸页是 237~241，
@@ -68,7 +69,7 @@ function makeRigBook(rig) {
     // 内容页有自己的叶，书末翻到最后一跨页时自然会露出来。
     var insideBackMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(1, 1, 4, 4),
-        new THREE.MeshStandardMaterial({ map: null, color: '#fdfaf3', roughness: 0.95, metalness: 0 }));
+        new THREE.MeshStandardMaterial({ map: null, color: PAGE_PAPER, roughness: 0.95, metalness: 0 }));
     insideBackMesh.scale.set(BOOK_W - ENDPAPER_INSET, BOOK_H - ENDPAPER_INSET, 1);
     insideBackMesh.position.set(0, 0, -BOOK_T / 2 + 0.0006);
     rig.root.add(insideBackMesh);
@@ -435,7 +436,7 @@ function syncSpreadCityCrumb() {
     // 省那段也走"翻页过去"（和城市段一致）；拿不到页码时才退回原来的层级返回
     var crumb = [{ label: '世界这本书', to: 'shelf' }];
     crumb.push(tocPage !== undefined
-        ? { label: province.name, to: 'page', page: tocPage, tag: '目 录' }
+        ? { label: province.name, to: 'page', page: tocPage, tag: '目录' }
         : { label: province.name, to: 'chapters' });
     if (city && city.name) {
         // 城市那段可点：直接翻到这座城市的扉页
@@ -450,9 +451,8 @@ function syncSpreadCityCrumb() {
         crumb[crumb.length - 1] = { label: last.label, tag: last.tag };
     }
     state.city = city || null;
-    var titleText = spotName
-        ? spotName + ' · 足迹点'
-        : (city && city.name ? city.name + ' · 旅行相册' : province.name + ' · 城市章节');
+    // 标题就是当前这页说的地方；层级已经写在面包屑里，不用再拼后缀
+    var titleText = spotName || (city && city.name) || province.name;
     // ⚠️ 副标题**不能传空串**：<p> 没有内容就不生成行盒，高度从 18px 掉到 0，
     // 顶栏随之变矮，下面的画布/书本跟着重排 —— 用户看到的就是"翻页时提示突然
     // 消失、屏幕突然变大"。这里按当前层级给对应的引导语（本来副标题就是这个用途）。

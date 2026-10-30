@@ -3,10 +3,12 @@
  */
 
 import { maxAnisotropy } from './state.js';
+import { PAGE_PAPER } from './constants.js';
 import { formatMonth } from './utils.js';
 import {
     pageMargins,
     SANS,
+    TITLE,
     TOC_CITY_ROW_H,
     TOC_POINT_ROW_H,
     COVER_OUTER_SAFE,
@@ -45,7 +47,7 @@ export function blankPageTexture(THREE) {
     var scale = canvas.width / 400;
     var ctx = canvas.getContext('2d');
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    ctx.fillStyle = '#fdfaf3';
+    ctx.fillStyle = PAGE_PAPER;
     ctx.fillRect(0, 0, 400, 564);
     for (var y = 0; y < 564; y += 3) {
         ctx.fillStyle = 'rgba(150,130,100,0.05)';
@@ -91,14 +93,14 @@ function paintPage(canvas, spec) {
     var innerW = w - M.left - M.right;
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#fdfaf3';
+    ctx.fillStyle = PAGE_PAPER;
     ctx.fillRect(0, 0, w, h);
     // 纸纹
     for (var y = 0; y < h; y += 3) {
         ctx.fillStyle = 'rgba(150,130,100,0.05)';
         ctx.fillRect(0, y, w, 1);
     }
-    // ---- A1 · 纸张质感（所有页共用，画在内容之下所以不会压到文字）----
+    // ---- A1 纸张质感（所有页共用，画在内容之下所以不会压到文字）----
     // 细颗粒：真实纸不是纯色，扫过时要有微弱起伏
     for (var gp = 0; gp < 2600; gp++) {
         ctx.fillStyle = Math.random() > 0.5
@@ -157,7 +159,7 @@ function paintPage(canvas, spec) {
             ctx.fillStyle = muted;
             ctx.font = TYPE.tiny;
             var capText = (spec.title || '') +
-                (shot.time ? ' · ' + formatMonth(shot.time) : '');
+                (shot.time ? '，' + formatMonth(shot.time) : '');
             // ⚠️ 图注按**版心宽度**排，不跟着照片宽度缩。原来可用宽度是
             // dw - 58：竖构图高度顶满时 dw 只有 130 左右，减掉给序号的 58
             // 就只剩几十像素，图注被截成四五个字（用户报的"显示不全"）。
@@ -195,7 +197,7 @@ function paintPage(canvas, spec) {
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = accent;
         ctx.font = TYPE.eyebrow;
-        ctx.fillText('省 份 旅 行 记 忆', cx0, cy0 + chh + 34);
+        ctx.fillText(spec.kicker || '', cx0, cy0 + chh + 34);
         ctx.fillStyle = ink;
         // 省名缩一档（42 → 38 起）：内容整体收了一圈，字也收一点才匀
         ctx.font = fitFont(ctx, spec.title || '', cw - 8, [38, 34, 30, 26, 22]);
@@ -232,7 +234,7 @@ function paintPage(canvas, spec) {
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = accent;
         ctx.font = TYPE.label;
-        ctx.fillText('城 市 旅 行 记 忆', tc, 76);
+        ctx.fillText(spec.kicker || '', tc, 76);
         ctx.fillStyle = ink;
         ctx.font = fitFont(ctx, spec.title || '', innerW - 8, [42, 36, 31, 27, 23]);
         ctx.fillText(spec.title || '', tc, 136);
@@ -276,12 +278,12 @@ function paintPage(canvas, spec) {
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = accent;
         ctx.font = TYPE.label;
-        ctx.fillText('足 迹 点', M.left, 58);
+        ctx.fillText(spec.kicker || '', M.left, 58);
         ctx.fillStyle = ink;
         ctx.font = fitFont(ctx, spec.title || '', innerW - 8, [34, 30, 26, 22]);
         ctx.fillText(spec.title || '', M.left, 102);
-        // 日期 · 地址（都没有就空着，不留占位）
-        var metaLine = [spec.date, spec.address].filter(Boolean).join(' · ');
+        // 日期、地址（都没有就空着，不留占位）
+        var metaLine = [spec.date, spec.address].filter(Boolean).join('，');
         if (metaLine) {
             ctx.fillStyle = muted;
             ctx.font = TYPE.tiny;
@@ -328,7 +330,7 @@ function paintPage(canvas, spec) {
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = accent;
         ctx.font = TYPE.label;
-        ctx.fillText('目 　 录', M.left, 58);
+        ctx.fillText('目录', M.left, 58);
         ctx.fillStyle = ink;
         ctx.font = TYPE.book;
         ctx.fillText(spec.title || '', M.left, 100);
@@ -536,7 +538,7 @@ function trim(ctx, text, maxWidth) {
 }
 
 // 一行大字**缩到能塞进版心为止**：从上往下试字号，第一个放得下的就用。
-// 立这个规矩是因为尾页那行「3 座城市 · 53 张照片」用 42px 要 546px，
+// 立这个规矩是因为尾页那行「3 座城市，53 张照片」用 42px 要 546px，
 // 而页面只有 400px —— 居中绘制时两头会被画布直接裁掉。
 var DISPLAY_SIZES = [42, 36, 31, 27, 23, 20, 17, 15];
 function fitFont(ctx, text, maxWidth, sizes, weight, family) {
@@ -544,8 +546,8 @@ function fitFont(ctx, text, maxWidth, sizes, weight, family) {
     var list = sizes || DISPLAY_SIZES;
     var font = '';
     for (var i = 0; i < list.length; i += 1) {
-        font = (weight || '600') + ' ' + list[i] + 'px ' +
-            (family || '"Songti SC", "SimSun", serif');
+        // 默认是标题字体（文楷只有常规字重，所以没指定时用 400）
+        font = (weight || (family ? '600' : '400')) + ' ' + list[i] + 'px ' + (family || TITLE);
         ctx.font = font;
         if (ctx.measureText(value).width <= maxWidth) return font;
     }

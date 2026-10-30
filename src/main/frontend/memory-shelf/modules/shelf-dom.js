@@ -8,6 +8,7 @@ import { $, esc, formatDate, palette, nameSizeClass } from './utils.js';
 import { attachCoverPhoto } from './cover-photos.js';
 import { setActive, openActiveBook, bindStage } from './shelf-interaction.js';
 import { setHeader } from './overlay.js';
+import { ensureTitleFont } from './typography.js';
 
 // ---------------- L1 书架：DOM ----------------
 
@@ -302,11 +303,16 @@ export function renderShelfStage() {
             }, reduceMotion ? 0 : 260);
         });
     };
-    if (reduceMotion) {
-        build();
-    } else {
-        requestAnimationFrame(function () { requestAnimationFrame(build); });
-    }
+    // 书名、章节名都画进 canvas 贴图，画的时候文楷要已经到位（见 ensureTitleFont）。
+    // 占位文字「正在装订书架…」这时已经显示着，等字体的这一下用户看得见进度。
+    var sample = state.books.map(function (b) {
+        return b.name + b.cities.map(function (c) { return c.name; }).join('');
+    }).join('') + '目录座城市张照片整理';
+    var start = function () {
+        if (reduceMotion) build();
+        else requestAnimationFrame(function () { requestAnimationFrame(build); });
+    };
+    ensureTitleFont(sample).then(start, start);
 }
 
 
