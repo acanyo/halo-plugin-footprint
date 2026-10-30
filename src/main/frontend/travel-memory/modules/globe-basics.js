@@ -74,6 +74,11 @@ export function initGlobeBasics() {
 
     // 开启昼夜光照：按时钟时间计算太阳位置，夜半球变暗（2D 平面模式下不生效）
     deps.viewer().scene.globe.enableLighting = true;
+    // 关掉地面大气。相机离得远时 Cesium 会对地球的每个像素算一遍大气散射，
+    // 2 倍高分屏上这是帧时间的大头：实测（M3 Pro，地球持续旋转）
+    // 450 万米 63→119 fps、900 万米 67→112 fps；150 万米以下它本来就自动关闭。
+    // 代价只是地球边缘那圈淡蓝光晕，地球外的天空光圈与昼夜明暗不受影响。
+    deps.viewer().scene.globe.showGroundAtmosphere = false;
     // 让时间自动推进，明暗分界线随时间缓缓移动
     deps.viewer().clock.shouldAnimate = true;
 
