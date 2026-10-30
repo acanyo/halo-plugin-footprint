@@ -164,7 +164,7 @@ export function initMarkersInput() {
         // 省份：门控（3D / 桌面端 / 中国轮廓已显示 / 城市聚合态）通过才判定；
         // 命中且该省有足迹 → 每个城市一张卡片 + 一条连线；该省没有足迹 → 什么都不做。
         if (provincePickingEnabled()) {
-            const info = provinceAtScreenPoint(movement.position);
+            const info = provinceAtScreenPoint(movement.position, true);
             if (info) {
                 openProvinceCards(info.adcode);
                 return;

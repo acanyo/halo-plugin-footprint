@@ -141,14 +141,23 @@ export function provincePickingEnabled() {
     return cityCardsEnabled() && deps.boundaryVisible();
 }
 
-export function provinceAtScreenPoint(point) {
+/**
+ * 屏幕点落在哪个省。
+ *
+ * @param usePick 点击时传 true：先用 scene.pick 命中省界描边 / 城市高亮面，贴着边界点也准。
+ *                悬停不传：scene.pick 会多渲染一遍拾取帧再同步 readPixels，悬停判定每秒 10 次，
+ *                拖动地球时实测拾取占掉近 3 秒主线程，所以悬停只做几何判定。
+ */
+export function provinceAtScreenPoint(point, usePick) {
     // 1) 省界描边（alpha=1 的折线）与城市高亮的面都能被 scene.pick 命中，命中就直接给答案
-    const picked = deps.viewer().scene.pick(point);
-    if (picked && picked.id) {
-        const hit = provinceInfoByAdcode(provinceAdcodeOfEntity(picked.id), true);
-        if (hit) return hit;
+    if (usePick) {
+        const picked = deps.viewer().scene.pick(point);
+        if (picked && picked.id) {
+            const hit = provinceInfoByAdcode(provinceAdcodeOfEntity(picked.id), true);
+            if (hit) return hit;
+        }
     }
-    // 2) 省面本体（alpha=0）拾取不到，退回几何判定：屏幕坐标 → 椭球交点 → 经纬度
+    // 2) 几何判定：屏幕坐标 → 椭球交点 → 经纬度（省面本体 alpha=0，本来就拾取不到）
     const cartesian = deps.viewer().camera.pickEllipsoid(point, deps.viewer().scene.globe.ellipsoid);
     if (!cartesian) return null;
     const carto = Cesium.Cartographic.fromCartesian(cartesian);
