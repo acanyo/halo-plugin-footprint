@@ -302,7 +302,7 @@
                 left: 10px;
                 width: auto;
                 top: auto;
-                bottom: 10px;
+                bottom: calc(var(--fp-dock-clear) - 14px);
                 display: grid;
                 grid-template-columns: 112px minmax(0, 1fr);
                 column-gap: 4px;
@@ -471,7 +471,7 @@
                 left: 10px;
                 width: auto;
                 top: auto;
-                bottom: 10px;
+                bottom: calc(var(--fp-dock-clear) - 14px);
                 transform: translateY(16px) translateX(var(--card-enter-x)) scale(var(--card-enter-scale));
                 transform-origin: 50% 100%;
             }

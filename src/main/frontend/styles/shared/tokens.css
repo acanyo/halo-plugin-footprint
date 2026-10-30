@@ -31,6 +31,8 @@
     --fp-shadow: 0 3px 16px rgba(38, 38, 48, 0.1);
     --fp-shadow-lift: 0 10px 32px rgba(38, 38, 48, 0.14);
     --fp-blur: 20px;
+    /* 底部导航坞占掉的高度（坞 64px + 下边距 16px + 一点呼吸）：底部浮层都从这条线往上排 */
+    --fp-dock-clear: 92px;
 
     /* 标题用快看世界体（插件自带，见 static/font/result.css），正文用系统字体 */
     --fp-font-title: "快看世界体", "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif;

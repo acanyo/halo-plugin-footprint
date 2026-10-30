@@ -36,6 +36,12 @@ export function setupViewMode(d) {
 // 切换过程使用 Cesium 原生 morph 动画：3D→2D 先让地球“展开”成平面，动画结束再显示高德页面；
 // 2D→3D 先显示仍处于平面状态的地球，再“合并”回球体。
 const sceneModeBtn = document.getElementById('sceneModeBtn');
+// 导航坞里的按钮是「图标 + 文字」：只改文字那一段，图标不动
+function setSceneModeLabel(text) {
+    const label = sceneModeBtn && sceneModeBtn.querySelector('.dock-label');
+    if (label) label.textContent = text;
+    else if (sceneModeBtn) sceneModeBtn.textContent = text;
+}
 export const view3d = document.getElementById('view-3d');
 export const view2d = document.getElementById('view-2d');
 const MORPH_DURATION = 1.5;   // 展开/合并动画时长（秒）
@@ -118,7 +124,7 @@ function animateCameraToRect(targetRect, duration, onComplete) {
 function updateSceneModeBtn() {
     // 按钮显示“将要切换到的视图”，避免“当前状态”造成语义歧义
     const to2D = deps.viewer().scene.mode !== Cesium.SceneMode.SCENE2D;
-    sceneModeBtn.textContent = to2D ? '2D 地图' : '3D 地球';
+    setSceneModeLabel(to2D ? '2D 地图' : '3D 地球');
     sceneModeBtn.title = to2D ? '切换到 2D 平面地图' : '切换到 3D 地球';
 }
 
@@ -148,7 +154,7 @@ export function finishSwitchTo2D() {
     if (view2d) view2d.hidden = false;
     document.body.classList.remove('mode-3d');
     document.body.classList.add('mode-2d');
-    sceneModeBtn.textContent = '3D 地球';
+    setSceneModeLabel('3D 地球');
     sceneModeBtn.title = '切换到 3D 地球';
     pauseAutoRotate('2d');             // 进入 2D 后暂停地球自转（退出 2D 会自动恢复）
     deps.viewer().clock.shouldAnimate = false;   // 地球隐藏时冻结昼夜光照，降低开销
@@ -202,7 +208,7 @@ function finishSwitchTo3D(persist = true) {
     if (view3d) view3d.hidden = false;
     document.body.classList.remove('mode-2d');
     document.body.classList.add('mode-3d');
-    sceneModeBtn.textContent = '2D 地图';
+    setSceneModeLabel('2D 地图');
     sceneModeBtn.title = '切换到 2D 平面地图';
     deps.viewer().clock.shouldAnimate = true;
     resumeAutoRotate('2d');   // 回到 3D 按用户偏好恢复自转（不再无条件开启）

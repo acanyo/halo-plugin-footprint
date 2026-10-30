@@ -1,134 +1,92 @@
-        /* ============ 顶部导航（分组） ============
-           主入口只有四个：2D 地图、城记、世界这本书、票根册（放大后再加「回到整球」）。
-           地球上的开关（全部城市、自动旋转、城市高亮、三维地形、底图）一律收在「工具」里，
-           任何宽度都一样，顶栏不再随视角变挤。 */
-        #topNav .nav-actions {
-            position: relative;
-            flex-wrap: nowrap;
+        /* 窄屏：坞占满底部，平时那行底图说明收起；出错（重试按钮出现）时浮到坞上方 */
+        @media (max-width: 900px) {
+            #status { display: none; }
+            #status:has(#statusRetry:not([hidden])) {
+                display: block;
+                left: 50%;
+                bottom: var(--fp-dock-clear);
+                max-width: calc(100vw - 24px);
+                white-space: normal;
+                transform: translateX(-50%);
+            }
         }
+
+        /* ============ 导航坞的分组 ============
+           主入口：2D 地图、城记、世界这本书、票根册（放大后多一个「回到整球」）。
+           地球开关（全部城市、自动旋转、城市高亮、三维地形、底图）宽屏时直接排在坞里，
+           中间一条竖线隔开；窄屏收进「工具」，从坞上方弹出一块玻璃面板。 */
         #topNav .nav-group {
             display: flex;
             align-items: center;
             gap: 2px;
             min-width: 0;
         }
-        #navBackGlobeBtn {
+        #navBackGlobeBtn,
+        #topNav #navBackGlobeBtn {
             display: none;
-            align-items: center;
-            gap: 6px;
         }
-        #navMoreBtn {
+        body.nav-zoom #topNav #navBackGlobeBtn {
             display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-left: 4px;
         }
-        #topNav .nav-group-more {
-            display: none;
-        }
-        .nav-sep-back {
-            display: none;
-        }
-        #terrainBtn[hidden] ~ .nav-sep-tools { display: none; }
-
-        /* 放大模式（3D 看不到整球）：导航保持可见，追加“回到整球”入口 */
-        body.nav-zoom #navBackGlobeBtn { display: inline-flex; }
-        body.nav-zoom .nav-sep-back { display: inline-block; }
         body.nav-zoom #backGlobeBtn.show,
         body.nav-zoom #cityFillFloatBtn.show { display: none; }
+        /* 2D 视图：地球开关都不适用（.globe-only），只剩「全部城市」也没意义，整组和分隔线一起收起 */
+        body.mode-2d #topNav .nav-group-more,
+        body.mode-2d #topNav .nav-sep-tools-main { display: none; }
+        #topNav #navMoreBtn {
+            display: none;
+        }
 
-        /* “工具”弹出菜单：玻璃下拉，从「工具」按钮这一角弹出 */
-        #topNav.tools-open .nav-group-more {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            position: absolute;
-            top: calc(100% + 18px);
-            right: -4px;
-            min-width: 212px;
-            max-width: calc(100vw - 32px);
-            padding: 6px;
-            gap: 2px;
-            border-radius: var(--fp-radius-panel);
-            --nav-menu-glass: rgba(255, 255, 255, 0.92);
-            background: var(--nav-menu-glass);
-            -webkit-backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
-            backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
-            box-shadow: var(--fp-shadow-lift);
-            z-index: 10001;
-            transform-origin: top right;
-            animation: fpPopIn var(--fp-dur) var(--fp-ease);
-        }
-        #topNav.tools-open #navMoreBtn {
-            color: var(--fp-ink);
-            background: var(--fp-rule);
-        }
-        #topNav.tools-open #navMoreBtn .nav-chev {
-            transform: rotate(180deg);
-        }
-        #topNav.tools-open .nav-group-more > button {
-            width: 100%;
-            justify-content: flex-start;
-            text-align: left;
-            border-radius: 10px;
-            padding: 9px 12px;
-        }
-        #topNav.tools-open .nav-group-more .nav-sep { display: none; }
-        /* 菜单里的开关：开着时是淡紫浅底 + 右侧一枚强调色小点，像「勾上了」 */
-        #topNav.tools-open .nav-group-more > button[aria-pressed="true"]::after {
-            content: "";
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            width: 6px;
-            height: 6px;
-            margin-top: -3px;
-            border-radius: 50%;
-            background: var(--fp-accent);
-        }
-        #topNav.tools-open .nav-group-more .nav-menu { width: 100%; }
-        #topNav.tools-open .nav-group-more .nav-menu > button {
-            width: 100%;
-            justify-content: space-between;
-            border-radius: 10px;
-            padding: 9px 12px;
-        }
-        /* 菜单里的底图列表：不再是第二层浮层，直接在菜单里展开，用一条细分隔线隔开 */
-        #topNav.tools-open #layerButtons.nav-menu-panel {
-            position: static;
-            min-width: 0;
-            width: 100%;
-            margin: 2px 0 0;
-            padding: 4px 0 0;
-            border-radius: 0;
-            border-top: 1px solid var(--fp-rule);
-            background: transparent;
-            -webkit-backdrop-filter: none;
-            backdrop-filter: none;
-            box-shadow: none;
-            animation: fpFadeIn var(--fp-dur) var(--fp-ease);
-        }
-        #topNav.tools-open #layerButtons.nav-menu-panel button { width: 100%; }
-
-        /* 窄屏：无论是否放大，都收成 主入口 + 工具 的紧凑布局 */
-        @media (max-width: 820px) {
-            #topNav .nav-brand { display: none; }
-            #topNav .nav-actions {
-                max-width: 100%;
-                gap: 2px;
-                margin-left: auto;
-                margin-right: auto;
+        /* 窄屏：开关收进「工具」 */
+        @media (max-width: 900px) {
+            #topNav #navMoreBtn { display: inline-flex; }
+            #topNav .nav-sep-tools-main { display: none; }
+            #topNav .nav-group-more { display: none; }
+            #topNav.tools-open .nav-group-more {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                position: absolute;
+                bottom: calc(100% + 12px);
+                right: 0;
+                width: min(300px, calc(100vw - 24px));
+                padding: 8px;
+                gap: 4px;
+                border-radius: var(--fp-radius-panel);
+                background: rgba(255, 255, 255, 0.94);
+                -webkit-backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+                backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+                box-shadow: var(--fp-shadow-lift);
+                z-index: 10001;
+                transform-origin: bottom right;
+                animation: fpPopIn var(--fp-dur) var(--fp-ease);
             }
-            .nav-sep-back { display: none; }
-        }
-        @media (max-width: 520px) {
-            #topNav .nav-group-primary button,
-            #topNav #navMoreBtn {
-                padding: 8px 10px;
-                font-size: var(--fp-size-xs);
+            #topNav.tools-open .nav-group-more > button,
+            #topNav.tools-open .nav-group-more .nav-menu > button {
+                width: 100%;
+                min-width: 0;
             }
-            #topNav .nav-group-primary { gap: 0; }
-            #topNav.tools-open .nav-group-more { top: calc(100% + 14px); right: -2px; }
+            /* 窄屏里的底图列表在工具面板里整行展开，不再是第二层浮层 */
+            #topNav.tools-open .nav-group-more .nav-menu {
+                grid-column: 1 / -1;
+            }
+            #topNav.tools-open #layerButtons.nav-menu-panel {
+                position: static;
+                transform: none;
+                min-width: 0;
+                margin-top: 4px;
+                padding: 4px 0 0;
+                border-radius: 0;
+                border-top: 1px solid var(--fp-rule);
+                background: transparent;
+                -webkit-backdrop-filter: none;
+                backdrop-filter: none;
+                box-shadow: none;
+                animation: fpFadeIn var(--fp-dur) var(--fp-ease);
+            }
+            #topNav.tools-open #navMoreBtn {
+                color: var(--fp-ink);
+                background: var(--fp-rule);
+            }
         }
         @media (prefers-reduced-motion: reduce) {
             #topNav.tools-open .nav-group-more { animation: fpFadeIn var(--fp-dur) linear; }
@@ -140,6 +98,11 @@
             left: 14px;
             bottom: 14px;
             z-index: 9999;
+            /* 坞在中间，状态胶囊留在左下角；宽度收窄，碰不到坞 */
+            max-width: calc(50vw - 230px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             padding: 5px 12px;
             font: var(--fp-size-xs)/1.6 var(--fp-font-text);
             color: var(--fp-ink-soft);
@@ -214,10 +177,10 @@
                         color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
         }
         #backGlobeBtn {
-            bottom: 24px;
+            bottom: var(--fp-dock-clear);
         }
         #cityFillFloatBtn {
-            bottom: 74px;
+            bottom: calc(var(--fp-dock-clear) + 50px);
         }
         #backGlobeBtn svg,
         #cityFillFloatBtn svg {
@@ -270,7 +233,7 @@
         .marker-focus-btn:focus-visible {
             left: 14px;
             top: auto;
-            bottom: 52px;
+            bottom: var(--fp-dock-clear);
             padding: 8px 14px;
             border: 0;
             border-radius: var(--fp-radius-control);

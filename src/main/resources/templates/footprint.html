@@ -72,55 +72,40 @@
     </script>
 </head>
 <body id="footprint-page" th:class="'mode-3d marker-style-' + ${settings.markerStyle}">
-<!-- 顶部导航栏（两个视图共用）：2D/3D 切换、自动旋转、底图下拉 -->
-<header id="topNav">
-    <div class="nav-brand">
-        <span class="nav-brand-zh">旅行记忆</span>
-    </div>
+<!-- 底部导航坞（两个视图共用）：主入口 + 地球开关，居中浮在页面底部。
+     放在底部而不是顶部：主题自己的导航通常在顶部，足迹页再放一条会重复。
+     id 保持不变（各模块按 id 取按钮）；#sceneModeBtn 的文字由 view-mode.js 改写在 .dock-label 里。 -->
+<nav id="topNav" aria-label="足迹导航">
     <div class="nav-actions">
         <div class="nav-group nav-group-primary">
-            <button id="sceneModeBtn" type="button" title="切换到 2D 平面地图">2D 地图</button>
-            <button id="cityWallBtn" type="button" title="打开城记：按最近到访排列的城市卡片墙">城记</button>
-            <button id="memoryShelfBtn" type="button" title="打开世界这本书：按省份翻阅旅行记忆" hidden>世界这本书</button>
-            <button id="ticketGalleryBtn" type="button" title="打开票根册：按时间收好的旅途票根">票根册</button>
-            <span class="nav-sep nav-sep-back"></span>
-            <button id="navBackGlobeBtn" type="button" title="回到整球视图">回到整球</button>
+            <button id="sceneModeBtn" type="button" title="切换到 2D 平面地图"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z"/></svg><span class="dock-label">2D 地图</span></button>
+            <button id="cityWallBtn" type="button" title="打开城记：按最近到访排列的城市卡片墙"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span class="dock-label">城记</span></button>
+            <button id="memoryShelfBtn" type="button" hidden title="打开世界这本书：按省份翻阅旅行记忆"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5Z"/></svg><span class="dock-label">这本书</span></button>
+            <button id="ticketGalleryBtn" type="button" title="打开票根册：按时间收好的旅途票根"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4V8Z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg><span class="dock-label">票根册</span></button>
+            <button id="navBackGlobeBtn" type="button" title="回到整球视图"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M3.6 12h16.8"/><path d="M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9"/></svg><span class="dock-label">回到整球</span></button>
         </div>
+        <span class="nav-sep nav-sep-tools-main" aria-hidden="true"></span>
         <div class="nav-group nav-group-more" id="navTools">
-            <button id="provinceAllBtn" type="button" aria-pressed="false" title="在 3D 地球上展开所有去过的城市卡片与连线">全部城市</button>
-            <span class="nav-sep"></span>
-            <button id="rotateBtn" class="globe-only" type="button" aria-pressed="false" title="开启自动旋转">自动旋转</button>
-            <span class="nav-sep"></span>
-            <button id="cityFillBtn" class="globe-only" type="button" aria-pressed="false" title="放大后高亮显示去过的城市区域">城市高亮</button>
-            <span class="nav-sep"></span>
-            <button id="terrainBtn" class="globe-only" type="button" aria-pressed="false" title="天地图三维地形（可选，默认关闭；开启后中国境内显示真实地貌）" disabled hidden>三维地形</button>
-            <span class="nav-sep nav-sep-tools"></span>
+            <button id="provinceAllBtn" type="button" aria-pressed="false" title="在 3D 地球上展开所有去过的城市卡片与连线"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="7" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="17" r="2"/><path d="M7.7 8.2 10.6 15M16.4 7.4 13.2 15.4M8 7l8-1"/></svg><span class="dock-label">全部城市</span></button>
+            <button id="rotateBtn" type="button" class="globe-only" aria-pressed="false" title="开启自动旋转"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4.5h-4.5"/></svg><span class="dock-label">自动旋转</span></button>
+            <button id="cityFillBtn" type="button" class="globe-only" aria-pressed="false" title="放大后高亮显示去过的城市区域"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg><span class="dock-label">城市高亮</span></button>
+            <button id="terrainBtn" type="button" class="globe-only" aria-pressed="false" disabled hidden title="天地图三维地形（可选，默认关闭；开启后中国境内显示真实地貌）"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 18 5.5-8 3.5 5 2.5-3.5L21 18H3Z"/></svg><span class="dock-label">三维地形</span></button>
             <div class="nav-menu globe-only" id="layerMenu">
-                <button id="layerMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                    <span>底图</span>
-                    <svg class="nav-chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
-                        <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
+                <button id="layerMenuBtn" type="button" aria-haspopup="true" aria-expanded="false" title="切换底图"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span class="dock-label">底图</span></button>
                 <div id="layerButtons" class="nav-menu-panel" role="menu" aria-label="切换底图" hidden>
                     <button data-key="amapVec" role="menuitemradio" title="高德矢量路网图（含地名标注）">高德矢量</button>
                     <button data-key="amapImg" role="menuitemradio" title="高德卫星影像（含地名标注）">高德卫星</button>
-                    <button data-key="amapImgClean" role="menuitemradio" title="高德卫星影像，无地名标注">高德卫星·无字</button>
+                    <button data-key="amapImgClean" role="menuitemradio" title="高德卫星影像，无地名标注">高德卫星（无字）</button>
                     <button data-key="tdtImg" role="menuitemradio" title="天地图影像（含地名标注）" disabled>天地图影像</button>
                     <button data-key="tdtVec" role="menuitemradio" title="天地图矢量（含地名标注）" disabled>天地图矢量</button>
-                    <button data-key="tdtImgClean" role="menuitemradio" title="天地图影像，无地名标注" class="active" disabled>天地图影像·无字</button>
-                    <button data-key="tdtVecClean" role="menuitemradio" title="天地图矢量，无地名标注" disabled>天地图矢量·无字</button>
+                    <button data-key="tdtImgClean" role="menuitemradio" title="天地图影像，无地名标注" class="active" disabled>天地图影像（无字）</button>
+                    <button data-key="tdtVecClean" role="menuitemradio" title="天地图矢量，无地名标注" disabled>天地图矢量（无字）</button>
                 </div>
             </div>
         </div>
-        <button id="navMoreBtn" type="button" aria-haspopup="true" aria-expanded="false" title="更多工具">
-            <span>工具</span>
-            <svg class="nav-chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
-                <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </button>
+        <button id="navMoreBtn" type="button" aria-haspopup="true" aria-expanded="false" title="更多工具"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg><span class="dock-label">工具</span></button>
     </div>
-</header>
+</nav>
 <!-- ================= 3D 地球视图（默认首页） ================= -->
 <div id="view-3d">
     <!-- 承载地球的 div 容器 -->

@@ -99,7 +99,7 @@
         #provinceHint {
             position: absolute;
             left: 50%;
-            bottom: 92px;
+            bottom: calc(var(--fp-dock-clear) + 8px);
             z-index: 3;
             padding: 8px 16px;
             border-radius: var(--fp-radius-control);

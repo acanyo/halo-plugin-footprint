@@ -53,7 +53,7 @@ export function refreshAutoRotate() {
     const want = allowed && autoRotatePauses.size === 0;
     // 按钮反映「用户偏好」而不是「此刻是否在转」：卡片 / 票根页 / 2D 只是临时让镜头停住，
     // 停的不是设置本身，退出后会自动接着转。
-    rotateBtn.textContent = '自动旋转';   // 标签固定，状态用高亮表达，避免按钮宽度跳动
+    // 标签固定，状态用高亮表达，避免按钮宽度跳动（按钮是图标 + 文字，不再改写 textContent）
     rotateBtn.title = allowed ? '暂停自动旋转' : '开启自动旋转';
     rotateBtn.classList.toggle('active', allowed);
     rotateBtn.setAttribute('aria-pressed', String(allowed));
