@@ -63,7 +63,7 @@ const emit = defineEmits<{
       />
 
       <!-- 位置：地图选点是主路径，省/市由选点结果带出 -->
-      <div class="formkit-outer py-5" data-type="text">
+      <div class="formkit-outer fp-location py-5" data-type="text">
         <label class="formkit-label">位置</label>
         <div class="fp-readout">
           <span class="fp-readout-value fp-num" :class="{ 'is-empty': !hasCoordinate }">

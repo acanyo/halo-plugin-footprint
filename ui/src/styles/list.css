@@ -149,9 +149,10 @@
   }
 }
 @container footprint-workbench (max-width: 640px) {
+  /* flex: 1 的 basis 是 0，width 不生效；要独占一行得改 basis */
   .fp-toolbar-main {
+    flex-basis: 100%;
     min-width: 0;
-    width: 100%;
   }
   .fp-toolbar-main > :last-child {
     max-width: none;

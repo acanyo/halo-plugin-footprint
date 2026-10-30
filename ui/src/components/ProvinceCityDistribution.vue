@@ -100,6 +100,9 @@ watch(tab, () => {
         <span class="fp-region-count">{{ item.count }}</span>
       </button>
     </div>
-    <p v-else class="fp-muted">没有匹配的地区</p>
+    <p v-else-if="source.length" class="fp-muted">没有匹配的地区</p>
+    <p v-else class="fp-muted">
+      还没有解析出省 / 市。在足迹的更多操作里选「重新解析省 / 市」，或编辑时用地图选点。
+    </p>
   </section>
 </template>

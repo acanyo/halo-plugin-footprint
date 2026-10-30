@@ -58,6 +58,20 @@
 .fp-dialog .fp-form-section :where(.formkit-outer):first-child {
   padding-top: 0;
 }
+/* 与 FormKit 输入框同宽（控制台把 .formkit-inner 限制在 31em） */
+.fp-dialog .fp-location {
+  max-width: 31em;
+}
+.fp-dialog .fp-location .formkit-label {
+  display: block;
+  margin-bottom: 8px;
+}
+.fp-dialog .fp-location .formkit-help {
+  margin-top: 8px;
+  color: var(--fp-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
 .fp-dialog .fp-readout {
   display: flex;
   align-items: center;

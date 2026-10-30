@@ -65,8 +65,8 @@
 }
 .fp-categories {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
 }
 .fp-category-label {
   display: flex;
@@ -214,16 +214,19 @@
 }
 @container footprint-workbench (max-width: 640px) {
   .fp-overview {
-    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
   .fp-stat {
-    padding: 14px 16px;
+    padding: 12px 14px;
+  }
+  .fp-stat dt {
+    font-size: 11px;
+  }
+  .fp-stat dt svg {
+    display: none;
   }
   .fp-stat dd {
     font-size: 22px;
-  }
-  .fp-categories {
-    grid-template-columns: 1fr 1fr;
   }
   .fp-search {
     width: 100%;

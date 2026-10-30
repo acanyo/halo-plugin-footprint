@@ -3,6 +3,7 @@
  *
  * 与 plugin-auth-ui / plugin-lingui 的工作台同一套中性色板，三个插件并排打开时观感一致。
  * .fp-dialog 给 mount-to-body 的弹窗用：弹窗传送到 body 后不在 .fp-workbench 里，取不到变量。
+ * 暗色只给工作台外框：弹窗内是 Halo 的 FormKit 控件，控制台本身没有暗色，跟着换会半暗半亮。
  */
 .fp-workbench,
 .fp-dialog {
@@ -29,7 +30,7 @@
   line-height: 1.5;
 }
 
-:where(.dark, [data-theme='dark'], [data-color-scheme='dark']) :is(.fp-workbench, .fp-dialog) {
+:where(.dark, [data-theme='dark'], [data-color-scheme='dark']) .fp-workbench {
   --fp-bg: #212121;
   --fp-sidebar: #171717;
   --fp-subtle: #2f2f2f;
