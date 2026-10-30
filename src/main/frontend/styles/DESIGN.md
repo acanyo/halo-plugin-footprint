@@ -43,3 +43,18 @@
 
 只有地球入场是一段编排好的动画。其余动效只回应操作：打开、展开、切换，时长 160～240ms。
 `prefers-reduced-motion` 时全部关闭。
+
+## 检查
+
+`tools/check-frontend-style.mjs --strict` 挂在 `./gradlew build` 上（任务 `checkFrontendStyle`），
+不过就构建失败。它拦四类问题：英文大写小标题、「·」拼接、样式里散写的色值、旧字体栈。
+压在照片上的可读性暗影（纯黑 rgba 的 text-shadow / box-shadow）与单独画出的列表圆点不算。
+
+canvas 与 SVG 读不到 CSS 变量，下列文件里写死了同一套色值，改色板时要一起改：
+`marker-icons.js`、`marker-visibility.js`、`postcard.js`、`ticket-letter.js`、
+`parabola-animation.js`、`memory-shelf/modules/constants.js`（PAGE_PAPER / PAGE_EDGE）。
+
+## 截图巡检
+
+`node tools/ui-tour.mjs http://localhost:8092 /tmp/out` 截各主要界面；`W=390 H=844` 截手机，
+`ONLY=06-citywall,08-insight` 只截指定几张。开发实例用 `./gradlew haloServer -PhaloPort=8092`。

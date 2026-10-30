@@ -327,15 +327,15 @@ export function insightAchievements(m, time, province, segment, stats) {
             name: '长途跋涉',
             desc: '单段行程超过 500 公里',
             done: s.longest >= 500,
-            progress: s.longest ? insightKm(s.longest) + ' km' : '暂无数据',
-            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 500 - s.longest)) + ' km' : '暂无数据'
+            progress: s.longest ? insightKm(s.longest) + ' 公里' : '暂无数据',
+            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 500 - s.longest)) + ' 公里' : '暂无数据'
         },
         {
             name: '千里单骑',
             desc: '单段行程超过 1000 公里',
             done: s.longest >= 1000,
-            progress: s.longest ? insightKm(s.longest) + ' km' : '暂无数据',
-            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 1000 - s.longest)) + ' km' : '暂无数据'
+            progress: s.longest ? insightKm(s.longest) + ' 公里' : '暂无数据',
+            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 1000 - s.longest)) + ' 公里' : '暂无数据'
         },
         {
             name: '票根收藏家',
@@ -448,8 +448,8 @@ export function insightAchievements(m, time, province, segment, stats) {
             name: '万里行者',
             desc: '累计里程 1 万公里以上',
             done: m.distanceKm >= 10000,
-            progress: insightKm(m.distanceKm) + ' km',
-            remaining: '还差 ' + insightKm(Math.max(0, 10000 - m.distanceKm)) + ' km'
+            progress: insightKm(m.distanceKm) + ' 公里',
+            remaining: '还差 ' + insightKm(Math.max(0, 10000 - m.distanceKm)) + ' 公里'
         },
         {
             name: '主题收藏家',

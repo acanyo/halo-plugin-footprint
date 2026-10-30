@@ -96,6 +96,22 @@ tasks.named('test') {
     dependsOn tasks.named('testFrontend')
 }
 
+// 前台视觉规范（测绘手簿，见 src/main/frontend/styles/DESIGN.md）：英文大写小标题、「·」拼接、
+// 散落的色值、旧字体栈。和契约检查一样挂在打包前，不过就失败。
+tasks.register('checkFrontendStyle', com.github.gradle.node.task.NodeTask) {
+    group = 'verification'
+    description = '检查前台视觉规范'
+    script = file('tools/check-frontend-style.mjs')
+    args = ['--strict', '--quiet']
+
+    inputs.dir('src/main/frontend')
+    inputs.file('src/main/resources/templates/footprint.html')
+    inputs.file('tools/check-frontend-style.mjs')
+    def marker = layout.buildDirectory.file('tmp/checkFrontendStyle/ok')
+    outputs.file(marker)
+    doLast { marker.get().asFile.text = 'ok' }
+}
+
 tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
     group = 'build'
     description = '压缩前台 js/css（源文件不动，只改构建产物）'
@@ -103,6 +119,7 @@ tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
     args = ['run', 'minify']
 
     dependsOn tasks.named('checkFrontendContract')
+    dependsOn tasks.named('checkFrontendStyle')
     dependsOn tasks.named('minifyFrontendInstall')
     dependsOn tasks.named('processResources')
 

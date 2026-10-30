@@ -194,7 +194,7 @@ function insightYearMetrics(item) {
         insightMetric('省份', item.provinces.length + ' 个'),
         insightMetric('照片', item.photos + ' 张'),
         insightMetric('票根', item.tickets + ' 张'),
-        insightMetric('估算里程', item.km ? insightKm(item.km) + ' km' : '—'),
+        insightMetric('估算里程', item.km ? insightKm(item.km) + ' 公里' : '—'),
         insightMetric('到访月份', item.months + ' 个月'),
         insightMetric('到访季节', item.seasons.join('、') || '—')
     ];
@@ -310,7 +310,7 @@ function insightCardsData() {
             insightMetric('城市', m.cityCount + ' 座', { action: () => closeInsight() }),
             insightMetric('票根', m.ticketCount + ' 张', { action: insightOpenTicketWall }),
             insightMetric('照片', m.photoCount + ' 张'),
-            insightMetric('估算里程', m.distanceKm ? m.distanceKm.toLocaleString('zh-CN') + ' km' : '—'),
+            insightMetric('估算里程', m.distanceKm ? m.distanceKm.toLocaleString('zh-CN') + ' 公里' : '—'),
             insightMetric('足迹最多的季节', m.topSeason ? m.topSeason + '，' + m.topSeasonCount + ' 条' : '—')
         ]
     });
@@ -363,15 +363,15 @@ function insightCardsData() {
             headline: '最长的一段是从' + insightPlaceName(longest.from) + '到' +
                 insightPlaceName(longest.to) + '，约 ' + insightKm(longest.km) + ' 公里。',
             metrics: [
-                insightMetric('最长一段', insightKm(longest.km) + ' km', {
+                insightMetric('最长一段', insightKm(longest.km) + ' 公里', {
                     hint: insightPlaceName(longest.from) + ' → ' + insightPlaceName(longest.to),
                     action: () => insightOpenCity(longest.to.city)
                 }),
-                insightMetric('最短一段', insightKm(shortest.km) + ' km', {
+                insightMetric('最短一段', insightKm(shortest.km) + ' 公里', {
                     hint: insightPlaceName(shortest.from) + ' → ' + insightPlaceName(shortest.to)
                 }),
-                insightMetric('平均每段', insightKm(segment.average) + ' km'),
-                insightMetric('累计里程', insightKm(segment.totalKm) + ' km'),
+                insightMetric('平均每段', insightKm(segment.average) + ' 公里'),
+                insightMetric('累计里程', insightKm(segment.totalKm) + ' 公里'),
                 insightMetric('最北', insightPlaceName(segment.north), {
                     action: () => insightOpenCity(segment.north.city)
                 }),
