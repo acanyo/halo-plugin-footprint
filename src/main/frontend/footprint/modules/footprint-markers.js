@@ -37,6 +37,10 @@ export const addFootprintMarkers = async (map, footprintData) => {
     let photoWallWheelUnlockTimer = null;
     let photoWallCloseTimer = null;
     let photoWallClosingElement = null;
+    // 图片墙打开以来地图到过的最大缩放级别。「缩小」以它为准，而不是直接拿当前级别比：
+    // 从全国视野点标记时，飞行动画没走完（慢机器上常见）图片墙就已经出来了，
+    // 这时级别还在往上涨，不能当成用户在缩小、把图片墙收掉。
+    let photoWallPeakZoom = -Infinity;
     const PHOTO_WALL_CLOSE_ZOOM = 10;
     const PHOTO_WALL_CLOSE_ANIMATION_MS = 420;
 
@@ -405,9 +409,11 @@ export const addFootprintMarkers = async (map, footprintData) => {
         if (!currentMarker || !photoWallElement) return;
         if (photoWallClosingElement === photoWallElement) return;
         const zoom = Number(map.getZoom());
-        // 缩小起点必须使用当前图片墙对应标记点的 zoomLevel。
-        const openZoom = getFootprintZoomLevel(photoWallState?.spec);
-        if (!Number.isFinite(zoom) || !Number.isFinite(openZoom)) return;
+        // 缩小起点是标记点的 zoomLevel；地图还没飞到那一级时，以打开以来到过的最大级别为起点
+        const footprintZoom = getFootprintZoomLevel(photoWallState?.spec);
+        if (!Number.isFinite(zoom) || !Number.isFinite(footprintZoom)) return;
+        photoWallPeakZoom = Math.max(photoWallPeakZoom, zoom);
+        const openZoom = Math.min(footprintZoom, photoWallPeakZoom);
 
         if (zoom >= openZoom) {
             photoWallElement.classList.remove('photo-wall-zooming-out');
@@ -534,6 +540,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
                         await moveToLocation(map, position2, zoomLevel, 500);
                     }
                     currentMarker = marker;
+                    photoWallPeakZoom = Number(map.getZoom());
                     // 有图片时桌面端展示地图外围图片墙，移动端展示底部抽屉式图片墙；
                     // 没有图片时保留原有信息窗口。
                     if (galleryImages.length) {
