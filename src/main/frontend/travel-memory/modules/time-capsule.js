@@ -63,12 +63,12 @@ function renderTimeCapsule() {
     const fp = timeCapsuleItemsCache[timeCapsuleIndex];
     timeCapsuleBody.innerHTML = '';
     timeCapsuleStats.textContent = timeCapsuleItemsCache.length
-        ? timeCapsuleItemsCache.length + ' 条历史记录 · 第 ' + (timeCapsuleIndex + 1) + ' 条'
+        ? '往年的今天有 ' + timeCapsuleItemsCache.length + ' 条足迹，这是第 ' + (timeCapsuleIndex + 1) + ' 条'
         : '';
     timeCapsulePrev.hidden = timeCapsuleItemsCache.length < 2;
     timeCapsuleNext.hidden = timeCapsuleItemsCache.length < 2;
     if (!fp) {
-        timeCapsuleBody.textContent = '今天还没有属于过去的故事';
+        timeCapsuleBody.textContent = '往年的今天没有足迹。';
         return;
     }
 
@@ -94,16 +94,18 @@ function renderTimeCapsule() {
     info.className = 'capsule-info';
     const eyebrow = document.createElement('p');
     eyebrow.className = 'capsule-eyebrow';
-    eyebrow.textContent = 'FOOTPRINT · ' + (fp.footprintType || '旅行');
+    eyebrow.textContent = fp.footprintType || '旅行';
     const name = document.createElement('h3');
     name.textContent = fp.name;
     const meta = document.createElement('p');
     meta.className = 'capsule-meta';
-    meta.textContent = [fp.city, fp.province, deps.formatCityDate(fp.createTime), fp.address]
-        .filter(Boolean).join(' · ');
+    // 地点 / 日期 / 地址各占一行（.capsule-meta 用 white-space: pre-line 显示换行）
+    const place = [fp.province, fp.city].filter((v, i, arr) => v && arr.indexOf(v) === i).join(' ');
+    const date = fp.createTime ? deps.formatCityDate(fp.createTime).replace(/\s*\/\s*/, '.') : '';
+    meta.textContent = [place, date, fp.address].filter(Boolean).join('\n');
     const desc = document.createElement('p');
     desc.className = 'capsule-desc';
-    desc.textContent = fp.description || '那一天的旅途，被留在了这里。';
+    desc.textContent = fp.description || '';
     const actions = document.createElement('div');
     actions.className = 'capsule-actions';
     const galleryBtn = document.createElement('button');

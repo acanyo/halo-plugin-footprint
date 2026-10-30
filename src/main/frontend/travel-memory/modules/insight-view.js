@@ -102,7 +102,7 @@ function insightMonthsDom(months) {
         col.className = 'insight-month' +
             (count && count === max ? ' is-top' : '') +
             (count ? '' : ' is-empty');
-        col.title = (i + 1) + ' 月 · ' + count + ' 次';
+        col.title = (i + 1) + ' 月，' + count + ' 条足迹';
         const bar = document.createElement('span');
         bar.className = 'insight-month-bar';
         bar.style.setProperty('--month-ratio', String(count / max));
@@ -138,16 +138,17 @@ function insightBadgesDom(badges) {
         row.className = 'insight-badge' + (item.done ? ' is-earned' : ' is-locked');
         const mark = document.createElement('span');
         mark.className = 'insight-badge-mark';
-        mark.textContent = item.done ? '✓' : '·';
         const text = document.createElement('span');
         text.className = 'insight-badge-text';
         const name = document.createElement('strong');
         name.textContent = item.name;
         const desc = document.createElement('em');
+        // 圆点里只放读屏文字：视觉上是实心点（已达成）或空心圈（未达成）
+        mark.textContent = item.done ? '已达成' : '未达成';
         // 已点亮的给结果值（12 个省），没点亮的给「还差多少」——
         // 只写 6/24 的话得自己算还差几张
         const detail = item.done ? item.progress : (item.remaining || item.progress);
-        desc.textContent = item.desc + (detail ? ' · ' + detail : '');
+        desc.textContent = item.desc + (detail ? '，' + detail : '');
         text.append(name, desc);
         row.append(mark, text);
         wrap.appendChild(row);
@@ -182,13 +183,13 @@ function insightCardDom(card) {
 }
 
 function insightYearHeadline(item) {
-    return item.year + ' 年 · ' + item.footprints + ' 次出发、' + item.cities + ' 座城市' +
+    return item.year + ' 年：' + item.footprints + ' 条足迹，' + item.cities + ' 座城市' +
         (item.km ? '，约 ' + insightKm(item.km) + ' 公里' : '') + '。';
 }
 
 function insightYearMetrics(item) {
     return [
-        insightMetric('足迹', item.footprints + ' 次'),
+        insightMetric('足迹', item.footprints + ' 条'),
         insightMetric('城市', item.cities + ' 座'),
         insightMetric('省份', item.provinces.length + ' 个'),
         insightMetric('照片', item.photos + ' 张'),
@@ -238,7 +239,7 @@ function swapInsightTitle() {
     if (node) {
         node.classList.remove('is-swapping');
         void node.offsetWidth;   // 触发重排，让动画能重新播
-        node.textContent = '「' + next + '」';
+        node.textContent = '当前称号：' + next;
         node.classList.add('is-swapping');
     }
     if (insightTitleEl) insightTitleEl.textContent = next;
@@ -283,8 +284,8 @@ function insightCardsData() {
             title: '',
             cards: [{
                 id: 'empty',
-                kicker: 'TRAVEL SUMMARY',
-                headline: '还没有足迹数据，出发后回来看看你的旅行洞察。',
+                kicker: '概览',
+                headline: '还没有足迹。',
                 metrics: []
             }]
         };
@@ -297,7 +298,7 @@ function insightCardsData() {
     // 1. 概览
     cards.push({
         id: 'overview',
-        kicker: 'TRAVEL SUMMARY',
+        kicker: '概览',
         headlineId: 'insightOverviewHeadline',
         headline: sentences[insightSentenceVariant % sentences.length],
         chips: [{
@@ -305,12 +306,12 @@ function insightCardsData() {
             onClick: swapInsightSentence
         }],
         metrics: [
-            insightMetric('足迹', m.footprintCount + ' 次', { action: () => closeInsight() }),
+            insightMetric('足迹', m.footprintCount + ' 条', { action: () => closeInsight() }),
             insightMetric('城市', m.cityCount + ' 座', { action: () => closeInsight() }),
             insightMetric('票根', m.ticketCount + ' 张', { action: insightOpenTicketWall }),
             insightMetric('照片', m.photoCount + ' 张'),
             insightMetric('估算里程', m.distanceKm ? m.distanceKm.toLocaleString('zh-CN') + ' km' : '—'),
-            insightMetric('出发季节', m.topSeason ? m.topSeason + '（' + m.topSeasonCount + ' 次）' : '—')
+            insightMetric('足迹最多的季节', m.topSeason ? m.topSeason + '，' + m.topSeasonCount + ' 条' : '—')
         ]
     });
 
@@ -321,18 +322,18 @@ function insightCardsData() {
             : time.spanDays + ' 天';
         cards.push({
             id: 'time',
-            kicker: 'TIMELINE · 时间',
-            headline: '第一次出发是在 ' + insightSpotDate(time.first) + ' 的' +
-                insightPlaceName(time.first) + '，最近一次停在 ' + insightSpotDate(time.last) + ' 的' +
-                insightPlaceName(time.last) + ' —— 这条路，你走了 ' + spanText + '。',
+            kicker: '时间',
+            headline: '第一条足迹是 ' + insightSpotDate(time.first) + ' 在' +
+                insightPlaceName(time.first) + '，最近一条是 ' + insightSpotDate(time.last) + ' 在' +
+                insightPlaceName(time.last) + '，前后 ' + spanText + '。',
             months: time.months,
             metrics: [
-                insightMetric('首次出发', insightSpotDate(time.first), { hint: insightPlaceName(time.first) }),
-                insightMetric('最近一次', insightSpotDate(time.last), { hint: insightPlaceName(time.last) }),
-                insightMetric('最常出发的月份', time.topMonth + ' 月 · ' + time.topMonthCount + ' 次'),
-                insightMetric('出行过的月份', time.monthCount + ' 个月'),
-                insightMetric('最长连续出行', time.monthStreak + ' 个月'),
-                insightMetric('旅行跨度', spanText)
+                insightMetric('第一条', insightSpotDate(time.first), { hint: insightPlaceName(time.first) }),
+                insightMetric('最近一条', insightSpotDate(time.last), { hint: insightPlaceName(time.last) }),
+                insightMetric('足迹最多的月份', time.topMonth + ' 月，' + time.topMonthCount + ' 条'),
+                insightMetric('有足迹的月份', time.monthCount + ' 个月'),
+                insightMetric('最长连续', time.monthStreak + ' 个月'),
+                insightMetric('记录跨度', spanText)
             ]
         });
     }
@@ -341,12 +342,12 @@ function insightCardsData() {
     if (province.total) {
         cards.push({
             id: 'province',
-            kicker: 'PROVINCES · 省份',
-            headline: province.total + ' 个省份、' + m.cityCount + ' 座城市，' +
-                province.list[0].name + '留下了你最多的脚印。',
+            kicker: '省份',
+            headline: province.total + ' 个省份、' + m.cityCount + ' 座城市，足迹最多的是' +
+                province.list[0].name + '。',
             metrics: province.list.slice(0, 9).map(item => insightMetric(
                 item.name,
-                item.cities + ' 座城市 · ' + item.footprints + ' 个足迹',
+                item.cities + ' 座城市，' + item.footprints + ' 条足迹',
                 { action: () => insightFilterProvince(item.name) }
             ))
         });
@@ -358,8 +359,8 @@ function insightCardsData() {
         const shortest = segment.shortest;
         cards.push({
             id: 'segment',
-            kicker: 'DISTANCE · 距离',
-            headline: '最长的一次远行，是从' + insightPlaceName(longest.from) + '到' +
+            kicker: '距离与方位',
+            headline: '最长的一段是从' + insightPlaceName(longest.from) + '到' +
                 insightPlaceName(longest.to) + '，约 ' + insightKm(longest.km) + ' 公里。',
             metrics: [
                 insightMetric('最长一段', insightKm(longest.km) + ' km', {
@@ -392,15 +393,15 @@ function insightCardsData() {
         const top = type.list[0];
         cards.push({
             id: 'type',
-            kicker: 'TYPES · 主题',
-            headline: '「' + top.name + '」出现了 ' + top.count + ' 次' +
+            kicker: '类型',
+            headline: '记录最多的类型是「' + top.name + '」，' + top.count + ' 条' +
                 (top.season
-                    ? '，' + top.season + '天的风里，你出发得最多。'
-                    : '，是你写得最多的一页。'),
+                    ? '，多在' + top.season + '天。'
+                    : '。'),
             metrics: type.list.slice(0, 9).map(item => insightMetric(
                 item.name,
-                item.count + ' 次',
-                { hint: item.season ? '多在' + item.season + '天（' + item.seasonCount + ' 次）' : '' }
+                item.count + ' 条',
+                { hint: item.season ? '多在' + item.season + '天，' + item.seasonCount + ' 条' : '' }
             ))
         });
     }
@@ -411,7 +412,7 @@ function insightCardsData() {
         const active = years[insightYearIndex];
         cards.push({
             id: 'year',
-            kicker: 'YEAR IN REVIEW · 年度回顾',
+            kicker: '年度回顾',
             headlineId: 'insightYearHeadline',
             headline: insightYearHeadline(active),
             chips: years.map((item, i) => ({
@@ -429,9 +430,9 @@ function insightCardsData() {
     if (badges.length) {
         cards.push({
             id: 'badge',
-            kicker: 'ACHIEVEMENTS · 称号与成就',
+            kicker: '称号与成就',
             headlineId: 'insightBadgeHeadline',
-            headline: '「' + title + '」',
+            headline: '当前称号：' + title,
             note: titles.length ? '已解锁 ' + titles.length + ' / ' + INSIGHT_TITLE_SLOTS + ' 个称号' : '',
             chips: titles.length > 1 ? [{ text: '换一个称号', onClick: swapInsightTitle }] : [],
             badges

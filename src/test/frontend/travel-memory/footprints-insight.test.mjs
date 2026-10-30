@@ -178,5 +178,5 @@ test('什么都没解锁时给兜底称号', () => {
     injectDeps(data);
     const m = insightMetrics();
     const title = insightTitleOf(m, insightTimeStats(data), insightProvinceStats(data), insightSegmentStats(data));
-    assert.equal(title, '刚出发的旅人 · 1 段旅程');
+    assert.equal(title, '刚出发（1 条足迹）');
 });

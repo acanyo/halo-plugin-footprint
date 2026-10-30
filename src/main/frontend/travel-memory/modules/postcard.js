@@ -88,42 +88,56 @@ export function canvasSafeImageUrl(url) {
 }
 
 // 城市小结：以真实照片为主角，讲"我和这座城市的关系"（第一次去 / 最近一次 / 走过的地方），
-// 不再是城市卡片墙那张卡的信息截图
+// 不再是城市卡片墙那张卡的信息截图。
+// 配色取 tokens.css 白图（.fp-sheet）的值：canvas 读不到 CSS 变量，只能在这里抄一份，改色板时两处一起改。
+const POSTCARD_INK = {
+    paper: '#f3f4f1',       // --fp-paper
+    raised: '#fbfbf9',      // --fp-paper-raised
+    ink: '#1e2a33',         // --fp-ink
+    soft: '#4d5a62',        // --fp-ink-soft
+    faint: '#7d878b',       // --fp-ink-faint
+    rule: 'rgba(30, 42, 51, 0.14)',        // --fp-rule
+    ruleStrong: 'rgba(30, 42, 51, 0.3)',   // --fp-rule-strong
+    mark: '#b8322a'         // --fp-mark
+};
+const POSTCARD_TITLE_FONT = '"LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif';
+const POSTCARD_TEXT_FONT = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
+
 function postcardCanvas(data, image) {
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
     canvas.height = 1440;
     const ctx = canvas.getContext('2d');
-    const ink = '#35423d';
-    const muted = '#8b7865';
-    const accent = '#9b704e';
+    const c = POSTCARD_INK;
+    const title = (size) => '400 ' + size + 'px ' + POSTCARD_TITLE_FONT;
+    const text = (size, weight = 400) => weight + ' ' + size + 'px ' + POSTCARD_TEXT_FONT;
+    const rule = (y) => {
+        ctx.strokeStyle = c.rule;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(84, y);
+        ctx.lineTo(996, y);
+        ctx.stroke();
+    };
 
-    const bg = ctx.createLinearGradient(0, 0, 0, 1440);
-    bg.addColorStop(0, '#e8e0d2');
-    bg.addColorStop(1, '#d9cfbd');
-    ctx.fillStyle = bg;
+    ctx.fillStyle = c.paper;
     ctx.fillRect(0, 0, 1080, 1440);
-    ctx.strokeStyle = 'rgba(118,92,61,0.32)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = c.ruleStrong;
+    ctx.lineWidth = 2;
     ctx.strokeRect(28, 28, 1024, 1384);
 
-    ctx.fillStyle = accent;
-    ctx.font = '600 30px ui-monospace, Consolas, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('CITY POSTCARD · 旅行明信片', 540, 118);
-
+    // 城市名（文楷）+ 省份与足迹数
     const cityName = data.city || '';
-    ctx.fillStyle = ink;
-    ctx.font = cityName.length > 6
-        ? '400 72px "PingFang SC", "Microsoft YaHei", serif'
-        : '400 96px "PingFang SC", "Microsoft YaHei", serif';
-    ctx.fillText(cityName, 540, 216);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = c.ink;
+    ctx.font = title(cityName.length > 6 ? 72 : 96);
+    ctx.fillText(cityName, 540, 196);
 
-    const subline = [data.province, data.count ? data.count + ' 个足迹' : ''].filter(Boolean).join(' · ');
+    const subline = [data.province, data.count ? data.count + ' 条足迹' : ''].filter(Boolean).join('，');
     if (subline) {
-        ctx.fillStyle = muted;
-        ctx.font = '30px "PingFang SC", "Microsoft YaHei", serif';
-        ctx.fillText(subline, 540, 270);
+        ctx.fillStyle = c.soft;
+        ctx.font = text(30);
+        ctx.fillText(subline, 540, 262);
     }
 
     // 真实照片当主角：cover 满铺 + clip，不垫底、不留白边
@@ -142,56 +156,57 @@ function postcardCanvas(data, image) {
         ctx.drawImage(image, photoX + (photoW - dw) / 2, photoTop + (photoH - dh) / 2, dw, dh);
         ctx.restore();
     } else {
-        const g = ctx.createLinearGradient(photoX, photoTop, photoX + photoW, photoTop + photoH);
-        g.addColorStop(0, '#cdbfa6');
-        g.addColorStop(1, '#b09a7d');
-        ctx.fillStyle = g;
+        ctx.fillStyle = c.raised;
         ctx.fillRect(photoX, photoTop, photoW, photoH);
-        ctx.fillStyle = 'rgba(255,253,247,0.9)';
-        ctx.font = '400 220px "Noto Serif SC", "Songti SC", serif';
+        ctx.strokeStyle = c.rule;
+        ctx.strokeRect(photoX, photoTop, photoW, photoH);
+        ctx.fillStyle = c.faint;
+        ctx.font = title(220);
         ctx.fillText((data.city || '?').charAt(0), 540, photoTop + photoH * 0.62);
     }
 
     // 第一次去 / 最近一次：这张小结真正多出来的信息
-    ctx.fillStyle = muted;
-    ctx.font = '24px "PingFang SC", "Microsoft YaHei", serif';
+    ctx.fillStyle = c.faint;
+    ctx.font = text(24);
     ctx.fillText('第一次去', 320, 1002);
     ctx.fillText('最近一次', 760, 1002);
-    ctx.fillStyle = ink;
-    ctx.font = '34px ui-monospace, Consolas, monospace';
-    ctx.fillText(data.first ? deps.formatCityDate(data.first) : '—', 320, 1050);
-    ctx.fillText(data.latest ? deps.formatCityDate(data.latest) : '—', 760, 1050);
+    ctx.fillStyle = c.ink;
+    ctx.font = text(34, 500);
+    const day = (value) => deps.formatCityDate(value).replace(/\s*\/\s*/, '.');
+    ctx.fillText(data.first ? day(data.first) : '—', 320, 1050);
+    ctx.fillText(data.latest ? day(data.latest) : '—', 760, 1050);
 
-    ctx.strokeStyle = 'rgba(118,92,61,0.24)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(140, 1104);
-    ctx.lineTo(940, 1104);
-    ctx.stroke();
+    rule(1104);
 
     // 走过的地方：这座城市里到过的足迹名
-    const places = (data.places || []).join(' · ');
+    const places = (data.places || []).join('、');
     if (places) {
-        ctx.fillStyle = muted;
-        ctx.font = '24px "PingFang SC", "Microsoft YaHei", serif';
+        ctx.fillStyle = c.faint;
+        ctx.font = text(24);
         ctx.fillText('走过的地方', 540, 1154);
-        ctx.fillStyle = ink;
-        ctx.font = '30px "PingFang SC", "Microsoft YaHei", serif';
+        ctx.fillStyle = c.ink;
+        ctx.font = title(32);
         wrapTicketLetterText(ctx, places, 860).slice(0, 2).forEach((line, i) => {
             ctx.fillText(line, 540, 1210 + i * 46);
         });
     }
 
-    ctx.fillStyle = muted;
-    ctx.font = '26px "PingFang SC", "Microsoft YaHei", serif';
+    rule(1292);
+    ctx.fillStyle = c.soft;
+    ctx.font = text(26);
     ctx.fillText(
-        data.count + ' 个足迹 · ' + data.photos + ' 张照片 · ' + data.tickets + ' 张票根',
-        540, 1330
+        data.count + ' 条足迹，' + data.photos + ' 张照片，' + data.tickets + ' 张票根',
+        540, 1340
     );
 
-    ctx.fillStyle = muted;
-    ctx.font = '24px "PingFang SC", "Microsoft YaHei", serif';
-    ctx.fillText('旅行记忆 · Travel Memory', 540, 1380);
+    // 落款：一枚标注红小点 + 「旅行记忆」
+    ctx.fillStyle = c.faint;
+    ctx.font = title(26);
+    ctx.fillText('旅行记忆', 552, 1384);
+    ctx.fillStyle = c.mark;
+    ctx.beginPath();
+    ctx.arc(552 - ctx.measureText('旅行记忆').width / 2 - 14, 1375, 6, 0, Math.PI * 2);
+    ctx.fill();
     return canvas;
 }
 
@@ -225,7 +240,7 @@ function setPostcardState(state) {
 async function renderPostcardPreview() {
     if (postcardBlobUrl) URL.revokeObjectURL(postcardBlobUrl);
     const data = cityPostcardData(postcardCi);
-    postcardTitle.textContent = data.city + ' · 旅行明信片';
+    postcardTitle.textContent = data.city + '明信片';
     const city = deps.cityList()[postcardCi];
     data.province = city ? deps.cityViewItems(postcardCi).map(fp => fp.province).find(Boolean) || '' : '';
     if (postcardShare) postcardShare.hidden = true;

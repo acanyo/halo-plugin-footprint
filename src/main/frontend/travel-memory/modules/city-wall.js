@@ -353,11 +353,11 @@ export function renderCityWall() {
     const footprintTotal = cards.reduce((n, c) => n + c.count, 0);
     const photoTotal = cards.reduce((n, c) => n + c.photos, 0);
     const ticketTotal = cards.reduce((n, c) => n + c.tickets, 0);
-    cityWallTitle.textContent = '城市卡片墙';
+    cityWallTitle.textContent = '城记';
     cityWallStats.textContent = cityCount
-        ? cityCount + ' 座城市 · ' + footprintTotal + ' 个足迹 · ' + photoTotal + ' 张照片' +
-          (ticketTotal ? ' · ' + ticketTotal + ' 张票根' : '')
-        : '每一座城市，都值得一张卡片';
+        ? cityCount + ' 座城市，' + footprintTotal + ' 条足迹，' + photoTotal + ' 张照片' +
+          (ticketTotal ? '，' + ticketTotal + ' 张票根' : '')
+        : '';
     renderCityWallProvinceFilter();
     cityWallGrid.innerHTML = '';
     if (cityWallEmpty) cityWallEmpty.hidden = cityCount > 0;
@@ -371,7 +371,7 @@ export function renderCityWall() {
         btn.dataset.cityIndex = String(card.ci);
         btn.setAttribute('aria-label',
             card.name + (card.province ? '，' + card.province : '') + '，' +
-            card.count + ' 个足迹' +
+            card.count + ' 条足迹' +
             (card.tickets ? '，' + card.tickets + ' 张票根' : '') + '，打开城市图片墙');
 
         const media = document.createElement('span');
@@ -425,21 +425,20 @@ export function renderCityWall() {
         body.className = 'city-wall-card-body';
         const eyebrow = document.createElement('span');
         eyebrow.className = 'city-wall-card-eyebrow';
-        eyebrow.textContent = card.province || 'TRAVELED';
+        eyebrow.textContent = card.province || '';
         const name = document.createElement('strong');
         name.className = 'city-wall-card-name';
         name.textContent = card.name;
         const meta = document.createElement('span');
         meta.className = 'city-wall-card-meta';
-        // 桌面展示「足迹 · 照片」；手机端紧凑卡只留一行，显示足迹数（照片数信息量更低）
-        meta.textContent = mobileView
-            ? (card.count ? card.count + ' 个足迹' : '暂无足迹')
-            : card.count + ' 个足迹 · ' + card.photos + ' 张照片';
+        // 一行事实：足迹数，后面跟「最近 某天」（由 CSS 用一条细竖线隔开）。
+        // 照片数已经写在顶上的总计里，卡片上不再重复
+        meta.textContent = card.count ? card.count + ' 条足迹' : '暂无足迹';
         body.append(eyebrow, name, meta);
         if (card.latest) {
             const recent = document.createElement('span');
             recent.className = 'city-wall-card-recent';
-            recent.textContent = '最近 ' + deps.formatCityDate(card.latest);
+            recent.textContent = '最近 ' + deps.formatCityDate(card.latest).replace(/\s*\/\s*/, '.');
             body.appendChild(recent);
         }
 

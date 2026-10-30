@@ -1,288 +1,125 @@
-        /* ============ 左侧足迹目录优化：展览目录式导航 ============ */
-        @media (min-width: 821px) {
-            .city-tabs {
-                position: relative;
-                width: 300px;
-                flex: 0 0 300px;
-                box-sizing: border-box;
-                gap: 8px;
-                padding: 14px 0 14px 18px;
-                border-top: 0;
-                border-left: 1px solid var(--city-line);
-                overflow-x: hidden;
-                overflow-y: auto;
-            }
-            .city-tabs::before {
-                margin: 0 12px 14px;
-                color: var(--city-accent);
-                content: "THIS CITY / 足迹目录";
-                font-size: 10px;
-                letter-spacing: 0.16em;
-            }
-            .city-tab {
-                display: grid;
-                grid-template-columns: 24px 68px minmax(0, 1fr);
-                align-items: center;
-                gap: 12px;
-                min-height: 84px;
-                box-sizing: border-box;
-                width: 100%;
-                max-width: 100%;
-                padding: 10px 14px 10px 10px;
-                border: 1px solid transparent;
-                border-radius: 0;
-                color: var(--city-muted);
-                transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
-            }
-            .city-tab:hover {
-                background: rgba(255, 255, 255, 0.045);
-                border-color: var(--city-line);
-                color: var(--city-ink);
-                transform: translateX(3px);
-            }
-            .city-tab.active {
-                background: linear-gradient(90deg, rgba(217, 168, 108, 0.14), rgba(217, 168, 108, 0.035));
-                border-color: rgba(217, 168, 108, 0.28);
-                color: var(--city-ink);
-                transform: translateX(6px);
-            }
-            .city-tab.active::before {
-                content: "";
-                position: absolute;
-                left: -2px;
-                width: 3px;
-                height: 46px;
-                background: var(--city-accent);
-            }
-            .city-tab-index {
-                align-self: start;
-                padding-top: 5px;
-                color: var(--city-faint);
-                font: 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-                letter-spacing: 0.04em;
-            }
-            .city-tab.active .city-tab-index { color: var(--city-accent); }
-            .city-tab-thumb {
-                width: 68px;
-                height: 68px;
-                border: 1px solid rgba(244, 239, 230, 0.13);
-                border-radius: 2px;
-                background: rgba(255, 255, 255, 0.06);
-                box-shadow: 0 7px 16px rgba(0, 0, 0, 0.16);
-            }
-            .city-tab.active .city-tab-thumb {
-                border-color: rgba(217, 168, 108, 0.65);
-                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
-            }
-            .city-tab-info {
-                min-width: 0;
-                max-width: 100%;
-                overflow: hidden;
-            }
-            .city-tab-name {
-                font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
-                font-size: 17px;
-                line-height: 1.35;
-                white-space: normal;
-                overflow: visible;
-                text-overflow: clip;
-                overflow-wrap: anywhere;
-            }
-            .city-tab-meta {
-                display: flex;
-                align-items: center;
-                flex-wrap: wrap;
-                gap: 5px 9px;
-                margin-top: 7px;
-                color: var(--city-faint);
-                font-size: 10px;
-                line-height: 1.35;
-                letter-spacing: 0.03em;
-                white-space: normal;
-            }
-            .city-tab-date {
-                color: var(--city-accent);
-                font: 600 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-                letter-spacing: 0.03em;
-            }
-            .city-tab-photos {
-                color: var(--city-faint);
-            }
-            .city-stage {
-                min-width: 0;
-            }
-        }
-        .city-map-wall {
-            display: none;
-            width: 100%;
-            overflow: hidden;
-            background: #151b22;
-            border: 1px solid rgba(244, 239, 230, 0.14);
-            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.3);
-        }
-        .city-map-canvas {
+        /* ============ 城市图片墙：左侧足迹目录 ============
+           一行一条足迹：序号 / 缩略图 / 足迹名（文楷）+ 日期与照片数。
+           当前项左边一条等高线色短线，行与行之间一条格线。手机端改成横排，见 city-gallery-mobile.css。 */
+        .city-tabs {
             position: relative;
-            min-height: 900px;
-            overflow: hidden;
-            background:
-                linear-gradient(rgba(244, 239, 230, 0.055) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(244, 239, 230, 0.055) 1px, transparent 1px),
-                radial-gradient(ellipse at 50% 42%, rgba(91, 119, 106, 0.28), transparent 42%),
-                #151b22;
-            background-size: 42px 42px, 42px 42px, auto, auto;
-        }
-        .city-map-canvas::before,
-        .city-map-canvas::after {
-            content: "";
-            position: absolute;
-            pointer-events: none;
-            border: 1px solid rgba(155, 183, 157, 0.16);
-            border-radius: 48% 52% 44% 56%;
-        }
-        .city-map-canvas::before {
-            top: 13%;
-            left: 30%;
-            width: 40%;
-            height: 54%;
-            transform: rotate(18deg);
-        }
-        .city-map-canvas::after {
-            top: 20%;
-            left: 35%;
-            width: 30%;
-            height: 41%;
-            transform: rotate(-12deg);
-        }
-        .city-map-route {
-            position: absolute;
-            top: 9%;
-            left: 20%;
-            width: 60%;
-            height: 62%;
-            border: 1px dashed rgba(217, 168, 108, 0.45);
-            border-radius: 47% 53% 61% 39%;
-            transform: rotate(-12deg);
-            pointer-events: none;
-        }
-        .city-map-route::after {
-            content: "";
-            position: absolute;
-            top: 48%;
-            left: 49%;
-            width: 9px;
-            height: 9px;
-            border: 2px solid #151b22;
-            border-radius: 50%;
-            background: var(--city-accent);
-            box-shadow: 0 0 0 8px rgba(217, 168, 108, 0.12);
-        }
-        .city-map-core {
-            position: absolute;
-            z-index: 3;
-            top: 278px;
-            left: 50%;
+            flex: 0 0 280px;
+            width: 280px;
+            min-height: 0;
             display: flex;
-            width: 300px;
-            min-height: 210px;
-            box-sizing: border-box;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 24px;
-            border: 1px solid rgba(217, 168, 108, 0.48);
-            border-radius: 50%;
-            background: rgba(20, 28, 29, 0.82);
-            box-shadow: 0 0 0 12px rgba(217, 168, 108, 0.045), 0 20px 50px rgba(0, 0, 0, 0.34);
-            transform: translateX(-50%);
-            text-align: center;
+            gap: 0;
+            padding: 0 0 24px;
+            box-sizing: border-box;
+            border-right: 1px solid var(--fp-rule);
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--fp-rule-strong) transparent;
         }
-        .city-map-core::before,
-        .city-map-core::after {
+        .city-tabs::before {
+            content: "这座城市的足迹";
+            display: block;
+            padding: 0 16px 10px 0;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+        }
+        .city-tab {
+            position: relative;
+            display: grid;
+            grid-template-columns: 22px 56px minmax(0, 1fr);
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            min-height: 76px;
+            padding: 10px 16px 10px 0;
+            box-sizing: border-box;
+            border: 0;
+            border-top: 1px solid var(--fp-rule);
+            border-radius: 0;
+            background: transparent;
+            color: var(--fp-ink-soft);
+            text-align: left;
+            font: inherit;
+            cursor: pointer;
+            transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease);
+        }
+        .city-tab:hover {
+            color: var(--fp-ink);
+            background: color-mix(in srgb, var(--fp-ink) 4%, transparent);
+        }
+        .city-tab:focus-visible {
+            outline: 2px solid var(--fp-water);
+            outline-offset: -2px;
+        }
+        .city-tab.active {
+            color: var(--fp-ink);
+        }
+        .city-tab.active::before {
             content: "";
             position: absolute;
-            border: 1px solid rgba(155, 183, 157, 0.22);
-            border-radius: 50%;
+            right: -1px;
+            top: 12px;
+            bottom: 12px;
+            width: 2px;
+            background: var(--fp-contour);
         }
-        .city-map-core::before { inset: -28px; }
-        .city-map-core::after { inset: -54px; border-style: dashed; opacity: 0.55; }
-        .city-map-core-kicker {
+        .city-tab-index {
+            align-self: start;
+            padding-top: 4px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
+        }
+        .city-tab.active .city-tab-index {
+            color: var(--fp-contour);
+        }
+        .city-tab-thumb {
             position: relative;
-            z-index: 1;
-            color: var(--city-accent);
-            font: 600 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-            letter-spacing: 0.22em;
+            width: 56px;
+            height: 56px;
+            flex: none;
+            overflow: hidden;
+            border-radius: var(--fp-radius-photo);
+            background: var(--cv-skeleton);
         }
-        .city-map-core strong {
-            position: relative;
-            z-index: 1;
-            color: var(--city-ink);
-            font: 400 24px/1.35 "Noto Serif SC", "Songti SC", "STSong", serif;
-        }
-        .city-map-core small {
-            position: relative;
-            z-index: 1;
-            color: var(--city-faint);
-            font: 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-            letter-spacing: 0.08em;
-        }
-        .city-map-photo {
-            position: absolute;
-            z-index: 4;
-            width: 150px;
-            height: 184px;
-            padding: 7px 7px 24px;
-            border: 1px solid rgba(39, 43, 39, 0.22);
-            border-radius: 1px;
-            background: #fffef9;
-            box-shadow: 5px 8px 16px rgba(0, 0, 0, 0.24);
-            cursor: zoom-in;
-            transform: rotate(var(--map-rotation, 0deg));
-            transition: transform 0.28s ease, box-shadow 0.28s ease;
-        }
-        .city-map-photo:nth-of-type(3n) { --map-rotation: -2deg; }
-        .city-map-photo:nth-of-type(4n) { --map-rotation: 2deg; }
-        .city-map-photo:hover,
-        .city-map-photo:focus-visible {
-            z-index: 8;
-            outline: none;
-            box-shadow: 9px 15px 28px rgba(0, 0, 0, 0.35);
-            transform: translateY(-7px) rotate(0) scale(1.06);
-        }
-        .city-map-photo img {
+        .city-tab-thumb img {
             display: block;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            background: #e6e3db;
         }
-        .city-map-photo::before {
-            content: "";
-            position: absolute;
-            z-index: -1;
-            top: 50%;
-            left: 50%;
-            width: 180px;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(217, 168, 108, 0.7), rgba(217, 168, 108, 0.05));
-            transform-origin: left center;
-            transform: rotate(var(--line-angle, 0deg));
+        .city-tab-info {
+            min-width: 0;
+            overflow: hidden;
         }
-        .city-map-pin {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 8px;
-            height: 8px;
-            border: 2px solid #151b22;
-            border-radius: 50%;
-            background: var(--city-accent);
-            box-shadow: 0 0 0 5px rgba(217, 168, 108, 0.14);
-            transform: translate(-50%, -50%);
+        .city-tab-name {
+            display: block;
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-md);
+            line-height: 1.35;
+            letter-spacing: 0.02em;
+            color: inherit;
+            overflow-wrap: anywhere;
         }
-
-        /* 聚焦与经典方案的安全卡位：避免照片过多时绝对定位互相覆盖 */
-        .city-wall-overflow-note {
-            display: none;
+        .city-tab-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px 10px;
+            margin-top: 4px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            line-height: 1.4;
+            font-variant-numeric: tabular-nums;
         }
-
+        @media (max-width: 1020px) {
+            .city-tabs {
+                flex-basis: 230px;
+                width: 230px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .city-tab {
+                transition: none;
+            }
+        }

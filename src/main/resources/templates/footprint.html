@@ -169,9 +169,9 @@
     <div id="photoRing" role="group" aria-label="足迹照片" aria-hidden="true"></div>
 
     <!-- 城市足迹全屏视图：左侧足迹 Tab 卡片 + 右侧详情 -->
-    <div id="cityView" role="dialog" aria-modal="true" aria-label="城市足迹" aria-hidden="true">
+    <div id="cityView" class="fp-sheet" role="dialog" aria-modal="true" aria-label="城市足迹" aria-hidden="true">
         <div class="city-view-top">
-            <button id="cityViewBack" type="button" aria-label="返回地球">
+            <button id="cityViewBack" class="fp-btn" type="button" aria-label="返回地球">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="9"/>
                     <ellipse cx="12" cy="12" rx="4" ry="9"/>
@@ -183,7 +183,6 @@
                 <!-- 标题行：足迹 / 城市名 / 统计。到访条刻意放到它下面另起一行，
                      否则到访一多就会把这行撑宽，把城市名顶到一边 -->
                 <div class="city-view-headline">
-                    <p class="city-view-eyebrow">Footprints · 足迹</p>
                     <h2 class="city-view-title-head" aria-label="城市名称">
                         <button type="button" id="cityViewTitle" class="city-title-options"
                                 aria-haspopup="listbox" aria-expanded="false" aria-label="切换城市">城市</button>
@@ -201,13 +200,13 @@
                         <span class="city-view-timeline-label">到访</span>
                         <ol id="cityViewTimelineList" class="city-view-timeline-list"></ol>
                     </div>
-                    <button id="cityViewTickets" class="city-view-tickets" type="button" hidden>看这座城市的票根</button>
+                    <button id="cityViewTickets" class="city-view-tickets fp-btn" type="button" hidden>看这座城市的票根</button>
                 </div>
                 <div id="cityViewCityList" class="city-view-city-list" role="listbox" aria-label="城市列表" hidden></div>
             </div>
             <div class="city-view-nav">
-                <button id="cityViewPrevCity" type="button" aria-label="上一个城市">‹</button>
-                <button id="cityViewNextCity" type="button" aria-label="下一个城市">›</button>
+                <button id="cityViewPrevCity" class="fp-btn" type="button" aria-label="上一个城市">‹</button>
+                <button id="cityViewNextCity" class="fp-btn" type="button" aria-label="下一个城市">›</button>
             </div>
         </div>
         <div class="city-view-body" id="cityViewBody">
@@ -259,9 +258,9 @@
         <div id="memoryShelfBody" class="ms-body" aria-live="polite"></div>
     </div>
     <!-- 城市卡片墙：全部已到访城市的总览目录，点击卡片进入对应城市图片墙 -->
-    <div id="cityWall" role="dialog" aria-modal="true" aria-label="城市卡片墙" aria-hidden="true">
+    <div id="cityWall" class="fp-sheet" role="dialog" aria-modal="true" aria-label="城市卡片墙" aria-hidden="true">
         <div class="city-wall-top">
-            <button id="cityWallBack" type="button" aria-label="返回地球">
+            <button id="cityWallBack" class="fp-btn" type="button" aria-label="返回地球">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="9"/>
                     <ellipse cx="12" cy="12" rx="4" ry="9"/>
@@ -270,34 +269,32 @@
                 <span>返回地球</span>
             </button>
             <div class="city-wall-head">
-                <p class="city-wall-eyebrow">CITY COLLECTION · 城市目录</p>
-                <h2 id="cityWallTitle">城市卡片墙</h2>
-                <p id="cityWallStats"></p>
-                <button id="cityWallProvinceFilter" class="city-wall-province-filter" type="button" hidden></button>
+                <h2 id="cityWallTitle" class="fp-title">城记</h2>
+                <p id="cityWallStats" class="fp-lede"></p>
+                <button id="cityWallProvinceFilter" class="city-wall-province-filter fp-btn" type="button" hidden></button>
             </div>
             <div class="city-wall-actions" id="cityWallFeatureActions">
-                <button id="cityWallTimeCapsuleBtn" type="button" hidden>去年今天</button>
-                <button id="cityWallInsightBtn" type="button" hidden>足迹洞察</button>
+                <button id="cityWallTimeCapsuleBtn" class="fp-btn" type="button" hidden>去年今天</button>
+                <button id="cityWallInsightBtn" class="fp-btn" type="button" hidden>足迹洞察</button>
             </div>
         </div>
         <div class="city-wall-body">
             <div class="city-wall-grid" id="cityWallGrid" aria-live="polite"></div>
             <div id="cityWallEmpty" class="city-wall-empty-view" hidden>
-                <p>还没有收录城市足迹</p>
-                <span>回到地球，继续记录下一段旅程。</span>
+                <p>还没有城市足迹</p>
+                <span>添加足迹后，这里会按城市列出。</span>
             </div>
         </div>
     </div>
     <!-- 去年今天：历史同月同日的足迹回看 -->
-    <div id="timeCapsule" class="feature-overlay" role="dialog" aria-modal="true" aria-label="去年今天" aria-hidden="true">
+    <div id="timeCapsule" class="feature-overlay fp-sheet" role="dialog" aria-modal="true" aria-label="去年今天" aria-hidden="true">
         <div class="feature-top">
-            <button id="timeCapsuleBack" class="feature-back" type="button" aria-label="返回城市墙">
-                <span>‹ 返回城市墙</span>
+            <button id="timeCapsuleBack" class="feature-back" type="button" aria-label="返回城记">
+                <span>‹ 返回城记</span>
             </button>
             <div class="feature-head">
-                <p class="feature-eyebrow">THIS DAY IN MY TRIPS</p>
-                <h2>去年今天，你在哪里</h2>
-                <p id="timeCapsuleStats"></p>
+                <h2 class="fp-title">去年今天</h2>
+                <p id="timeCapsuleStats" class="fp-lede"></p>
             </div>
             <div class="feature-nav">
                 <button id="timeCapsulePrev" type="button" aria-label="上一条">‹</button>
@@ -307,15 +304,14 @@
         <div class="feature-body" id="timeCapsuleBody" aria-live="polite"></div>
     </div>
     <!-- 足迹洞察：可翻页的洞察卡（概览 / 时间 / 省份 / 距离 / 类型 / 年度 / 成就） -->
-    <div id="insightView" class="feature-overlay" role="dialog" aria-modal="true" aria-label="足迹洞察" aria-hidden="true">
+    <div id="insightView" class="feature-overlay fp-sheet" role="dialog" aria-modal="true" aria-label="足迹洞察" aria-hidden="true">
         <div class="feature-top">
-            <button id="insightBack" class="feature-back" type="button" aria-label="返回城市墙">
-                <span>‹ 返回城市墙</span>
+            <button id="insightBack" class="feature-back" type="button" aria-label="返回城记">
+                <span>‹ 返回城记</span>
             </button>
             <div class="feature-head">
-                <p class="feature-eyebrow">FOOTPRINT INSIGHT</p>
-                <h2>足迹洞察</h2>
-                <p id="insightTitle"></p>
+                <h2 class="fp-title">足迹洞察</h2>
+                <p id="insightTitle" class="fp-lede"></p>
             </div>
             <div class="feature-nav">
                 <button id="insightPrevCard" type="button" aria-label="上一张洞察">‹</button>
@@ -328,18 +324,17 @@
                 <div class="insight-dots" id="insightDots" role="tablist" aria-label="洞察分页"></div>
                 <button id="insightPageCount" class="insight-page-count" type="button" hidden>1 / 7</button>
             </div>
-            <p class="insight-note">按相邻足迹直线距离估算，供回顾使用；带箭头的数字可以点进去看对应内容</p>
+            <p class="insight-note">里程按时间先后相邻的两条足迹之间的直线距离估算。带 › 的行可以点开对应内容。</p>
         </div>
     </div>
     <!-- 旅行明信片预览 -->
-    <div id="postcardPreview" class="feature-overlay" role="dialog" aria-modal="true" aria-label="旅行明信片" aria-hidden="true">
+    <div id="postcardPreview" class="feature-overlay fp-sheet" role="dialog" aria-modal="true" aria-label="旅行明信片" aria-hidden="true">
         <div class="feature-top">
-            <button id="postcardBack" class="feature-back" type="button" aria-label="返回城市墙">
-                <span>‹ 返回城市墙</span>
+            <button id="postcardBack" class="feature-back" type="button" aria-label="返回城记">
+                <span>‹ 返回城记</span>
             </button>
             <div class="feature-head">
-                <p class="feature-eyebrow">CITY POSTCARD</p>
-                <h2 id="postcardTitle">旅行明信片</h2>
+                <h2 id="postcardTitle" class="fp-title">旅行明信片</h2>
             </div>
             <div class="feature-nav"></div>
         </div>
@@ -349,12 +344,12 @@
                 <img id="postcardPreviewImg" alt="旅行明信片预览">
                 <div class="postcard-status">
                     <p id="postcardStatus" aria-live="polite">正在生成明信片…</p>
-                    <button id="postcardRetry" type="button" hidden>重新生成</button>
+                    <button id="postcardRetry" class="fp-btn" type="button" hidden>重新生成</button>
                 </div>
             </div>
             <div class="postcard-actions">
-                <button id="postcardDownload" type="button" disabled>下载图片</button>
-                <button id="postcardShare" type="button" hidden>分享</button>
+                <button id="postcardDownload" class="fp-btn is-primary" type="button" disabled>下载图片</button>
+                <button id="postcardShare" class="fp-btn" type="button" hidden>分享</button>
             </div>
         </div>
     </div>

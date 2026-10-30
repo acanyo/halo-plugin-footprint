@@ -1,7 +1,4 @@
-        /* ============ 创意功能：卡片容器 / 明信片入口 ============ */
-        .city-wall-grid {
-            align-items: stretch;
-        }
+        /* ============ 城记卡片上的明信片入口 / 悬停轮播 ============ */
         .city-wall-card-wrap {
             position: relative;
             display: flex;
@@ -11,29 +8,29 @@
             flex: 1 1 auto;
             width: 100%;
         }
+        /* 压在照片右上角：颜色变量在 #cityWall 上（city-card-wall.css） */
         .city-wall-card-postcard {
             position: absolute;
             top: 8px;
             right: 8px;
             z-index: 5;
-            padding: 5px 10px;
-            border: 1px solid rgba(255, 253, 247, 0.36);
-            border-radius: 999px;
-            background: rgba(30, 26, 20, 0.58);
-            color: #f7f1e6;
-            font: 500 11px/1.3 "PingFang SC", "Microsoft YaHei", sans-serif;
-            letter-spacing: 0.04em;
+            padding: 4px 8px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--cw-photo-chip);
+            color: var(--cw-photo-ink);
+            font: 500 var(--fp-size-xs)/1.3 var(--fp-font-text);
             cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
+            transition: background-color var(--fp-dur) var(--fp-ease);
         }
-        .city-wall-card-postcard:hover,
+        .city-wall-card-postcard:hover {
+            background: var(--cw-photo-chip-hover);
+        }
         .city-wall-card-postcard:focus-visible {
-            background: #fffdf7;
-            color: #6e5945;
-            outline: none;
+            background: var(--cw-photo-chip-hover);
+            outline: 2px solid var(--fp-water);
+            outline-offset: 2px;
         }
-
-        /* ============ 创意功能：PC 悬停轮播 ============ */
         .city-wall-card-preview {
             position: absolute;
             inset: 0;
@@ -42,7 +39,7 @@
             height: 100%;
             object-fit: cover;
             opacity: 0;
-            transition: opacity 0.45s ease;
+            transition: opacity var(--fp-dur) var(--fp-ease);
         }
         .city-wall-card.is-carouseling .city-wall-card-cover,
         .city-wall-card.is-carouseling .city-wall-card-preview {
@@ -53,19 +50,14 @@
             z-index: 1;
             opacity: 1;
         }
-        .city-wall-card-tickets {
-            z-index: 4;
-        }
-        .city-wall-card-postcard {
-            z-index: 5;
-        }
         @media (prefers-reduced-motion: reduce) {
-            .city-wall-card-preview {
+            .city-wall-card-preview,
+            .city-wall-card-postcard {
                 transition: none;
             }
         }
 
-        /* ============ 创意功能：卡片墙顶栏操作区 ============ */
+        /* 城记顶栏右侧：去年今天 / 足迹洞察 */
         .city-wall-actions {
             justify-self: end;
             display: flex;
@@ -75,23 +67,7 @@
             min-width: 0;
         }
         .city-wall-actions button {
-            padding: 7px 13px;
-            border: 1px solid rgba(118, 92, 61, 0.24);
-            border-radius: 999px;
-            background: rgba(255, 253, 247, 0.58);
-            color: #6e5945;
-            font: 12px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
-            letter-spacing: 0.04em;
             white-space: nowrap;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-        }
-        .city-wall-actions button:hover,
-        .city-wall-actions button:focus-visible {
-            border-color: #6e5945;
-            background: #6e5945;
-            color: #fffdf7;
-            outline: none;
         }
         .city-wall-actions button[hidden] {
             display: none;
@@ -102,79 +78,77 @@
                 grid-row: 2;
                 justify-self: center;
                 justify-content: center;
-                padding-top: 4px;
+                padding-top: 2px;
             }
         }
 
-        /* ============ 创意功能：通用覆盖层（浅色杂志风） ============ */
+        /* ============ 叠在城记上的全屏页：去年今天 / 足迹洞察 / 明信片 ============
+           这三页（以及票根页的护照、抽票、写信）共用 .feature-overlay 外框。
+           颜色全部取 --fp-*：根元素带 .fp-sheet 时是白图。
+
+           这几页在 #view-3d 里面，而 #view-3d 自己是一个层叠上下文（z-index: 2），
+           所以它们的 z-index 再大也盖不过外面的顶部导航（#topNav，z-index 10000）。
+           从城记打开时顶栏会因 body.city-wall-open 隐藏；但城记已关、页面单独打开时，
+           顶栏会压在页头上，正好挡住「返回城记」和标题。所以页面打开时在这里把顶栏收起。 */
+        body:has(#timeCapsule.show) #topNav,
+        body:has(#insightView.show) #topNav,
+        body:has(#postcardPreview.show) #topNav,
+        body:has(#timeCapsule.show) #pageIntro,
+        body:has(#insightView.show) #pageIntro,
+        body:has(#postcardPreview.show) #pageIntro {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.18s ease, visibility 0.18s;
+        }
         .feature-overlay {
             position: fixed;
             inset: 0;
             z-index: 10016;
             display: flex;
             flex-direction: column;
-            background: #e8e0d2;
-            color: #3d4038;
-            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--fp-paper);
+            color: var(--fp-ink);
+            font-family: var(--fp-font-text);
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.26s ease, visibility 0.26s ease;
+            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur);
         }
         .feature-overlay.show {
             opacity: 1;
             visibility: visible;
         }
         .feature-top {
+            position: relative;
+            z-index: 2;
             flex: none;
             display: grid;
             grid-template-columns: minmax(130px, 1fr) auto minmax(130px, 1fr);
             align-items: center;
             gap: 14px;
-            padding: 14px 30px 12px;
-            background: rgba(243, 238, 226, 0.96);
-            border-bottom: 1px solid rgba(118, 92, 61, 0.18);
-            box-shadow: 0 4px 18px rgba(87, 66, 46, 0.08);
+            padding: max(16px, env(safe-area-inset-top)) 40px 14px;
+            border-bottom: 1px solid var(--fp-rule);
+            background: var(--fp-paper);
             box-sizing: border-box;
+        }
+        /* 返回按钮与左右翻页：和 .fp-btn 同一个样子（票根页的几个浮层也用这套外框，所以写在这里） */
+        .feature-back,
+        .feature-nav button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 32px;
+            border: 1px solid var(--fp-rule-strong);
+            border-radius: var(--fp-radius-control);
+            background: transparent;
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            cursor: pointer;
+            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
         }
         .feature-back {
             justify-self: start;
-            padding: 8px 15px;
-            border: 1px solid rgba(118, 92, 61, 0.25);
-            border-radius: 999px;
-            background: rgba(255, 253, 247, 0.58);
-            color: #6e5945;
-            font: 13px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
-            letter-spacing: 0.04em;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-        .feature-back:hover,
-        .feature-back:focus-visible {
-            background: #6e5945;
-            color: #fffdf7;
-            outline: none;
-        }
-        .feature-head {
-            text-align: center;
-            min-width: 0;
-        }
-        .feature-eyebrow {
-            margin: 0 0 5px;
-            color: #9b704e;
-            font: 600 10px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
-            letter-spacing: 0.22em;
-        }
-        .feature-head h2 {
-            margin: 0;
-            color: #35423d;
-            font: 400 clamp(24px, 2.5vw, 36px)/1.2 "Noto Serif SC", "Songti SC", "STSong", serif;
-            letter-spacing: 0.04em;
-        }
-        .feature-head p:last-child {
-            margin: 6px 0 0;
-            color: #8b7865;
-            font-size: 11px;
-            letter-spacing: 0.06em;
+            padding: 0 12px;
         }
         .feature-nav {
             justify-self: end;
@@ -183,58 +157,66 @@
         }
         .feature-nav button {
             width: 36px;
-            height: 36px;
-            border: 1px solid rgba(118, 92, 61, 0.25);
-            border-radius: 50%;
-            background: rgba(255, 253, 247, 0.7);
-            color: #6e5945;
-            font-size: 18px;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
+            padding: 0;
+            font-size: var(--fp-size-lg);
         }
-        .feature-nav button:hover,
+        .feature-back:hover,
+        .feature-nav button:hover {
+            border-color: var(--fp-ink-soft);
+            background: var(--fp-rule);
+        }
+        .feature-back:focus-visible,
         .feature-nav button:focus-visible {
-            background: #6e5945;
-            color: #fffdf7;
-            outline: none;
+            outline: 2px solid var(--fp-water);
+            outline-offset: 2px;
         }
         .feature-nav button[hidden] {
+            display: none;
+        }
+        .feature-head {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+            text-align: center;
+        }
+        .feature-head h2 {
+            margin: 0;
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-2xl);
+            font-weight: 400;
+            line-height: 1.25;
+            letter-spacing: 0.02em;
+            color: var(--fp-ink);
+        }
+        .feature-head p:last-child {
+            margin: 0;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
+            font-variant-numeric: tabular-nums;
+        }
+        .feature-head p:empty {
             display: none;
         }
         .feature-body {
             flex: 1;
             min-height: 0;
             overflow-y: auto;
-            padding: 34px 40px 60px;
+            padding: 32px 40px 48px;
             box-sizing: border-box;
-            /* 成就卡有 24 枚徽章，这一屏常常要滚动：滚动条收成细的暖色，
-               并且常驻占位，翻页时内容不会跟着滚动条一会出现一会消失而左右跳 */
+            /* 成就页常常要滚动：滚动条常驻占位，翻页时内容不会左右跳 */
             scrollbar-width: thin;
-            scrollbar-color: rgba(118, 92, 61, 0.3) transparent;
+            scrollbar-color: var(--fp-rule-strong) transparent;
             scrollbar-gutter: stable;
         }
-        .feature-body::-webkit-scrollbar {
-            width: 12px;
-        }
-        .feature-body::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .feature-body::-webkit-scrollbar-thumb {
-            border: 4px solid transparent;
-            border-radius: 999px;
-            background: rgba(118, 92, 61, 0.3);
-            background-clip: content-box;
-        }
-        .feature-body::-webkit-scrollbar-thumb:hover {
-            background: rgba(118, 92, 61, 0.44);
-            background-clip: content-box;
-        }
 
-        /* 去年今天 */
+        /* ============ 去年今天 ============
+           照片在左，右边一页记录：类型、足迹名（文楷）、地点与日期分行、描述、两个入口。 */
         .capsule-card {
             display: grid;
             grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.8fr);
-            gap: 38px;
+            gap: 40px;
             max-width: 1120px;
             margin: 0 auto;
             align-items: center;
@@ -243,326 +225,361 @@
             position: relative;
             aspect-ratio: 4 / 3;
             overflow: hidden;
-            border: 1px solid rgba(118, 92, 61, 0.16);
-            background: #cdbfa6;
-            box-shadow: 0 18px 44px rgba(87, 66, 46, 0.16);
+            border-radius: var(--fp-radius-photo);
+            background: var(--fp-paper-raised);
         }
         .capsule-shot img {
+            display: block;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
         }
         .capsule-shot.no-image {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255, 253, 247, 0.9);
-            font: 400 120px/1 "Noto Serif SC", "Songti SC", serif;
+            border: 1px solid var(--fp-rule);
+            color: var(--fp-ink-faint);
+            font: 400 96px/1 var(--fp-font-title);
         }
         .capsule-info {
-            padding: 10px 4px;
+            padding: 4px 0;
         }
         .capsule-eyebrow {
-            margin: 0 0 8px;
-            color: #9b704e;
-            font: 600 10px/1.3 ui-monospace, Consolas, monospace;
-            letter-spacing: 0.18em;
+            margin: 0 0 6px;
+            color: var(--fp-contour);
+            font-size: var(--fp-size-xs);
         }
         .capsule-info h3 {
-            margin: 0 0 8px;
-            color: #35423d;
-            font: 400 34px/1.3 "Noto Serif SC", "Songti SC", "STSong", serif;
-        }
-        .capsule-meta {
             margin: 0 0 12px;
-            color: #8b7865;
-            font-size: 13px;
-            letter-spacing: 0.04em;
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-2xl);
+            font-weight: 400;
+            line-height: 1.25;
+            letter-spacing: 0.02em;
+            color: var(--fp-ink);
+        }
+        /* 地点、日期、地址各占一行（JS 用换行拼） */
+        .capsule-meta {
+            margin: 0 0 16px;
+            padding: 10px 0;
+            border-top: 1px solid var(--fp-rule);
+            border-bottom: 1px solid var(--fp-rule);
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
+            line-height: 1.8;
+            font-variant-numeric: tabular-nums;
+            white-space: pre-line;
         }
         .capsule-desc {
             margin: 0 0 22px;
-            color: #6f6253;
-            font: 15px/1.9 "Noto Serif SC", "Songti SC", serif;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-md);
+            line-height: 1.7;
+        }
+        .capsule-desc:empty {
+            display: none;
         }
         .capsule-actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
         .capsule-actions button {
-            padding: 8px 16px;
-            border: 1px solid rgba(118, 92, 61, 0.32);
-            border-radius: 999px;
-            background: rgba(255, 253, 247, 0.8);
-            color: #6e5945;
-            font: 12px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
+            display: inline-flex;
+            align-items: center;
+            min-height: 32px;
+            padding: 0 12px;
+            border: 1px solid var(--fp-rule-strong);
+            border-radius: var(--fp-radius-control);
+            background: transparent;
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
+            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
         }
-        .capsule-actions button:hover,
+        .capsule-actions button:hover {
+            border-color: var(--fp-ink-soft);
+            background: var(--fp-rule);
+        }
         .capsule-actions button:focus-visible {
-            background: #6e5945;
-            color: #fffdf7;
-            outline: none;
-        }
-        .capsule-actions button.is-ticket {
-            border-color: rgba(155, 112, 78, 0.55);
+            outline: 2px solid var(--fp-water);
+            outline-offset: 2px;
         }
 
-        /* 足迹洞察：可左右翻页的洞察卡 */
+        /* ============ 足迹洞察：一页手簿 ============
+           每一页：小节名（文楷）、一句话总结、下面一张两栏账目（左标签、右数值，行间一条格线）。
+           成就页是一张清单：已达成标一个标注红实心点，未达成是空心圈。全部左对齐。 */
+        #insightView {
+            --insight-month-bar: color-mix(in srgb, var(--fp-ink) 22%, transparent);
+            --insight-month-empty: var(--fp-rule);
+        }
         .insight-body {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
             gap: 20px;
-            /* 这一层是 .feature-overlay 的 flex 子项，而 margin: 0 auto 会让它在交叉轴上
-               变成「由内容撑开」——那样徽章区的宽度就跟内容走、跟视口无关了。
-               所以宽度必须写死成 100%，再靠 max-width 封顶，徽章区才有稳定的参考宽度。
-               其余卡片自带更窄的 max-width（统计表 780 / 月份条 640）且 margin auto，不会被拉宽 */
+            /* 这一层是 .feature-overlay 的 flex 子项：宽度写死 100% 再用 max-width 封顶，
+               否则 margin: 0 auto 会让它的宽度跟着内容走 */
             width: 100%;
-            max-width: min(1500px, 100%);
+            max-width: 100%;
             margin: 0 auto;
+        }
+        /* 页码条钉在滚动区底边：滚动区自己的下内边距要挪进来，否则页码条下面会露出一截内容 */
+        #insightView .feature-body {
+            padding-bottom: 0;
+        }
+        .insight-body {
+            padding-bottom: 32px;
         }
         .insight-deck {
             width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
         }
         .insight-card {
             display: none;
         }
         .insight-card.is-active {
             display: block;
-            animation: insightCardIn 0.28s ease both;
+            animation: insightCardIn var(--fp-dur) var(--fp-ease) both;
         }
         @keyframes insightCardIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: none; }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
+        /* 小节名：概览 / 时间 / 省份…… */
         .insight-kicker {
-            margin: 3vh 0 12px;
-            color: #9b704e;
-            text-align: center;
-            font: 600 11px/1.3 ui-monospace, Consolas, monospace;
-            letter-spacing: 0.24em;
-        }
-        .insight-headline {
-            /* 卡片容器现在会随视口变宽（成就卡要铺列），但正文仍限制在可读行宽内居中，
-               免得一句话被拉成一整行超长的横条 */
-            max-width: 900px;
-            margin: 0 auto 26px;
-            color: #35423d;
-            text-align: center;
-            font: 400 clamp(22px, 2.5vw, 34px)/1.55 "Noto Serif SC", "Songti SC", "STSong", serif;
+            margin: 0 0 8px;
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-xl);
+            line-height: 1.25;
             letter-spacing: 0.02em;
+            color: var(--fp-ink);
         }
-        /* 「换一个说法」只让这句话淡入，下面的统计表不动 */
+        /* 一句话总结：正文字号，说事实，不加粗不放大 */
+        .insight-headline {
+            max-width: 40em;
+            margin: 0 0 18px;
+            color: var(--fp-ink-soft);
+            font: 400 var(--fp-size-md)/1.7 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
+        }
+        /* 「换一个说法」只让这句话淡入，下面的账目不动 */
         .insight-headline.is-swapping {
-            animation: insightTextIn 0.32s ease both;
+            animation: insightCardIn var(--fp-dur) var(--fp-ease) both;
         }
-        @keyframes insightTextIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: none; }
-        }
-        /* 成就卡标题下的小字：这一屏的称号进度（已解锁 N / 13 个称号） */
+        /* 成就页标题下的小字：已解锁 N / 13 个称号 */
         .insight-card-note {
-            margin: -14px 0 16px;
-            color: #a39380;
-            font-size: 11.5px;
-            letter-spacing: 0.06em;
-            text-align: center;
+            margin: -10px 0 14px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
         }
+        /* 两栏账目：一行一项，左标签、右数值；说明（hint）写在数值后面，淡一级 */
         .insight-metrics {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 14px;
-            margin: 0 auto;
-            max-width: 780px;
-            text-align: left;
-        }
-        .insight-metric {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            padding: 16px 18px;
+            margin: 0;
+            border-top: 1px solid var(--fp-rule-strong);
+        }
+        .insight-metric {
+            display: grid;
+            grid-template-columns: minmax(7em, 12em) minmax(0, 1fr) auto;
+            align-items: baseline;
+            column-gap: 16px;
+            width: 100%;
+            margin: 0;
+            padding: 9px 0;
             box-sizing: border-box;
-            border: 1px solid rgba(118, 92, 61, 0.14);
-            border-radius: 14px;
-            background: rgba(255, 253, 247, 0.68);
+            border: 0;
+            border-bottom: 1px solid var(--fp-rule);
+            border-radius: 0;
+            background: transparent;
             color: inherit;
             font: inherit;
             text-align: left;
         }
         .insight-metric-label {
-            color: #9b704e;
-            font-size: 11px;
-            letter-spacing: 0.08em;
+            grid-column: 1;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
         }
         .insight-metric-value {
-            color: #35423d;
-            font: 400 19px/1.4 "Noto Serif SC", "Songti SC", serif;
+            grid-column: 2;
+            color: var(--fp-ink);
+            font-size: var(--fp-size-md);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
             word-break: break-word;
         }
         .insight-metric-hint {
-            color: #a39380;
-            font-size: 11px;
+            grid-column: 2;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
             font-style: normal;
-            letter-spacing: 0.04em;
         }
-        /* 可点的数字：点进去直达对应内容（城市墙 / 票根墙 / 某省 / 某座城市） */
+        /* 能点的行：点进去直达对应内容（城记 / 票根册 / 某省 / 某座城市），行尾一个 › */
         button.insight-metric {
             cursor: pointer;
-            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+            transition: background-color var(--fp-dur) var(--fp-ease);
         }
-        button.insight-metric:hover,
+        button.insight-metric::after {
+            content: "›";
+            grid-column: 3;
+            grid-row: 1;
+            color: var(--fp-water);
+            font-size: var(--fp-size-lg);
+            line-height: 1;
+        }
+        button.insight-metric .insight-metric-value {
+            color: var(--fp-water);
+        }
+        button.insight-metric:hover {
+            background: color-mix(in srgb, var(--fp-ink) 4%, transparent);
+        }
         button.insight-metric:focus-visible {
-            background: #fffdf7;
-            border-color: #6e5945;
-            transform: translateY(-1px);
-            outline: none;
+            outline: 2px solid var(--fp-water);
+            outline-offset: -2px;
         }
-        button.insight-metric:focus-visible {
-            box-shadow: 0 0 0 2px rgba(155, 112, 78, 0.45);
-        }
-        button.insight-metric .insight-metric-label::after {
-            content: " ›";
-            color: #9b704e;
-        }
-        /* 12 个月分布条 */
+        /* 12 个月分布：细柱，最多的那个月用等高线色 */
         .insight-months {
             display: flex;
             align-items: flex-end;
-            justify-content: center;
-            gap: 5px;
-            margin: 0 auto 22px;
-            max-width: 640px;
+            gap: 4px;
+            max-width: 520px;
+            margin: 0 0 20px;
         }
         .insight-month {
             display: flex;
             flex: 1 1 0;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             min-width: 0;
         }
         .insight-month-bar {
             width: 100%;
-            max-width: 30px;
-            height: calc(8px + var(--month-ratio, 0) * 52px);
-            border-radius: 4px 4px 2px 2px;
-            background: rgba(216, 174, 120, 0.5);
+            max-width: 24px;
+            height: calc(4px + var(--month-ratio, 0) * 56px);
+            border-radius: 1px;
+            background: var(--insight-month-bar);
         }
         .insight-month.is-top .insight-month-bar {
-            background: #d8ae78;
+            background: var(--fp-contour);
         }
         .insight-month.is-empty .insight-month-bar {
-            background: rgba(118, 92, 61, 0.16);
+            background: var(--insight-month-empty);
         }
         .insight-month em {
-            color: #a39380;
-            font-size: 10px;
+            color: var(--fp-ink-faint);
+            font-size: 11px;
             font-style: normal;
+            font-variant-numeric: tabular-nums;
         }
-        /* 年份切换等胶囊 */
+        /* 「换一个说法」、年份切换 */
         .insight-chips {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-            margin: 0 auto 22px;
+            gap: 6px;
+            margin: 0 0 18px;
         }
         .insight-chip {
-            padding: 6px 14px;
-            border: 1px solid rgba(118, 92, 61, 0.24);
-            border-radius: 999px;
-            background: rgba(255, 253, 247, 0.62);
-            color: #6e5945;
-            font: 500 12px/1.2 "PingFang SC", "Microsoft YaHei", sans-serif;
-            letter-spacing: 0.05em;
+            display: inline-flex;
+            align-items: center;
+            min-height: 30px;
+            padding: 0 10px;
+            border: 1px solid var(--fp-rule-strong);
+            border-radius: var(--fp-radius-control);
+            background: transparent;
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-xs)/1 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
             cursor: pointer;
-            transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
         }
-        .insight-chip:hover,
+        .insight-chip:hover {
+            border-color: var(--fp-ink-soft);
+            background: var(--fp-rule);
+        }
         .insight-chip:focus-visible {
-            background: rgba(255, 253, 247, 0.92);
-            border-color: #6e5945;
-            outline: none;
+            outline: 2px solid var(--fp-water);
+            outline-offset: 2px;
         }
         .insight-chip.is-active {
-            border-color: #d8ae78;
-            background: rgba(216, 174, 120, 0.22);
-            color: #5b4a38;
+            border-color: var(--fp-contour);
+            color: var(--fp-contour);
         }
-        /* 轻成就 */
+        /* 成就清单：宽屏两列，行间格线；左边一个小圆标出达成与否 */
         .insight-badges {
             display: grid;
-            /* 列数交给浏览器按视口算：最小列宽本身跟着视口伸缩（手机 140px，宽屏封顶 250px），
-               再由 auto-fill 决定这一排能放几个，所以不再写死 3 列 / 2 列的断点 */
-            grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 30vw, 250px), 1fr));
-            gap: 8px;
-            margin: 0 auto;
-            max-width: 100%;
-            text-align: left;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+            column-gap: 32px;
+            margin: 0;
+            border-top: 1px solid var(--fp-rule-strong);
         }
         .insight-badge {
             display: flex;
-            align-items: center;
-            gap: 9px;
-            /* 24 枚徽章排 8 行，单格压扁一点，整张卡才不至于把翻页条顶到屏幕外 */
-            padding: 10px 12px;
-            border: 1px solid rgba(118, 92, 61, 0.14);
-            border-radius: 12px;
-            background: rgba(255, 253, 247, 0.6);
-            color: #5b4a38;
-            font-size: 12.5px;
-            line-height: 1.3;
+            align-items: baseline;
+            gap: 10px;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--fp-rule);
+            color: var(--fp-ink);
+            font-size: var(--fp-size-sm);
+            line-height: 1.4;
         }
-        .insight-badge.is-locked {
-            opacity: 0.55;
-        }
+        /* 圆点里的「已达成 / 未达成」文字只给读屏用，视觉上是一个点 */
         .insight-badge-mark {
-            display: flex;
+            position: relative;
+            top: 1px;
             flex: none;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 20px;
+            width: 8px;
+            height: 8px;
+            box-sizing: border-box;
+            overflow: hidden;
+            border: 1.5px solid var(--fp-ink-faint);
             border-radius: 50%;
-            background: rgba(216, 174, 120, 0.28);
-            color: #9b704e;
-            font-size: 11px;
+            color: transparent;
+            font-size: 0;
         }
         .insight-badge.is-earned .insight-badge-mark {
-            background: #d8ae78;
-            color: #fffdf7;
+            border-color: var(--fp-mark);
+            background: var(--fp-mark);
         }
         .insight-badge-text {
             display: flex;
             flex-direction: column;
             gap: 2px;
+            min-width: 0;
+        }
+        .insight-badge-text strong {
+            font-weight: 500;
+        }
+        .insight-badge.is-locked .insight-badge-text strong {
+            color: var(--fp-ink-soft);
+            font-weight: 400;
         }
         .insight-badge-text em {
-            color: #a39380;
-            font-size: 11px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
             font-style: normal;
+            font-variant-numeric: tabular-nums;
         }
-        /* 页码：可点区域 44×44，视觉上仍是一排小点（当前项是短条），
-           外面加一层淡底衬，让人一眼看出这排页码是可以点的 */
+        /* 页码：钉在底部，长页面不用先滚到底才能翻页。可点区域 30×44，视觉上是一排小点 */
         .insight-pager {
+            position: sticky;
+            bottom: 0;
+            z-index: 3;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            padding: 3px 12px;
-            border: 1px solid rgba(118, 92, 61, 0.12);
-            border-radius: 999px;
-            /* 长卡片（成就）滚动时把「页码 + 左右翻页」钉在底部，
-               不用先滚到底才能翻下一张；背景跟着做实一点，免得徽章透上来 */
-            position: sticky;
-            bottom: 4px;
-            z-index: 3;
-            background: rgba(243, 238, 226, 0.94);
-            backdrop-filter: blur(4px);
-            box-shadow: 0 2px 10px rgba(87, 66, 46, 0.06);
+            width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 2px 0;
+            border-top: 1px solid var(--fp-rule);
+            background: var(--fp-paper);
         }
         .insight-dots {
             display: flex;
@@ -572,8 +589,6 @@
         .insight-dots[hidden] {
             display: none;
         }
-        /* 每个点自己独占 30×44 的热区：不重叠，所以点哪儿都是它自己，
-           可见的小圆仍是 8px（当前项 22×8 短条） */
         .insight-dot {
             display: flex;
             align-items: center;
@@ -589,61 +604,56 @@
         .insight-dot::before {
             content: "";
             display: block;
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: rgba(118, 92, 61, 0.22);
-            transition: width 0.2s ease, background 0.18s ease, box-shadow 0.18s ease;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--fp-rule-strong);
+            transition: background-color var(--fp-dur) var(--fp-ease);
         }
         .insight-dot:hover::before {
-            background: rgba(155, 112, 78, 0.6);
+            background: var(--fp-ink-faint);
         }
         .insight-dot:focus-visible {
             outline: none;
         }
         .insight-dot:focus-visible::before {
-            background: #9b704e;
-            box-shadow: 0 0 0 3px rgba(155, 112, 78, 0.35);
+            outline: 2px solid var(--fp-water);
+            outline-offset: 3px;
         }
         .insight-dot.is-active::before {
-            width: 22px;
-            background: #9b704e;
+            background: var(--fp-ink);
         }
         .insight-page-count {
             min-height: 30px;
-            padding: 6px 12px;
+            padding: 0 8px;
             border: 0;
-            border-radius: 999px;
-            background: rgba(255, 253, 247, 0.72);
-            color: #6e5945;
-            font: 500 12px/1.2 ui-monospace, Consolas, monospace;
-            letter-spacing: 0.08em;
+            border-radius: var(--fp-radius-control);
+            background: transparent;
+            color: var(--fp-ink-soft);
+            font: 500 var(--fp-size-xs)/1 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
             cursor: pointer;
-            transition: background 0.18s ease, color 0.18s ease;
         }
-        .insight-page-count:hover,
+        .insight-page-count:hover {
+            background: var(--fp-rule);
+        }
         .insight-page-count:focus-visible {
-            background: #6e5945;
-            color: #fffdf7;
-            outline: none;
+            outline: 2px solid var(--fp-water);
+            outline-offset: 2px;
         }
         .insight-page-count[hidden] {
             display: none;
         }
         .insight-note {
-            margin: 0;
-            color: #a39380;
-            font-size: 11px;
-            letter-spacing: 0.06em;
-            text-align: center;
-        }
-        #insightTitle {
-            color: #9b704e;
-            font-size: 12px;
-            letter-spacing: 0.08em;
+            width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            line-height: 1.7;
         }
 
-        /* 旅行明信片 */
+        /* ============ 旅行明信片 ============ */
         .postcard-body {
             display: flex;
             flex-direction: column;
@@ -653,97 +663,109 @@
         }
         .postcard-actions {
             display: flex;
-            gap: 12px;
+            gap: 10px;
         }
         .postcard-actions button {
-            min-height: 44px;
-            padding: 10px 22px;
-            border: 1px solid rgba(118, 92, 61, 0.34);
-            border-radius: 999px;
-            /* 不用纸白底：明信片页与写信页背景都是浅褐，白底按钮太跳 */
-            background: transparent;
-            color: #6e5945;
-            font: 500 13px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
-            letter-spacing: 0.04em;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-        }
-        .postcard-actions button:hover,
-        .postcard-actions button:focus-visible {
-            background: #6e5945;
-            color: #fffdf7;
-            border-color: #6e5945;
-            outline: none;
-        }
-        .postcard-actions button:focus-visible {
-            box-shadow: 0 0 0 2px rgba(231, 178, 119, 0.85);
-        }
-        .postcard-actions button:active {
-            transform: scale(0.97);
+            min-height: 40px;
+            padding: 0 18px;
         }
         .postcard-actions button[hidden] {
             display: none;
+        }
+        /* 预览图、骨架、状态与「重新生成」的结构样式在 ticket-creative.css（和写信页共用，且排在本文件之后），
+           这里用 #postcardPreview 提高优先级，只换成白图的颜色、照片圆角，去掉投影 */
+        #postcardPreview .postcard-skeleton,
+        #postcardPreview #postcardPreviewImg {
+            border-radius: var(--fp-radius-photo);
+            box-shadow: none;
+        }
+        #postcardPreview .postcard-skeleton {
+            border: 1px solid var(--fp-rule);
+            background: var(--fp-paper-raised);
+        }
+        #postcardPreview .postcard-status {
+            color: var(--fp-ink-soft);
+            font: var(--fp-size-sm)/1.7 var(--fp-font-text);
+            letter-spacing: 0;
+        }
+        #postcardPreview #postcardRetry {
+            min-height: 32px;
+            padding: 0 12px;
+            border: 1px solid var(--fp-rule-strong);
+            border-radius: var(--fp-radius-control);
+            background: transparent;
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            letter-spacing: 0;
+            box-shadow: none;
+            transform: none;
+        }
+        #postcardPreview #postcardRetry:hover {
+            border-color: var(--fp-ink-soft);
+            background: var(--fp-rule);
+        }
+        #postcardPreview #postcardRetry:focus-visible {
+            outline: 2px solid var(--fp-water);
+            outline-offset: 2px;
         }
 
         @media (max-width: 820px) {
             .feature-top {
                 grid-template-columns: auto 1fr auto;
                 gap: 8px;
-                padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+                padding: max(10px, env(safe-area-inset-top)) 12px 10px;
             }
-            .feature-back span {
-                font-size: 12px;
-            }
-            .feature-eyebrow {
-                display: none;
+            .feature-back {
+                padding: 0 10px;
+                font-size: var(--fp-size-xs);
             }
             .feature-head h2 {
-                font-size: 20px;
+                font-size: var(--fp-size-xl);
+            }
+            .feature-head p:last-child {
+                font-size: var(--fp-size-xs);
             }
             .feature-body {
-                padding: 20px 16px 44px;
+                padding: 20px 16px 32px;
             }
             .capsule-card {
                 grid-template-columns: minmax(0, 1fr);
                 gap: 20px;
             }
-            .insight-metrics {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                text-align: left;
-            }
-            /* 列数已经由 auto-fill 按视口自动算，这里不再写死；只把单格收紧，
-               手机上一格更窄，长文案不至于占太高 */
-            .insight-badge {
-                gap: 8px;
-                padding: 10px 11px;
-                font-size: 12px;
-            }
-            .insight-badge-text em {
-                font-size: 10px;
+            .insight-metric {
+                grid-template-columns: minmax(5.5em, 8em) minmax(0, 1fr) auto;
+                column-gap: 12px;
             }
             .insight-months {
                 gap: 3px;
             }
             .insight-month em {
-                font-size: 9px;
+                font-size: 10px;
             }
-            /* 手机端：热区尺寸不变（30×44），只把页码条收窄一点，保证整排不换行 */
             .insight-pager {
-                gap: 10px;
-                padding: 2px 10px;
+                gap: 8px;
             }
         }
         @media (max-width: 520px) {
             .city-wall-card-postcard {
                 top: 5px;
                 right: 5px;
-                padding: 3px 7px;
-                font-size: 10px;
+                padding: 3px 6px;
+                font-size: 11px;
             }
         }
         @media (prefers-reduced-motion: reduce) {
-            .feature-overlay {
+            .feature-overlay,
+            .feature-back,
+            .feature-nav button,
+            .capsule-actions button,
+            .insight-chip,
+            button.insight-metric,
+            .insight-dot::before {
                 transition: none;
             }
+            .insight-card.is-active,
+            .insight-headline.is-swapping {
+                animation: none;
+            }
         }
-

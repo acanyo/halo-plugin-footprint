@@ -1,4 +1,6 @@
-        /* ============ 图片灯箱 ============ */
+        /* ============ 图片灯箱 ============
+           看照片用深底（夜图变量），照片四周不加面板、描边、投影。
+           按钮是描边的方形控件；底部一行写「第几张 / 共几张」和说明。 */
         #lightbox {
             position: fixed;
             inset: 0;
@@ -6,12 +8,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(4, 6, 10, 0.92);
-            color: #f7f5f1;
-            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--fp-paper);
+            color: var(--fp-ink);
+            font-family: var(--fp-font-text);
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.2s ease, visibility 0.2s;
+            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur);
         }
         #lightbox.show {
             opacity: 1;
@@ -24,17 +26,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            box-sizing: border-box;
         }
         #lightboxImg {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+            border-radius: var(--fp-radius-photo);
+            background: transparent;
         }
         .lightbox-skeleton {
             position: absolute;
             inset: 0;
-            background: linear-gradient(110deg, rgba(255, 255, 255, 0.05) 40%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 60%);
+            border-radius: var(--fp-radius-photo);
+            background: linear-gradient(110deg, var(--fp-paper-raised) 40%, var(--fp-rule-strong) 50%, var(--fp-paper-raised) 60%);
             background-size: 200% 100%;
             animation: skeletonShimmer 1.2s ease infinite;
         }
@@ -50,46 +55,37 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            font-size: 13px;
-            letter-spacing: 0.08em;
-            color: rgba(247, 245, 241, 0.6);
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
+        }
+        .lightbox-error button,
+        #lightboxClose,
+        #lightboxPrev,
+        #lightboxNext {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--fp-rule-strong);
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-paper-raised);
+            color: var(--fp-ink);
+            line-height: 1;
+            cursor: pointer;
+            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
         }
         .lightbox-error button {
-            padding: 6px 16px;
-            border: 1px solid rgba(247, 245, 241, 0.35);
-            border-radius: 999px;
-            background: transparent;
-            color: #f7f5f1;
-            font: 12px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-        .lightbox-error button:hover {
-            background: #f7f5f1;
-            color: #0b0e14;
+            min-height: 32px;
+            padding: 0 14px;
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
         }
         #lightboxClose {
             position: fixed;
-            top: 20px;
+            top: max(20px, env(safe-area-inset-top));
             right: 22px;
             z-index: 2;
             width: 40px;
             height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            border-radius: 50%;
-            background: rgba(8, 10, 16, 0.45);
-            color: rgba(247, 245, 241, 0.9);
-            font-size: 18px;
-            line-height: 1;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-        #lightboxClose:hover {
-            background: #f7f5f1;
-            color: #0b0e14;
+            font-size: var(--fp-size-lg);
         }
         #lightboxPrev,
         #lightboxNext {
@@ -97,26 +93,18 @@
             top: 50%;
             transform: translateY(-50%);
             z-index: 2;
-            width: 46px;
-            height: 46px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            background: rgba(8, 10, 16, 0.45);
-            color: rgba(247, 245, 241, 0.9);
+            width: 44px;
+            height: 44px;
             font-size: 22px;
-            line-height: 1;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
         }
         #lightboxPrev { left: 22px; }
         #lightboxNext { right: 22px; }
+        .lightbox-error button:hover,
+        #lightboxClose:hover,
         #lightboxPrev:hover,
         #lightboxNext:hover {
-            background: #f7f5f1;
-            color: #0b0e14;
+            border-color: var(--fp-ink-soft);
+            background: color-mix(in srgb, var(--fp-ink) 10%, var(--fp-paper-raised));
         }
         #lightboxPrev[hidden],
         #lightboxNext[hidden],
@@ -128,30 +116,38 @@
         #lightboxPrev:focus-visible,
         #lightboxNext:focus-visible,
         #lightboxRetry:focus-visible {
-            outline: 2px solid rgba(247, 245, 241, 0.65);
+            outline: 2px solid var(--fp-water);
             outline-offset: 2px;
         }
         .lightbox-meta {
             position: fixed;
             left: 50%;
-            bottom: 26px;
+            bottom: max(24px, env(safe-area-inset-bottom));
             transform: translateX(-50%);
             z-index: 2;
             display: flex;
-            align-items: center;
-            gap: 18px;
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            color: rgba(247, 245, 241, 0.78);
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+            align-items: baseline;
+            gap: 16px;
+            max-width: 92vw;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
             white-space: nowrap;
         }
         #lightboxCount {
-            color: rgba(247, 245, 241, 0.5);
+            color: var(--fp-ink-faint);
+            font-variant-numeric: tabular-nums;
+        }
+        #lightboxCaption {
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         @media (prefers-reduced-motion: reduce) {
-            #lightbox {
+            #lightbox,
+            .lightbox-error button,
+            #lightboxClose,
+            #lightboxPrev,
+            #lightboxNext {
                 transition: none;
             }
             .lightbox-skeleton {
@@ -168,8 +164,9 @@
             .lightbox-meta {
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 10px;
+                gap: 4px 10px;
                 width: 92vw;
                 text-align: center;
+                white-space: normal;
             }
         }
