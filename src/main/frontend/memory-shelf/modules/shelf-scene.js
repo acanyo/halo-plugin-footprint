@@ -221,6 +221,7 @@ export function initShelf() {
     setRenderer3d(new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' }));
     renderer3d.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
     renderer3d.setSize(size.width, size.height, false);
+    var initialSize = size;   // resizeShelf 拿它判断「尺寸真的变了没有」
     renderer3d.outputColorSpace = THREE.SRGBColorSpace;
     renderer3d.toneMapping = THREE.ACESFilmicToneMapping;
     renderer3d.toneMappingExposure = 1.16;
@@ -520,7 +521,22 @@ export function initShelf() {
     // 建好就先把当前这本的屋子刷上（不过渡，避免开场从 0 号色滑到当前色）
     applyRoomTheme(state.active, true);
     layoutShelf(true);
-    startAnimation();
+    // 着色器先异步编译完再开渲染循环。直接 render 时首帧要同步编译全部着色器：
+    // 实测（M3 Pro）主线程卡 2.6 秒，「正在装订书架…」的占位动画跟着冻住。
+    // compileAsync 在支持 KHR_parallel_shader_compile 的浏览器上由驱动后台编译，
+    // 主线程只做轮询；占位一直留到真正画出三帧（whenShelfPainted），所以用户看到的
+    // 是占位多停一会儿，而不是整页卡死。老版本 three 没有 compileAsync 时照旧直接开画。
+    var compiling = typeof renderer3d.compileAsync === 'function'
+        ? renderer3d.compileAsync(scene, camera)
+        : null;
+    var ownShelf = shelf;
+    var go = function () {
+        if (shelf !== ownShelf || !shelf || shelf.disposed) return;   // 编译期间关掉了书架
+        startAnimation();
+    };
+    if (compiling) compiling.then(go, go);
+    else go();
+    shelf.lastSize = initialSize;
 
     if ('ResizeObserver' in window) {
         shelf.resizeObserver = new ResizeObserver(function () { resizeShelf(); });
@@ -532,6 +548,11 @@ export function initShelf() {
 function resizeShelf() {
     if (!shelf || shelf.disposed) return;
     var size = stageSize();
+    // 尺寸没变就什么都不做。setSize 哪怕写入同样的宽高也会重建绘图缓冲
+    // （2.6K×1.3K 加 MSAA，每次十几 MB），翻开 / 合上书时 ResizeObserver 连报十来次，
+    // 其中一半是同一尺寸——实测这些空转占了开书那 0.3 秒主线程。
+    if (shelf.lastSize && shelf.lastSize.width === size.width && shelf.lastSize.height === size.height) return;
+    shelf.lastSize = size;
     renderer3d.setSize(size.width, size.height, false);
     shelf.camera.aspect = size.width / size.height;
     shelf.camera.updateProjectionMatrix();
