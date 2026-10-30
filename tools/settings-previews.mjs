@@ -110,11 +110,23 @@ const to2D = async () => {
   await waitFor(`document.querySelectorAll('.amap-marker').length > 3`, 20000);
   await sleep(3500);
 };
-// 2D 页：点图片最多的那条足迹，等图片墙铺开
+// 2D 页：点一条图片墙图片最多、且标记此刻露在屏幕中部的足迹，等图片墙铺开。
+// 全国视野下有的标记会被聚合 / 遮住（不可见），所以只在看得见的标记里挑；没打开就报错，不存一张空地图。
 const openRichest2D = async () => {
-  const name = await ev(`(window.FOOTPRINT_CONFIG.footprints || []).map(f => ({ n: (f.spec.galleryImages || []).length, name: f.spec.name })).sort((a, b) => b.n - a.n)[0].name`);
-  const t = await ev(`(() => { const o = [...document.querySelectorAll('.amap-marker')].map(m => ({ r: m.getBoundingClientRect(), t: m.textContent.replace(/\\s+/g, '') })).find(o => o.t.includes(${JSON.stringify(name)})); return o && { x: o.r.x + o.r.width / 2, y: o.r.y + o.r.height / 2 }; })()`);
-  if (t) { await click(t.x, t.y); await sleep(3800); }
+  const t = await ev(`(() => {
+    const counts = new Map((window.FOOTPRINT_CONFIG.footprints || []).map(f => [f.spec.name, (f.spec.galleryImages || []).length]));
+    const ms = [...document.querySelectorAll('.amap-marker')].map(m => ({ m, r: m.getBoundingClientRect(), t: m.textContent.replace(/\\s+/g, '') }))
+      .filter(o => o.r.width > 8 && o.r.x > 300 && o.r.x < innerWidth - 300 && o.r.y > 200 && o.r.y < innerHeight - 150
+        && getComputedStyle(o.m).visibility !== 'hidden' && +getComputedStyle(o.m).opacity > 0.5)
+      .map(o => ({ ...o, n: Math.max(0, ...[...counts].filter(([name]) => o.t.startsWith(name)).map(([, n]) => n)) }))
+      .filter(o => o.n > 0).sort((a, b) => b.n - a.n);
+    const o = ms[0];
+    return o && { x: o.r.x + o.r.width / 2, y: o.r.y + o.r.height / 2 };
+  })()`);
+  if (!t) throw new Error('2D 页上没有露出来的带图片墙的标记');
+  await click(t.x, t.y);
+  if (!await waitFor(`!!document.querySelector('.photo-wall-window .photo-wall-window')`, 8000)) throw new Error('点了标记，图片墙没打开');
+  await sleep(1200);
 };
 const want = (k) => !ONLY.length || ONLY.includes(k);
 // 2D 页：在某个城市的标记上滚轮放大几格，让标记散开（全国视野下标记会叠成一团）

@@ -78,7 +78,7 @@
     outline-offset: 2px;
 }
 
-/* 标题区：左边地址 / 足迹名 + 日期 / 描述，右边页码与翻页 */
+/* 标题区：左边足迹名 / 描述 / 一行信息（和信息卡同一套，横排）/「查看文章」，右边页码与翻页 */
 .photo-wall-heading {
     display: flex;
     align-items: flex-start;
@@ -97,25 +97,6 @@
     gap: 8px;
     padding-top: 2px;
 }
-.photo-wall-kicker {
-    display: block;
-    margin-bottom: 2px;
-    overflow: hidden;
-    color: var(--fp-ink-faint);
-    font-size: var(--fp-size-xs);
-    line-height: 1.5;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.photo-wall-kicker:empty {
-    display: none;
-}
-.photo-wall-title-row {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    min-width: 0;
-}
 .photo-wall-heading h3 {
     min-width: 0;
     margin: 0;
@@ -127,12 +108,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.photo-wall-date {
-    flex: 0 0 auto;
-    color: var(--fp-ink-faint);
-    font-size: var(--fp-size-xs);
-    font-variant-numeric: tabular-nums;
-}
 .photo-wall-description {
     max-width: 36em;
     margin: 4px 0 0;
@@ -143,6 +118,17 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+}
+.photo-wall-meta {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 14px;
+    max-width: 36em;
+    margin-top: 4px;
+}
+.photo-wall-heading .popup-article-btn {
+    margin-top: 10px;
+    padding: 0 14px;
 }
 .photo-wall-counter {
     color: var(--fp-ink-faint);

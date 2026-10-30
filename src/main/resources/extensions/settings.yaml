@@ -72,7 +72,7 @@ spec:
             - label: 聚焦式照片墙
               value: focus
               render: /plugins/footprint/assets/static/img/settings/photo-wall-focus.webp
-          help: "选择桌面端图片墙的展示方式；移动端仍使用原有信息窗口(部分样式为固定图片数量)"
+          help: "2D 地图上点开一条足迹时的弹窗样式，只对填了「图片墙图片」的足迹生效；没填图片墙的足迹弹出的是一张信息卡，不受这里影响。手机上一律用胶片带，「地图侧边展开式画廊」固定每页 8 张"
         - $formkit: secret
           label: 高德 Js Key
           name: gaoDeKeySecretName

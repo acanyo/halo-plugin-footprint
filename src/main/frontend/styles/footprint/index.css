@@ -1,5 +1,6 @@
 /* footprint.css 入口：按 @import 顺序拼回原文件的规则顺序，顺序即层叠，勿随意调换。 */
 @import "./base-and-map-controls.css";
+@import "./popup-shared.css";
 @import "./info-window.css";
 @import "./marker-photo-wall.css";
 @import "./marker-styles.css";

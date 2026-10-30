@@ -1,6 +1,7 @@
 /*
  * 高德信息窗体：只给没有图片墙的足迹用。216px 宽的玻璃卡：
- * 顶部一张方形照片，下面地名 + 图标行（地址、城市、类型、日期），有文章链接时底部一颗整宽浅底胶囊「查看」。
+ * 顶部一张方形照片，下面地名 + 图标行（地址、城市、类型、日期），有文章链接时底部一颗整宽浅底胶囊「查看文章」。
+ * 信息行与「查看文章」和图片墙共用，见 popup-shared.css。
  * 卡片挂在标记右侧，打开时从标记方向（卡片左边中点）去模糊弹出。
  */
 .info-window {
@@ -65,61 +66,10 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
-.info-window .info-window-rows {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-.info-window .info-window-row {
+/* 卡片里按钮占满整宽，贴着卡片内边距 */
+.info-window .popup-article-btn {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    color: var(--fp-ink);
-    font-size: var(--fp-size-xs);
-    line-height: 24px;
-    font-variant-numeric: tabular-nums;
-}
-.info-window .info-window-row span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.info-window .info-window-row svg {
-    flex: 0 0 14px;
-    width: 14px;
-    height: 14px;
-    color: var(--fp-ink-soft);
-}
-/* 整宽浅底胶囊 */
-.info-window .article-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-height: 36px;
     margin: 8px -6px 0;
-    border-radius: var(--fp-radius-control);
-    background: var(--fp-rule);
-    color: var(--fp-ink);
-    font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
-    text-decoration: none;
-    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
-}
-.info-window .article-btn svg {
-    width: 14px;
-    height: 14px;
-}
-.info-window .article-btn:hover {
-    background: var(--fp-rule-strong);
-}
-.info-window .article-btn:active {
-    transform: scale(0.96);
-}
-.info-window .article-btn:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
 }
 .info-window .time-close-btn {
     display: none;

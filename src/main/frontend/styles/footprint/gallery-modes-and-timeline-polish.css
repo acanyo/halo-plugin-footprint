@@ -218,11 +218,6 @@
         gap: 12px;
         border-radius: calc(var(--fp-radius-panel) + 4px);
     }
-    .photo-wall-window.photo-wall-mobile .photo-wall-title-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
-    }
     .photo-wall-window.photo-wall-mobile .photo-wall-heading h3 {
         font-size: var(--fp-size-lg);
     }

@@ -378,7 +378,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
         if (infoWindowElement) {
             infoWindowElement.addEventListener('click', handleInfoWindowClick);
 
-            const articleBtn = infoWindowElement.querySelector('.article-btn');
+            const articleBtn = infoWindowElement.querySelector('.popup-article-btn');
             if (articleBtn) {
                 articleBtn.addEventListener('click', handleArticleClick);
             }
@@ -647,7 +647,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
         const infoWindowElement = document.querySelector('.info-window');
         if (infoWindowElement) {
             infoWindowElement.removeEventListener('click', handleInfoWindowClick);
-            const articleBtn = infoWindowElement.querySelector('.article-btn');
+            const articleBtn = infoWindowElement.querySelector('.popup-article-btn');
             if (articleBtn) {
                 articleBtn.removeEventListener('click', handleArticleClick);
             }

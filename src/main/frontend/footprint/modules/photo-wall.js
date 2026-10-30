@@ -8,7 +8,8 @@
 
 import { isMobile } from './env.js';
 import { FOOTPRINT_IMAGE_PLACEHOLDER } from './footprint-data.js';
-import { escapeHtml, formatDateToYMD } from './format.js';
+import { escapeHtml } from './format.js';
+import { createArticleLink, createInfoRows } from './marker-content.js';
 
 export const normalizeGalleryImages = (images) => {
     if (!Array.isArray(images)) return [];
@@ -87,8 +88,6 @@ export const createPhotoWall = (spec, page = 0) => {
         : images.slice(pageStart, pageStart + pageSize);
     const name = spec.name;
     let canvas = '';
-    // 标题上方一行写足迹的地址（真实信息），没有地址就不显示
-    const kicker = escapeHtml(spec.address || '');
     let counter = `${currentPage + 1} / ${totalPages}`;
     let wallClass = '';
 
@@ -156,12 +155,10 @@ export const createPhotoWall = (spec, page = 0) => {
         <div class="photo-wall-window${wallClass}" data-photo-page="${currentPage}" data-photo-total-pages="${totalPages}">
             <div class="photo-wall-heading">
                 <div class="photo-wall-heading-copy">
-                    <span class="photo-wall-kicker">${kicker}</span>
-                    <div class="photo-wall-title-row">
-                        <h3>${escapeHtml(spec.name || '足迹')}</h3>
-                        ${spec.createTime ? `<span class="photo-wall-date">${escapeHtml(formatDateToYMD(spec.createTime))}</span>` : ''}
-                    </div>
+                    <h3>${escapeHtml(spec.name || '足迹')}</h3>
                     ${spec.description ? `<p class="photo-wall-description">${escapeHtml(spec.description)}</p>` : ''}
+                    ${createInfoRows(spec, 'photo-wall-meta')}
+                    ${createArticleLink(spec.article)}
                 </div>
                 <div class="photo-wall-heading-meta">
                     <span class="photo-wall-counter">${counter}</span>
