@@ -6,17 +6,14 @@
  *   2) 按依赖顺序 setup / init 各模块 —— 先注入数据与元素，再绑定事件；
  *   3) 收尾：恢复上次视图、暴露 window.FootprintMemoryData 给书架脚本。
  *
- * 还没搬走的代码仍是一整片顶层语句（当年从 <script> 里抠出来的，
- * 所以整体带着 4 格缩进）。别被缩进误导：它们都在模块顶层，互相可见。
+ * 下面的装配代码整体带着 4 格缩进（当年从 <script> 里抠出来的）。
+ * 别被缩进误导：它们都在模块顶层，互相可见。
+ * 模块约定与契约检查见 ../README.md。
  */
 
-;
 import {
     setTileBatchHandler
 } from './modules/tianditu-usage.js';
-;
-;
-;
 import {
     lightbox,
     closeLightbox,
@@ -154,7 +151,6 @@ import {
     rememberKeyboardMarkerBtn
 } from './modules/marker-detail-card.js';
 import { setupMarkerInput, initMarkersInput } from './modules/marker-input.js';
-;
 import {
     setupCityWall,
     initCityWall,
@@ -193,7 +189,6 @@ import {
     ticketImageUrl,
     openTicketGalleryForCity
 } from './modules/ticket-gallery.js';
-;
 import {
     setInsightDeps
 } from './modules/footprints-insight.js';
