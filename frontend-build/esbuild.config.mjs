@@ -35,6 +35,7 @@ const OUT = join(ROOT, 'build/resources/main/static');
 /** 第 1 类：已模块化，需要 bundle。key 是输出的文件名（不含扩展名） */
 const BUNDLES = {
   'travel-memory': join(FRONTEND, 'travel-memory/index.js'),
+  'footprint': join(FRONTEND, 'footprint/index.js'),
 };
 
 /** 第 2 类：尚未模块化，只压缩。扫这两个目录下的散文件 */
