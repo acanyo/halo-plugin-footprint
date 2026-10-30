@@ -29,6 +29,7 @@ const only = (process.env.ONLY || '').split(',').filter(Boolean); const want = (
 await go();
 await ev(`(() => { const b = document.getElementById('rotateBtn'); if (b && b.classList.contains('active')) b.click(); })()`);
 if (want('01-globe')) await shot('01-globe');
+if (want('01b-tools')) { await ev(`document.getElementById('navMoreBtn').click()`); await sleep(500); await shot('01b-tools'); await ev(`document.getElementById('navMoreBtn').click()`); await sleep(300); }
 // 国内范围
 await ev(`__fpScene.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(112, 31, 3600000) })`); await sleep(3500);
 if (want('02-china')) await shot('02-china');

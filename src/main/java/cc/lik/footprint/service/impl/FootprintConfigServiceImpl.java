@@ -76,8 +76,7 @@ public class FootprintConfigServiceImpl implements FootprintConfigService {
                     .photoWallStyle(base.path("photoWallStyle").asText("original"))
 
                     .globeTitle(legacy.path("globeTitle").asText("旅行记忆"))
-                    .globeDesc(legacy.path("globeDesc")
-                        .asText("把每一次出发，收藏成地球上的坐标；让走过的城市，成为星空下的故事。"))
+                    .globeDesc(legacy.path("globeDesc").asText(""))
                     .globeLabels(legacy.path("globeLabels").asText("all"))
 
                     .tiandituKey(keys.getT3())

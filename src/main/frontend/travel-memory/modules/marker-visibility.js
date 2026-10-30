@@ -32,7 +32,9 @@ const LABEL_PAD = 3;             // 避让时给每个标签留的余量
 const LABEL_GAP = 4;             // 标签与标记之间的间隙（贴着圆点写，字小的时候更自然）
 const LABEL_MARGIN = 4;          // 与视口边缘的最小距离
 const LABEL_MAX = 160;           // 单帧参与避让的标签上限（按离视口中心由近到远取）
-const LABEL_OUTLINE_COLOR = Cesium.Color.fromCssColorString('#0b0e14').withAlpha(0.85);
+// 与测绘手簿夜图色板一致（styles/shared/tokens.css 的 --fp-paper / --fp-ink）
+const LABEL_OUTLINE_COLOR = Cesium.Color.fromCssColorString('#12171c').withAlpha(0.9);
+const LABEL_FILL_COLOR = Cesium.Color.fromCssColorString('#e9ece8');
 // 标签候选位：8 个方向 × 2 圈（先试第一圈，放不下再整体外推一档）
 const LABEL_SLOT_DIRS = [
     { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 },
@@ -93,7 +95,7 @@ export function markerLabelGraphics(text, markerSize) {
         text: text,
         font: LABEL_FONT,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        fillColor: Cesium.Color.WHITE,
+        fillColor: LABEL_FILL_COLOR,
         outlineColor: LABEL_OUTLINE_COLOR,
         outlineWidth: 2.5,        // 等价于原来的 text-shadow 描边，压在影像底图上也能读清
         horizontalOrigin: Cesium.HorizontalOrigin.CENTER,

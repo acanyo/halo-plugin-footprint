@@ -164,8 +164,8 @@ spec:
         - $formkit: textarea
           label: 3D 地球描述
           name: globeDesc
-          value: '把每一次出发，收藏成地球上的坐标；让走过的城市，成为星空下的故事。'
-          help: "3D 地球首页标题卡的描述文字（不读取基本设置中的足迹描述）"
+          value: ''
+          help: "首页标题下面的一句话，可留空（不读取基本设置中的足迹描述）"
         - $formkit: select
           label: 地球地名标注
           name: globeLabels

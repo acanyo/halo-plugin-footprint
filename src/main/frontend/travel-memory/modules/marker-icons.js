@@ -22,16 +22,25 @@ export const MARKER_SIZE = COARSE_POINTER ? 38 : MARKER_REF_SIZE;
 export const CITY_MARKER_SIZE = COARSE_POINTER ? 42 : CITY_MARKER_REF_SIZE;
 export const MARKER_SIZE_SELECTED = Math.round(MARKER_SIZE * 34 / MARKER_REF_SIZE);   // 选中态沿用 34/26 的比例
 
+// 配色与页面的测绘手簿色板一致（styles/shared/tokens.css）：标注红只用来表示「去过」。
+// SVG 是数据 URL，读不到 CSS 变量，所以这里写死同样的色值。
+const MARK_RED = '#d65a4f';
+const PAPER_INK = '#e9ece8';
+const NIGHT_PAPER = '#12171c';
+
 export function markerIconUrl(kind, k, count) {
     const parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="' + MARKER_BOX + '" height="' + MARKER_BOX + '" viewBox="0 0 56 56">',
-        '<circle cx="28" cy="28" r="' + MARKER_HIT_R + '" fill="#ffffff" opacity="0.01"/>',
-        '<circle cx="28" cy="28" r="' + (22 * k) + '" fill="none" stroke="#ffffff" stroke-width="' + (2.5 * k) + '" opacity="0.9"/>'
+        '<circle cx="28" cy="28" r="' + MARKER_HIT_R + '" fill="#ffffff" opacity="0.01"/>'
     ];
     if (kind === 'city') {
-        parts.push('<text x="28" y="' + (28 + 3 * k) + '" fill="#f7f5f1" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="' + (15 * k) + '" text-anchor="middle">' + count + '</text>');
+        // 城市：深底圆牌 + 标注红描边 + 足迹数（文楷没进 SVG，用系统字即可，数字本来就是等宽的）
+        parts.push('<circle cx="28" cy="28" r="' + (21 * k) + '" fill="' + NIGHT_PAPER + '" fill-opacity="0.82" stroke="' + MARK_RED + '" stroke-width="' + (2.4 * k) + '"/>');
+        parts.push('<text x="28" y="' + (28 + 5 * k) + '" fill="' + PAPER_INK + '" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="600" font-size="' + (15 * k) + '" text-anchor="middle">' + count + '</text>');
     } else {
-        parts.push('<circle cx="28" cy="28" r="' + (8 * k) + '" fill="#ffffff" stroke="#1a2029" stroke-width="' + (2 * k) + '"/>');
+        // 足迹：测量点的画法——实心红点 + 一圈纸色细环，压在任何底图上都分得出来
+        parts.push('<circle cx="28" cy="28" r="' + (13 * k) + '" fill="none" stroke="' + PAPER_INK + '" stroke-width="' + (2 * k) + '" opacity="0.92"/>');
+        parts.push('<circle cx="28" cy="28" r="' + (7.5 * k) + '" fill="' + MARK_RED + '" stroke="' + NIGHT_PAPER + '" stroke-width="' + (1.6 * k) + '"/>');
     }
     parts.push('</svg>');
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(parts.join(''));

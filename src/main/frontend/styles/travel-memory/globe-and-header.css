@@ -51,11 +51,9 @@
             display: none;
         }
 
-        /* ============ 顶部导航栏（报头式极简） ============
-           结构：左侧双语字标（行楷中文 + 字距拉宽的英文），
-           右侧按“主操作 + 探索工具”分组；探索工具在放大/窄屏时
-           收进“工具”菜单，底图选项收进自身下拉。
-           状态用白色文字 + 细下划线表达；导航本身无卡片容器。 */
+        /* ============ 顶部导航 ============
+           左侧一枚文楷字标，右侧导航。导航本身没有底板，只在顶上铺一层很淡的暗角，
+           让文字压在亮色底图上也读得清。当前状态用一条标注红短线表示。 */
         #topNav {
             position: fixed;
             top: 0;
@@ -66,11 +64,11 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            height: 64px;
+            height: 60px;
             padding: 0 28px;
             box-sizing: border-box;
-            background: linear-gradient(180deg, rgba(5, 7, 12, 0.85), rgba(5, 7, 12, 0.45) 72%, transparent);
-            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, var(--fp-scrim), transparent);
+            font-family: var(--fp-font-text);
             user-select: none;
             opacity: 0;
             visibility: hidden;
@@ -85,27 +83,13 @@
         .nav-brand {
             display: flex;
             align-items: center;
-            gap: 14px;
             white-space: nowrap;
         }
         .nav-brand-zh {
-            font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
-            font-size: 22px;
-            letter-spacing: 0.1em;
-            color: #f7f5f1;
-            text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
-        }
-        .nav-brand-sep {
-            width: 1px;
-            height: 18px;
-            background: rgba(247, 245, 241, 0.18);
-        }
-        .nav-brand-en {
-            font-size: 9px;
-            font-weight: 500;
-            letter-spacing: 0.42em;
-            text-transform: uppercase;
-            color: rgba(247, 245, 241, 0.5);
+            font-family: var(--fp-font-title);
+            font-size: 21px;
+            letter-spacing: 0.04em;
+            color: var(--fp-ink);
         }
         .nav-actions {
             display: flex;
@@ -115,64 +99,60 @@
         }
         .nav-sep {
             width: 1px;
-            height: 16px;
-            margin: 0 10px;
-            background: rgba(247, 245, 241, 0.16);
+            height: 14px;
+            margin: 0 6px;
+            background: var(--fp-rule);
         }
 
-        /* 导航按钮：无底色，白色 + 细下划线表示状态 */
         #topNav button {
             appearance: none;
             border: 0;
             background: transparent;
-            padding: 9px 14px;
-            font: 13px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
-            letter-spacing: 0.06em;
+            padding: 8px 12px;
+            font: 400 var(--fp-size-sm)/1.4 var(--fp-font-text);
             white-space: nowrap;
-            color: rgba(247, 245, 241, 0.78);
+            color: var(--fp-ink-soft);
             cursor: pointer;
             position: relative;
-            transition: color 0.18s ease;
+            transition: color var(--fp-dur) var(--fp-ease);
         }
         #topNav button::after {
             content: "";
             position: absolute;
-            left: 14px;
-            right: 14px;
-            bottom: 5px;
-            height: 1px;
-            background: currentColor;
+            left: 50%;
+            bottom: 3px;
+            width: 14px;
+            height: 2px;
+            margin-left: -7px;
+            border-radius: 1px;
+            background: var(--fp-mark);
             opacity: 0;
-            transform: scaleX(0.5);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            transition: opacity var(--fp-dur) var(--fp-ease);
         }
         #topNav button:hover:not(:disabled) {
-            color: #ffffff;
+            color: var(--fp-ink);
         }
-        #topNav button:hover:not(:disabled)::after {
-            opacity: 0.8;
-            transform: scaleX(1);
+        #topNav button.active,
+        #topNav button[aria-pressed="true"] {
+            color: var(--fp-ink);
         }
-        #topNav button.active {
-            color: #ffffff;
-        }
-        #topNav button.active::after {
+        #topNav button.active::after,
+        #topNav button[aria-pressed="true"]::after {
             opacity: 1;
-            transform: scaleX(1);
         }
         #topNav button:disabled {
-            opacity: 0.32;
+            opacity: 0.35;
             cursor: default;
         }
         #topNav button:focus-visible {
-            outline: 2px solid rgba(247, 245, 241, 0.65);
-            outline-offset: 2px;
+            outline: 2px solid var(--fp-water);
+            outline-offset: 1px;
+            border-radius: var(--fp-radius-control);
         }
 
-        /* 视角按钮：当前模式指示，始终加亮 */
+        /* 视角按钮：它说的是「切到哪里」，不是状态，所以不加强调色 */
         #topNav #sceneModeBtn {
-            color: #ffffff;
-            font-weight: 600;
+            color: var(--fp-ink);
         }
 
         /* 底图下拉菜单 */
@@ -197,12 +177,9 @@
             right: 0;
             min-width: 212px;
             padding: 6px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(8, 10, 16, 0.9);
-            backdrop-filter: blur(18px) saturate(140%);
-            -webkit-backdrop-filter: blur(18px) saturate(140%);
-            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-radius: var(--fp-radius-panel);
+            border: 1px solid var(--fp-rule);
+            background: var(--fp-paper-raised);
             display: flex;
             flex-direction: column;
             gap: 2px;
@@ -221,8 +198,7 @@
             justify-content: space-between;
             text-align: left;
             padding: 9px 12px;
-            border-radius: 8px;
-            letter-spacing: 0.02em;
+            border-radius: var(--fp-radius-control);
         }
         #layerButtons.nav-menu-panel button::after {
             content: none;
@@ -235,13 +211,17 @@
             line-height: 1;
         }
         #layerButtons.nav-menu-panel button:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--fp-rule);
         }
         #layerButtons.nav-menu-panel button.active {
-            background: rgba(255, 255, 255, 0.06);
+            color: var(--fp-ink);
         }
         #layerButtons.nav-menu-panel button.active::after {
-            content: "✓";
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--fp-mark);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -258,7 +238,6 @@
             }
         }
 
-        /* 窄屏：报头自动换行，英文小字隐藏 */
         @media (max-width: 820px) {
             #topNav {
                 flex-wrap: wrap;
@@ -268,10 +247,6 @@
             }
             .nav-brand-zh {
                 font-size: 18px;
-            }
-            .nav-brand-sep,
-            .nav-brand-en {
-                display: none;
             }
         }
 

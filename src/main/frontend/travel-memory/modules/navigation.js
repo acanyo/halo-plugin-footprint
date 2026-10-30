@@ -51,7 +51,7 @@ let terrainNote = '';   // 由 setupNavigation 按是否配置天地图 Key 初�
  */
 export function setupNavigation(d) {
     deps = d;
-    terrainNote = d.hasTdtKey() ? '，未启用三维地形' : '，未配置天地图 Key（无地形）';
+    terrainNote = '';
 }
 
 // ================= 左侧标题卡（仅 3D，整球视图显示） =================
@@ -394,11 +394,12 @@ function updateStatusText() {
     const item = deps.currentBaseKey() ? deps.baseProviders()[deps.currentBaseKey()] : null;
     const coordName = item && item.gcj ? 'GCJ-02' : 'CGCS2000/WGS84';
     const usage = DEBUG_STATUS && item && item.needKey
-        ? ` · 今日天地图瓦片 ${tdtTodayUsage()} 张 / 额度约 1 万`
+        ? `；今日天地图瓦片 ${tdtTodayUsage()} 张，额度约 1 万`
         : '';
+    // 一句话写清楚：用的什么底图、什么坐标系，再标出数据来源
     deps.statusText().textContent =
-        (item ? item.label + '底图' : '底图') + `（${coordName}）${terrainNote}` +
-        ` · ${deps.footprints().length} 个足迹标记` + usage + ' · 地图数据 © 高德 / 天地图 · 渲染 CesiumJS';
+        (item ? item.label : '底图') + `，${coordName}${terrainNote}` + usage +
+        '。地图数据 © 高德、天地图';
 }
 
 // 把一条足迹从它自己的坐标系转换到当前底图坐标系：
@@ -409,6 +410,8 @@ function updateStatusText() {
  * 3D 地球品牌文案：标题/描述使用「3D 地球」Tab 的独立配置（globeTitle/globeDesc），
  * 导航栏英文名保持默认 "Travel Memory"，不再从基本设置读取。
  */
+const LEGACY_GLOBE_DESC = '把每一次出发，收藏成地球上的坐标；让走过的城市，成为星空下的故事。';
+
 export function applyGlobeBranding() {
     const cfg = deps.footprintCfg();
     const navBrandZh = document.querySelector('.nav-brand-zh');
@@ -416,7 +419,9 @@ export function applyGlobeBranding() {
     const introDescEl = document.querySelector('.intro-desc');
     if (navBrandZh && cfg.globeTitle) navBrandZh.textContent = cfg.globeTitle;
     if (introTitleEl && cfg.globeTitle) introTitleEl.textContent = cfg.globeTitle;
-    if (introDescEl && cfg.globeDesc) introDescEl.textContent = cfg.globeDesc;
+    // 旧版本内置的默认句子当作「没设置」：升级前没改过描述的站点不再显示它，自己写过的照常显示
+    const desc = (cfg.globeDesc || '').trim();
+    if (introDescEl) introDescEl.textContent = desc === LEGACY_GLOBE_DESC ? '' : desc;
 }
 
 /** 标题卡 / 导航栏当前是否处于整球视图（其他模块判层级时用）。 */

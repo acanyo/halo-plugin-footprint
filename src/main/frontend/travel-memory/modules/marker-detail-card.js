@@ -8,6 +8,7 @@
  * 走 setupMarkers 注入的 showMarkerCard / showCityCard / rememberKeyboardMarkerBtn，不反向 import。
  */
 
+import { formatLatitude, formatLongitude } from './survey-format.js';
 import {
     cityWallImages,
     loadCardCoverImage,
@@ -63,6 +64,8 @@ export const markerCard = document.getElementById('markerCard');
 const markerCardMedia = document.getElementById('markerCardMedia');
 const markerCardTitle = document.getElementById('markerCardTitle');
 const markerCardMeta = document.getElementById('markerCardMeta');
+const markerCardKind = document.getElementById('markerCardKind');
+const cityCardProvince = document.getElementById('cityCardProvince');
 const markerCardAddr = document.getElementById('markerCardAddr');
 const markerCardAddrRow = document.getElementById('markerCardAddrRow');
 const markerCardDesc = document.getElementById('markerCardDesc');
@@ -304,10 +307,16 @@ export function showMarkerCard(fp, index) {
     if (markerCardAddrRow) markerCardAddrRow.hidden = !(fp.address || '').trim();
     markerCardDesc.textContent = fp.description || '';
 
-    const metaParts = [];
-    if (fp.footprintType) metaParts.push(fp.footprintType);
-    if (fp.city) metaParts.push(fp.city);
-    markerCardMeta.textContent = metaParts.join(' / ');
+    // 眉标位写「类型」（旅游 / 美食…），信息行写所在城市与坐标：都是这条记录自己的事实
+    if (markerCardKind) {
+        markerCardKind.textContent = fp.footprintType || '';
+        markerCardKind.hidden = !fp.footprintType;
+    }
+    const coord = Number.isFinite(fp.lat) && Number.isFinite(fp.lng) && (fp.lat || fp.lng)
+        ? formatLatitude(fp.lat) + '  ' + formatLongitude(fp.lng)
+        : '';
+    const metaParts = [fp.city, coord].filter(Boolean);
+    markerCardMeta.textContent = metaParts.join('，');
     markerCardMeta.hidden = metaParts.length === 0;
 
     // 日期单独做成印章（纸票据的识别符号），不再和信息行挤在一行
@@ -371,15 +380,21 @@ export function showCityCard(ci, triggerBtn) {
     const latest = fps.map(fp => fp.createTime).filter(Boolean).sort().pop();
     const types = [...new Set(fps.map(fp => fp.footprintType).filter(Boolean))];
     cityCardTitle.textContent = city.city;
+    if (cityCardProvince) {
+        const province = fps.map(fp => fp.province).find(Boolean) || '';
+        cityCardProvince.textContent = province;
+        cityCardProvince.hidden = !province;
+    }
     // 容器层要回答的是「这里有多少」：两个数字比一句话更好扫读
     cityStatFootprints.textContent = String(fps.length);
     cityStatPhotos.textContent = String(photos.length);
     // 最近到访带上年份（旅行记录里年份是有意义的，之前挤进统计格被截掉了），
     // 和记录类型合成一行次级信息
     const descParts = [];
-    if (latest) descParts.push('最近到访 ' + formatCityDate(latest).replace(/\s*\/\s*/, '.'));
+    if (latest) descParts.push('最近一次 ' + formatCityDate(latest).replace(/\s*\/\s*/, '.'));
     if (types.length) descParts.push(types.join('、'));
-    cityCardDesc.textContent = descParts.join(' · ') || '这座城市的旅行足迹与照片收藏';
+    cityCardDesc.textContent = descParts.join('，');
+    cityCardDesc.hidden = descParts.length === 0;
     // 封面按需加载，不做任何预取：曾试过「悬停城市标记即预热 + 预解码」，
     // 实测拖动一次扫过标记区就会打出 7 个封面图请求（和底图瓦片抢带宽/主线程），
     // 拖动明显变卡，所以退回按需加载。

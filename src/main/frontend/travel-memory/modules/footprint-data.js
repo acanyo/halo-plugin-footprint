@@ -8,6 +8,8 @@
  * 取值函数因此不需要改成快照重取。
  */
 
+import { formatDateSpan, formatLatitude } from './survey-format.js';
+
 let dataReady = false;   // 首次加载是否已完成（含「确实为空」）
 
 /** 足迹数组（引用稳定，内容原地更新）。 */
@@ -94,5 +96,22 @@ export function updateIntroStats() {
     const cities = document.getElementById('introCities');
     if (total) total.textContent = FOOTPRINTS.length;
     if (cities) cities.textContent = new Set(FOOTPRINTS.map(f => f.city).filter(Boolean)).size;
+
+    // 时间跨度与最北点：都是真实数据，没有就整行不显示
+    const span = formatDateSpan(FOOTPRINTS.map(f => f.createTime));
+    setIntroRow('introSpanRow', 'introSpan', span);
+    const north = FOOTPRINTS
+        .filter(f => Number.isFinite(f.lat) && f.lat !== 0)
+        .reduce((best, f) => (!best || f.lat > best.lat ? f : best), null);
+    setIntroRow('introExtentRow', 'introExtent',
+        north ? (north.city || north.name) + '，' + formatLatitude(north.lat) : '');
+}
+
+function setIntroRow(rowId, valueId, text) {
+    const row = document.getElementById(rowId);
+    const value = document.getElementById(valueId);
+    if (!row || !value) return;
+    value.textContent = text;
+    row.hidden = !text;
 }
 updateIntroStats();

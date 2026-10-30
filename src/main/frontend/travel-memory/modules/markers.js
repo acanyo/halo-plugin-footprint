@@ -595,7 +595,7 @@ window.addEventListener('resize', () => { markerLabelDirty = true; });
 
 // 单个足迹的悬停文案：名称 · 城市（无城市则只显示名称）
 export function footprintTipText(fp) {
-    return fp.city ? fp.name + ' · ' + fp.city : fp.name;
+    return fp.city && fp.city !== fp.name ? fp.name + '，' + fp.city : fp.name;
 }
 
 // ================= 标记键盘可达（Tab 聚焦 → Enter 打开详情卡） =================
@@ -619,7 +619,7 @@ function buildMarkerFocusButtons() {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'marker-focus-btn';
-            const label = city.city + ' · ' + city.indices.length + ' 个足迹';
+            const label = city.city + '，' + city.indices.length + ' 条足迹';
             btn.textContent = '查看' + label;
             btn.addEventListener('focus', () => {
                 if (bounceFocusIntoPhotoRing()) return;

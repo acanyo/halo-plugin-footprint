@@ -127,7 +127,7 @@ export function initMarkersInput() {
             showMarkerTip(markerEntityList()[found.index], footprintTipText(deps.footprints()[found.index]));
         } else if (found && found.type === 'city') {
             const city = cityListSnapshot()[found.index];
-            showMarkerTip(cityMarkerEntityList()[found.index], city.city + ' · ' + city.indices.length + ' 个足迹');
+            showMarkerTip(cityMarkerEntityList()[found.index], city.city + '，' + city.indices.length + ' 条足迹');
         } else {
             hideMarkerTip();
         }
