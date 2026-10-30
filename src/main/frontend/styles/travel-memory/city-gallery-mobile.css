@@ -1,10 +1,12 @@
         /* ============ 城市图片墙：手机端 ============
-           顶栏一行：返回 / 城市名 / 到访；足迹目录改成横排一行；照片手簿每排两张。 */
+           顶栏是一条玻璃条：返回 / 城市名 / 到访；足迹目录改成横排一行胶囊；照片每排两张。 */
         @media (max-width: 820px) {
             #cityView .city-view-top {
                 flex-wrap: nowrap;
                 gap: 8px;
-                padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+                width: calc(100% - 20px);
+                margin-top: max(10px, env(safe-area-inset-top));
+                padding: 8px 10px;
             }
             #cityView .city-view-head {
                 flex: 1 1 auto;
@@ -78,9 +80,7 @@
                 flex-direction: row;
                 align-items: stretch;
                 gap: 8px;
-                padding: 8px 12px;
-                border-right: 0;
-                border-bottom: 1px solid var(--fp-rule);
+                padding: 12px 10px 10px;
                 overflow-x: auto;
                 overflow-y: hidden;
                 touch-action: pan-x pan-y;
@@ -97,14 +97,16 @@
                 flex: none;
                 width: 184px;
                 min-height: 0;
-                grid-template-columns: 44px minmax(0, 1fr);
+                grid-template-columns: 40px minmax(0, 1fr);
                 gap: 10px;
-                padding: 6px 8px;
-                border: 1px solid var(--fp-rule);
+                padding: 5px 14px 5px 5px;
                 border-radius: var(--fp-radius-control);
+                background: var(--fp-glass);
             }
             #cityView .city-tab.active {
-                border-color: var(--fp-contour);
+                background: var(--fp-accent-soft);
+                box-shadow: none;
+                color: var(--fp-accent);
             }
             #cityView .city-tab.active::before,
             #cityView .city-tab-index,
@@ -112,8 +114,9 @@
                 display: none;
             }
             #cityView .city-tab-thumb {
-                width: 44px;
-                height: 44px;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
             }
             #cityView .city-tab-name {
                 font-size: var(--fp-size-sm);
@@ -124,7 +127,7 @@
             #cityView .city-stage {
                 flex: 1 1 auto;
                 min-height: 0;
-                padding: 16px 14px 0;
+                padding: 4px 12px 0;
                 scrollbar-gutter: auto;
             }
             #cityView .city-journal-head {
@@ -132,7 +135,7 @@
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 2px;
-                padding-bottom: 12px;
+                padding: 14px 16px;
             }
             #cityView .city-journal-head h3 {
                 font-size: var(--fp-size-xl);
@@ -153,6 +156,13 @@
             }
             #cityView .city-journal-card {
                 margin: 0;
+            }
+            #cityView .city-journal-caption {
+                left: 6px;
+                right: 6px;
+                bottom: 6px;
+                padding: 3px 8px;
+                font-size: 11px;
             }
             #cityView .city-journal-card img {
                 aspect-ratio: 4 / 3;

@@ -89,19 +89,31 @@ export function canvasSafeImageUrl(url) {
 
 // 城市小结：以真实照片为主角，讲"我和这座城市的关系"（第一次去 / 最近一次 / 走过的地方），
 // 不再是城市卡片墙那张卡的信息截图。
-// 配色取 tokens.css 白图（.fp-sheet）的值：canvas 读不到 CSS 变量，只能在这里抄一份，改色板时两处一起改。
+// 配色取 tokens.css 柔光玻璃的值：canvas 读不到 CSS 变量，只能在这里抄一份，改色板时两处一起改。
 const POSTCARD_INK = {
-    paper: '#f3f4f1',       // --fp-paper
-    raised: '#fbfbf9',      // --fp-paper-raised
-    ink: '#1e2a33',         // --fp-ink
-    soft: '#4d5a62',        // --fp-ink-soft
-    faint: '#7d878b',       // --fp-ink-faint
-    rule: 'rgba(30, 42, 51, 0.14)',        // --fp-rule
-    ruleStrong: 'rgba(30, 42, 51, 0.3)',   // --fp-rule-strong
-    mark: '#b8322a'         // --fp-mark
+    paper: '#f2f2f4',       // --fp-paper
+    raised: '#ffffff',      // --fp-paper-raised
+    ink: '#3a3a40',         // --fp-ink
+    soft: '#66666e',        // --fp-ink-soft
+    faint: '#9a9aa3',       // --fp-ink-faint
+    rule: 'rgba(58, 58, 64, 0.08)',        // --fp-rule
+    accent: '#7c7bc0',      // --fp-accent
+    accentSoft: 'rgba(124, 123, 192, 0.14)', // --fp-accent-soft
+    shadow: 'rgba(38, 38, 48, 0.12)'       // --fp-shadow 的颜色
 };
-const POSTCARD_TITLE_FONT = '"快看世界体", "PingFang SC", "Microsoft YaHei", sans-serif';
-const POSTCARD_TEXT_FONT = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
+const POSTCARD_TITLE_FONT = '"快看世界体", "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif';
+const POSTCARD_TEXT_FONT = '"MiSans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
+
+// 圆角矩形路径（不依赖 ctx.roundRect，老一点的 Safari 也能画）
+function roundedRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
 
 function postcardCanvas(data, image) {
     const canvas = document.createElement('canvas');
@@ -120,11 +132,17 @@ function postcardCanvas(data, image) {
         ctx.stroke();
     };
 
+    // 浅灰底上一张白卡，柔阴影，大圆角
     ctx.fillStyle = c.paper;
     ctx.fillRect(0, 0, 1080, 1440);
-    ctx.strokeStyle = c.ruleStrong;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(28, 28, 1024, 1384);
+    ctx.save();
+    ctx.shadowColor = c.shadow;
+    ctx.shadowBlur = 48;
+    ctx.shadowOffsetY = 12;
+    ctx.fillStyle = c.raised;
+    roundedRectPath(ctx, 28, 28, 1024, 1384, 48);
+    ctx.fill();
+    ctx.restore();
 
     // 城市名（文楷）+ 省份与足迹数
     const cityName = data.city || '';
@@ -140,27 +158,26 @@ function postcardCanvas(data, image) {
         ctx.fillText(subline, 540, 262);
     }
 
-    // 真实照片当主角：cover 满铺 + clip，不垫底、不留白边
-    const photoX = 42;
-    const photoW = 996;
+    // 真实照片当主角：cover 满铺 + 圆角裁切
+    const photoX = 60;
+    const photoW = 960;
     const photoTop = 318;
     const photoH = 600;
+    const photoR = 36;
     if (image) {
         const scale = Math.max(photoW / image.width, photoH / image.height);
         const dw = image.width * scale;
         const dh = image.height * scale;
         ctx.save();
-        ctx.beginPath();
-        ctx.rect(photoX, photoTop, photoW, photoH);
+        roundedRectPath(ctx, photoX, photoTop, photoW, photoH, photoR);
         ctx.clip();
         ctx.drawImage(image, photoX + (photoW - dw) / 2, photoTop + (photoH - dh) / 2, dw, dh);
         ctx.restore();
     } else {
-        ctx.fillStyle = c.raised;
-        ctx.fillRect(photoX, photoTop, photoW, photoH);
-        ctx.strokeStyle = c.rule;
-        ctx.strokeRect(photoX, photoTop, photoW, photoH);
-        ctx.fillStyle = c.faint;
+        ctx.fillStyle = c.accentSoft;
+        roundedRectPath(ctx, photoX, photoTop, photoW, photoH, photoR);
+        ctx.fill();
+        ctx.fillStyle = c.accent;
         ctx.font = title(220);
         ctx.fillText((data.city || '?').charAt(0), 540, photoTop + photoH * 0.62);
     }
@@ -199,11 +216,11 @@ function postcardCanvas(data, image) {
         540, 1340
     );
 
-    // 落款：一枚标注红小点 + 「旅行记忆」
+    // 落款：一枚强调色小点 + 「旅行记忆」
     ctx.fillStyle = c.faint;
     ctx.font = title(26);
     ctx.fillText('旅行记忆', 552, 1384);
-    ctx.fillStyle = c.mark;
+    ctx.fillStyle = c.accent;
     ctx.beginPath();
     ctx.arc(552 - ctx.measureText('旅行记忆').width / 2 - 14, 1375, 6, 0, Math.PI * 2);
     ctx.fill();

@@ -215,7 +215,8 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
     const imgs = cityWallImages(fp);
     const prevScrollTop = preserveScroll ? cityStage.scrollTop : 0;
     const content = document.createElement('div');
-    content.className = 'city-stage-content';
+    // 滚动加载下一批时整块重建：带 is-appending，样式里不再重播入场动画
+    content.className = 'city-stage-content' + (preserveScroll ? ' is-appending' : '');
     content.style.setProperty('--extra-height', Math.max(0, Math.ceil((imgs.length - 4) / 4)) * 188 + 'px');
 
     const hero = document.createElement('button');
