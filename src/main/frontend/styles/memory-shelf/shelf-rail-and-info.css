@@ -52,9 +52,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     overflow-y: auto;
-    padding: 2px;
+    /* 书脊轨是一条竖向玻璃胶囊 */
+    padding: 6px 4px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass);
     pointer-events: auto;
     scrollbar-width: none;
 }
@@ -76,7 +79,7 @@
     font-size: var(--fp-size-xs);
 }
 
-/* 书脊条：纸面 + 格线；选中的那本左边一道等高线色短线 */
+/* 书脊条：透明胶囊，悬停浅底；选中的那本是强调色实底 */
 .ms-rail-item {
     position: relative;
     writing-mode: vertical-rl;
@@ -87,42 +90,30 @@
     justify-content: center;
     width: 30px;
     padding: 9px 0;
-    border: 1px solid var(--fp-rule);
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: color-mix(in srgb, var(--fp-paper-raised) 70%, transparent);
+    background: transparent;
     color: var(--fp-ink-soft);
     font: 400 var(--fp-size-sm)/1.2 var(--fp-font-title);
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition: color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease),
-        background-color var(--fp-dur) var(--fp-ease);
+    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease),
+        transform var(--fp-dur) var(--fp-ease);
 }
 
 .ms-rail-item:hover {
     color: var(--fp-ink);
-    border-color: var(--fp-rule-strong);
-    background: var(--fp-paper-raised);
+    background: var(--fp-rule);
 }
+
+.ms-rail-item:active { transform: scale(0.96); }
 
 .ms-rail-item.active {
-    color: var(--fp-ink);
-    border-color: var(--fp-contour);
-    background: var(--fp-paper-raised);
+    color: var(--fp-accent-ink);
+    background: var(--fp-accent);
 }
 
-.ms-rail-item.active::before {
-    content: '';
-    position: absolute;
-    left: -6px;
-    top: 50%;
-    width: 2px;
-    height: 16px;
-    margin-top: -8px;
-    border-radius: 1px;
-    background: var(--fp-contour);
-}
-
-.ms-rail-item:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
+.ms-rail-item:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
 
 /* 有书脊轨时信息卡右移，两者不叠（轨道宽度 + 间隙） */
 #memoryShelf.has-rail .ms-info { margin-left: 74px; }
@@ -133,8 +124,15 @@
     #memoryShelf.has-rail .ms-info { margin-left: 26px; }
 }
 
-/* 换省：整张卡淡入（不再逐行错峰、不再带位移和旋转） */
+/* 换省：整张卡从模糊、略小里弹出（fpPopIn 同款）。
+   位移只用 scale / filter：translate 属性归 --ms-card-y，transform 归书本模式的缩回。 */
 @keyframes msInfoIn {
+    from { opacity: 0; scale: 0.94; filter: blur(8px); }
+    to { opacity: 1; scale: 1; filter: none; }
+}
+
+/* 减弱动效时换省只淡入 */
+@keyframes msInfoFade {
     from { opacity: 0; }
     to { opacity: 1; }
 }
@@ -205,16 +203,26 @@
 
 .ms-stage.has-canvas .ms-floor { display: none; }
 
+/* 舞台底部的操作提示：一枚玻璃小胶囊 */
 .ms-stage-hint {
     position: absolute;
     left: 50%;
-    bottom: 22px;
+    bottom: 18px;
     transform: translateX(-50%);
-    color: var(--fp-ink-faint);
+    padding: 6px 14px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-ink-soft);
     font-size: var(--fp-size-xs);
     white-space: nowrap;
     pointer-events: none;
 }
+
+/* 没有提示文字时不显示那枚空胶囊 */
+.ms-stage-hint:empty { display: none; }
 
 /* 顶栏那对「‹ ›」中间的计数：「第几 / 共几本」（一次翻一屏，见 pageStep）。
    做得极淡极小，不跟标题抢视线；按钮隐藏时一起隐藏。

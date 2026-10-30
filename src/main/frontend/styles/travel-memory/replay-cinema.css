@@ -1,5 +1,6 @@
         /* ============ 重走：地球为主角，票根收进右下角，底部一条放映栏 ============
-           这一层压在 3D 地球上，用默认的夜图变量。票根图是用户的照片，不改色。 */
+           这一层压在 3D 地球上：放映栏、航段卡、票根框都是更实一点的玻璃（--fp-glass-strong + 模糊），
+           暗色地球上文字照样读得清。票根图是用户的照片，不改色。 */
         .ticket-replay-view {
             display: none;
             align-items: stretch;
@@ -20,9 +21,12 @@
             aspect-ratio: auto;
             max-height: min(46vh, 420px);
             border-radius: var(--fp-radius-panel);
-            border: 1px solid var(--fp-rule-strong);
-            background: var(--fp-paper);
-            padding: 4px;
+            border: 0;
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow-lift);
+            padding: 6px;
             overflow: hidden;
             /* 点票根 = 放大/收起 */
             pointer-events: auto;
@@ -37,7 +41,7 @@
             cursor: zoom-in;
         }
         #ticketReplayCard:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 3px;
         }
         /* 暂停：原地站住，微微放大，不搬到画面中间 */
@@ -50,9 +54,12 @@
             position: absolute;
             right: 10px;
             bottom: 10px;
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
             color: var(--fp-ink);
             font: 500 var(--fp-size-xs)/1.4 var(--fp-font-text);
             opacity: 0;
@@ -76,7 +83,7 @@
             max-height: min(46vh, 420px);
             border-radius: var(--fp-radius-photo);
             object-fit: contain;
-            background: var(--fp-paper-raised);
+            background: transparent;
         }
         #ticketReplayCard.is-missing {
             width: min(360px, 44vw);
@@ -109,11 +116,12 @@
             animation: none;
         }
         .ticket-replay-card.is-arriving img {
-            animation: ticketReplayPhotoIn 240ms var(--fp-ease) both;
+            animation: ticketReplayPhotoIn var(--fp-dur) var(--fp-ease) both;
         }
+        /* 新的一站：从模糊、略小里落定 */
         @keyframes ticketReplayPhotoIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
+            from { opacity: 0; transform: scale(0.94); filter: blur(8px); }
+            to   { opacity: 1; transform: none; filter: none; }
         }
         .ticket-replay-cinema {
             position: absolute;
@@ -128,13 +136,22 @@
             gap: 12px 22px;
             flex-wrap: wrap;
             box-sizing: border-box;
-            padding: 12px 16px 12px 20px;
-            border: 1px solid var(--fp-rule);
+            padding: 12px 14px 12px 22px;
+            border: 0;
             border-radius: var(--fp-radius-panel);
-            background: var(--fp-paper);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow-lift);
             pointer-events: auto;
             color: var(--fp-ink);
             font-family: var(--fp-font-text);
+            animation: ticketCinemaIn var(--fp-dur) var(--fp-ease) both;
+        }
+        /* 放映栏从下方弹出：transform 被居中占用，位移与缩放用独立属性 */
+        @keyframes ticketCinemaIn {
+            from { opacity: 0; translate: 0 8px; scale: 0.96; filter: blur(8px); }
+            to   { opacity: 1; translate: none; scale: none; filter: none; }
         }
         /* 底部压一层暗角，地球亮部不会顶掉放映栏的文字 */
         .ticket-replay-view::after {
@@ -143,10 +160,14 @@
             left: 0;
             right: 0;
             bottom: 0;
-            height: 220px;
+            height: 160px;
             z-index: 5;
-            background: linear-gradient(180deg, transparent, var(--fp-scrim));
+            background: linear-gradient(180deg, transparent, var(--ticket-replay-veil));
             pointer-events: none;
+        }
+        .ticket-replay-view {
+            /* 底部那层托底只要很淡的一层，玻璃面板自己已经够清楚 */
+            --ticket-replay-veil: color-mix(in srgb, var(--fp-paper) 28%, transparent);
         }
         /* 放映栏三块各占两行：
            左＝站名 + 状态/里程，中＝第几站 + 进度条，右＝控件组 */
@@ -228,6 +249,10 @@
             margin: 0;
             color: var(--fp-ink-soft);
         }
+        #ticketReplayProgressText {
+            color: var(--fp-accent);
+            font-weight: 500;
+        }
         .ticket-replay-progress-head {
             display: flex;
             align-items: baseline;
@@ -263,28 +288,42 @@
             display: flex;
             align-items: center;
             gap: 2px;
-            padding: 2px;
-            border: 1px solid var(--fp-rule-strong);
+            padding: 3px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
+            background: var(--fp-rule);
         }
         .ticket-replay-transport button {
             min-width: 40px;
             height: 32px;
             padding: 0 12px;
             border: 0;
-            border-radius: 4px;
+            border-radius: var(--fp-radius-control);
             background: transparent;
             color: var(--fp-ink);
             font: 500 var(--fp-size-sm)/1.2 var(--fp-font-text);
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
         }
         .ticket-replay-transport button:hover {
-            background: var(--fp-rule);
+            background: var(--fp-rule-strong);
+        }
+        .ticket-replay-transport button:active,
+        .ticket-replay-extras button:active {
+            transform: scale(0.96);
+        }
+        /* 播放 / 暂停是走带的主键：强调色实底 */
+        #ticketReplayPlay {
+            min-width: 64px;
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        #ticketReplayPlay:hover {
+            background: var(--fp-accent);
+            filter: brightness(1.06);
         }
         .ticket-replay-transport button:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 1px;
         }
         .ticket-replay-extras {
@@ -300,8 +339,10 @@
             background: transparent;
             color: var(--fp-ink-soft);
             font: 500 var(--fp-size-sm)/1.2 var(--fp-font-text);
+            white-space: nowrap;
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease), color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), color var(--fp-dur) var(--fp-ease),
+                transform var(--fp-dur) var(--fp-ease);
         }
         .ticket-replay-extras button:hover {
             background: var(--fp-rule);
@@ -309,7 +350,7 @@
         }
         .ticket-replay-extras button:focus-visible {
             color: var(--fp-ink);
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 1px;
         }
         #ticketReplaySpeed {
@@ -317,8 +358,8 @@
             font-variant-numeric: tabular-nums;
         }
         #ticketReplaySpeed.is-on {
-            color: var(--fp-ink);
-            box-shadow: inset 0 -2px 0 var(--fp-contour);
+            background: var(--fp-accent-soft);
+            color: var(--fp-accent);
         }
         /* 飞行途中的航段卡：起点 → 终点 + 飞行进度 + 直线距离 */
         .ticket-replay-flight {
@@ -330,22 +371,29 @@
             width: min(400px, 84vw);
             padding: 14px 22px 12px;
             box-sizing: border-box;
-            border: 1px solid var(--fp-rule);
+            border: 0;
             border-radius: var(--fp-radius-panel);
-            background: var(--fp-paper);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow-lift);
             text-align: center;
             color: var(--fp-ink);
             font-family: var(--fp-font-text);
             pointer-events: none;
             opacity: 0;
             visibility: hidden;
-            transform: translate(-50%, 6px);
-            transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease), visibility var(--fp-dur);
+            /* 关：200ms 反向收回；开：fpPopIn 同款（缩放 + 上移 + 去模糊） */
+            transform: translate(-50%, 8px) scale(0.92);
+            filter: blur(8px);
+            transition: opacity 200ms var(--fp-ease), transform 200ms var(--fp-ease), filter 200ms var(--fp-ease), visibility 200ms;
         }
         .ticket-replay-flight.is-on {
             opacity: 1;
             visibility: visible;
             transform: translate(-50%, 0);
+            filter: none;
+            transition-duration: var(--fp-dur);
         }
         .ticket-replay-flight .ticket-replay-flight-kicker {
             margin: 0 0 8px;
@@ -395,16 +443,17 @@
         }
         .ticket-replay-flight-track {
             position: relative;
-            height: 2px;
+            height: 4px;
             margin: 12px 0 10px;
-            background: var(--fp-rule);
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule-strong);
             overflow: hidden;
         }
         .ticket-replay-flight-track > i {
             display: block;
             width: 100%;
             height: 100%;
-            background: var(--fp-contour);
+            background: var(--fp-accent);
             transform: scaleX(0);
             transform-origin: left center;
         }
@@ -484,6 +533,12 @@
                 height: 44px;
                 padding: 0 12px;
             }
+            .ticket-replay-extras button {
+                padding: 0 8px;
+            }
+            .ticket-replay-actions {
+                gap: 6px;
+            }
             .ticket-replay-flight {
                 bottom: 216px;
                 width: min(340px, 88vw);
@@ -530,12 +585,21 @@
             .ticket-replay-flight {
                 transition: none;
             }
+            .ticket-replay-flight,
+            .ticket-replay-flight.is-on {
+                filter: none;
+                transform: translate(-50%, 0);
+                transition: opacity var(--fp-dur) linear, visibility var(--fp-dur);
+            }
+            .ticket-replay-cinema {
+                animation: ticketGalleryFade var(--fp-dur) linear both;
+            }
             /* 减弱动效时不给飞行进度条做动画，直接显示走完的状态 */
             .ticket-replay-flight.is-on .ticket-replay-flight-track > i {
                 animation: none;
                 transform: scaleX(1);
             }
             .ticket-replay-end-card {
-                animation: none;
+                animation: ticketReplayEndIn var(--fp-dur) linear both;
             }
         }

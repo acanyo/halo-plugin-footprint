@@ -2,7 +2,7 @@
    世界这本书（memory-shelf.css）
    省份书架 -> 城市章节 -> 旅行相册，三层共用一个全屏沉浸层。
    只作用于 #memoryShelf 及其后代，类名统一 ms- 前缀，不碰 travel-memory.css。
-   外框走「白图」（模板里 #memoryShelf 带 .fp-sheet），颜色、字体都取 --fp-*
+   外框走柔光玻璃（模板里 #memoryShelf 带 .fp-sheet），颜色、字体都取 --fp-*
    （tokens.css 在 travel-memory.css 里，同页先加载）。3D 房间的墙与地由 JS 按省份给。
    ========================================================================== */
 
@@ -10,7 +10,7 @@
    syncPanelTheme），@property 让它们可以**过渡**而不是硬切：
    没有 @property 的浏览器会忽略这两条，只是颜色切换时不做补间，不影响可用性。
    initial-value 只能写字面量、不能引用 --fp-*；而 #memoryShelf 上总会声明这两个变量
-   （白图纸色与深一档的灰绿），初始值实际用不到，所以写 transparent，色值只留在下面一处。 */
+   （浅灰与深一档的淡紫灰），初始值实际用不到，所以写 transparent，色值只留在下面一处。 */
 @property --ms-room-wall {
     syntax: '<color>';
     inherits: true;
@@ -24,23 +24,23 @@
 }
 
 #memoryShelf {
-    /* 外框的墨色、格线全部映射到 --fp-*（白图）。
+    /* 外框的墨色、格线全部映射到 --fp-*。
        ⚠️ room-theme.js 会把 --ms-accent / --ms-gold 按省份写成行内样式，
        行内样式压过这里的映射，所以下面的规则**不再读**这两个变量，
-       直接用 --fp-contour / --fp-water / --fp-mark；这里的映射只是 JS 写入前的默认值。 */
+       直接用 --fp-accent；这里的映射只是 JS 写入前的默认值。 */
     --ms-ink: var(--fp-ink);
     --ms-muted: var(--fp-ink-soft);
     --ms-faint: var(--fp-ink-faint);
     --ms-line: var(--fp-rule);
-    --ms-accent: var(--fp-contour);
-    --ms-gold: var(--fp-contour);
+    --ms-accent: var(--fp-accent);
+    --ms-gold: var(--fp-accent);
     --ms-paper: var(--fp-paper-raised);   /* 书页纸色（DOM 回退的章节 / 相册） */
     --ms-paper-2: var(--fp-paper);
     --ms-paper-ink: var(--fp-ink);
     --ms-paper-muted: var(--fp-ink-soft);
     --ms-shade: color-mix(in srgb, var(--fp-ink) 12%, transparent);   /* 订口暗角、空槽底色 */
-    --ms-room-wall: #eceee9;              /* 场景里的墙面（JS 按省份重算） */
-    --ms-room-floor: #d3d7cf;             /* 场景里的地面（JS 按省份重算） */
+    --ms-room-wall: #ebeaf1;              /* 场景里的墙面（JS 按省份重算，见 room-theme.js） */
+    --ms-room-floor: #d9d8e2;             /* 场景里的地面（JS 按省份重算） */
 
     position: fixed;
     inset: 0;
@@ -82,6 +82,15 @@ body.memory-shelf-open #pageIntro {
     to { opacity: 1; }
 }
 
+/* 玻璃面板共用的一组声明：顶栏、书脊轨、信息卡 */
+.ms-top,
+.ms-info,
+.ms-rail-list {
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
+}
+
 /* ---------------- 顶栏 ---------------- */
 
 /* 只给读屏用的隐藏文本（live region、补充说明） */
@@ -106,15 +115,20 @@ body.memory-shelf-open #pageIntro {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-height: 30px;
-    padding: 0 12px;
-    border: 1px solid var(--fp-rule-strong);
+    min-height: 32px;
+    padding: 0 14px;
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: var(--fp-paper-raised);
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--fp-shadow);
     color: var(--fp-ink);
     font: 500 var(--fp-size-xs)/1 var(--fp-font-text);
     cursor: pointer;
-    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease),
+        box-shadow var(--fp-dur) var(--fp-ease);
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
 }
 
 .ms-view-reset::before {
@@ -123,8 +137,9 @@ body.memory-shelf-open #pageIntro {
     line-height: 1;
 }
 
-.ms-view-reset:hover { border-color: var(--fp-ink-soft); background: var(--fp-paper); }
-.ms-view-reset:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
+.ms-view-reset:hover { transform: translateY(-2px); box-shadow: var(--fp-shadow-lift); }
+.ms-view-reset:active { transform: scale(0.96); }
+.ms-view-reset:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
 .ms-view-reset[hidden] { display: none; }
 
 .ms-top {
@@ -134,12 +149,20 @@ body.memory-shelf-open #pageIntro {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 22px;
-    padding: 18px 28px 14px;
-    border-bottom: 1px solid var(--fp-rule);
-    background: color-mix(in srgb, var(--fp-paper) 94%, transparent);
+    /* 顶栏是浮在房间上方的一条玻璃：四周留出空，圆角 + 柔影，无描边 */
+    margin: 12px 16px 0;
+    padding: 10px 14px;
+    border-radius: var(--fp-radius-panel);
+    background: var(--fp-glass);
+    position: relative;
+    z-index: 4;
     /* 书本模式收窄顶栏这一下必须是**平滑**的：顶栏一矮，它下面整个网格
        （含 3D 画布和左侧信息卡）就整体上移。时间和卡片退场同拍（0.45s）。 */
-    transition: padding 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: padding 0.45s cubic-bezier(0.22, 1, 0.36, 1), margin 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#memoryShelf.show .ms-top {
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
 }
 
 .ms-back { justify-self: start; }
@@ -160,7 +183,7 @@ body.memory-shelf-open #pageIntro {
 #memoryShelfMute[aria-pressed="true"] .ms-sound-on { display: none; }
 #memoryShelfMute[aria-pressed="true"] .ms-sound-off { display: block; }
 
-/* 音量滑杆：细轨 + 圆头。轨道左侧那段用等高线色填出"当前音量"，
+/* 音量滑杆：细轨 + 圆头。轨道左侧那段用强调色填出"当前音量"，
    取值来自 --ms-vol（JS 每次同步音量时写）。 */
 .ms-volume {
     width: 74px;
@@ -174,63 +197,66 @@ body.memory-shelf-open #pageIntro {
 }
 
 .ms-volume::-webkit-slider-runnable-track {
-    height: 3px;
-    border-radius: 2px;
+    height: 4px;
+    border-radius: var(--fp-radius-control);
     background: linear-gradient(90deg,
-        var(--fp-contour) var(--ms-vol, 55%),
+        var(--fp-accent) var(--ms-vol, 55%),
         var(--fp-rule-strong) var(--ms-vol, 55%));
 }
 
 .ms-volume::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 11px;
-    height: 11px;
-    margin-top: -4px;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
     border-radius: 50%;
-    background: var(--fp-contour);
-    border: 1px solid var(--fp-paper-raised);
+    background: var(--fp-paper-raised);
+    border: 0;
+    box-shadow: var(--fp-shadow), inset 0 0 0 4px var(--fp-accent);
 }
 
 .ms-volume::-moz-range-track {
-    height: 3px;
-    border-radius: 2px;
+    height: 4px;
+    border-radius: var(--fp-radius-control);
     background: var(--fp-rule-strong);
 }
 
 .ms-volume::-moz-range-progress {
-    height: 3px;
-    border-radius: 2px;
-    background: var(--fp-contour);
+    height: 4px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent);
 }
 
 .ms-volume::-moz-range-thumb {
-    width: 11px;
-    height: 11px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    background: var(--fp-contour);
-    border: 1px solid var(--fp-paper-raised);
+    background: var(--fp-paper-raised);
+    border: 0;
+    box-shadow: var(--fp-shadow), inset 0 0 0 4px var(--fp-accent);
 }
 
-.ms-volume:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 3px; }
+.ms-volume:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 3px; }
 
 /* 静音时把滑杆压暗，一眼看出"现在没有声音"；仍然可以调。 */
 #memoryShelfMute[aria-pressed="true"] ~ .ms-volume { opacity: 0.45; }
 
-/* 顶栏按钮：和 .fp-btn 同一套描边次要按钮 */
+/* 顶栏按钮：和 .fp-btn 同一套浅底胶囊 */
 .ms-back,
 .ms-nav {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--fp-rule-strong);
+    min-height: 34px;
+    padding: 0 14px;
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: transparent;
+    background: var(--fp-rule);
     color: var(--fp-ink);
     font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
     cursor: pointer;
-    transition: border-color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease);
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease),
+        min-height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .ms-back svg { width: 15px; height: 15px; }
@@ -238,7 +264,8 @@ body.memory-shelf-open #pageIntro {
 /* 书本摊开时顶栏要收窄：那本书本身就占满画面竖向。这里只留标题 + 两侧按钮。 */
 #memoryShelf.book-mode .ms-top {
     gap: 14px;
-    padding: 6px 16px;
+    margin-top: 8px;
+    padding: 6px 12px;
 }
 
 /* 副标题**不能跟着收掉**：setHeader() 每一层都会传一句指导语，
@@ -267,21 +294,31 @@ body.memory-shelf-open #pageIntro {
 
 .ms-back:hover,
 .ms-nav:hover:not(:disabled) {
-    border-color: var(--fp-ink-soft);
-    background: var(--fp-rule);
+    background: var(--fp-rule-strong);
+}
+
+.ms-back:active,
+.ms-nav:active:not(:disabled) {
+    transform: scale(0.96);
 }
 
 .ms-back:focus-visible,
 .ms-nav:focus-visible,
 .ms-actions button:focus-visible,
 .ms-empty button:focus-visible,
-.ms-fbook:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
+.ms-fbook:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
 
 .ms-nav {
     min-width: 34px;
     justify-content: center;
     padding: 0 8px;
     font-size: var(--fp-size-lg);
+}
+
+/* 静音键按下（= 已静音）：强调色浅底 */
+#memoryShelfMute[aria-pressed="true"] {
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
 }
 
 .ms-nav:disabled { opacity: 0.45; cursor: default; }
@@ -310,7 +347,7 @@ body.memory-shelf-open #pageIntro {
 }
 
 /* 顶栏标题 = 面包屑：「世界这本书 › 山东 › 青岛」。
-   最后一段是当前位置（深墨、不可点），前面的段是可点的返回入口（水系色）。 */
+   最后一段是当前位置（深墨、不可点），前面的段是可点的返回入口（强调色）。 */
 .ms-crumb-sep {
     margin: 0 8px;
     font-size: 0.72em;
@@ -334,32 +371,39 @@ body.memory-shelf-open #pageIntro {
     vertical-align: bottom;
 }
 
-/* 当前段的层级后缀：目录 / 旅行相册 / 足迹点 */
+/* 当前段的层级后缀：目录 / 旅行相册 / 足迹点。一枚强调色浅底小胶囊 */
 .ms-crumb-tag {
-    margin-left: 6px;
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
     font-family: var(--fp-font-text);
     font-size: var(--fp-size-xs);
-    color: var(--fp-ink-faint);
+    line-height: 1.5;
+    vertical-align: middle;
 }
 
+/* 可点的上级：强调色字，悬停垫一层强调色浅底 */
 .ms-crumb-link {
-    padding: 0;
+    margin: 0 -6px;
+    padding: 0 6px;
     border: 0;
-    border-bottom: 1px solid transparent;
-    background: none;
+    border-radius: var(--fp-radius-photo);
+    background: transparent;
     font: inherit;
     letter-spacing: inherit;
-    color: var(--fp-water);
+    color: var(--fp-accent);
     cursor: pointer;
-    transition: border-color var(--fp-dur) var(--fp-ease);
+    transition: background-color var(--fp-dur) var(--fp-ease);
 }
 
-.ms-crumb-link:hover { border-bottom-color: currentColor; }
+.ms-crumb-link:hover { background: var(--fp-accent-soft); }
 
 .ms-crumb-link:focus-visible {
-    outline: 2px solid var(--fp-water);
+    outline: 2px solid var(--fp-accent);
     outline-offset: 2px;
-    border-radius: var(--fp-radius-photo);
 }
 
 .ms-head p {

@@ -7,33 +7,46 @@
             gap: 8px;
             min-width: 0;
         }
-        /* 顶栏的「抽一张」「护照」与 .fp-btn 同一套描边按钮 */
+        /* 顶栏的「抽一张」「护照」与 .fp-btn 同一套浅底胶囊 */
         #ticketPassportBtn,
         #ticketOracleBtn,
         #ticketLetterBtn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            min-height: 32px;
-            padding: 0 12px;
-            border: 1px solid var(--fp-rule-strong);
+            min-height: 34px;
+            padding: 0 14px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
+            background: var(--fp-rule);
             color: var(--fp-ink);
             font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
         }
         #ticketPassportBtn:hover,
         #ticketOracleBtn:hover,
         #ticketLetterBtn:hover {
-            border-color: var(--fp-ink-soft);
-            background: var(--fp-rule);
+            background: var(--fp-rule-strong);
+        }
+        #ticketPassportBtn:active,
+        #ticketOracleBtn:active,
+        #ticketLetterBtn:active {
+            transform: scale(0.96);
+        }
+        /* 写信是条目卡里唯一的操作：强调色实底 */
+        #ticketLetterBtn {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        #ticketLetterBtn:hover {
+            background: var(--fp-accent);
+            filter: brightness(1.06);
         }
         #ticketPassportBtn:focus-visible,
         #ticketOracleBtn:focus-visible,
         #ticketLetterBtn:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
         #ticketPassportBtn[hidden],
@@ -42,12 +55,12 @@
             display: none;
         }
         #ticketPassportCount {
-            color: var(--fp-ink-faint);
+            color: var(--fp-accent);
             font-size: var(--fp-size-xs);
             font-variant-numeric: tabular-nums;
         }
 
-        /* 检票章：在一张票根上停留 1.5 秒后盖上。标注红细框，表示「去过」 */
+        /* 检票章：在一张票根上停留 1.5 秒后盖上。强调色实底徽章，表示「去过」 */
         .ticket-gallery-stage {
             position: relative;
         }
@@ -58,11 +71,12 @@
             z-index: 32;
             pointer-events: none;
             max-width: 46%;
-            padding: 4px 10px;
-            border: 1px solid var(--fp-mark);
+            padding: 5px 14px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
-            color: var(--fp-mark);
+            background: var(--fp-accent);
+            box-shadow: var(--fp-shadow);
+            color: var(--fp-accent-ink);
             font: 500 var(--fp-size-sm)/1.5 var(--fp-font-text);
             font-variant-numeric: tabular-nums;
             text-align: center;
@@ -79,9 +93,10 @@
             opacity: 1;
             animation: none;
         }
+        /* 盖章：从略大、模糊落到清晰（用 scale 属性，transform 留给水平居中） */
         @keyframes ticketStampIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
+            from { opacity: 0; scale: 1.25; filter: blur(6px); }
+            to   { opacity: 1; scale: 1; filter: none; }
         }
         /* 横条模式：stage 是 display: contents（不生成盒子），
            绝对定位的检票章会失去定位基准，这里把基准绑到横条视图上 */
@@ -95,56 +110,75 @@
         /* 「时间有色」：按票根月份给序号换色（只改这一处文字） */
         #ticketGallery[data-season='spring'],
         #ticketGallery[data-season='summer'] {
-            --season-accent: var(--fp-contour);
+            --season-accent: var(--fp-accent);
         }
         #ticketGallery[data-season='autumn'],
         #ticketGallery[data-season='winter'] {
-            --season-accent: var(--fp-water);
+            --season-accent: var(--fp-accent);
         }
 
-        /* ============ 护照 / 抽票 / 写信：三块白图浮层 ============
+        /* ============ 护照 / 抽票 / 写信：浅灰半透明底上的玻璃面板 ============
            通用骨架 .feature-overlay 在 creative-features.css；
-           这里按 id 把三块浮层的纸面、顶栏、按钮换成 --fp-*（浮层根元素带 .fp-sheet）。 */
+           这里按 id 换成柔光玻璃：整层是模糊过的浅灰，顶栏与内容是玻璃面板，打开时弹出，关闭 200ms 淡出。 */
         #ticketPassport,
         #ticketOracle,
         #ticketLetter {
-            background: var(--fp-paper);
+            background: var(--fp-scrim);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
             color: var(--fp-ink);
             font-family: var(--fp-font-text);
-            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur) var(--fp-ease);
+            transition: opacity 200ms var(--fp-ease), visibility 200ms var(--fp-ease);
+        }
+        #ticketPassport.show,
+        #ticketOracle.show,
+        #ticketLetter.show {
+            transition-duration: var(--fp-dur);
         }
         #ticketPassport .feature-top,
         #ticketOracle .feature-top,
         #ticketLetter .feature-top {
-            background: var(--fp-paper);
-            border-bottom: 1px solid var(--fp-rule);
-            box-shadow: none;
+            margin: max(12px, env(safe-area-inset-top)) 16px 0;
+            padding: 10px 14px;
+            border: 0;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow);
+        }
+        #ticketPassport.show .feature-top,
+        #ticketOracle.show .feature-top,
+        #ticketLetter.show .feature-top {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
         }
         #ticketPassport .feature-back,
         #ticketOracle .feature-back,
         #ticketLetter .feature-back {
-            min-height: 32px;
-            padding: 0 12px;
-            border: 1px solid transparent;
+            min-height: 34px;
+            padding: 0 14px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
-            color: var(--fp-ink-soft);
+            background: var(--fp-rule);
+            color: var(--fp-ink);
             font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             letter-spacing: 0;
-            transition: background-color var(--fp-dur) var(--fp-ease), color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
         }
         #ticketPassport .feature-back:hover,
         #ticketOracle .feature-back:hover,
         #ticketLetter .feature-back:hover {
-            background: var(--fp-rule);
+            background: var(--fp-rule-strong);
             color: var(--fp-ink);
+        }
+        #ticketPassport .feature-back:active,
+        #ticketOracle .feature-back:active,
+        #ticketLetter .feature-back:active {
+            transform: scale(0.96);
         }
         #ticketPassport .feature-back:focus-visible,
         #ticketOracle .feature-back:focus-visible,
         #ticketLetter .feature-back:focus-visible {
-            background: transparent;
             color: var(--fp-ink);
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
         #ticketPassport .feature-head h2,
@@ -168,42 +202,57 @@
             scrollbar-color: var(--fp-rule-strong) transparent;
         }
 
-        /* 浮层里的按钮：描边次要按钮；悬停加一层格线色 */
+        /* 浮层里的按钮：浅底胶囊（.fp-btn 同款），按下缩一下 */
         .ticket-passport-reset,
         .ticket-oracle-actions button,
         #ticketLetterRetry,
         #postcardRetry,
         .ticket-letter-actions button {
-            min-height: 32px;
-            padding: 0 12px;
-            border: 1px solid var(--fp-rule-strong);
+            min-height: 34px;
+            padding: 0 16px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
+            background: var(--fp-rule);
             color: var(--fp-ink);
             font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             letter-spacing: 0;
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
         }
         .ticket-passport-reset:hover,
         .ticket-oracle-actions button:hover:not([disabled]),
         #ticketLetterRetry:hover,
         #postcardRetry:hover,
         .ticket-letter-actions button:hover:not([disabled]) {
-            border-color: var(--fp-ink-soft);
-            background: var(--fp-rule);
+            background: var(--fp-rule-strong);
             color: var(--fp-ink);
+        }
+        .ticket-passport-reset:active,
+        .ticket-oracle-actions button:active:not([disabled]),
+        #ticketLetterRetry:active,
+        #postcardRetry:active,
+        .ticket-letter-actions button:active:not([disabled]) {
+            transform: scale(0.96);
         }
         .ticket-passport-reset:focus-visible,
         .ticket-oracle-actions button:focus-visible,
         #ticketLetterRetry:focus-visible,
         #postcardRetry:focus-visible,
         .ticket-letter-actions button:focus-visible {
-            background: transparent;
             color: var(--fp-ink);
             box-shadow: none;
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
+        }
+        /* 抽票里「再抽一次」是主操作 */
+        #ticketOracleAgain {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        #ticketOracleAgain:hover:not([disabled]) {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+            filter: brightness(1.06);
         }
         .ticket-oracle-actions button[disabled],
         .ticket-letter-actions button[disabled] {
@@ -211,7 +260,7 @@
             cursor: default;
         }
 
-        /* —— 护照：每张票根一格，已检票的格子盖标注红章 —— */
+        /* —— 护照：每张票根一张玻璃小卡，已检票的盖强调色徽章；打开时前 8 张错峰弹出 —— */
         .ticket-passport-overlay {
             z-index: 11500;
         }
@@ -225,30 +274,48 @@
         .ticket-passport-cell {
             position: relative;
             min-width: 0;
-            border: 1px solid var(--fp-rule);
+            padding: 6px;
+            border: 0;
             border-radius: var(--fp-radius-panel);
-            background: var(--fp-paper-raised);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow);
             overflow: hidden;
+            transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+        }
+        /* backwards：跑完后回到静态样式，不把 transform 钉住（否则悬停上浮失效） */
+        #ticketPassport.show .ticket-passport-cell {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+        }
+        #ticketPassport.show .ticket-passport-cell:nth-child(2) { animation-delay: 40ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(3) { animation-delay: 80ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(4) { animation-delay: 120ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(5) { animation-delay: 160ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(6) { animation-delay: 200ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(7) { animation-delay: 240ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(n + 8) { animation-delay: 280ms; }
+        .ticket-passport-cell:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--fp-shadow-lift);
         }
         .ticket-passport-cell img {
             display: block;
             width: 100%;
-            height: 132px;
+            height: 126px;
+            border-radius: var(--fp-radius-photo);
             object-fit: cover;
             background: var(--fp-rule);
         }
         .ticket-passport-cell.is-missing {
-            border-style: dashed;
-            border-color: var(--fp-rule-strong);
-            background: transparent;
+            background: var(--fp-glass);
+            box-shadow: none;
         }
         .ticket-passport-cell.is-missing img {
-            opacity: 0.26;
+            opacity: 0.4;
             filter: grayscale(1);
         }
         .ticket-passport-cell-title {
             display: block;
-            padding: 8px 10px 10px;
+            padding: 8px 6px 4px;
             color: var(--fp-ink);
             font: 400 var(--fp-size-sm)/1.5 var(--fp-font-title);
             overflow: hidden;
@@ -257,20 +324,22 @@
         }
         .ticket-passport-cell-status {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            padding: 1px 6px;
-            border: 1px solid var(--fp-mark);
+            top: 12px;
+            right: 12px;
+            padding: 2px 10px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: var(--fp-paper);
-            color: var(--fp-mark);
+            background: var(--fp-accent);
+            box-shadow: var(--fp-shadow);
+            color: var(--fp-accent-ink);
             font-size: var(--fp-size-xs);
             line-height: 1.6;
         }
         .ticket-passport-cell.is-missing .ticket-passport-cell-status {
-            border: 1px dashed var(--fp-rule-strong);
-            background: var(--fp-paper);
-            color: var(--fp-ink-faint);
+            border: 0;
+            background: var(--fp-glass-strong);
+            box-shadow: none;
+            color: var(--fp-ink-soft);
         }
         .ticket-passport-reset {
             display: block;
@@ -333,15 +402,18 @@
         }
         .ticket-oracle-card {
             /* 背面的斜纹用格线色 */
-            --oracle-stripe: var(--fp-rule);
+            --oracle-stripe: var(--fp-accent-soft);
             position: relative;
             width: min(520px, 92vw);
             aspect-ratio: 3 / 4;
             /* 给下方文案与按钮留位置，矮屏时卡片自己缩下来 */
             max-height: min(62vh, calc(100vh - 320px));
-            border: 1px solid var(--fp-rule);
+            box-sizing: border-box;
+            padding: 6px;
+            border: 0;
             border-radius: var(--fp-radius-panel);
-            background: var(--fp-paper-raised);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow-lift);
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -350,8 +422,20 @@
         .ticket-oracle-card img {
             width: 100%;
             height: 100%;
+            border-radius: var(--fp-radius-photo);
             object-fit: contain;
-            background: var(--fp-paper-raised);
+            background: transparent;
+        }
+        /* 打开时卡片与下方文案弹出；洗牌动画挂在 .is-shuffling 上，不受影响 */
+        #ticketOracle.show .ticket-oracle-card:not(.is-shuffling) {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+        }
+        #ticketOracle.show .ticket-oracle-below {
+            animation: ticketOracleBelowIn var(--fp-dur) var(--fp-ease) 80ms both;
+        }
+        @keyframes ticketOracleBelowIn {
+            from { opacity: 0; filter: blur(6px); }
+            to   { opacity: 1; filter: none; }
         }
         .ticket-oracle-missing {
             padding: 20px;
@@ -361,7 +445,8 @@
         .ticket-oracle-card.is-back::before {
             /* 用半角 ?：全角「？」的字形在字身框里靠左，肉眼看着不居中 */
             content: "?";
-            color: var(--fp-rule-strong);
+            color: var(--fp-accent);
+            opacity: 0.35;
             font: 400 180px/1 var(--fp-font-title);
             /* 行盒按字体基线排，墨迹比卡片中心略低，这里抬回来 */
             transform: translateY(-0.058em);
@@ -369,7 +454,7 @@
         .ticket-oracle-card.is-back {
             background:
                 repeating-linear-gradient(45deg, var(--oracle-stripe) 0 1px, transparent 1px 12px),
-                var(--fp-paper-raised);
+                var(--fp-glass-strong);
         }
         /* 点「抽一张 / 再抽一次」后的短暂洗牌：约 0.9 秒，随结果出现停下 */
         .ticket-oracle-card.is-shuffling {
@@ -433,8 +518,12 @@
             aspect-ratio: var(--media-aspect);
             border-radius: var(--fp-radius-photo);
             background: transparent;   /* 预览图不垫底 */
-            box-shadow: none;
-            outline: 1px solid var(--fp-rule);
+            box-shadow: var(--fp-shadow-lift);
+            outline: 0;
+        }
+        /* 写信：成图出来时从模糊里弹出 */
+        .ticket-letter-stage.is-ready #ticketLetterImg {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
         }
         .ticket-letter-skeleton,
         .postcard-skeleton {
@@ -503,21 +592,19 @@
             margin-top: 18px;
             gap: 8px;
         }
-        /* 下载是这一页唯一的主操作：标注红实底 */
+        /* 下载是这一页唯一的主操作：强调色实底 */
         #ticketLetterDownload {
-            border-color: var(--fp-mark);
-            background: var(--fp-mark);
-            color: var(--fp-mark-ink);
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
         }
         #ticketLetterDownload:hover:not([disabled]) {
-            border-color: var(--fp-mark);
-            background: var(--fp-mark);
-            color: var(--fp-mark-ink);
-            filter: brightness(1.08);
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+            filter: brightness(1.06);
         }
         #ticketLetterDownload:focus-visible {
-            background: var(--fp-mark);
-            color: var(--fp-mark-ink);
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
         }
         .ticket-letter-note {
             margin: 16px 0 0;
@@ -556,4 +643,15 @@
             .postcard-skeleton::after {
                 animation: none;
             }
+            /* 只留透明度 */
+            #ticketPassport.show .feature-top,
+            #ticketOracle.show .feature-top,
+            #ticketLetter.show .feature-top,
+            #ticketPassport.show .ticket-passport-cell,
+            #ticketOracle.show .ticket-oracle-card:not(.is-shuffling),
+            #ticketOracle.show .ticket-oracle-below,
+            .ticket-letter-stage.is-ready #ticketLetterImg {
+                animation: ticketGalleryFade var(--fp-dur) linear both;
+            }
+            .ticket-passport-cell:hover { transform: none; }
         }

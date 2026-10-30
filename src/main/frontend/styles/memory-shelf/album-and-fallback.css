@@ -43,7 +43,7 @@
     cursor: zoom-in;
 }
 
-.ms-album-slot.is-empty { background: transparent; border: 1px dashed var(--fp-rule-strong); cursor: default; }
+.ms-album-slot.is-empty { background: var(--fp-rule); border: 0; cursor: default; }
 
 .ms-album-slot img {
     display: block;
@@ -52,7 +52,7 @@
     object-fit: cover;
 }
 
-.ms-album-slot:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
+.ms-album-slot:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
 
 .ms-album-foot {
     display: flex;
@@ -132,6 +132,11 @@
     border-radius: var(--fp-radius-photo);
 }
 
+.ms-photo-view.show img {
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+}
+
+/* 原地放大的底部控制条：玻璃胶囊（和首屏底部控制条同形） */
 .ms-photo-view-bar {
     position: absolute;
     left: 50%;
@@ -139,10 +144,13 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 6px 10px;
-    border: 1px solid var(--fp-rule-strong);
+    padding: 6px 12px;
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: var(--fp-paper-raised);
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--fp-shadow);
     color: var(--fp-ink);
     font-size: var(--fp-size-xs);
     font-variant-numeric: tabular-nums;
@@ -160,7 +168,7 @@
 }
 
 .ms-photo-view-bar button:disabled { opacity: 0.45; cursor: default; }
-.ms-photo-view-bar button:focus-visible { outline: 2px solid var(--fp-water); outline-offset: 2px; }
+.ms-photo-view-bar button:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
 
 /* ---------------- CSS 3D 回退书架（WebGL 不可用） ----------------
    书本身的布色（--fb-cover / --fb-spine / --fb-ink）由 JS 按 BOOK_COLORS 写进来，
@@ -279,7 +287,12 @@
     #memoryShelf.show { animation: none; }
     .ms-loading-bar i { width: 100%; animation: none; }
     .ms-page-turner { animation: none !important; }
-    .ms-info { animation: none; }
+    .ms-info { animation: msInfoFade var(--fp-dur) linear backwards; }
+    .ms-top,
+    .ms-view-reset,
+    .ms-photo-view.show img { animation: none; }
+    .ms-view-reset:hover { transform: none; }
+    .ms-album-side:hover:not(:disabled) { transform: none; }
     .ms-scene,
     .ms-top,
     .ms-head > *,

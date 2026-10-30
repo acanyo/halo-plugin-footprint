@@ -32,29 +32,30 @@
 
 .ms-empty span { max-width: 460px; font-size: var(--fp-size-md); line-height: 1.7; }
 
-/* 空态里唯一的按钮：描边次要按钮（和 .fp-btn 一致） */
+/* 空态里唯一的按钮：强调色实底胶囊 */
 .ms-empty button {
     margin-top: 8px;
-    min-height: 32px;
-    padding: 0 14px;
-    border: 1px solid var(--fp-rule-strong);
+    min-height: 34px;
+    padding: 0 16px;
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: transparent;
-    color: var(--fp-ink);
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
     font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
     cursor: pointer;
-    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+    transition: filter var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
 }
 
-.ms-empty button:hover { border-color: var(--fp-ink-soft); background: var(--fp-rule); }
+.ms-empty button:hover { filter: brightness(1.06); }
+.ms-empty button:active { transform: scale(0.96); }
 
-/* 加载条：一条细格线，上面跑一段等高线色（加载提示，允许循环） */
+/* 加载条：一条浅轨，上面跑一段强调色（加载提示，允许循环） */
 .ms-loading-bar {
     width: 176px;
-    height: 2px;
+    height: 4px;
     margin-top: 4px;
-    border-radius: 1px;
-    background: var(--fp-rule);
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-rule-strong);
     overflow: hidden;
 }
 
@@ -62,7 +63,8 @@
     display: block;
     width: 40%;
     height: 100%;
-    background: var(--fp-contour);
+    border-radius: inherit;
+    background: var(--fp-accent);
     animation: msLoading 1.25s ease-in-out infinite;
 }
 
@@ -94,7 +96,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--fp-paper);
+    background: linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
     color: var(--fp-ink-soft);
     font-size: var(--fp-size-sm);
     transition: opacity 0.26s ease;
@@ -114,7 +116,7 @@
 .ms-info { z-index: 2; }
 .ms-stage { z-index: 1; }
 
-/* 信息板：一张手簿页。纸面 + 一圈格线，不加投影、不旋转。 */
+/* 信息板：一张玻璃卡（白玻璃 + 模糊 + 柔影，无描边），不旋转。 */
 .ms-info {
     display: flex;
     flex-direction: column;
@@ -136,19 +138,24 @@
     margin-left: 26px;
     padding: 20px 22px;
     position: relative;
-    border: 1px solid var(--fp-rule);
+    border: 0;
     border-radius: var(--fp-radius-panel);
-    background: color-mix(in srgb, var(--fp-paper-raised) 94%, transparent);
+    background: var(--fp-glass);
     pointer-events: none;            /* 卡片背景不吃指针，在它上面照样能转书/选书 */
-    /* 换省时整张卡淡入（只回应选书这个操作）。用 backwards 而不是 forwards：
+    /* 换省时整张卡弹出（只回应选书这个操作）。用 backwards 而不是 forwards：
        跑完后必须回到静态样式，forwards 会把终值钉在元素上、盖掉书本模式的缩回位移。 */
     animation: msInfoIn var(--fp-dur) var(--fp-ease) backwards;
 }
 
-/* 位次与本数：「第 3 本，共 11 本」，放在省名上面 */
+/* 位次与本数：「第 3 本，共 11 本」，放在省名上面；一枚强调色浅底小胶囊 */
 .ms-info-count {
-    color: var(--fp-ink-faint);
+    align-self: flex-start;
+    padding: 3px 10px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
     font-size: var(--fp-size-xs);
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
 }
 
@@ -165,12 +172,11 @@
 .ms-info-name.long { font-size: var(--fp-size-2xl); }
 .ms-info-name.extra-long { font-size: var(--fp-size-xl); }
 
-/* 手簿式小表：标签一列、数据一列，每行一条格线（和首屏那张记录同一写法） */
+/* 小表：标签一列、数据一列，行与行之间一条很淡的分隔 */
 .ms-info-log {
     display: grid;
     grid-template-columns: 4.5em minmax(0, 1fr);
     margin: 4px 0 0;
-    border-top: 1px solid var(--fp-rule-strong);
 }
 
 .ms-info-log > div { display: contents; }
@@ -179,7 +185,7 @@
 .ms-info-log dd {
     margin: 0;
     padding: 8px 0;
-    border-bottom: 1px solid var(--fp-rule);
+    border-top: 1px solid var(--fp-rule);
     font-size: var(--fp-size-sm);
     line-height: 1.5;
 }

@@ -3,57 +3,65 @@
             display: inline-flex;
             align-items: center;
             gap: 2px;
-            padding: 2px;
-            border: 1px solid var(--fp-rule-strong);
+            padding: 3px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
+            background: var(--fp-rule);
         }
         .ticket-view-modes[hidden] {
             display: none;
         }
         .ticket-view-modes button {
-            min-height: 26px;
-            padding: 0 12px;
+            min-height: 28px;
+            padding: 0 14px;
             border: 0;
-            border-radius: 4px;
+            border-radius: var(--fp-radius-control);
             background: transparent;
             color: var(--fp-ink-soft);
             font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease), color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), color var(--fp-dur) var(--fp-ease),
+                box-shadow var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
         }
         .ticket-view-modes button:hover {
             color: var(--fp-ink);
         }
+        .ticket-view-modes button:active {
+            transform: scale(0.96);
+        }
         .ticket-view-modes button:focus-visible {
             color: var(--fp-ink);
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 1px;
         }
+        /* 选中的一段：白色滑块 + 强调色字 */
         .ticket-view-modes button.is-active {
-            background: var(--fp-rule);
-            color: var(--fp-ink);
-            box-shadow: inset 0 -2px 0 var(--fp-contour);
+            background: var(--fp-paper-raised);
+            color: var(--fp-accent);
+            box-shadow: var(--fp-shadow);
         }
         /* 「只看某座城市」筛选：点掉即恢复全部票根 */
         #ticketCityFilter {
             display: inline-flex;
             align-items: center;
-            min-height: 32px;
-            padding: 0 12px;
-            border: 1px solid var(--fp-contour);
+            min-height: 34px;
+            padding: 0 14px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
-            color: var(--fp-ink);
+            background: var(--fp-accent-soft);
+            color: var(--fp-accent);
             font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
         }
         #ticketCityFilter:hover {
-            background: var(--fp-rule);
+            background: var(--fp-rule-strong);
+        }
+        #ticketCityFilter:active {
+            transform: scale(0.96);
         }
         #ticketCityFilter:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
         #ticketCityFilter[hidden] {
@@ -68,7 +76,8 @@
         }
 
         /* ============ 重走一遍：在地球上逐站放映 ============
-           进入重走时 #ticketGallery 摘掉 .fp-sheet，这一层用夜图变量。 */
+           进入重走时 #ticketGallery 摘掉 .fp-sheet、底变透明，面板都是浮在地球上的玻璃。
+           地球是暗的，玻璃用 --fp-glass-strong 保证文字读得清。 */
         #ticketGallery.is-replay-mode .ticket-gallery-content {
             display: none !important;
         }
@@ -96,8 +105,8 @@
             width: min(380px, 72vw);
             max-height: 54vh;
             border-radius: var(--fp-radius-panel);
-            border: 1px solid var(--fp-rule-strong);
-            background: var(--fp-paper);
+            border: 0;
+            background: var(--fp-glass-strong);
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -107,30 +116,31 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            background: var(--fp-paper-raised);
+            background: transparent;
         }
         .ticket-replay-card.is-missing {
             color: var(--fp-ink-faint);
             font: 400 44px/1.25 var(--fp-font-title);
         }
         .ticket-replay-bar {
-            height: 3px;
-            border-radius: 0;
-            background: var(--fp-rule);
+            height: 4px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule-strong);
             overflow: hidden;
         }
         #ticketReplayBarInner {
             display: block;
             width: 100%;
             height: 100%;
-            background: var(--fp-contour);
+            border-radius: inherit;
+            background: var(--fp-accent);
             transform: scaleX(0);
             transform-origin: left center;
             /* 进度条用 transform 而不是 width：同样线性，但不触发重排 */
             transition: transform var(--fp-dur) linear;
         }
 
-        /* 播完后的小结：一张夜图面板，统计写成一行记录 */
+        /* 播完后的小结：一张玻璃卡，统计写成一行记录 */
         .ticket-replay-end {
             position: absolute;
             inset: 0;
@@ -149,10 +159,13 @@
             pointer-events: auto;
             max-width: min(520px, 88vw);
             padding: 26px 30px 22px;
-            border: 1px solid var(--fp-rule);
+            border: 0;
             border-radius: var(--fp-radius-panel);
-            background: var(--fp-paper);
-            animation: ticketReplayEndIn var(--fp-dur) var(--fp-ease) both;
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow-lift);
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
         }
         @keyframes ticketReplayEndIn {
             from { opacity: 0; }
@@ -190,9 +203,9 @@
             justify-content: center;
             gap: 6px 18px;
             margin: 18px 0 0;
-            padding: 14px 0;
-            border-top: 1px solid var(--fp-rule);
-            border-bottom: 1px solid var(--fp-rule);
+            padding: 14px 16px;
+            border-radius: var(--fp-radius-photo);
+            background: var(--fp-rule);
         }
         .ticket-replay-end-metric {
             display: inline-flex;
@@ -230,27 +243,34 @@
             margin-top: 20px;
         }
         .ticket-replay-end-actions button {
-            min-height: 32px;
-            padding: 0 14px;
-            border: 1px solid var(--fp-rule-strong);
+            min-height: 34px;
+            padding: 0 16px;
+            border: 0;
             border-radius: var(--fp-radius-control);
-            background: transparent;
+            background: var(--fp-rule);
             color: var(--fp-ink);
             font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
         }
         .ticket-replay-end-actions button:hover {
-            border-color: var(--fp-ink-soft);
-            background: var(--fp-rule);
+            background: var(--fp-rule-strong);
+        }
+        .ticket-replay-end-actions button:active {
+            transform: scale(0.96);
         }
         .ticket-replay-end-actions button:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
-        /* 「再看一次」是主操作：等高线色描边，和次要的「回到票夹」分开 */
+        /* 「再看一次」是主操作：强调色实底，和次要的「回到票夹」分开 */
         #ticketReplayAgain {
-            border-color: var(--fp-contour);
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        #ticketReplayAgain:hover {
+            background: var(--fp-accent);
+            filter: brightness(1.06);
         }
 
         @media (max-width: 700px) {
@@ -270,5 +290,8 @@
             #ticketReplayBarInner,
             .ticket-replay-end-actions button {
                 transition: none;
+            }
+            .ticket-replay-end-card {
+                animation: ticketReplayEndIn var(--fp-dur) linear both;
             }
         }

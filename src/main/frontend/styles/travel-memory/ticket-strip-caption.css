@@ -114,9 +114,13 @@
             max-width: min(76vw, 680px);
             max-height: min(68vh, 720px);
             object-fit: contain;
-            opacity: 0.32;
+            border-radius: var(--fp-radius-photo);
+            /* 两侧的票根退后：变淡、缩小、轻微失焦；滚到中间时去模糊落定 */
+            opacity: 0.42;
             transform: scale(0.88);
-            transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+            filter: blur(2px) var(--ticket-photo-shadow);
+            transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease),
+                filter var(--fp-dur) var(--fp-ease), translate var(--fp-dur) var(--fp-ease);
             user-select: none;
             -webkit-user-drag: none;
             -webkit-tap-highlight-color: transparent;
@@ -124,6 +128,18 @@
         .ticket-strip-item.is-active {
             opacity: 1;
             transform: scale(1);
+            filter: var(--ticket-photo-shadow);
+        }
+        .ticket-strip-item:hover {
+            opacity: 0.7;
+        }
+        .ticket-strip-item.is-active:hover {
+            opacity: 1;
+            translate: 0 -4px;
+            filter: var(--ticket-photo-shadow-lift);
+        }
+        .ticket-strip-scroller.dragging .ticket-strip-item:hover {
+            translate: none;
         }
         .ticket-strip-item.is-error {
             opacity: 0.35;
@@ -137,17 +153,20 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: min(100%, 680px);
-            max-width: 100%;
-            margin: 24px auto 0;
-            padding: 0 14px;
+            width: auto;
+            min-width: min(100%, 360px);
+            max-width: min(100%, 680px);
+            margin: 20px auto 0;
+            padding: 18px 28px 16px;
             box-sizing: border-box;
             color: var(--fp-ink);
             text-align: center;
-            background: transparent;
             border: 0;
-            border-radius: 0;
-            box-shadow: none;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow);
         }
         body.ticket-strip-active .ticket-meta-subtitle { display: none; }
 
@@ -272,30 +291,38 @@
             gap: 4px;
             width: min(320px, 62vw);
             max-width: calc(100vw - 32px);
+            padding: 8px 12px;
+            box-sizing: border-box;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-glass);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
         }
         body.ticket-strip-active .ticket-progress-segment {
             appearance: none;
             -webkit-appearance: none;
             flex: 1 1 0;
             min-width: 0;
-            height: 3px;
+            height: 4px;
             margin: 0;
             padding: 0;
             border: 0;
-            border-radius: 0;
+            border-radius: var(--fp-radius-control);
             background: var(--fp-rule-strong);
             cursor: pointer;
-            transition: background-color var(--fp-dur) var(--fp-ease);
+            transition: background-color var(--fp-dur) var(--fp-ease), flex-grow var(--fp-dur) var(--fp-ease);
         }
         body.ticket-strip-active .ticket-progress-segment:hover {
             background: var(--fp-ink-faint);
         }
         body.ticket-strip-active .ticket-progress-segment:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 2px;
         }
         body.ticket-strip-active .ticket-progress-segment.is-current {
-            background: var(--fp-contour);
+            flex-grow: 3;
+            background: var(--fp-accent);
         }
 
         @media (max-width: 520px) {
@@ -336,8 +363,9 @@
             }
             body.ticket-strip-active .ticket-caption {
                 width: 100%;
-                margin-top: 16px;
-                padding: 0 4px;
+                min-width: 0;
+                margin-top: 14px;
+                padding: 14px 16px 12px;
                 overflow: visible;
             }
             body.ticket-strip-active .ticket-caption h2 {
@@ -375,6 +403,8 @@
             body.ticket-strip-active .ticket-progress-segment {
                 transition: none;
             }
+            .ticket-strip-item { transform: none; filter: var(--ticket-photo-shadow); }
+            .ticket-strip-item.is-active:hover { translate: none; }
         }
 
         /* —— 城市图片墙：顶部城市下拉列表 ——
@@ -419,7 +449,7 @@
             opacity: 0.9;
         }
         #cityViewTitle:focus-visible {
-            outline: 2px solid var(--fp-water);
+            outline: 2px solid var(--fp-accent);
             outline-offset: 4px;
         }
         .city-view-head {
@@ -489,7 +519,7 @@
         }
         .city-view-city-option.is-current {
             background: var(--fp-rule);
-            box-shadow: inset 2px 0 0 var(--fp-contour);
+            box-shadow: inset 2px 0 0 var(--fp-accent);
             color: var(--fp-ink);
         }
         .city-view-city-option-name {

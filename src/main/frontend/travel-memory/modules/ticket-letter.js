@@ -64,21 +64,24 @@ function ticketLetterCanvas(fp, image) {
     canvas.width = 900;
     canvas.height = 1280;
     const ctx = canvas.getContext('2d');
-    // 画布不能读 CSS 变量：颜色照抄 tokens.css 里白图（.fp-sheet）的值，改色板时两处一起改
-    const paper = '#f3f4f1';      // --fp-paper
-    const raised = '#fbfbf9';     // --fp-paper-raised
-    const ink = '#1e2a33';        // --fp-ink
-    const muted = '#7d878b';      // --fp-ink-faint
-    const rule = 'rgba(30, 42, 51, 0.14)';   // --fp-rule
-    const titleFont = '"快看世界体", "PingFang SC", "Microsoft YaHei", sans-serif';
-    const textFont = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
+    // 画布不能读 CSS 变量：颜色照抄 styles/shared/tokens.css（柔光玻璃）的值，改色板时两处一起改
+    const paper = '#f2f2f4';      // --fp-paper
+    const raised = '#ffffff';     // --fp-paper-raised
+    const ink = '#3a3a40';        // --fp-ink
+    const muted = '#9a9aa3';      // --fp-ink-faint
+    const accent = '#7c7bc0';     // --fp-accent
+    const titleFont = '"快看世界体", "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    const textFont = '"MiSans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
     ctx.fillStyle = paper;
     ctx.fillRect(0, 0, 900, 1280);
-    ctx.strokeStyle = rule;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(24, 24, 852, 1232);
+    // 浅灰底上一张大圆角白卡（和界面里的玻璃面板同形），不再描边
+    ctx.fillStyle = raised;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(24, 24, 852, 1232, 32);
+    else ctx.rect(24, 24, 852, 1232);
+    ctx.fill();
 
-    ctx.fillStyle = ink;
+    ctx.fillStyle = accent;
     ctx.font = '400 44px ' + titleFont;
     ctx.textAlign = 'center';
     ctx.fillText('未寄出的明信片', 450, 112);
@@ -95,10 +98,18 @@ function ticketLetterCanvas(fp, image) {
         const dw = image.width * scale;
         const dh = image.height * scale;
         const dx = shotX + (shotW - dw) / 2;
+        // 照片圆角（--fp-radius-photo 在 900 宽画布上的等比值）
+        ctx.save();
+        if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(dx, shotTop, dw, dh, 20);
+            ctx.clip();
+        }
         ctx.drawImage(image, dx, shotTop, dw, dh);
+        ctx.restore();
         shotBottom = shotTop + dh;
     } else {
-        ctx.fillStyle = raised;
+        ctx.fillStyle = paper;
         ctx.fillRect(shotX, shotTop, shotW, shotBottom - shotTop);
         ctx.fillStyle = muted;
         ctx.font = '400 150px ' + titleFont;
