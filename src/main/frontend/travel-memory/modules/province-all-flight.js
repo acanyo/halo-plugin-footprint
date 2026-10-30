@@ -75,7 +75,7 @@ export function isProvinceAllFlying() {
 }
 
 // ---------- 导航栏「全部城市」按钮 ----------
-function provinceAllBtnEl() {
+export function provinceAllBtnEl() {
     if (!provinceAllBtnCache) provinceAllBtnCache = document.getElementById('provinceAllBtn');
     return provinceAllBtnCache;
 }

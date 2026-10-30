@@ -49,6 +49,7 @@ import {
     flyToChinaForCityCards,
     stopProvinceAllFlight,
     isProvinceAllFlying,
+    provinceAllBtnEl,
     setProvinceAllBtnPressed,
     syncProvinceAllBtnEnabled
 } from './province-all-flight.js';
@@ -702,7 +703,36 @@ export function clearProvinceRestorePending() {
 }
 
 /**
- * 绑定与相机帧同步的省份浮层更新。必须在 setupProvinceCards 之后调用一次。
+ * 绑定省份卡片组的全部运行时监听。必须在 setupProvinceCards 之后调用一次。
  */
 export function initProvinceCards() {
+    // 与相机帧同步的浮层重排
+    deps.viewer().scene.postRender.addEventListener(updateProvinceOverlays);
+
+    // 导航栏「全部城市」按钮
+    const btn = provinceAllBtnEl();
+    if (btn) {
+        btn.addEventListener('click', () => toggleAllCityCards());
+        syncProvinceAllBtn();
+        syncProvinceAllAvailability();
     }
+
+    // 视口变化：重排；窄屏直接整组收起（门控与样式断点一致）
+    window.addEventListener('resize', () => {
+        if (!provinceCardsActive) return;
+        if (!provinceCardsEnabled()) {
+            closeProvinceCards();
+            return;
+        }
+        measureProvinceCards();
+        provinceLayoutDirty = true;
+    });
+
+    // 足迹数据重载后：省市对应关系可能变了，收起已打开的卡片组
+    document.addEventListener('footprints:loaded', () => {
+        if (provinceCardsActive) closeProvinceCards();
+        hidePhotoRing();   // 数据重载后照片可能已变，收起照片环
+    });
+
+    loadProvinceIndex();   // 提前取一次边界数据，首次点击省份时不必等网络
+}

@@ -2,14 +2,17 @@
 /**
  * 前台模块契约检查。
  *
- * 拆模块时最容易踩、而且 esbuild 不会报的三类问题，在这里一次性挡住：
+ * 拆模块时最容易踩、而且 esbuild 不会报的几类问题，在这里一次性挡住：
  *
  *   1. 注入键不匹配 —— 模块里写 deps.FOO()，主文件注入的是 foo，
  *      运行时才炸 "undefined is not a function"；
  *   2. 模块顶层访问 deps —— ESM 的 import 先于主文件执行，
  *      此时 deps 还是 null，直接抛 Cannot read properties of null；
  *   3. 装配顺序 —— index.js 里 init* 早于 setup*，
- *      init 立刻跑的渲染回调会调到尚未注入的模块。
+ *      init 立刻跑的渲染回调会调到尚未注入的模块；
+ *   4. 自引用 —— 模块用 deps.xxx() 调自己 export 的函数；
+ *   5. 空的 init —— 把顶层副作用挪进 init 时只删不搬，
+ *      监听整段丢失却不报任何错（province-cards 就这样丢过一次）。
  *
  * 用法（在仓库根）：
  *   node tools/check-frontend-contract.mjs
@@ -151,6 +154,27 @@ for (const mod of moduleFiles) {
   const selfRef = [...exported].filter((n) => new RegExp(`deps\\.${n}\\s*\\(`).test(mod.text));
   if (selfRef.length) {
     fail(`[自引用] ${mod.name} 用 deps.xxx() 调用本模块自己导出的函数: ${selfRef.join(", ")}`);
+  }
+}
+
+// ---------- 5. 空的 init ----------
+// 按花括号配对取函数体，只看里面是否还有代码（注释已在 mod.code 里去掉）。
+// 不用「行首 }」判断结尾：空函数体常常缩进着收尾，那样会整段漏检。
+function functionBody(code, openBrace) {
+  let depth = 0;
+  for (let i = openBrace; i < code.length; i++) {
+    if (code[i] === "{") depth++;
+    else if (code[i] === "}" && --depth === 0) return code.slice(openBrace + 1, i);
+  }
+  return null;
+}
+
+for (const mod of moduleFiles) {
+  for (const m of mod.code.matchAll(/^export function (init\w*)\([^)]*\)\s*\{/gm)) {
+    const body = functionBody(mod.code, m.index + m[0].length - 1);
+    if (body !== null && !body.replace(/\/\/.*$/gm, "").trim()) {
+      fail(`[空 init] ${mod.name} 的 ${m[1]}() 没有任何语句 —— 副作用可能在搬迁中丢了`);
+    }
   }
 }
 
