@@ -1,0 +1,680 @@
+        /* ================================================================
+           票根页：横向长串浏览（strip）＋ 当前票根下方“电影字幕”信息区
+           TicketCaption：只作用于 body.ticket-strip-active；票夹样式保持原状。
+           ================================================================ */
+        .ticket-meta-tagline { display: none; }
+        .ticket-meta-pin,
+        .ticket-meta-pinyin,
+        .ticket-meta-english { display: none; }
+        #ticketWallet[hidden],
+        #ticketStrip[hidden],
+        #ticketStripProgress[hidden],
+        #ticketStripHint[hidden] { display: none !important; }
+        body.ticket-strip-active #ticketStripHint { display: none; }
+
+        /* —— 纵向容器：主票根在上、字幕信息在下，超高时随页面纵向滚动 —— */
+        body.ticket-strip-active .ticket-gallery-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            width: min(1180px, calc(100% - 48px));
+            padding-top: 26px;
+            padding-bottom: 64px;
+        }
+        body.ticket-strip-active .ticket-gallery-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+        }
+        body.ticket-strip-active .ticket-gallery-stage,
+        body.ticket-strip-active #ticketStrip {
+            display: contents;
+        }
+        #ticketStrip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+        }
+        body.ticket-strip-active .ticket-gallery-loading,
+        body.ticket-strip-active .ticket-gallery-error {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            /* 这两个提示层铺满整个舞台，会把下面票根串的滚轮 / 拖拽事件一起吃掉
+               （表现就是左右切不动票根），所以让事件穿透到票根上 */
+            pointer-events: none;
+        }
+        body.ticket-strip-active .ticket-gallery-error {
+            flex-direction: column;
+            gap: 12px;
+        }
+        /* 「重新加载」要能点，单独把按钮的事件收回来 */
+        body.ticket-strip-active .ticket-gallery-error button {
+            pointer-events: auto;
+        }
+        body.ticket-strip-active .ticket-gallery-loading[hidden],
+        body.ticket-strip-active .ticket-gallery-error[hidden] { display: none; }
+
+        /* —— 横向票根带（滚动 / 拖拽行为保持不变） —— */
+        .ticket-strip-scroller {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 64px;
+            width: 100%;
+            max-width: min(1480px, calc(100vw - 48px));
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 12px 0 22px;
+            cursor: grab;
+            touch-action: pan-x pan-y;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* 触屏端使用系统原生滚动与惯性，卡片在滚动停止时平滑吸附到中央 */
+        @media (hover: none), (pointer: coarse) {
+            .ticket-strip-scroller {
+                scroll-snap-type: x proximity;
+                overscroll-behavior-x: contain;
+            }
+            .ticket-strip-item {
+                scroll-snap-align: center;
+            }
+        }
+        body.ticket-strip-active .ticket-strip-scroller {
+            order: 1;
+        }
+        .ticket-strip-scroller::-webkit-scrollbar { display: none; }
+        .ticket-strip-scroller.dragging {
+            cursor: grabbing;
+            scroll-snap-type: none;
+        }
+        .ticket-strip-item {
+            flex: 0 0 auto;
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: min(76vw, 680px);
+            max-height: min(68vh, 720px);
+            object-fit: contain;
+            opacity: 0.32;
+            transform: scale(0.88);
+            transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            -webkit-user-drag: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ticket-strip-item.is-active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .ticket-strip-item.is-error {
+            opacity: 0.35;
+        }
+
+        /* ================================================================
+           TicketCaption：当前票根下方的字幕信息
+           无卡片背景，白/浅灰文字悬浮于星空与地球之上。
+           ================================================================ */
+        body.ticket-strip-active .ticket-caption {
+            order: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: min(100%, 680px);
+            max-width: 100%;
+            margin: 30px auto 0;
+            padding: 0 14px;
+            box-sizing: border-box;
+            color: rgba(250, 249, 245, 0.88);
+            text-align: center;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        body.ticket-strip-active .ticket-meta-kicker,
+        body.ticket-strip-active .ticket-meta-subtitle { display: none; }
+
+        /* 第一行：足迹名称主标题（中文衬线，视觉重点）＋ 右侧城市/省份拼音（AlexBrush 手写体） */
+        body.ticket-strip-active .ticket-caption h2 {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 9px;
+            width: 100%;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.96);
+            font: 400 clamp(32px, 4vw, 56px)/1.14 "STXingkai", "华文行楷", "FZKai-Z03", "KaiTi", cursive;
+            letter-spacing: 0.1em;
+            text-indent: 0.1em;
+            text-align: center;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+        }
+        body.ticket-strip-active .ticket-meta-title-line {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: center;
+            column-gap: 0.3em;
+            row-gap: 3px;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+        body.ticket-strip-active .ticket-meta-title-text {
+            display: inline-block;
+            flex: 0 1 auto;
+            width: auto;
+            max-width: 100%;
+            min-width: 0;
+            white-space: normal;
+            overflow-wrap: break-word;
+        }
+        body.ticket-strip-active .ticket-meta-pinyin {
+            display: inline-block;
+            flex: 0 1 auto;
+            min-width: 0;
+            margin: 0;
+            padding: 0;
+            color: inherit;
+            font-family: "AlexBrush", "Snell Roundhand", "Brush Script MT", cursive;
+            font-weight: 400;
+            font-size: 0.68em;
+            line-height: 1.25;
+            letter-spacing: 0.01em;
+            word-spacing: 0.14em;
+            white-space: nowrap;
+            text-indent: 0;
+            text-transform: lowercase;
+            text-shadow: 0 2px 22px rgba(0, 0, 0, 0.55);
+        }
+        body.ticket-strip-active .ticket-meta-pinyin[hidden] { display: none; }
+        body.ticket-strip-active .ticket-meta-pin {
+            display: inline-block;
+            color: rgba(255, 255, 255, 0.72);
+            font: 400 0.36em/1 Arial, sans-serif;
+            transform: translateY(-0.06em);
+        }
+
+        /* 英文辅助行：全大写、宽字距、低对比度，像档案编号 */
+        body.ticket-strip-active .ticket-meta-english {
+            display: block;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            color: rgba(255, 255, 255, 0.38);
+            font: 300 10px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace;
+            letter-spacing: 0.38em;
+            text-indent: 0.38em;
+            text-transform: uppercase;
+            white-space: normal;
+            text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+        }
+        body.ticket-strip-active .ticket-meta-english[hidden] { display: none; }
+
+        /* 第二行：地点（城市 · 省份）与日期（细竖线分隔日期，无卡片 / 无标签） */
+        body.ticket-strip-active .ticket-caption dl {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            width: auto;
+            max-width: 100%;
+            margin: 12px 0 0;
+            padding: 0;
+            border: 0;
+            text-align: center;
+        }
+        body.ticket-strip-active .ticket-caption dl:empty { display: none; }
+        body.ticket-strip-active .ticket-caption dl > div {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: none;
+            white-space: normal;
+            max-width: 100%;
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-type,
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-no {
+            display: none;
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-route { order: 1; }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date {
+            order: 2;
+            margin-left: 14px;
+            padding-left: 14px;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        body.ticket-strip-active .ticket-caption dl svg { display: none; }
+        body.ticket-strip-active .ticket-caption dl dt { display: none; }
+        body.ticket-strip-active .ticket-caption dl dd {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.92);
+            font: 300 12.5px/1.55 "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.06em;
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date dd {
+            color: rgba(255, 255, 255, 0.92);
+            font: 400 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+            letter-spacing: 0.16em;
+        }
+
+        /* 旅行短句：弱化处理，不抢地点标题 */
+        body.ticket-strip-active .ticket-meta-description {
+            display: block;
+            max-width: 560px;
+            margin: 14px auto 0;
+            padding: 0;
+            color: rgba(255, 255, 255, 0.92);
+            font: 300 13.5px/1.9 "Noto Serif SC", "Songti SC", "STSong", serif;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        /* 英文辅助句：更小、更淡、宽字距的电影片尾字幕 */
+        body.ticket-strip-active .ticket-meta-tagline {
+            display: block;
+            margin: 10px 0 0;
+            padding: 0;
+            color: rgba(255, 255, 255, 0.6);
+            font: 300 9px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace;
+            letter-spacing: 0.32em;
+            text-indent: 0.32em;
+            text-transform: uppercase;
+            white-space: normal;
+        }
+        body.ticket-strip-active .ticket-meta-count { display: none; }
+
+        /* —— 底部指示器：圆角长条分段，当前票根所在段高亮 —— */
+        body.ticket-strip-active .ticket-caption-progress {
+            order: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0 0;
+            color: rgba(255, 255, 255, 0.38);
+        }
+        body.ticket-strip-active .ticket-progress-side { display: none; }
+        body.ticket-strip-active .ticket-progress-rail {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: min(320px, 62vw);
+            max-width: calc(100vw - 32px);
+        }
+        body.ticket-strip-active .ticket-progress-segment {
+            appearance: none;
+            -webkit-appearance: none;
+            flex: 1 1 0;
+            min-width: 0;
+            height: 3px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.28);
+            cursor: pointer;
+            transition: background-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        body.ticket-strip-active .ticket-progress-segment:hover,
+        body.ticket-strip-active .ticket-progress-segment:focus-visible {
+            outline: none;
+            background: rgba(255, 255, 255, 0.58);
+        }
+        body.ticket-strip-active .ticket-progress-segment.is-current {
+            background: #fff;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.72);
+        }
+
+        /* 位置与日期的图标属于信息语义，保持同一套细线风格 */
+        body.ticket-strip-active .ticket-caption dl svg {
+            display: inline-block;
+            flex: 0 0 24px;
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            color: rgba(255, 255, 255, 0.92);
+            vertical-align: -3px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55))
+                    drop-shadow(0 0 5px rgba(255, 255, 255, 0.16));
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-route,
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-province,
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date {
+            display: inline-flex;
+            align-items: center;
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-province {
+            gap: 0;
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-province::before {
+            content: '·';
+            flex: 0 0 auto;
+            margin: 0 6px;
+            color: rgba(255, 255, 255, 0.92);
+            font: 300 12.5px/1 "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date {
+            margin-left: 14px;
+            padding-left: 14px;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-route { order: 1; }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-province { order: 2; }
+        body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date { order: 3; }
+
+        @media (max-width: 520px) {
+            body.ticket-strip-active .ticket-progress-rail {
+                width: min(260px, 72vw);
+            }
+            body.ticket-strip-active .ticket-caption dl {
+                font-size: 12px;
+            }
+        }
+
+        /* —— 较小屏幕：允许自然换行与纵向滚动，不挤压主票根 —— */
+        @media (max-width: 900px) {
+            body.ticket-strip-active #ticketGallery {
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+            body.ticket-strip-active .ticket-gallery-content {
+                flex: none;
+                min-height: auto;
+                height: auto;
+                overflow: visible;
+                justify-content: flex-start;
+                width: min(100% - 28px, 700px);
+                padding-top: 10px;
+                padding-bottom: max(18px, env(safe-area-inset-bottom));
+                gap: 8px;
+            }
+            body.ticket-strip-active .ticket-gallery-view {
+                flex: none;
+                justify-content: flex-start;
+            }
+            body.ticket-strip-active .ticket-strip-scroller {
+                gap: 28px;
+                max-width: none;
+                padding: 6px 0 18px;
+            }
+            body.ticket-strip-active .ticket-strip-item {
+                max-width: min(84vw, 480px);
+                max-height: min(38vh, 440px);
+            }
+            body.ticket-strip-active .ticket-caption {
+                width: 100%;
+                margin-top: 20px;
+                padding: 0 4px;
+                overflow: visible;
+            }
+            body.ticket-strip-active .ticket-caption h2 {
+                gap: 7px;
+                font-size: clamp(26px, 8vw, 38px);
+                letter-spacing: 0.08em;
+                text-indent: 0.08em;
+            }
+            body.ticket-strip-active .ticket-meta-title-line {
+                gap: 3px 0.28em;
+            }
+            body.ticket-strip-active .ticket-meta-pinyin {
+                font-size: 0.7em;
+                transform: none;
+            }
+            body.ticket-strip-active .ticket-meta-english {
+                font-size: 9px;
+                letter-spacing: 0.28em;
+                text-indent: 0.28em;
+            }
+            body.ticket-strip-active .ticket-caption dl {
+                margin-top: 10px;
+                row-gap: 8px;
+            }
+            body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date {
+                margin-left: 11px;
+                padding-left: 11px;
+            }
+            body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-province::before {
+                margin: 0 5px;
+            }
+            body.ticket-strip-active .ticket-caption dl dd {
+                font-size: 11.5px;
+            }
+            body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date dd {
+                font-size: 11px;
+            }
+            body.ticket-strip-active .ticket-meta-description {
+                margin-top: 12px;
+                font-size: 12.5px;
+                line-height: 1.75;
+            }
+            body.ticket-strip-active .ticket-meta-tagline {
+                margin-top: 8px;
+                font-size: 8.5px;
+                letter-spacing: 0.24em;
+                text-indent: 0.24em;
+            }
+            body.ticket-strip-active .ticket-caption-progress {
+                margin-top: 14px;
+            }
+            body.ticket-strip-active .ticket-progress-rail {
+                width: min(190px, 46vw);
+            }
+        }
+        @media (max-width: 420px) {
+            body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-date {
+                margin-left: 9px;
+                padding-left: 9px;
+            }
+            body.ticket-strip-active .ticket-caption dl > div.ticket-meta-field-province::before {
+                margin: 0 4px;
+            }
+            body.ticket-strip-active .ticket-meta-title-line {
+                gap: 2px 0.22em;
+            }
+            body.ticket-strip-active .ticket-meta-tagline {
+                letter-spacing: 0.18em;
+                text-indent: 0.18em;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ticket-strip-item {
+                transition: none;
+            }
+        }
+
+        /* —— 城市图片墙：顶部城市下拉列表（与图片墙同套杂志目录风格） —— */
+        .city-view-title-head {
+            margin: 6px 0 0;
+            font: inherit;
+            line-height: inherit;
+            text-align: center;
+        }
+        #cityViewTitle {
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 2px 26px 2px 8px;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #cityViewTitle::after {
+            content: '';
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            margin-top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid currentColor;
+            opacity: 0.5;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        #cityViewTitle[aria-expanded="true"]::after {
+            transform: rotate(180deg);
+            opacity: 0.9;
+        }
+        #cityViewTitle:focus-visible {
+            outline: 2px solid rgba(247, 245, 241, 0.55);
+            outline-offset: 4px;
+        }
+        .city-view-head {
+            position: relative;
+        }
+        #cityViewCityList {
+            position: absolute;
+            left: 50%;
+            top: calc(100% + 12px);
+            transform: translateX(-50%);
+            z-index: 30;
+            box-sizing: border-box;
+            width: min(310px, 80vw);
+            max-height: min(400px, 48vh);
+            overflow-y: auto;
+            counter-reset: cityOption;
+            padding: 6px 6px 10px;
+            border: 1px solid var(--city-line, rgba(244, 239, 230, 0.14));
+            border-radius: 8px;
+            background: rgba(12, 15, 21, 0.92);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+            color: var(--city-ink, #f4efe6);
+            text-align: left;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(244, 239, 230, 0.18) transparent;
+            -webkit-backdrop-filter: blur(22px) saturate(1.1);
+            backdrop-filter: blur(22px) saturate(1.1);
+        }
+        #cityViewCityList[hidden] {
+            display: none;
+        }
+        #cityViewCityList::before {
+            content: '选择城市 · CITIES';
+            display: block;
+            margin: 4px 14px 10px;
+            color: var(--city-accent, #d9a86c);
+            font-size: 10px;
+            letter-spacing: 0.28em;
+            text-indent: 0.28em;
+        }
+        .city-view-city-option {
+            appearance: none;
+            counter-increment: cityOption;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-sizing: border-box;
+            padding: 9px 10px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--city-muted, rgba(244, 239, 230, 0.6));
+            font: 12.5px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.04em;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+        }
+        .city-view-city-option::before {
+            content: counter(cityOption, decimal-leading-zero);
+            flex: none;
+            width: 22px;
+            color: var(--city-faint, rgba(244, 239, 230, 0.34));
+            font: 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+            letter-spacing: 0.08em;
+            opacity: 0.75;
+        }
+        .city-view-city-option:hover,
+        .city-view-city-option:focus-visible {
+            outline: none;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--city-ink, #f4efe6);
+        }
+        .city-view-city-option.is-current {
+            background: rgba(217, 168, 108, 0.1);
+            box-shadow: inset 2px 0 0 var(--city-accent, #d9a86c);
+            color: var(--city-ink, #f4efe6);
+        }
+        .city-view-city-option.is-current::before {
+            color: var(--city-accent, #d9a86c);
+            opacity: 1;
+        }
+        .city-view-city-option-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+            font-size: 15px;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .city-view-city-option-count {
+            flex: none;
+            font-size: 10.5px;
+            letter-spacing: 0.05em;
+            color: var(--city-faint, rgba(244, 239, 230, 0.4));
+            white-space: nowrap;
+        }
+
+        /* 手账照片墙：滚动到底自动加载的哨兵提示 */
+        .city-journal-more-auto {
+            display: block;
+            width: 100%;
+            margin: 4px auto 0;
+            padding: 12px 8px;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            color: rgba(244, 239, 230, 0.5);
+            font: 11.5px/1.6 "Noto Serif SC", "Songti SC", "STSong", serif;
+            letter-spacing: 0.08em;
+            text-align: center;
+            cursor: default;
+            pointer-events: none;
+        }
+        .city-journal-more-auto:hover,
+        .city-journal-more-auto:focus-visible {
+            background: transparent;
+            color: rgba(244, 239, 230, 0.5);
+            transform: none;
+            outline: none;
+        }
+

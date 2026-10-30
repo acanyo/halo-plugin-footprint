@@ -1,0 +1,241 @@
+        /* ============ 照片环：点足迹标记后围绕标记铺开的多图预览 ============
+           不取代足迹卡（卡片照旧从右侧滑入），环另外浮在标记周围：
+           整圈 360° 排布固定 5 张缩略图，第 6 个角度位是「全部 N 张 ›」入口。
+           点某张 → 原地放大成窗口化查看器（不全屏），←/→ 切换。 */
+        #photoRing {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 9997;          /* 与 #markerTip 同级：卡片在根层，天然压在环上方 */
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s;
+        }
+        #photoRing.show {
+            /* --photo-ring-fade 由 JS 按"锚点出屏深度"写入：足迹点滑出视口时整环淡出 */
+            opacity: var(--photo-ring-fade, 1);
+            visibility: visible;
+        }
+        /* 查看模式：放大图是屏幕焦点，要压在右侧足迹卡（z-index 9997）之上 ——
+           否则大图铺到右半屏时会被卡片切掉一块。环的缩略图这时都是 is-dim（opacity 0），
+           跟着整层抬起来不会有别的观感变化；根节点是 pointer-events:none，
+           卡片在没被大图盖住的部分照样能点。 */
+        #photoRing.is-viewing {
+            z-index: 9998;
+        }
+        #photoRing.is-hidden {
+            opacity: 0;              /* 标记转到地球背面：淡出但保留状态 */
+        }
+        #photoRing.is-hidden .photo-ring-item,
+        #photoRing.is-hidden .photo-ring-nav,
+        #photoRing.is-hidden .photo-ring-close,
+        #photoRing.is-edge-faded .photo-ring-item,
+        #photoRing.is-edge-faded .photo-ring-nav,
+        #photoRing.is-edge-faded .photo-ring-close {
+            pointer-events: none;
+        }
+        .photo-ring-item,
+        .photo-ring-nav,
+        .photo-ring-close {
+            position: absolute;
+            left: 0;
+            top: 0;
+            appearance: none;
+            pointer-events: auto;
+            border: 1px solid rgba(247, 245, 241, 0.18);
+            background: rgba(6, 8, 14, 0.74);
+            color: #f7f5f1;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            cursor: pointer;
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+        }
+        .photo-ring-item {
+            /* 尺寸由 JS 按每张图片的实际宽高比设置；这里只是尚未测量时的兜底 */
+            width: 160px;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+            transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.2s ease,
+                        border-color 0.2s ease,
+                        box-shadow 0.2s ease;
+        }
+        /* 图片单独一层：加载成功才淡入，骨架/失败时不会让方块变形 */
+        .photo-ring-photo {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background-position: center;
+            /* contain：极端比例（被上下限夹过）时也不会裁掉画面，最多两侧留一点底色 */
+            background-size: contain;
+            background-repeat: no-repeat;
+            object-fit: contain;   /* <img> 走这条：同样保持比例、不裁切 */
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+        }
+        .photo-ring-photo.is-loaded { opacity: 1; }
+        .photo-ring-item.is-loading {
+            background-image: linear-gradient(120deg, rgba(255, 255, 255, 0.06),
+                rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+        }
+        /* 加载失败：压暗 + 一个"⚠"提示，和"还在加载"区分开（自动重试两次，点进查看模式也会重取） */
+        .photo-ring-item.is-error { background-image: none; background-color: rgba(30, 34, 42, 0.78); }
+        .photo-ring-item.is-error::after {
+            content: "⚠";
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        /* 减量档：不参与这一环的那几张直接不显示（仍可由「全部 ›」看到） */
+        .photo-ring-item.is-slot-hidden { display: none; }
+        /* 悬停 / 聚焦某张时连回标记的细线（画在最底层，照片压在它上面） */
+        .photo-ring-guide {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: visible;
+            pointer-events: none;
+        }
+        .photo-ring-guide-line {
+            stroke: rgba(247, 245, 241, 0.5);
+            stroke-width: 1;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .photo-ring-guide-dot {
+            fill: rgba(247, 245, 241, 0.85);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .photo-ring-guide-line.show,
+        .photo-ring-guide-dot.show { opacity: 1; }
+        .photo-ring-item:hover:not(.is-viewer),
+        .photo-ring-item:focus-visible {
+            outline: none;
+            border-color: rgba(247, 245, 241, 0.5);
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+        }
+        .photo-ring-item.is-dim {
+            opacity: 0;
+            pointer-events: none;
+        }
+        /* 查看模式：被点的这张原地放大（尺寸与 JS 里的 PHOTO_RING_VIEW_* 保持一致）。
+           选择器必须带 #photoRing：紧凑档那条规则带 ID，权重更高，否则降级时大图会被压成 64×46。 */
+        #photoRing .photo-ring-item.is-viewer {
+            /* 实际宽高由 JS 按图片比例写在内联样式上，这里只是兜底 */
+            width: 480px;
+            height: 340px;
+            border-radius: 12px;
+            cursor: zoom-out;
+            border-color: rgba(247, 245, 241, 0.24);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+        }
+        /* 查看模式的控件：平时隐藏，进入查看模式才出现 */
+        .photo-ring-nav {
+            display: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            line-height: 1;
+            padding-bottom: 2px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+        }
+        .photo-ring-counter {
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            height: 22px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: rgba(6, 8, 14, 0.72);
+            border: 1px solid rgba(247, 245, 241, 0.16);
+            color: rgba(247, 245, 241, 0.92);
+            font: 11px/1 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.12em;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        /* 放大视图的位置指示点带：全量 N 个点，环上那几张亮一档，当前这张点亮。
+           （进查看模式时环上其余缩略图是 opacity:0，位置感只能由这条点带承担。） */
+        .photo-ring-dots {
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            pointer-events: none;
+        }
+        .photo-ring-dots span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(247, 245, 241, 0.24);
+            transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .photo-ring-dots span.is-in-ring { background: rgba(247, 245, 241, 0.58); }
+        .photo-ring-dots span.is-current {
+            background: #e2bc8c;
+            box-shadow: 0 0 0 3px rgba(226, 188, 140, 0.18);
+            transform: scale(1.2);
+        }
+        /* 一行说明：环上只是均匀采样出的几张，全量在「图片墙」（环上已是全量时不显示） */
+        .photo-ring-viewhint {
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: none;
+            color: rgba(247, 245, 241, 0.62);
+            font: 11px/1.2 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.1em;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        #photoRing.is-viewing .photo-ring-dots { display: flex; }
+        #photoRing.is-viewing .photo-ring-viewhint.has-hint { display: block; }
+        .photo-ring-close {
+            display: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            line-height: 1;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+        }
+        #photoRing.is-viewing .photo-ring-nav,
+        #photoRing.is-viewing .photo-ring-close { display: inline-flex; }
+        #photoRing.is-viewing .photo-ring-counter { display: flex; }
+        #photoRing.is-viewing .photo-ring-nav:hover,
+        #photoRing.is-viewing .photo-ring-close:hover {
+            border-color: rgba(247, 245, 241, 0.5);
+        }
+        @media (max-width: 820px) {
+            #photoRing { display: none; }   /* 手机端不做照片环，沿用底部足迹卡 */
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #photoRing,
+            .photo-ring-item,
+            .photo-ring-dots span { transition: none; }
+        }
+

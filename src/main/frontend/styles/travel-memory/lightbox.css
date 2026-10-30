@@ -1,0 +1,175 @@
+        /* ============ 图片灯箱 ============ */
+        #lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 10020;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(4, 6, 10, 0.92);
+            color: #f7f5f1;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s;
+        }
+        #lightbox.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .lightbox-stage {
+            position: relative;
+            width: min(88vw, 1100px);
+            height: min(72vh, 780px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #lightboxImg {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        }
+        .lightbox-skeleton {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, rgba(255, 255, 255, 0.05) 40%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 60%);
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.2s ease infinite;
+        }
+        @keyframes skeletonShimmer {
+            from { background-position: 120% 0; }
+            to   { background-position: -80% 0; }
+        }
+        .lightbox-error {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            color: rgba(247, 245, 241, 0.6);
+        }
+        .lightbox-error button {
+            padding: 6px 16px;
+            border: 1px solid rgba(247, 245, 241, 0.35);
+            border-radius: 999px;
+            background: transparent;
+            color: #f7f5f1;
+            font: 12px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .lightbox-error button:hover {
+            background: #f7f5f1;
+            color: #0b0e14;
+        }
+        #lightboxClose {
+            position: fixed;
+            top: 20px;
+            right: 22px;
+            z-index: 2;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 50%;
+            background: rgba(8, 10, 16, 0.45);
+            color: rgba(247, 245, 241, 0.9);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        #lightboxClose:hover {
+            background: #f7f5f1;
+            color: #0b0e14;
+        }
+        #lightboxPrev,
+        #lightboxNext {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            background: rgba(8, 10, 16, 0.45);
+            color: rgba(247, 245, 241, 0.9);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        #lightboxPrev { left: 22px; }
+        #lightboxNext { right: 22px; }
+        #lightboxPrev:hover,
+        #lightboxNext:hover {
+            background: #f7f5f1;
+            color: #0b0e14;
+        }
+        #lightboxPrev[hidden],
+        #lightboxNext[hidden],
+        #lightboxError[hidden],
+        #lightboxSkeleton[hidden] {
+            display: none;
+        }
+        #lightboxClose:focus-visible,
+        #lightboxPrev:focus-visible,
+        #lightboxNext:focus-visible,
+        #lightboxRetry:focus-visible {
+            outline: 2px solid rgba(247, 245, 241, 0.65);
+            outline-offset: 2px;
+        }
+        .lightbox-meta {
+            position: fixed;
+            left: 50%;
+            bottom: 26px;
+            transform: translateX(-50%);
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            color: rgba(247, 245, 241, 0.78);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+            white-space: nowrap;
+        }
+        #lightboxCount {
+            color: rgba(247, 245, 241, 0.5);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #lightbox {
+                transition: none;
+            }
+            .lightbox-skeleton {
+                animation: none;
+            }
+        }
+        @media (max-width: 820px) {
+            .lightbox-stage {
+                width: 94vw;
+                height: 62vh;
+            }
+            #lightboxPrev { left: 8px; }
+            #lightboxNext { right: 8px; }
+            .lightbox-meta {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+                width: 92vw;
+                text-align: center;
+            }
+        }

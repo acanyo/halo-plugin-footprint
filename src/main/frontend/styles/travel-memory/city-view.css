@@ -1,0 +1,485 @@
+        /* ============ 城市足迹全屏视图（左侧足迹 Tab 卡片 + 右侧详情） ============ */
+        #cityView {
+            position: fixed;
+            inset: 0;
+            z-index: 10015;   /* 相册之上、灯箱之下 */
+            display: flex;
+            flex-direction: column;
+            background:
+                radial-gradient(1100px 640px at 50% 18%, rgba(38, 48, 70, 0.30), transparent 62%),
+                rgba(4, 6, 10, 0.96);
+            backdrop-filter: blur(18px) saturate(120%);
+            -webkit-backdrop-filter: blur(18px) saturate(120%);
+            color: #f7f5f1;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        #cityView.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .city-view-top {
+            width: 100%;
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 20px 28px 8px;
+            box-sizing: border-box;
+            z-index: 4;
+        }
+        #cityViewBack {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: 1px solid rgba(247, 245, 241, 0.22);
+            border-radius: 999px;
+            background: rgba(8, 10, 16, 0.42);
+            color: rgba(247, 245, 241, 0.85);
+            font: 13px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+        #cityViewBack svg {
+            width: 16px;
+            height: 16px;
+        }
+        #cityViewBack:hover {
+            background: #f7f5f1;
+            border-color: #f7f5f1;
+            color: #0b0e14;
+        }
+        .city-view-head {
+            text-align: center;
+            min-width: 0;
+        }
+        .city-view-eyebrow {
+            margin: 0;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.42em;
+            text-transform: uppercase;
+            color: rgba(247, 245, 241, 0.5);
+        }
+        #cityViewTitle {
+            margin: 6px 0 0;
+            font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+            font-weight: 400;
+            font-size: 32px;
+            line-height: 1.15;
+            letter-spacing: 0.08em;
+        }
+        #cityViewStats {
+            margin: 7px 0 0;
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            color: rgba(247, 245, 241, 0.55);
+        }
+        /* 到访时间线：第几次来、隔了多少天；点一下切到那一站
+           （cityView 最终是浅色皮肤，配色按 #e8e0d2 / #6e5945 走）
+           它由 .city-view-meta 居中；内容超过 max-width 时横向滚动，
+           所以这里用 flex-start 而不是 center —— center 会把左侧内容滚出可视区且拉不回来 */
+        .city-view-timeline {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            max-width: min(100%, 62vw);
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .city-view-timeline[hidden] {
+            display: none;
+        }
+        .city-view-timeline-label {
+            flex: none;
+            color: #a08c76;
+            font: 500 10px/1 ui-monospace, Consolas, monospace;
+            letter-spacing: 0.24em;
+        }
+        .city-view-timeline-list {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .city-view-timeline-list li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* 两站之间的连接线 */
+        .city-view-timeline-list li + li::before {
+            content: "";
+            flex: none;
+            width: 10px;
+            height: 1px;
+            background: rgba(118, 92, 61, 0.3);
+        }
+        .city-view-timeline-item {
+            display: flex;
+            align-items: baseline;
+            gap: 7px;
+            flex: none;
+            min-height: 34px;
+            padding: 6px 13px;
+            border: 1px solid rgba(118, 92, 61, 0.24);
+            border-radius: 999px;
+            background: rgba(255, 253, 247, 0.62);
+            color: #6e5945;
+            font: 500 12px/1.2 "PingFang SC", "Microsoft YaHei", sans-serif;
+            cursor: pointer;
+            transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+        }
+        .city-view-timeline-item b {
+            color: #35423d;
+            font-weight: 600;
+        }
+        .city-view-timeline-item span {
+            font: 500 11px/1.2 ui-monospace, Consolas, monospace;
+            letter-spacing: 0.04em;
+            font-variant-numeric: tabular-nums;
+        }
+        .city-view-timeline-item em {
+            font-style: normal;
+            color: #a08c76;
+            font-size: 11px;
+            letter-spacing: 0.04em;
+        }
+        .city-view-timeline-item:hover,
+        .city-view-timeline-item:focus-visible {
+            background: rgba(255, 253, 247, 0.92);
+            border-color: #6e5945;
+            color: #35423d;
+            outline: none;
+        }
+        .city-view-timeline-item:focus-visible {
+            box-shadow: 0 0 0 2px rgba(231, 178, 119, 0.85);
+        }
+        .city-view-timeline-item.is-active {
+            border-color: #d8ae78;
+            background: rgba(216, 174, 120, 0.22);
+            color: #5b4a38;
+        }
+        /* 城市视图里的票根入口（键盘也能到） */
+        .city-view-tickets {
+            margin-top: 10px;
+            min-height: 34px;
+            padding: 7px 16px;
+            border: 1px solid rgba(118, 92, 61, 0.3);
+            border-radius: 999px;
+            background: rgba(255, 253, 247, 0.62);
+            color: #6e5945;
+            font: 500 12px/1.2 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+        }
+        .city-view-tickets:hover,
+        .city-view-tickets:focus-visible {
+            border-color: #6e5945;
+            background: #6e5945;
+            color: #fffdf7;
+            outline: none;
+        }
+        .city-view-tickets:focus-visible {
+            box-shadow: 0 0 0 2px rgba(231, 178, 119, 0.85);
+        }
+        .city-view-tickets[hidden] {
+            display: none;
+        }
+        .city-view-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .city-view-nav button {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(247, 245, 241, 0.2);
+            border-radius: 50%;
+            background: rgba(8, 10, 16, 0.42);
+            color: rgba(247, 245, 241, 0.9);
+            font-size: 19px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .city-view-nav button:hover {
+            background: #f7f5f1;
+            color: #0b0e14;
+        }
+        #cityViewBack:focus-visible,
+        .city-view-nav button:focus-visible,
+        .city-tab:focus-visible,
+        .city-wall-tile:focus-visible {
+            outline: 2px solid rgba(247, 245, 241, 0.65);
+            outline-offset: 2px;
+        }
+
+        /* 两栏布局：左侧 Tab 列表 + 右侧详情 */
+        .city-view-body {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            display: flex;
+            gap: 24px;
+            padding: 8px 28px 40px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .city-tabs {
+            width: 288px;
+            flex: none;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 4px;
+        }
+        .city-tab {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(247, 245, 241, 0.12);
+            border-radius: 14px;
+            background: rgba(8, 10, 16, 0.35);
+            color: rgba(247, 245, 241, 0.75);
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+        .city-tab:hover {
+            background: rgba(247, 245, 241, 0.08);
+            color: #ffffff;
+        }
+        .city-tab.active {
+            background: rgba(247, 245, 241, 0.1);
+            border-color: rgba(247, 245, 241, 0.4);
+            color: #ffffff;
+        }
+        .city-tab-thumb {
+            width: 52px;
+            height: 52px;
+            flex: none;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .city-tab-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .city-tab-info {
+            min-width: 0;
+        }
+        .city-tab-name {
+            display: block;
+            font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+            font-weight: 400;
+            font-size: 17px;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .city-tab-meta {
+            display: block;
+            margin-top: 4px;
+            font-size: 10.5px;
+            letter-spacing: 0.06em;
+            color: rgba(247, 245, 241, 0.45);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .city-stage {
+            flex: 1;
+            min-width: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .city-stage-content {
+            animation: cityStageIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes cityStageIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 右侧详情：大图 + 描述 + 图片墙 */
+        .city-fp-hero {
+            position: relative;
+            height: min(42vh, 430px);
+            border-radius: 18px;
+            overflow: hidden;
+            background:
+                linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+                rgba(10, 13, 20, 0.92);
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+        }
+        .city-fp-hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(4, 6, 10, 0.94) 0%, rgba(4, 6, 10, 0.26) 46%, transparent 72%);
+            pointer-events: none;
+        }
+        .city-fp-hero-body {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            padding: 22px 24px;
+        }
+        .city-fp-eyebrow {
+            margin: 0;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.42em;
+            text-transform: uppercase;
+            color: rgba(247, 245, 241, 0.66);
+        }
+        .city-fp-name {
+            margin: 9px 0 0;
+            font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+            font-weight: 400;
+            font-size: 34px;
+            line-height: 1.15;
+            letter-spacing: 0.06em;
+        }
+        .city-fp-meta {
+            margin: 8px 0 0;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            color: rgba(247, 245, 241, 0.62);
+        }
+        .city-fp-desc {
+            margin: 18px 24px 0;
+            max-width: 58ch;
+            font-size: 14px;
+            line-height: 1.85;
+            color: rgba(247, 245, 241, 0.78);
+        }
+        /* 图片墙：错落瀑布，首图与第 3n+1 张为竖版，其余横版 */
+        .city-fp-wall {
+            margin: 20px 24px 8px;
+            columns: 3;
+            column-gap: 10px;
+        }
+        .city-wall-tile {
+            position: relative;
+            display: block;
+            width: 100%;
+            margin: 0 0 10px;
+            padding: 0;
+            border: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.06);
+            break-inside: avoid;
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+        .city-wall-tile img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+        }
+        .city-wall-tile:first-child img,
+        .city-wall-tile:nth-child(3n+1) img {
+            aspect-ratio: 3 / 4;
+        }
+        .city-wall-tile:not(:first-child):not(:nth-child(3n+1)) img {
+            aspect-ratio: 4 / 3;
+        }
+        .city-wall-tile:hover {
+            transform: translateY(-3px) scale(1.02);
+            filter: brightness(1.08);
+        }
+        .city-wall-empty {
+            padding: 34px 0;
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            color: rgba(247, 245, 241, 0.45);
+        }
+
+        @media (max-width: 820px) {
+            .city-view-top {
+                padding: 14px 14px 6px;
+                gap: 10px;
+            }
+            #cityViewBack span {
+                display: none;
+            }
+            #cityViewBack {
+                padding: 8px;
+            }
+            #cityViewTitle {
+                font-size: 24px;
+            }
+            .city-view-nav button {
+                width: 34px;
+                height: 34px;
+            }
+            .city-view-body {
+                flex-direction: column;
+                gap: 12px;
+                padding: 8px 14px 30px;
+            }
+            .city-tabs {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+                overflow-y: hidden;
+                gap: 8px;
+                padding: 2px 2px 6px;
+            }
+            .city-tab {
+                flex: none;
+                width: 190px;
+            }
+            .city-fp-hero {
+                height: 38vh;
+            }
+            .city-fp-desc {
+                margin: 16px 14px 0;
+            }
+            .city-fp-wall {
+                columns: 2;
+                margin: 16px 14px 8px;
+                column-gap: 8px;
+            }
+            .city-fp-hero-body {
+                padding: 16px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #cityView,
+            .city-tab,
+            .city-wall-tile,
+            .city-stage-content {
+                transition: none;
+                animation: none;
+            }
+        }
+

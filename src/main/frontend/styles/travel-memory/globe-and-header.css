@@ -1,0 +1,277 @@
+        /* AlexBrush：票根标题右侧“城市 + 省份”拼音使用的手写英文字体 */
+        @font-face {
+            font-family: "AlexBrush";
+            src: local("AlexBrush"), local("Alex Brush"),
+                 url("../font/AlexBrush-Regular.ttf") format("truetype");
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+        }
+
+        /* 2. 设置地球容器的样式，使其占满全屏（仅 3D 模式生效，避免污染 2D 高德页面） */
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body.mode-3d,
+        body.mode-3d #view-3d,
+        body.mode-3d #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        /* 光标反馈：地球可以拖着转（开手），按住时是「抓取中」；
+           悬停到标记上时由 JS 覆盖成 pointer（手型），提示这里能点。
+           内联样式优先级更高，所以 JS 只在标记 / 拖拽状态下覆盖这里的默认值。 */
+        body.mode-3d #cesiumContainer canvas {
+            cursor: grab;
+        }
+        body.mode-3d #cesiumContainer canvas:active {
+            cursor: grabbing;
+        }
+
+        /* 视图层级：3D 在上（交叉淡化时覆盖下方的高德页），2D 在下 */
+        #view-3d {
+            position: relative;
+            z-index: 2;
+        }
+        #view-2d {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+        /* 2D 模式：隐藏顶部导航栏，切换按钮改到高德页底部控制栏（#back3dBtn） */
+        body.mode-2d #topNav {
+            display: none;
+        }
+
+        /* ============ 顶部导航栏（报头式极简） ============
+           结构：左侧双语字标（行楷中文 + 字距拉宽的英文），
+           右侧按“主操作 + 探索工具”分组；探索工具在放大/窄屏时
+           收进“工具”菜单，底图选项收进自身下拉。
+           状态用白色文字 + 细下划线表达；导航本身无卡片容器。 */
+        #topNav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            height: 64px;
+            padding: 0 28px;
+            box-sizing: border-box;
+            background: linear-gradient(180deg, rgba(5, 7, 12, 0.85), rgba(5, 7, 12, 0.45) 72%, transparent);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            user-select: none;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.6s ease, visibility 0.6s;
+        }
+        #topNav.visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            white-space: nowrap;
+        }
+        .nav-brand-zh {
+            font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+            font-size: 22px;
+            letter-spacing: 0.1em;
+            color: #f7f5f1;
+            text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+        }
+        .nav-brand-sep {
+            width: 1px;
+            height: 18px;
+            background: rgba(247, 245, 241, 0.18);
+        }
+        .nav-brand-en {
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: 0.42em;
+            text-transform: uppercase;
+            color: rgba(247, 245, 241, 0.5);
+        }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+        .nav-sep {
+            width: 1px;
+            height: 16px;
+            margin: 0 10px;
+            background: rgba(247, 245, 241, 0.16);
+        }
+
+        /* 导航按钮：无底色，白色 + 细下划线表示状态 */
+        #topNav button {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            padding: 9px 14px;
+            font: 13px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+            color: rgba(247, 245, 241, 0.78);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.18s ease;
+        }
+        #topNav button::after {
+            content: "";
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: 5px;
+            height: 1px;
+            background: currentColor;
+            opacity: 0;
+            transform: scaleX(0.5);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #topNav button:hover:not(:disabled) {
+            color: #ffffff;
+        }
+        #topNav button:hover:not(:disabled)::after {
+            opacity: 0.8;
+            transform: scaleX(1);
+        }
+        #topNav button.active {
+            color: #ffffff;
+        }
+        #topNav button.active::after {
+            opacity: 1;
+            transform: scaleX(1);
+        }
+        #topNav button:disabled {
+            opacity: 0.32;
+            cursor: default;
+        }
+        #topNav button:focus-visible {
+            outline: 2px solid rgba(247, 245, 241, 0.65);
+            outline-offset: 2px;
+        }
+
+        /* 视角按钮：当前模式指示，始终加亮 */
+        #topNav #sceneModeBtn {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* 底图下拉菜单 */
+        .nav-menu {
+            position: relative;
+        }
+        .nav-menu > button {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .nav-chev {
+            opacity: 0.7;
+            transition: transform 0.2s ease;
+        }
+        .nav-menu.open .nav-chev {
+            transform: rotate(180deg);
+        }
+        #layerButtons.nav-menu-panel {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            min-width: 212px;
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(8, 10, 16, 0.9);
+            backdrop-filter: blur(18px) saturate(140%);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            animation: navPanelIn 0.18s ease;
+        }
+        #layerButtons.nav-menu-panel[hidden] {
+            display: none;
+        }
+        @keyframes navPanelIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #layerButtons.nav-menu-panel button {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-align: left;
+            padding: 9px 12px;
+            border-radius: 8px;
+            letter-spacing: 0.02em;
+        }
+        #layerButtons.nav-menu-panel button::after {
+            content: none;
+            position: static;
+            transform: none;
+            background: none;
+            opacity: 1;
+            margin-left: 12px;
+            font-size: 12px;
+            line-height: 1;
+        }
+        #layerButtons.nav-menu-panel button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        #layerButtons.nav-menu-panel button.active {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        #layerButtons.nav-menu-panel button.active::after {
+            content: "✓";
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #topNav {
+                transition: none;
+            }
+            #topNav button,
+            #topNav button::after,
+            .nav-chev {
+                transition: none;
+            }
+            #layerButtons.nav-menu-panel {
+                animation: none;
+            }
+        }
+
+        /* 窄屏：报头自动换行，英文小字隐藏 */
+        @media (max-width: 820px) {
+            #topNav {
+                flex-wrap: wrap;
+                height: auto;
+                padding: 10px 16px;
+                gap: 8px;
+            }
+            .nav-brand-zh {
+                font-size: 18px;
+            }
+            .nav-brand-sep,
+            .nav-brand-en {
+                display: none;
+            }
+        }
+

@@ -1,0 +1,369 @@
+/* ===== 时间线左侧连接线重设计：细轨道 + 横向连接 + 环形节点 ===== */
+.timeline::before {
+    left: 44px;
+    width: 1px;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        hsla(var(--hsla-raw), 0.24) 8%,
+        hsla(var(--hsla-raw), 0.24) 92%,
+        transparent
+    );
+}
+.timeline-item::after {
+    left: 44px;
+    top: 30px;
+    bottom: auto;
+    width: 28px;
+    height: 1px;
+    background: linear-gradient(90deg, hsla(var(--hsla-raw), 0.5), hsla(var(--hsla-raw), 0.16));
+    border-radius: 0;
+}
+.timeline-item:last-child::after {
+    display: block;
+}
+.timeline-content-card::before {
+    left: -33px;
+    top: 20px;
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border: 2px solid hsl(var(--hsla-raw));
+    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.13);
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.timeline-content-card:hover::before {
+    background: hsl(var(--hsla-raw));
+    box-shadow: 0 0 0 4px hsla(var(--hsla-raw), 0.16);
+    transform: scale(1.12);
+}
+@media (prefers-color-scheme: dark) {
+    .timeline::before {
+        background: linear-gradient(
+            to bottom,
+            transparent,
+            hsla(var(--hsla-raw), 0.34) 8%,
+            hsla(var(--hsla-raw), 0.34) 92%,
+            transparent
+        );
+    }
+    .timeline-item::after {
+        background: linear-gradient(90deg, hsla(var(--hsla-raw), 0.62), hsla(var(--hsla-raw), 0.22));
+    }
+    .timeline-content-card::before {
+        background: #1e2a3a;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .timeline-content-card::before {
+        transition: none;
+    }
+}
+/* ===== 时间线连接线增强版 ===== */
+.timeline::before {
+    left: 42px;
+    width: 4px;
+    background: linear-gradient(
+        to bottom,
+        hsla(var(--hsla-raw), 0.18),
+        hsla(var(--hsla-raw), 0.68) 12%,
+        hsla(var(--hsla-raw), 0.68) 88%,
+        hsla(var(--hsla-raw), 0.18)
+    );
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px hsla(var(--hsla-raw), 0.08);
+}
+.timeline-item::after {
+    left: 42px;
+    top: 35px;
+    width: 30px;
+    height: 4px;
+    background: linear-gradient(90deg, hsl(var(--hsla-raw)), hsla(var(--hsla-raw), 0.54));
+    border-radius: 999px;
+    box-shadow: 0 2px 7px hsla(var(--hsla-raw), 0.2);
+}
+.timeline-content-card::before {
+    left: -35px;
+    top: 20px;
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    background: hsl(var(--hsla-raw));
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.2), 0 2px 8px hsla(var(--hsla-raw), 0.24);
+}
+.timeline-content-card:hover::before {
+    background: hsl(var(--hsla-raw));
+    box-shadow: 0 0 0 4px hsla(var(--hsla-raw), 0.24), 0 3px 10px hsla(var(--hsla-raw), 0.3);
+    transform: scale(1.15);
+}
+@media (prefers-color-scheme: dark) {
+    .timeline-content-card::before {
+        border-color: #1e2a3a;
+    }
+}
+/* ===== 时间线轨道方案：分段主线 + 节拍点 + 渐变连接 ===== */
+.timeline::before {
+    left: 43px;
+    width: 2px;
+    background: repeating-linear-gradient(
+        to bottom,
+        hsla(var(--hsla-raw), 0.3) 0,
+        hsla(var(--hsla-raw), 0.3) 12px,
+        transparent 12px,
+        transparent 21px
+    );
+    border-radius: 999px;
+    box-shadow: none;
+}
+.timeline-item::before {
+    content: "";
+    position: absolute;
+    left: 56px;
+    top: 32px;
+    width: 9px;
+    height: 9px;
+    box-sizing: border-box;
+    background: #fff;
+    border: 2px solid hsla(var(--hsla-raw), 0.62);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px hsla(var(--hsla-raw), 0.1);
+    z-index: 2;
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.timeline-item::after {
+    left: 43px;
+    top: 35px;
+    width: 29px;
+    height: 3px;
+    background: linear-gradient(90deg, hsla(var(--hsla-raw), 0.28), hsl(var(--hsla-raw)) 72%, hsla(var(--hsla-raw), 0.7));
+    border-radius: 999px;
+    box-shadow: none;
+    z-index: 1;
+}
+.timeline-content-card::before {
+    left: -35px;
+    top: 20px;
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    background: #fff;
+    border: 3px solid hsl(var(--hsla-raw));
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.16);
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.timeline-item:has(.timeline-content-card:hover)::before {
+    background: hsl(var(--hsla-raw));
+    border-color: hsl(var(--hsla-raw));
+    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.2);
+    transform: scale(1.18);
+}
+.timeline-item:has(.timeline-content-card:hover)::after {
+    background: linear-gradient(90deg, hsl(var(--hsla-raw)), hsl(var(--hsla-raw)));
+    box-shadow: 0 0 8px hsla(var(--hsla-raw), 0.3);
+}
+.timeline-content-card:hover::before {
+    background: hsl(var(--hsla-raw));
+    box-shadow: 0 0 0 4px hsla(var(--hsla-raw), 0.2);
+    transform: scale(1.12);
+}
+@media (prefers-color-scheme: dark) {
+    .timeline-item::before {
+        background: #1e2a3a;
+    }
+    .timeline-content-card::before {
+        background: #1e2a3a;
+        border-color: hsl(var(--hsla-raw));
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .timeline-item::before,
+    .timeline-content-card::before {
+        transition: none;
+    }
+}
+/* ===== 时间线抽屉头部优化 ===== */
+.timeline-drawer .drawer-header {
+    flex: 0 0 78px;
+    min-height: 78px;
+    padding: 17px 20px 13px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 252, 0.94));
+    border-bottom: 1px solid hsla(var(--hsla-raw), 0.16);
+    box-shadow: 0 8px 20px rgba(82, 49, 69, 0.07);
+}
+.timeline-drawer .drawer-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20px;
+    width: 46px;
+    height: 3px;
+    border-radius: 0 0 5px 5px;
+    background: linear-gradient(90deg, hsl(var(--hsla-raw)), hsla(var(--hsla-raw), 0.32));
+    box-shadow: 0 0 14px hsla(var(--hsla-raw), 0.28);
+}
+.timeline-drawer .drawer-header h2 {
+    position: relative;
+    margin: 0;
+    padding: 0 0 12px;
+    color: #332b35;
+    font-size: 15px;
+    font-weight: 750;
+    line-height: 1;
+    letter-spacing: 0.04em;
+}
+.timeline-drawer .drawer-header h2::after {
+    content: "TRAVEL LOG";
+    position: absolute;
+    left: 41px;
+    bottom: 0;
+    color: hsl(var(--hsla-raw));
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    line-height: 1;
+}
+.timeline-drawer .drawer-header h2 i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: hsl(var(--hsla-raw));
+    background: hsla(var(--hsla-raw), 0.13);
+    border: 1px solid hsla(var(--hsla-raw), 0.2);
+    border-radius: 10px;
+    box-shadow: 0 4px 10px hsla(var(--hsla-raw), 0.1);
+}
+.timeline-drawer .time-close-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    color: #8a7d87;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(157, 129, 145, 0.18);
+    border-radius: 10px;
+    font-size: 0;
+    transition: color 0.25s ease, background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.timeline-drawer .time-close-btn::before {
+    content: "×";
+    font-size: 22px;
+    font-weight: 300;
+    line-height: 1;
+}
+.timeline-drawer .time-close-btn:hover {
+    color: #8a3b61;
+    background: hsla(var(--hsla-raw), 0.12);
+    border-color: hsla(var(--hsla-raw), 0.28);
+    transform: rotate(90deg);
+}
+@media (max-width: 768px) {
+    .timeline-drawer .drawer-header {
+        flex-basis: 68px;
+        min-height: 68px;
+        padding: 14px 15px 11px;
+    }
+    .timeline-drawer .drawer-header::before {
+        left: 15px;
+        width: 38px;
+    }
+    .timeline-drawer .drawer-header h2 {
+        font-size: 14px;
+    }
+    .timeline-drawer .drawer-header h2 i {
+        width: 29px;
+        height: 29px;
+        border-radius: 9px;
+    }
+    .timeline-drawer .drawer-header h2::after {
+        left: 38px;
+        font-size: 7px;
+    }
+    .timeline-drawer .time-close-btn {
+        width: 31px;
+        height: 31px;
+    }
+}
+@media (prefers-color-scheme: dark) {
+    .timeline-drawer .drawer-header {
+        background: linear-gradient(135deg, rgba(30, 25, 34, 0.98), rgba(43, 29, 39, 0.96));
+        border-bottom-color: hsla(var(--hsla-raw), 0.2);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+    .timeline-drawer .drawer-header h2 {
+        color: #f7eef3;
+    }
+    .timeline-drawer .drawer-header h2 i {
+        background: hsla(var(--hsla-raw), 0.18);
+        border-color: hsla(var(--hsla-raw), 0.28);
+    }
+    .timeline-drawer .time-close-btn {
+        color: #d8cbd3;
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+    .timeline-drawer .time-close-btn:hover {
+        color: #ffeaf3;
+        background: hsla(var(--hsla-raw), 0.22);
+        border-color: hsla(var(--hsla-raw), 0.34);
+    }
+}
+
+/* ===== 修复时间线头部图标和点击光标 ===== */
+.timeline-drawer .drawer-header h2 i {
+    flex: 0 0 32px;
+    font-size: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a34d73' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px 18px;
+    cursor: default;
+    pointer-events: none;
+}
+
+.timeline-drawer .drawer-header,
+.timeline-drawer .drawer-header h2,
+.timeline-drawer .drawer-header h2 i,
+.timeline-drawer .time-close-btn {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    caret-color: transparent;
+}
+
+.timeline-drawer .time-close-btn:focus,
+.timeline-drawer .time-close-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .timeline-drawer .drawer-header h2 i {
+        flex-basis: 29px;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .timeline-drawer .drawer-header h2 i {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffd4e6' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+    }
+}
+
+/* ===== 修复时间线装饰层的定位与高度显示 ===== */
+.timeline-drawer .timeline-content {
+    position: relative;
+    min-height: 0;
+}
+
+.timeline-drawer .timeline-decoration {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 150px;
+    min-height: 150px;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+

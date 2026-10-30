@@ -1,0 +1,470 @@
+        /* ============ 城市图片墙重设计：旅行杂志式浏览 ============ */
+        #cityView {
+            --city-ink: #f4efe6;
+            --city-muted: rgba(244, 239, 230, 0.58);
+            --city-faint: rgba(244, 239, 230, 0.34);
+            --city-line: rgba(244, 239, 230, 0.14);
+            --city-accent: #d9a86c;
+            background:
+                radial-gradient(900px 520px at 72% 5%, rgba(97, 75, 50, 0.22), transparent 66%),
+                linear-gradient(135deg, #0d1117 0%, #10151c 50%, #0b0e13 100%);
+        }
+        .city-view-top {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 28px 48px 18px;
+        }
+        #cityViewBack {
+            border-color: var(--city-line);
+            background: rgba(255, 255, 255, 0.035);
+            color: var(--city-muted);
+            letter-spacing: 0.05em;
+        }
+        #cityViewBack:hover,
+        .city-view-nav button:hover {
+            background: var(--city-ink);
+            border-color: var(--city-ink);
+            color: #10151c;
+        }
+        .city-view-head {
+            transform: translateX(2.5%);
+        }
+        .city-view-eyebrow {
+            color: var(--city-accent);
+            letter-spacing: 0.28em;
+        }
+        #cityViewTitle {
+            color: var(--city-ink);
+            font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+            font-size: clamp(28px, 3vw, 42px);
+            letter-spacing: 0.04em;
+        }
+        #cityViewStats {
+            color: var(--city-muted);
+            letter-spacing: 0.08em;
+        }
+        .city-view-nav {
+            gap: 6px;
+        }
+        .city-view-nav button {
+            width: 40px;
+            height: 40px;
+            border-color: var(--city-line);
+            background: rgba(255, 255, 255, 0.035);
+            color: var(--city-muted);
+        }
+        .city-view-body {
+            max-width: 1440px;
+            margin: 0 auto;
+            gap: 42px;
+            padding: 18px 48px 54px;
+        }
+        .city-tabs {
+            width: 246px;
+            gap: 5px;
+            padding: 10px 0;
+            border-top: 1px solid var(--city-line);
+        }
+        .city-tabs::before {
+            content: "这座城市的足迹";
+            display: block;
+            margin: 0 12px 12px;
+            color: var(--city-faint);
+            font-size: 10px;
+            letter-spacing: 0.18em;
+        }
+        .city-tab {
+            position: relative;
+            gap: 14px;
+            padding: 12px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--city-muted);
+        }
+        .city-tab::after {
+            content: "";
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: transparent;
+            transform: translateY(-50%);
+        }
+        .city-tab:hover {
+            background: rgba(255, 255, 255, 0.045);
+            color: var(--city-ink);
+        }
+        .city-tab.active {
+            background: rgba(217, 168, 108, 0.11);
+            color: var(--city-ink);
+        }
+        .city-tab.active::after {
+            background: var(--city-accent);
+        }
+        .city-tab-thumb {
+            width: 58px;
+            height: 58px;
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .city-tab-name {
+            font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+            font-size: 16px;
+            letter-spacing: 0.02em;
+        }
+        .city-tab-meta {
+            margin-top: 5px;
+            color: var(--city-faint);
+        }
+        .city-stage {
+            padding-right: 6px;
+        }
+        .city-stage-content {
+            max-width: 920px;
+            margin: 0 auto;
+        }
+        .city-fp-hero {
+            height: min(48vh, 480px);
+            min-height: 330px;
+            border-radius: 3px;
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+        }
+        .city-fp-hero::after {
+            background: linear-gradient(to top, rgba(8, 11, 16, 0.9) 0%, rgba(8, 11, 16, 0.14) 62%, transparent 84%);
+        }
+        .city-fp-hero-body {
+            padding: 30px 32px;
+        }
+        .city-fp-eyebrow {
+            color: var(--city-accent);
+            letter-spacing: 0.22em;
+        }
+        .city-fp-name {
+            margin-top: 10px;
+            font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+            font-size: clamp(32px, 4vw, 52px);
+            letter-spacing: 0.025em;
+        }
+        .city-fp-meta {
+            color: rgba(244, 239, 230, 0.64);
+            letter-spacing: 0.05em;
+        }
+        .city-fp-desc {
+            margin: 24px 0 0;
+            padding: 0 0 22px;
+            max-width: 60ch;
+            border-bottom: 1px solid var(--city-line);
+            color: var(--city-muted);
+            font-size: 14px;
+            line-height: 1.9;
+        }
+        .city-fp-wall {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin: 26px 0 8px;
+        }
+        .city-fp-wall::before {
+            content: "照片记录";
+            grid-column: 1 / -1;
+            margin-bottom: 2px;
+            color: var(--city-faint);
+            font-size: 10px;
+            letter-spacing: 0.22em;
+        }
+        .city-wall-tile {
+            aspect-ratio: 1 / 1;
+            margin: 0;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: transform 0.28s ease, filter 0.28s ease;
+        }
+        .city-wall-tile:first-of-type {
+            grid-column: span 2;
+            grid-row: span 2;
+            aspect-ratio: 1 / 1;
+        }
+        .city-wall-tile:nth-of-type(4n + 2) {
+            aspect-ratio: 4 / 5;
+        }
+        .city-wall-tile:nth-of-type(4n + 3) {
+            aspect-ratio: 5 / 4;
+        }
+        .city-wall-tile:nth-of-type(4n + 4) {
+            aspect-ratio: 4 / 5;
+        }
+        .city-wall-tile:hover {
+            transform: translateY(-4px);
+            filter: brightness(1.12) saturate(1.05);
+        }
+        .city-wall-empty {
+            grid-column: 1 / -1;
+            padding: 48px 0;
+            border-top: 1px solid var(--city-line);
+            color: var(--city-faint);
+        }
+        @media (max-width: 1020px) {
+            .city-view-top,
+            .city-view-body { padding-left: 28px; padding-right: 28px; }
+            .city-view-body { gap: 26px; }
+            .city-tabs { width: 216px; }
+        }
+        @media (max-width: 820px) {
+            .city-view-top { padding: 16px 16px 10px; }
+            .city-view-head { transform: none; }
+            .city-view-body { gap: 16px; padding: 10px 16px 34px; }
+            .city-tabs { border-top: 0; padding: 0; }
+            .city-tabs::before { display: none; }
+            .city-tab { width: 184px; padding: 9px; }
+            .city-tab-thumb { width: 50px; height: 50px; }
+            .city-fp-hero { height: 42vh; min-height: 270px; }
+            .city-fp-hero-body { padding: 20px; }
+            .city-fp-desc { margin-top: 18px; }
+            .city-fp-wall { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 20px; }
+            .city-wall-tile:first-of-type { grid-column: span 2; grid-row: span 1; aspect-ratio: 4 / 3; }
+        }
+
+        /* ============ 中央展陈二稿：电影分镜式画廊 ============ */
+        .city-stage-content {
+            display: grid;
+            grid-template-columns: minmax(0, 1.55fr) minmax(220px, 0.75fr);
+            align-items: stretch;
+            gap: 0 28px;
+            max-width: 1060px;
+        }
+        .city-fp-hero {
+            grid-column: 1;
+            grid-row: 1;
+            height: auto;
+            min-height: 520px;
+            border-radius: 0;
+            box-shadow: 14px 18px 0 rgba(217, 168, 108, 0.12), 0 26px 70px rgba(0, 0, 0, 0.34);
+        }
+        .city-fp-hero::before {
+            content: "";
+            position: absolute;
+            inset: 16px;
+            z-index: 1;
+            border: 1px solid rgba(244, 239, 230, 0.32);
+            pointer-events: none;
+        }
+        .city-fp-hero::after {
+            background: linear-gradient(to top, rgba(8, 11, 16, 0.72), transparent 50%);
+        }
+        .city-fp-hero-body {
+            padding: 28px 30px;
+        }
+        .city-fp-eyebrow,
+        .city-fp-name,
+        .city-fp-meta {
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.68);
+        }
+        .city-fp-desc {
+            grid-column: 2;
+            grid-row: 1;
+            align-self: center;
+            margin: 0;
+            padding: 30px 0 30px 28px;
+            border-top: 1px solid var(--city-line);
+            border-bottom: 1px solid var(--city-line);
+            color: var(--city-muted);
+            font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+            font-size: 16px;
+            line-height: 2;
+        }
+        .city-fp-wall {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            margin: 32px 0 8px;
+            padding: 0 0 12px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(244, 239, 230, 0.24) transparent;
+        }
+        .city-fp-wall::before {
+            content: "FILM STRIP / 照片记录";
+            flex: 0 0 128px;
+            align-self: center;
+            margin: 0 8px 0 0;
+            color: var(--city-faint);
+            font-size: 10px;
+            line-height: 1.7;
+            letter-spacing: 0.16em;
+            writing-mode: vertical-rl;
+        }
+        .city-wall-tile,
+        .city-wall-tile:first-of-type,
+        .city-wall-tile:nth-of-type(4n + 2),
+        .city-wall-tile:nth-of-type(4n + 3),
+        .city-wall-tile:nth-of-type(4n + 4) {
+            flex: 0 0 154px;
+            width: 154px;
+            aspect-ratio: 4 / 5;
+            border-radius: 0;
+            box-shadow: inset 0 0 0 1px rgba(244, 239, 230, 0.08);
+        }
+        .city-wall-tile:nth-of-type(3n + 2) {
+            aspect-ratio: 1 / 1;
+            margin-top: 18px;
+        }
+        .city-wall-tile:nth-of-type(3n + 3) {
+            aspect-ratio: 5 / 4;
+            margin-top: 7px;
+        }
+        .city-wall-empty {
+            flex: 1 0 auto;
+            border-top: 1px solid var(--city-line);
+            border-bottom: 1px solid var(--city-line);
+        }
+        @media (max-width: 820px) {
+            .city-stage-content {
+                display: block;
+            }
+            .city-fp-hero {
+                min-height: 360px;
+                height: 54vh;
+            }
+            .city-fp-hero::before { inset: 10px; }
+            .city-fp-desc {
+                margin: 22px 0 0;
+                padding: 20px 0;
+                font-size: 14px;
+                line-height: 1.85;
+            }
+            .city-fp-wall {
+                margin-top: 22px;
+            }
+            .city-fp-wall::before {
+                flex-basis: 76px;
+            }
+            .city-wall-tile,
+            .city-wall-tile:first-of-type,
+            .city-wall-tile:nth-of-type(4n + 2),
+            .city-wall-tile:nth-of-type(4n + 3),
+            .city-wall-tile:nth-of-type(4n + 4) {
+                flex-basis: 126px;
+                width: 126px;
+            }
+        }
+
+        /* ============ 中央展陈三稿：摄影作品集网格 ============ */
+        .city-stage-content {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 12px;
+            max-width: 1080px;
+        }
+        .city-fp-hero {
+            grid-column: span 7;
+            grid-row: span 2;
+            height: auto;
+            min-height: 570px;
+            border: 0;
+            border-radius: 0;
+            padding: 0;
+            color: inherit;
+            text-align: left;
+            cursor: zoom-in;
+            background-color: #1a2028;
+            box-shadow: none;
+            transition: filter 0.35s ease, transform 0.35s ease;
+        }
+        .city-fp-hero:hover {
+            transform: translateY(-3px);
+            filter: brightness(1.08) saturate(1.05);
+        }
+        .city-fp-hero:focus-visible {
+            outline: 2px solid var(--city-accent);
+            outline-offset: 4px;
+        }
+        .city-fp-hero::before {
+            display: none;
+        }
+        .city-fp-hero::after {
+            background: linear-gradient(to top, rgba(7, 10, 15, 0.86), transparent 54%);
+        }
+        .city-fp-hero-body {
+            padding: 30px;
+        }
+        .city-fp-desc {
+            grid-column: span 5;
+            grid-row: span 2;
+            align-self: stretch;
+            display: flex;
+            align-items: flex-end;
+            min-height: 190px;
+            margin: 0;
+            padding: 24px 20px 24px 24px;
+            border: 1px solid var(--city-line);
+            border-left: 3px solid var(--city-accent);
+            color: var(--city-muted);
+            font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+            font-size: 16px;
+            line-height: 1.95;
+        }
+        .city-fp-wall {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            overflow: visible;
+            margin: 0;
+            padding: 0;
+        }
+        .city-fp-wall::before {
+            content: "";
+            display: none;
+        }
+        .city-wall-tile,
+        .city-wall-tile:first-of-type,
+        .city-wall-tile:nth-of-type(3n + 2),
+        .city-wall-tile:nth-of-type(3n + 3),
+        .city-wall-tile:nth-of-type(4n + 2),
+        .city-wall-tile:nth-of-type(4n + 3),
+        .city-wall-tile:nth-of-type(4n + 4) {
+            width: 100%;
+            min-width: 0;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .city-wall-tile:first-of-type {
+            grid-column: span 2;
+            grid-row: span 2;
+            aspect-ratio: 1 / 1;
+        }
+        .city-wall-tile:nth-of-type(3n + 2) { aspect-ratio: 4 / 5; }
+        .city-wall-tile:nth-of-type(3n + 3) { aspect-ratio: 5 / 4; }
+        .city-wall-tile:nth-of-type(4n + 4) { grid-column: span 2; aspect-ratio: 5 / 3; }
+        .city-wall-tile img {
+            filter: saturate(0.9);
+            transition: filter 0.35s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .city-wall-tile:hover img {
+            filter: saturate(1.08) brightness(1.08);
+            transform: scale(1.045);
+        }
+        .city-wall-empty {
+            grid-column: 1 / -1;
+            padding: 56px 0;
+            border-top: 1px solid var(--city-line);
+            border-bottom: 1px solid var(--city-line);
+        }
+        @media (max-width: 820px) {
+            .city-stage-content { display: block; }
+            .city-fp-hero { min-height: 360px; height: 54vh; }
+            .city-fp-desc { min-height: 0; margin-top: 12px; }
+            .city-fp-wall {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                margin-top: 12px;
+            }
+        }

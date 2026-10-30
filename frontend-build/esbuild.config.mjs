@@ -83,6 +83,26 @@ for (const [name, entry] of Object.entries(BUNDLES)) {
   count++;
 }
 
+/**
+ * 第 1 类的样式：按 UI 领域拆成 partial，index.css 用 @import 串起来，bundle 回单文件。
+ * 输出路径与原 static/css/<name>.css 一致，FootprintHeadProcessor 引用的 URL 不变。
+ * partial 里的 url("../font/...") 等是按运行时 /static/css/ 写的相对路径，
+ * 标成 external 原样保留，不让 esbuild 按 partial 所在目录去解析或内联。
+ */
+const CSS_BUNDLES = {
+  'travel-memory': join(FRONTEND, 'styles/travel-memory/index.css'),
+  footprint: join(FRONTEND, 'styles/footprint/index.css'),
+};
+
+for (const [name, entry] of Object.entries(CSS_BUNDLES)) {
+  const out = join(OUT, 'css', `${name}.css`);
+  const srcDir = dirname(entry);
+  for (const f of readdirSync(srcDir)) before += statSync(join(srcDir, f)).size;
+  await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, external: ['../font/*', '../img/*'] });
+  after += statSync(out).size;
+  count++;
+}
+
 for (const f of collectPlain()) {
   before += statSync(f.in).size;
   await build({ ...COMMON, entryPoints: [f.in], outfile: f.out, bundle: false });

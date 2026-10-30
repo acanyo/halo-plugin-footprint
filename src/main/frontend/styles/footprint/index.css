@@ -1,0 +1,12 @@
+/* footprint.css 入口：按 @import 顺序拼回原文件的规则顺序，顺序即层叠，勿随意调换。 */
+@import "./base-and-map-controls.css";
+@import "./info-window.css";
+@import "./marker-photo-wall.css";
+@import "./marker-styles.css";
+@import "./control-bar.css";
+@import "./timeline-drawer.css";
+@import "./highlight-and-stats.css";
+@import "./toolbar-refinements.css";
+@import "./timeline-track-and-header.css";
+@import "./timeline-archive-cards.css";
+@import "./gallery-modes-and-timeline-polish.css";

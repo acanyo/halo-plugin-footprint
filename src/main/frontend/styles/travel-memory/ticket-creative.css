@@ -1,0 +1,567 @@
+        /* ============ 票根页创意功能 ============ */
+        .ticket-gallery-actions {
+            justify-self: end;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            min-width: 0;
+        }
+        #ticketPassportBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 36px;
+            padding: 7px 13px;
+            border: 1px solid rgba(244, 239, 230, 0.28);
+            border-radius: 999px;
+            background: rgba(8, 10, 16, 0.35);
+            color: rgba(244, 239, 230, 0.9);
+            font: 500 12px/1.3 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+        #ticketPassportBtn:hover,
+        #ticketPassportBtn:focus-visible {
+            border-color: rgba(244, 239, 230, 0.55);
+            background: rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+            outline: none;
+        }
+        #ticketPassportBtn[hidden] {
+            display: none;
+        }
+        #ticketPassportCount {
+            min-width: 2.2em;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: rgba(216, 174, 120, 0.22);
+            color: #e3c08a;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .ticket-gallery-stage {
+            position: relative;
+        }
+        .ticket-stamp-badge {
+            position: absolute;
+            left: 50%;
+            top: 7%;
+            z-index: 32;
+            pointer-events: none;
+            max-width: 46%;
+            padding: 8px 16px;
+            border: 2px solid rgba(231, 178, 119, 0.9);
+            border-radius: 10px;
+            background: rgba(8, 10, 16, 0.66);
+            color: #f0c68e;
+            font: 600 13px/1.5 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.14em;
+            text-align: center;
+            transform: translateX(-50%) rotate(-7deg);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: 0;
+        }
+        .ticket-stamp-badge:not([hidden]) {
+            animation: ticketStampIn 0.42s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+        }
+        .ticket-stamp-badge.is-stale {
+            opacity: 1;
+            animation: none;
+        }
+        @keyframes ticketStampIn {
+            from { opacity: 0; transform: translateX(-50%) rotate(-16deg) scale(1.35); }
+            to   { opacity: 1; transform: translateX(-50%) rotate(-7deg) scale(1); }
+        }
+        /* 横条模式：stage 在 strip 下是 display: contents（不再生成盒子），
+           绝对定位的集章徽标会失去定位基准，一路退到 #ticketGallery，
+           结果跑到顶栏附近。这里把基准重新绑到横条视图上，并让章压在主票根上沿。 */
+        body.ticket-strip-active .ticket-gallery-view {
+            position: relative;
+        }
+        body.ticket-strip-active .ticket-stamp-badge {
+            top: 6px;
+        }
+
+        .ticket-passport-overlay {
+            z-index: 11500;
+        }
+        .ticket-passport-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 178px), 1fr));
+            gap: 16px;
+            width: min(1080px, 100%);
+            margin: 0 auto 12px;
+        }
+        .ticket-passport-cell {
+            position: relative;
+            min-width: 0;
+            border: 1px solid rgba(118, 92, 61, 0.2);
+            border-radius: 13px;
+            background: #fffdf7;
+            overflow: hidden;
+            box-shadow: 3px 5px 12px rgba(87, 66, 46, 0.1);
+        }
+        .ticket-passport-cell img {
+            display: block;
+            width: 100%;
+            height: 132px;
+            object-fit: cover;
+            background: #e8dfd1;
+        }
+        .ticket-passport-cell.is-missing {
+            border-style: dashed;
+            background: #f3eee2;
+        }
+        .ticket-passport-cell.is-missing img {
+            opacity: 0.26;
+            filter: grayscale(1);
+        }
+        .ticket-passport-cell-title {
+            display: block;
+            padding: 9px 10px 11px;
+            color: #3d4038;
+            font: 500 12px/1.4 "Noto Serif SC", "Songti SC", "STSong", serif;
+            letter-spacing: 0.04em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .ticket-passport-cell-status {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(8, 10, 16, 0.68);
+            color: #f0c68e;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+        }
+        .ticket-passport-cell.is-missing .ticket-passport-cell-status {
+            background: rgba(255, 253, 247, 0.82);
+            color: #9f8c77;
+            border: 1px dashed rgba(118, 92, 61, 0.4);
+        }
+        .ticket-passport-reset {
+            display: block;
+            margin: 22px auto 0;
+            padding: 8px 18px;
+            border: 1px solid rgba(118, 92, 61, 0.34);
+            border-radius: 999px;
+            background: rgba(255, 253, 247, 0.72);
+            color: #6e5945;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+        }
+        .ticket-passport-reset:hover,
+        .ticket-passport-reset:focus-visible {
+            background: #6e5945;
+            color: #fffdf7;
+            outline: none;
+        }
+
+        /* 时间有色：氛围色随票根月份变化（只改环境强调色，不改票根图） */
+        #ticketGallery[data-season='spring'] {
+            --season-accent: #a4c28a;
+        }
+        #ticketGallery[data-season='summer'] {
+            --season-accent: #e5b06a;
+        }
+        #ticketGallery[data-season='autumn'] {
+            --season-accent: #d69470;
+        }
+        #ticketGallery[data-season='winter'] {
+            --season-accent: #8fb2d3;
+        }
+
+        @media (max-width: 700px) {
+            .ticket-gallery-top {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .ticket-gallery-actions {
+                grid-column: 1;
+                grid-row: 3;
+                justify-self: center;
+                justify-content: center;
+            }
+            #ticketPassportBtn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            .ticket-passport-grid {
+                grid-template-columns: repeat(auto-fill, minmax(min(100%, 142px), 1fr));
+                gap: 10px;
+            }
+            .ticket-stamp-badge {
+                max-width: 60%;
+                font-size: 11px;
+                padding: 6px 12px;
+            }
+        }
+
+        /* ============ 票根页阶段 B：命运抽票 / 未寄出的明信片 ============ */
+        .ticket-overlay-high {
+            z-index: 11500;
+        }
+        #ticketOracleBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 36px;
+            padding: 7px 13px;
+            border: 1px solid rgba(244, 239, 230, 0.28);
+            border-radius: 999px;
+            background: rgba(8, 10, 16, 0.35);
+            color: rgba(244, 239, 230, 0.9);
+            font: 500 12px/1.3 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+        #ticketOracleBtn:hover,
+        #ticketOracleBtn:focus-visible {
+            border-color: rgba(244, 239, 230, 0.55);
+            background: rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+            outline: none;
+        }
+        #ticketOracleBtn[hidden] {
+            display: none;
+        }
+
+        .ticket-meta-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        #ticketLetterBtn {
+            padding: 7px 15px;
+            border: 1px solid rgba(216, 174, 120, 0.55);
+            border-radius: 999px;
+            background: transparent;
+            color: #e3c08a;
+            font: 500 12px/1.3 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+        #ticketLetterBtn:hover,
+        #ticketLetterBtn:focus-visible {
+            background: #d8ae78;
+            color: #202825;
+            border-color: #d8ae78;
+            outline: none;
+        }
+        #ticketLetterBtn[hidden] {
+            display: none;
+        }
+
+        .ticket-oracle-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+        }
+        /* 卡片必须落在屏幕正中间：只让卡片参与居中，
+           下方“灵感文案 + 按钮”用绝对定位挂在卡片底部。
+           否则「卡片 + 文案 + 按钮」整组居中会把卡片顶到画面偏上（实测偏高 10~24px）。 */
+        .ticket-oracle-stack {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .ticket-oracle-below {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: max-content;
+            max-width: min(560px, 90vw);
+        }
+        .ticket-oracle-card {
+            position: relative;
+            width: min(520px, 92vw);
+            aspect-ratio: 3 / 4;
+            /* 给下方文案与按钮留位置，矮屏时卡片自己缩下来 */
+            max-height: min(62vh, calc(100vh - 320px));
+            border: 1px solid rgba(118, 92, 61, 0.25);
+            border-radius: 18px;
+            background: #fffdf7;
+            box-shadow: 0 24px 60px rgba(87, 66, 46, 0.2);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ticket-oracle-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #e8dfd1;
+        }
+        .ticket-oracle-card.is-back::before {
+            /* 用半角 ? ：全角「？」的字形在字身框里靠左，肉眼看着不居中（实测偏左 46px）
+               半角问号在常见字体里都是居中字形，且同一字号下墨迹高度几乎一致 */
+            content: "?";
+            color: rgba(118, 92, 61, 0.18);
+            font: 400 180px/1 "Noto Serif SC", "Songti SC", serif;
+            /* 行盒按字体基线排，墨迹实测比卡片中心低约 0.058em，这里抬回来 */
+            transform: translateY(-0.058em);
+        }
+        .ticket-oracle-card.is-back {
+            background:
+                repeating-linear-gradient(45deg, rgba(118, 92, 61, 0.06) 0 10px, transparent 10px 20px),
+                #f3eee2;
+        }
+        .ticket-oracle-card.is-shuffling {
+            animation: ticketOracleShuffle 0.16s linear infinite alternate;
+        }
+        @keyframes ticketOracleShuffle {
+            from { transform: translateX(-3px) rotate(-0.6deg); }
+            to   { transform: translateX(3px) rotate(0.6deg); }
+        }
+        .ticket-oracle-inspiration {
+            min-height: 2.2em;
+            margin: 24px 0 4px;
+            color: #766049;
+            font: 15px/1.9 "Noto Serif SC", "Songti SC", "STSong", serif;
+            text-align: center;
+        }
+        .ticket-oracle-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .ticket-oracle-actions button {
+            padding: 9px 20px;
+            border: 1px solid rgba(118, 92, 61, 0.3);
+            border-radius: 999px;
+            background: rgba(255, 253, 247, 0.78);
+            color: #6e5945;
+            font: 500 13px/1.2 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+        .ticket-oracle-actions button:hover,
+        .ticket-oracle-actions button:focus-visible {
+            background: #6e5945;
+            color: #fffdf7;
+            transform: translateY(-2px);
+            outline: none;
+        }
+        .ticket-oracle-actions button[disabled] {
+            opacity: 0.45;
+            cursor: default;
+            transform: none;
+        }
+
+        .ticket-letter-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 20px 32px;
+        }
+        /* 滚动安全的垂直居中：用 auto 外边距分配空白，内容超高时不会把顶部裁掉 */
+        .ticket-letter-stage,
+        .postcard-stage {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .ticket-letter-body > .ticket-letter-note {
+            margin-bottom: auto;
+        }
+        .postcard-body > .postcard-actions {
+            margin-bottom: auto;
+        }
+        /* 每页用自己的画布比例；宽度取「最大宽」和「最大高换算出的宽」里更紧的一边，
+           高度永远不会被截，也就不会出现左右留白 */
+        .ticket-letter-stage {
+            --media-ratio: 0.703125;      /* 写信画布 900 × 1280 */
+            --media-aspect: 900 / 1280;
+        }
+        .postcard-stage {
+            --media-ratio: 0.75;          /* 城市明信片画布 1080 × 1440 */
+            --media-aspect: 3 / 4;
+        }
+        .ticket-letter-skeleton,
+        .postcard-skeleton,
+        #ticketLetterImg,
+        #postcardPreviewImg {
+            --media-max-w: min(460px, 90vw);
+            --media-max-h: min(78vh, 700px);
+            width: min(var(--media-max-w), calc(var(--media-max-h) * var(--media-ratio)));
+            aspect-ratio: var(--media-aspect);
+            border-radius: 14px;
+            background: transparent;   /* 预览图不垫白底 */
+            box-shadow: 0 24px 58px rgba(87, 66, 46, 0.24);
+        }
+        .ticket-letter-skeleton,
+        .postcard-skeleton {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, #e3d8c6, #cdbfa6);
+        }
+        .ticket-letter-skeleton::after,
+        .postcard-skeleton::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(100deg, transparent 18%, rgba(255, 255, 255, 0.5) 50%, transparent 82%);
+            transform: translateX(-100%);
+            animation: ticketLetterShimmer 1.6s ease-in-out infinite;
+        }
+        @keyframes ticketLetterShimmer {
+            to { transform: translateX(100%); }
+        }
+        .ticket-letter-status,
+        .postcard-status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            color: #8b7865;
+            font: 12px/1.7 "Noto Serif SC", "Songti SC", serif;
+            text-align: center;
+            letter-spacing: 0.04em;
+        }
+        #ticketLetterRetry,
+        #postcardRetry {
+            min-height: 38px;
+            padding: 8px 18px;
+            border: 1px solid rgba(118, 92, 61, 0.3);
+            border-radius: 999px;
+            background: rgba(255, 253, 247, 0.7);
+            color: #6e5945;
+            font: 500 12px/1.2 "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+        }
+        #ticketLetterRetry:hover,
+        #ticketLetterRetry:focus-visible,
+        #postcardRetry:hover,
+        #postcardRetry:focus-visible {
+            background: #6e5945;
+            color: #fffdf7;
+            outline: none;
+        }
+        #ticketLetterRetry:focus-visible,
+        #postcardRetry:focus-visible {
+            box-shadow: 0 0 0 2px rgba(231, 178, 119, 0.85);
+        }
+        #ticketLetterRetry:active,
+        #postcardRetry:active {
+            transform: scale(0.97);
+        }
+        #ticketLetterImg,
+        #postcardPreviewImg {
+            /* 宽度由上面的公式给，高度跟着图片自身比例走 —— 这样永远不会有白边 */
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+        .ticket-letter-stage.is-loading #ticketLetterImg,
+        .ticket-letter-stage.is-error #ticketLetterImg,
+        .postcard-stage.is-loading #postcardPreviewImg,
+        .postcard-stage.is-error #postcardPreviewImg {
+            visibility: hidden;
+        }
+        .ticket-letter-stage.is-ready .ticket-letter-skeleton,
+        .postcard-stage.is-ready .postcard-skeleton {
+            display: none;
+        }
+        .ticket-letter-stage.is-ready .ticket-letter-status,
+        .postcard-stage.is-ready .postcard-status {
+            display: none;
+        }
+        .ticket-letter-caption {
+            margin: 12px 0 0;
+            max-width: min(430px, 90vw);
+            color: #9f8c77;
+            font: 12px/1.7 "Noto Serif SC", "Songti SC", serif;
+            text-align: center;
+            letter-spacing: 0.05em;
+        }
+        .ticket-letter-caption:empty {
+            display: none;
+        }
+        .ticket-letter-actions {
+            margin-top: 18px;
+        }
+        .ticket-letter-actions button {
+            min-height: 44px;
+            padding: 10px 22px;
+            /* 不再用纸白底（继承来的 #fffdf7 在这页浅褐底色上很跳），跟页面融为一体 */
+            border: 1px solid rgba(118, 92, 61, 0.32);
+            background: transparent;
+            color: #6e5945;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+        }
+        .ticket-letter-actions button:hover,
+        .ticket-letter-actions button:focus-visible {
+            background: #6e5945;
+            color: #fffdf7;
+            border-color: #6e5945;
+        }
+        .ticket-letter-actions button:active {
+            transform: scale(0.97);
+        }
+        .ticket-letter-actions button:focus-visible {
+            box-shadow: 0 0 0 2px rgba(231, 178, 119, 0.85);
+        }
+        /* 加载中不可点：不要白底实心按钮，跟纸面融为一体；
+           禁用靠"描边变淡 + 文字变浅"表达，不整体降透明度 */
+        #ticketLetterDownload[disabled] {
+            border-color: rgba(118, 92, 61, 0.2);
+            background: transparent;
+            color: rgba(110, 89, 69, 0.48);
+            opacity: 1;
+            cursor: default;
+        }
+        /* 禁用时悬停也不要有"可点"的反馈（:hover 与 [disabled] 同权重，必须写在后面） */
+        #ticketLetterDownload[disabled]:hover,
+        #ticketLetterDownload[disabled]:focus-visible {
+            border-color: rgba(118, 92, 61, 0.2);
+            background: transparent;
+            color: rgba(110, 89, 69, 0.48);
+            box-shadow: none;
+        }
+        .ticket-letter-note {
+            margin: 18px 0 0;
+            color: #9f8c77;
+            font: 12px/1.8 "Noto Serif SC", "Songti SC", serif;
+            text-align: center;
+            letter-spacing: 0.06em;
+        }
+
+        @media (max-width: 700px) {
+            .ticket-oracle-card {
+                width: min(360px, 88vw);
+                max-height: min(52vh, calc(100vh - 320px));
+            }
+            #ticketOracleBtn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            .ticket-meta-actions {
+                justify-content: center;
+            }
+        }
+

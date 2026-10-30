@@ -1,0 +1,337 @@
+/* ===== 标记点高亮方案：基础过渡（所有方案共用） ===== */
+.marker-style-pin .marker-image,
+.marker-style-circle .marker-image,
+.marker-style-card .marker-image {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ===== 方案 B：缩放 + 彩色光晕（默认，glow） ===== */
+.highlight-scheme-glow .amap-marker.marker-highlight .marker-image,
+.highlight-scheme-glow .amap-marker.marker-highlight .custom-marker:hover .marker-image {
+    transform: scale(1.3);
+    box-shadow: 0 0 16px 4px hsla(var(--hsla-raw), 0.5);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ===== 方案 A：脉冲光环（pulse） ===== */
+.highlight-scheme-pulse .amap-marker.marker-highlight .marker-image {
+    transform: scale(1.15);
+    transition: transform 0.25s ease;
+}
+.highlight-scheme-pulse .amap-marker.marker-highlight .custom-marker {
+    position: relative;
+}
+.highlight-scheme-pulse .amap-marker.marker-highlight .custom-marker::before {
+    content: '';
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 3px solid hsla(var(--hsla-raw), 0.6);
+    animation: highlight-pulse 1.2s ease-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+@keyframes highlight-pulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.6);
+        opacity: 0;
+    }
+}
+
+/* ===== 方案 C：弹跳动画（bounce） ===== */
+.highlight-scheme-bounce .amap-marker.marker-highlight .marker-image,
+.highlight-scheme-bounce .amap-marker.marker-highlight .custom-marker:hover .marker-image {
+    animation: highlight-bounce 0.6s ease-in-out infinite alternate;
+    box-shadow: 0 8px 24px hsla(var(--hsla-raw), 0.4);
+}
+@keyframes highlight-bounce {
+    0% {
+        transform: translateY(0) scale(1.05);
+    }
+    100% {
+        transform: translateY(-8px) scale(1.12);
+    }
+}
+
+/* ===== 方案 D：边框高亮环（ring） ===== */
+.highlight-scheme-ring .amap-marker.marker-highlight .marker-image,
+.highlight-scheme-ring .amap-marker.marker-highlight .custom-marker:hover .marker-image {
+    transform: scale(1.15);
+    box-shadow:
+        0 0 0 4px hsla(var(--hsla-raw), 0.3),
+        0 0 0 8px hsla(var(--hsla-raw), 0.15);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ===== 高亮方案无障碍降级 ===== */
+@media (prefers-reduced-motion: reduce) {
+    .highlight-scheme-pulse .amap-marker.marker-highlight .marker-image::before {
+        animation: none;
+        display: none;
+    }
+    .highlight-scheme-pulse .amap-marker.marker-highlight .marker-image {
+        transform: scale(1.15);
+        box-shadow: 0 0 16px 4px hsla(var(--hsla-raw), 0.5);
+    }
+    .highlight-scheme-bounce .amap-marker.marker-highlight .marker-image,
+    .highlight-scheme-bounce .amap-marker.marker-highlight .custom-marker:hover .marker-image {
+        animation: none;
+        transform: scale(1.15);
+        box-shadow: 0 0 16px 4px hsla(var(--hsla-raw), 0.5);
+    }
+}
+
+/* ===== 统计面板视觉升级 ===== */
+.map-stats-panel {
+    position: fixed;
+    z-index: 90;
+    top: calc(24px + var(--safe-top));
+    right: calc(24px + var(--safe-right));
+    width: min(248px, calc(100vw - 32px));
+    padding: 16px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 100% 0%, hsla(var(--hsla-raw), 0.16), transparent 42%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 247, 0.82));
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    border-radius: 22px 22px 8px 22px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    transform: translateY(-10px) scale(0.98);
+    transform-origin: top right;
+    transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+}
+.map-stats-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 18px;
+    width: 46px;
+    height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: hsl(var(--hsla-raw));
+    box-shadow: 0 0 18px hsla(var(--hsla-raw), 0.55);
+}
+.map-stats-panel.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.stats-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 1px 14px;
+}
+.stats-heading-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.stats-kicker {
+    color: hsl(var(--hsla-raw));
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    line-height: 1;
+}
+.stats-title {
+    color: #172033;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+}
+.stats-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 7px;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.58);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 999px;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    line-height: 1;
+}
+.stats-live i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: hsl(var(--hsla-raw));
+    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.12);
+}
+.stats-main {
+    display: grid;
+    grid-template-columns: 1.1fr 1.35fr 1fr;
+    gap: 7px;
+}
+.stats-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    min-width: 0;
+    min-height: 66px;
+    padding: 10px 8px;
+    background: rgba(255, 255, 255, 0.58);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 13px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.stats-number {
+    color: #1e293b;
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.stats-total .stats-number {
+    color: hsl(var(--hsla-raw));
+    font-size: 29px;
+    font-weight: 800;
+}
+.stats-accent {
+    color: hsl(var(--hsla-raw));
+}
+.stats-label {
+    margin-top: 5px;
+    color: #8190a5;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+}
+.stats-divider {
+    height: 1px;
+    margin: 14px 2px 11px;
+    background: linear-gradient(90deg, transparent, hsla(var(--hsla-raw), 0.62), transparent);
+    box-shadow: 0 0 10px hsla(var(--hsla-raw), 0.2);
+}
+.stats-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.stats-cat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 23px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 1.2;
+    border-radius: 6px;
+}
+.stats-cat::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: hsla(var(--hsla-raw), 0.55);
+    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.08);
+}
+.stats-cat:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+.stats-cat-label {
+    flex: 1;
+    color: #7c8a9d;
+}
+.stats-cat-value {
+    color: #334155;
+    font-weight: 700;
+}
+.stats-cat.is-zero {
+    opacity: 0.38;
+}
+@media (max-width: 768px) {
+    .map-stats-panel {
+        top: calc(10px + env(safe-area-inset-top, 0px));
+        right: 10px;
+        width: auto;
+        max-width: calc(100vw - 20px);
+        padding: 8px 10px;
+        border-radius: 15px 15px 6px 15px;
+    }
+    .map-stats-panel::before,
+    .map-stats-panel .stats-heading {
+        display: none;
+    }
+    .map-stats-panel .stats-main {
+        display: flex;
+        flex-direction: row;
+        gap: 0;
+    }
+    .map-stats-panel .stats-item {
+        min-height: 0;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+    }
+    .map-stats-panel .stats-item:not(:last-child)::after {
+        content: "\00B7";
+        color: #cbd5e1;
+        margin: 0 6px;
+        font-size: 11px;
+    }
+    .map-stats-panel .stats-number,
+    .map-stats-panel .stats-total .stats-number {
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .map-stats-panel .stats-label {
+        margin-top: 0;
+        font-size: 10px;
+    }
+    .map-stats-panel .stats-divider,
+    .map-stats-panel .stats-detail {
+        display: none;
+    }
+}
+@media (prefers-color-scheme: dark) {
+    .map-stats-panel {
+        background:
+            radial-gradient(circle at 100% 0%, hsla(var(--hsla-raw), 0.2), transparent 42%),
+            linear-gradient(145deg, rgba(30, 42, 58, 0.92), rgba(18, 28, 43, 0.9));
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .stats-title,
+    .stats-number {
+        color: #f1f5f9;
+    }
+    .stats-item,
+    .stats-live {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    .stats-live,
+    .stats-label,
+    .stats-cat-label {
+        color: #94a3b8;
+    }
+    .stats-cat-value {
+        color: #e2e8f0;
+    }
+    .stats-cat:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+}
