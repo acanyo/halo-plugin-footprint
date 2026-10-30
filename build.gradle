@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id "io.freefair.lombok" version "8.13"
-    id "run.halo.plugin.devtools" version "0.6.1"
+    id "io.freefair.lombok" version "9.2.0"
+    id "run.halo.plugin.devtools" version "0.8.0"
     // 前台 js/css 的压缩步骤要用（ui 子项目也用同一个插件管 node）
     id "com.github.node-gradle.node" version "7.1.0"
 }
@@ -9,21 +9,11 @@ plugins {
 group 'cc.lik.footprint'
 
 repositories {
-    // 国内镜像放最前面：本机到 repo.maven.apache.org / s01.oss.sonatype.org 是超时的
-    // （实测 12 秒无响应），而 haloServer 需要下载 Halo 运行时（run.halo.app:halo），
-    // 走原仓库会一直卡在超时重试上，表现为「Gradle Daemon started 之后就没动静」。
-    // 能连通后可以删掉这几行。
-    maven { url 'https://maven.aliyun.com/repository/public' }
-    maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-    maven { url 'https://maven.aliyun.com/repository/spring' }
     mavenCentral()
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/releases' }
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
-    maven { url 'https://repo.spring.io/milestone' }
 }
 
 dependencies {
-    implementation platform('run.halo.tools.platform:plugin:2.26.0')
+    implementation platform('run.halo.tools.platform:plugin:2.27.0')
     compileOnly 'run.halo.app:api'
 
     testImplementation 'run.halo.app:api'
@@ -128,6 +118,6 @@ tasks.named('classes') {
 }
 
 halo {
-    version = '2.26.0'
+    version = '2.27'
     debug = true
 }
