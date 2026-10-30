@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * 前台视觉规范检查（测绘手簿，见 src/main/frontend/styles/DESIGN.md）。
+ * 前台视觉规范检查（柔光玻璃，见 src/main/frontend/styles/DESIGN.md）。
  *
  * 只查机器能判断的那几条「不做的事」：
  *   1. 英文大写小标题 —— 模板 / 脚本里出现的整串大写英文文案（TRAVEL MEMORY 之类）；
  *   2. 用「·」拼接元信息 —— 脚本里的 ' · ' 拼接与 join(' · ')；
  *   3. 色值散落 —— 样式里直接写的 #hex / rgb()，应该走 --fp-* 变量；
- *      例外：压在照片 / 影像上的可读性暗影（text-shadow、box-shadow 里的纯黑 rgba(0,0,0,…)）；
+ *      例外：阴影里的纯黑 rgba(0,0,0,…)、玻璃用的半透明白 rgba(255,255,255,…)；
  *   4. 旧字体 —— 行楷 / 宋体 / 等宽字体栈。
  *
  * 默认只报告不失败（迁移期间）；传 --strict 时有问题即退出码 1。
@@ -71,10 +71,12 @@ for (const f of STYLE_DIRS.flatMap((d) => walk(d, ".css"))) {
   if (/shared\/(tokens|wenkai)\.css$/.test(f)) continue;
   stripComments(readFileSync(f, "utf8")).split("\n").forEach((line, i) => {
     if (/^\s*--[\w-]+\s*:/.test(line)) return;            // 局部变量定义允许直接写值
+    // 允许：阴影里的纯黑、玻璃用的半透明白（两者是「材质」，不是色板里的颜色）
     const withoutShadowBlack = line.replace(/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,[^)]*\)/g, '');
     const isShadow = /(text|box)-shadow|^\s*0\s|^\s*\d+px\s/.test(line);
-    if (/#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d/.test(isShadow ? withoutShadowBlack : line)) issues.color.push(`${rel(f)}:${i + 1}`);
-    if (/font(-family)?\s*:[^;]*(STXingkai|华文行楷|Songti|STSong|SimSun|Noto Serif|monospace|Consolas)/i.test(line)) issues.font.push(`${rel(f)}:${i + 1}  ${line.trim().slice(0, 70)}`);
+    const probe = (isShadow ? withoutShadowBlack : line).replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,[^)]*\)/g, '');
+    if (/#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d/.test(probe)) issues.color.push(`${rel(f)}:${i + 1}`);
+    if (/font(-family)?\s*:[^;]*(STXingkai|华文行楷|Songti|STSong|SimSun|Noto Serif|monospace|Consolas|LXGW|WenKai)/i.test(line)) issues.font.push(`${rel(f)}:${i + 1}  ${line.trim().slice(0, 70)}`);
   });
 }
 

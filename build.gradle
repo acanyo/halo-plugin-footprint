@@ -96,7 +96,7 @@ tasks.named('test') {
     dependsOn tasks.named('testFrontend')
 }
 
-// 前台视觉规范（测绘手簿，见 src/main/frontend/styles/DESIGN.md）：英文大写小标题、「·」拼接、
+// 前台视觉规范（柔光玻璃，见 src/main/frontend/styles/DESIGN.md）：英文大写小标题、「·」拼接、
 // 散落的色值、旧字体栈。和契约检查一样挂在打包前，不过就失败。
 tasks.register('checkFrontendStyle', com.github.gradle.node.task.NodeTask) {
     group = 'verification'

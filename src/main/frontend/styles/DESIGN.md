@@ -1,56 +1,60 @@
-# 前台视觉：测绘手簿
+# 前台视觉：柔光玻璃
 
-足迹页是一份个人地理记录。视觉借测绘手簿与地形图的语言：真实的坐标、日期、里程就是主角，
-不靠米色纸、抒情文案、英文小标题去「营造氛围」。
+参考 kunkunyu.com/footprint 的观感与动效：浅灰底、半透明白玻璃面板、大圆角柔阴影、
+圆形照片标记、淡紫强调色；动效轻、快、带一点去模糊的弹出。
 
-## 色板
+## 色板（`styles/shared/tokens.css`）
 
-地球场景是深色太空，浮在地球上的界面用「夜图」一套；全屏翻阅的界面（城记、洞察、书架外框）
-用「白图」一套。两套共用同一组色相，只换明度。
+| 名称 | 值 | 用途 |
+|---|---|---|
+| `--fp-paper` | `#f2f2f4` | 页面底、全屏界面底 |
+| `--fp-paper-raised` | `#ffffff` | 不透明卡片、照片底 |
+| `--fp-glass` | `rgba(255,255,255,.62)` | 浮在地图 / 地球上的面板（配合 `backdrop-filter: blur(var(--fp-blur))`） |
+| `--fp-glass-strong` | `rgba(255,255,255,.82)` | 需要更实一点的玻璃：菜单、下拉 |
+| `--fp-ink` | `#3a3a40` | 标题、正文 |
+| `--fp-ink-soft` | `#66666e` | 次要文字 |
+| `--fp-ink-faint` | `#9a9aa3` | 辅助说明 |
+| `--fp-rule` | `rgba(58,58,64,.08)` | 分隔、浅底按钮 |
+| `--fp-accent` | `#7c7bc0` | 唯一的强调色：选中、主按钮、聚合点、「去过」 |
+| `--fp-accent-soft` | `rgba(124,123,192,.14)` | 强调色的浅底 |
 
-| 名称 | 夜图 | 白图 | 用途 |
-|---|---|---|---|
-| 纸 `--fp-paper` | `#12171c` | `#f3f4f1` | 底色 |
-| 墨 `--fp-ink` | `#e9ece8` | `#1e2a33` | 标题、正文 |
-| 淡墨 `--fp-ink-soft` | `#aeb6b2` | `#4d5a62` | 次要文字 |
-| 弱墨 `--fp-ink-faint` | `#7b8682` | `#7d878b` | 辅助说明、坐标 |
-| 格线 `--fp-rule` | `rgba(233,236,232,.14)` | `rgba(30,42,51,.14)` | 分隔线、边框 |
-| 等高线 `--fp-contour` | `#8fa070` | `#6b7a4f` | 次强调：选中、进度 |
-| 水系 `--fp-water` | `#7fa8c4` | `#3e6e8e` | 链接、可点的地名 |
-| 标注红 `--fp-mark` | `#d65a4f` | `#b8322a` | 只用于「去过」：标记点、打卡、主按钮 |
-
-标注红是唯一的饱和色，出现得越少越有分量。
+`--fp-mark` / `--fp-contour` / `--fp-water` 是上一版留下的角色名，现在都指向 `--fp-accent`。
+新写的代码直接用 `--fp-accent`。
 
 ## 字
 
-- `--fp-font-title`：霞鹜文楷屏幕版（LXGW WenKai Screen，OFL），用于标题、地名、手簿条目。
-  按 unicode-range 切片，浏览器只下载用到的字。
-- `--fp-font-text`：系统黑体（PingFang SC / 微软雅黑），用于正文与控件。
-- 数字一律 `font-variant-numeric: tabular-nums`，不换等宽字体。
+- `--fp-font-title`：快看世界体（插件自带 `static/font/result.css`，按字切片），用于页面标题、地名、卡片标题。
+- `--fp-font-text`：MiSans / 苹方 / 微软雅黑，正文与控件。数字 `tabular-nums`。
 
-字号阶梯（px）：12 · 13 · 15 · 18 · 24 · 34 · 56。正文行高 1.7，标题 1.25。
+## 形
 
-## 不做的事
-
-- 不在标题上方放英文大写小标题。需要说明时用一句中文，放在标题下面。
-- 不用「·」拼接元信息。两项以上分行写，或用顿号、空格。
-- 不做一排一模一样的数字卡片。统计写成句子或手簿式的小表格。
-- 不用卡片投影堆层次。层次靠留白和一条格线。
-- 圆角只有三档：控件 6px、面板 10px、照片 2px。
-- 文案平实，说事实：「62 条足迹，30 座城市」，不写「每一处坐标都是一个故事」。
+- 面板：`--fp-glass` + `backdrop-filter: blur(var(--fp-blur))` + `--fp-shadow` + 圆角 `--fp-radius-panel`（16px），无描边。
+- 照片：圆角 `--fp-radius-photo`（12px）。地图上的照片标记是圆形：白玻璃圆环 + 圆形照片。
+- 按钮：胶囊（`--fp-radius-control`）。次要按钮是 `--fp-rule` 浅底无描边；主按钮是强调色实底。
+- 阴影只有两档：`--fp-shadow`（常态）与 `--fp-shadow-lift`（悬停 / 弹出）。
 
 ## 动效
 
-只有地球入场是一段编排好的动画。其余动效只回应操作：打开、展开、切换，时长 160～240ms。
-`prefers-reduced-motion` 时全部关闭。
+- 缓动统一 `--fp-ease`（`cubic-bezier(.6,.2,.25,1)`），常规时长 `--fp-dur`（300ms）。
+- 弹出：透明度 + 缩放 0.92→1 + 上移 8px + 模糊 8px→0（`@keyframes fpPopIn`），卡片、菜单、浮层共用。
+- 悬停：上浮 2～4px、阴影换成 `--fp-shadow-lift`；按下缩到 0.96。
+- 列表 / 网格首次出现可以错峰 40ms 一项，最多 8 项；之后不再重播。
+- 首屏标题与说明淡入上浮；地图 / 地球移动用飞行动画，标记打开详情时从标记处弹出。
+- `prefers-reduced-motion` 时去掉位移与模糊，只保留透明度。
+
+## 不做的事
+
+- 不在标题上方放英文大写小标题；不用「·」拼接元信息。
+- 文案平实，说事实：「62 条足迹，30 座城市」。
+- 强调色只有淡紫一种；不再用红、绿、蓝、琥珀做装饰。
 
 ## 检查
 
-`tools/check-frontend-style.mjs --strict` 挂在 `./gradlew build` 上（任务 `checkFrontendStyle`），
-不过就构建失败。它拦四类问题：英文大写小标题、「·」拼接、样式里散写的色值、旧字体栈。
-压在照片上的可读性暗影（纯黑 rgba 的 text-shadow / box-shadow）与单独画出的列表圆点不算。
+`tools/check-frontend-style.mjs --strict` 挂在 `./gradlew build` 上（任务 `checkFrontendStyle`）：
+英文大写小标题、「·」拼接、样式里散写的色值、旧字体栈。
+允许：纯黑 rgba 的阴影（text-shadow / box-shadow）与白色半透明玻璃 `rgba(255,255,255,…)`。
 
-canvas 与 SVG 读不到 CSS 变量，下列文件里写死了同一套色值，改色板时要一起改：
+canvas 与 SVG 读不到 CSS 变量，下列文件写死了同一套色值，改色板时要一起改：
 `marker-icons.js`、`marker-visibility.js`、`postcard.js`、`ticket-letter.js`、
 `parabola-animation.js`、`memory-shelf/modules/constants.js`（PAGE_PAPER / PAGE_EDGE）。
 

@@ -40,9 +40,9 @@ var PAGE_MARGIN = { left: 26, right: 26, top: 46, bottom: 40 };
 // 小字用的黑体栈（内页的图注 / 日期 / 标签 / 书眉 / 页码）。见 TYPE 里的说明：
 // 宋体细横在缩小采样后发灰，小字必须走黑体才清楚。
 export var SANS = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
-// 标题：霞鹜文楷（与页面同一套，见 styles/shared/wenkai.css）。canvas 只能用**已经加载好**的
-// 网页字体，所以书架建场前要先等 ensureTitleFont()，否则第一次画出来会落到兜底的楷体。
-export var TITLE = '"LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif';
+// 标题：快看世界体（与页面同一套，插件自带 static/font/result.css）。canvas 只能用**已经加载好**的
+// 网页字体，所以书架建场前要先等 ensureTitleFont()，否则第一次画出来会落到兜底的黑体。
+export var TITLE = '"快看世界体", "PingFang SC", "Microsoft YaHei", sans-serif';
 // 订口（内侧）比外缘再多留的宽度：翻开之后文字不会挤进书脊那道暗角里。
 // 左右页由**页序的奇偶**决定（第 2s 页在左、第 1+2s 页在右），见 assignPageSides()。
 var PAGE_GUTTER_EXTRA = 9;
@@ -138,14 +138,14 @@ export function drawMixedLine(ctx, runs, centerX, y, alpha) {
 /**
  * 等标题字体就绪：书名、章节名这些字都画进 canvas 贴图，画的那一刻字体没到就会落到兜底字体，
  * 而且贴图不会自己重画。所以建场前先按书里会出现的字把对应的切片拉下来。
- * 最多等 2.5 秒：网络慢时宁可用楷体兜底，也不要让书架一直起不来。
+ * 最多等 2.5 秒：网络慢时宁可用黑体兜底，也不要让书架一直起不来。
  */
 export function ensureTitleFont(sampleText) {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
     var text = String(sampleText || '旅行记忆目录');
     var wait = Promise.all([
-        document.fonts.load('400 34px "LXGW WenKai Screen"', text),
-        document.fonts.load('400 34px "LXGW WenKai Screen"', '0123456789')
+        document.fonts.load('400 34px "快看世界体"', text),
+        document.fonts.load('400 34px "快看世界体"', '0123456789')
     ]).catch(function () {});
     var timeout = new Promise(function (resolve) { setTimeout(resolve, 2500); });
     return Promise.race([wait, timeout]);

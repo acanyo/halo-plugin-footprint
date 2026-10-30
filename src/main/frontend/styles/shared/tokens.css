@@ -1,125 +1,131 @@
 /*
- * 前台视觉变量：测绘手簿。设计说明见 ../DESIGN.md。
+ * 前台视觉变量：柔光玻璃。设计说明见 ../DESIGN.md。
  *
- * 默认是「夜图」：浮在地球（深色太空）上的界面用这一套。
- * 全屏翻阅的界面（城记、洞察、书架外框等）在自己的根元素上加 .fp-sheet，换成「白图」。
- * 两套只换明度、不换色相；标注红只用于「去过」。
+ * 整页是浅色：浅灰底、半透明白玻璃面板、大圆角柔阴影、淡紫强调色。
+ * 浮在地图 / 地球上的面板用玻璃（--fp-glass + 背景模糊），全屏翻阅的界面用 .fp-sheet（不透明纸面）。
+ * 两者文字配色相同，只是底不同。
  *
  * 足迹页是插件自己的模板，这些变量挂在 :root 上不会影响主题的其它页面。
  */
 :root {
-    --fp-paper: #12171c;
-    --fp-paper-raised: #1a2027;
-    --fp-ink: #e9ece8;
-    --fp-ink-soft: #aeb6b2;
-    --fp-ink-faint: #7b8682;
-    --fp-rule: rgba(233, 236, 232, 0.14);
-    --fp-rule-strong: rgba(233, 236, 232, 0.28);
-    --fp-contour: #8fa070;
-    --fp-water: #7fa8c4;
-    --fp-mark: #d65a4f;
-    --fp-mark-ink: #ffffff;
-    --fp-scrim: rgba(10, 13, 16, 0.72);
+    --fp-paper: #f2f2f4;
+    --fp-paper-raised: #ffffff;
+    --fp-glass: rgba(255, 255, 255, 0.62);
+    --fp-glass-strong: rgba(255, 255, 255, 0.82);
+    --fp-ink: #3a3a40;
+    --fp-ink-soft: #66666e;
+    --fp-ink-faint: #9a9aa3;
+    --fp-rule: rgba(58, 58, 64, 0.08);
+    --fp-rule-strong: rgba(58, 58, 64, 0.16);
+    /* 强调色：淡紫。选中、主按钮、聚合点、「去过」都用它 */
+    --fp-accent: #7c7bc0;
+    --fp-accent-soft: rgba(124, 123, 192, 0.14);
+    --fp-accent-ink: #ffffff;
+    /* 旧名字留作别名：上一版各片段按「标注红 / 等高线 / 水系」三个角色引用，现在统一归到强调色与墨色 */
+    --fp-mark: var(--fp-accent);
+    --fp-mark-ink: var(--fp-accent-ink);
+    --fp-contour: var(--fp-accent);
+    --fp-water: var(--fp-accent);
+    --fp-scrim: rgba(242, 242, 244, 0.72);
 
-    --fp-font-title: "LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif;
-    --fp-font-text: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    --fp-shadow: 0 3px 16px rgba(38, 38, 48, 0.1);
+    --fp-shadow-lift: 0 10px 32px rgba(38, 38, 48, 0.14);
+    --fp-blur: 20px;
+
+    /* 标题用快看世界体（插件自带，见 static/font/result.css），正文用系统字体 */
+    --fp-font-title: "快看世界体", "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --fp-font-text: "MiSans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 
     --fp-size-xs: 12px;
     --fp-size-sm: 13px;
     --fp-size-md: 15px;
     --fp-size-lg: 18px;
-    --fp-size-xl: 24px;
-    --fp-size-2xl: 34px;
-    --fp-size-3xl: 56px;
+    --fp-size-xl: 22px;
+    --fp-size-2xl: 30px;
+    --fp-size-3xl: 52px;
 
-    --fp-radius-control: 6px;
-    --fp-radius-panel: 10px;
-    --fp-radius-photo: 2px;
+    --fp-radius-control: 999px;
+    --fp-radius-panel: 16px;
+    --fp-radius-photo: 12px;
 
-    --fp-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-    --fp-dur: 200ms;
+    /* 弹出用的缓动：前段快、收尾很软，配合透明度 + 位移 + 模糊一起变 */
+    --fp-ease: cubic-bezier(0.6, 0.2, 0.25, 1);
+    --fp-dur: 300ms;
 }
 
-/* 白图：全屏翻阅的界面 */
+/* 全屏翻阅的界面：同一套文字配色，底换成不透明纸面 */
 .fp-sheet {
-    --fp-paper: #f3f4f1;
-    --fp-paper-raised: #fbfbf9;
-    --fp-ink: #1e2a33;
-    --fp-ink-soft: #4d5a62;
-    --fp-ink-faint: #7d878b;
-    --fp-rule: rgba(30, 42, 51, 0.14);
-    --fp-rule-strong: rgba(30, 42, 51, 0.3);
-    --fp-contour: #6b7a4f;
-    --fp-water: #3e6e8e;
-    --fp-mark: #b8322a;
-    --fp-scrim: rgba(243, 244, 241, 0.86);
+    --fp-glass: rgba(255, 255, 255, 0.86);
 }
 
 /*
  * 共用的小部件。只放每个界面都会用、且长得完全一样的东西；各界面自己的版式留在各自的片段里。
  */
 
-/* 标题：文楷 */
 .fp-title {
     margin: 0;
     font-family: var(--fp-font-title);
     font-weight: 400;
     line-height: 1.25;
-    letter-spacing: 0.02em;
     color: var(--fp-ink);
 }
 
-/* 标题下面那一句说明 */
 .fp-lede {
     margin: 0;
     font-family: var(--fp-font-text);
     font-size: var(--fp-size-sm);
-    line-height: 1.7;
+    line-height: 1.8;
     color: var(--fp-ink-soft);
 }
 
-/* 坐标、日期、里程：真实数据，等宽数字 */
 .fp-figure {
     font-variant-numeric: tabular-nums;
     color: var(--fp-ink-faint);
 }
 
-/* 按钮：默认是描边的次要按钮；.is-primary 是标注红实底，一个界面里只放一个 */
+/* 按钮：浅底胶囊；.is-primary 是强调色实底 */
 .fp-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    min-height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--fp-rule-strong);
+    min-height: 34px;
+    padding: 0 16px;
+    border: 0;
     border-radius: var(--fp-radius-control);
-    background: transparent;
+    background: var(--fp-rule);
     color: var(--fp-ink);
     font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
     cursor: pointer;
-    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
 }
 .fp-btn:hover:not(:disabled) {
-    border-color: var(--fp-ink-soft);
-    background: var(--fp-rule);
+    background: var(--fp-rule-strong);
+}
+.fp-btn:active:not(:disabled) {
+    transform: scale(0.96);
 }
 .fp-btn.is-primary {
-    border-color: var(--fp-mark);
-    background: var(--fp-mark);
-    color: var(--fp-mark-ink);
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
 }
 .fp-btn.is-primary:hover:not(:disabled) {
-    background: var(--fp-mark);
-    filter: brightness(1.08);
+    background: var(--fp-accent);
+    filter: brightness(1.06);
 }
 .fp-btn:disabled {
     opacity: 0.45;
     cursor: default;
 }
 .fp-btn:focus-visible {
-    outline: 2px solid var(--fp-water);
+    outline: 2px solid var(--fp-accent);
     outline-offset: 2px;
+}
+
+/* 弹出：从触发点放大、去模糊。卡片、菜单、浮层共用 */
+@keyframes fpPopIn {
+    from { opacity: 0; transform: scale(0.92) translateY(8px); filter: blur(8px); }
+    to   { opacity: 1; transform: none; filter: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -70,7 +70,7 @@ function ticketLetterCanvas(fp, image) {
     const ink = '#1e2a33';        // --fp-ink
     const muted = '#7d878b';      // --fp-ink-faint
     const rule = 'rgba(30, 42, 51, 0.14)';   // --fp-rule
-    const titleFont = '"LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif';
+    const titleFont = '"快看世界体", "PingFang SC", "Microsoft YaHei", sans-serif';
     const textFont = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
     ctx.fillStyle = paper;
     ctx.fillRect(0, 0, 900, 1280);

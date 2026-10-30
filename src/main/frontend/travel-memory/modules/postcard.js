@@ -100,7 +100,7 @@ const POSTCARD_INK = {
     ruleStrong: 'rgba(30, 42, 51, 0.3)',   // --fp-rule-strong
     mark: '#b8322a'         // --fp-mark
 };
-const POSTCARD_TITLE_FONT = '"LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif';
+const POSTCARD_TITLE_FONT = '"快看世界体", "PingFang SC", "Microsoft YaHei", sans-serif';
 const POSTCARD_TEXT_FONT = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
 
 function postcardCanvas(data, image) {
