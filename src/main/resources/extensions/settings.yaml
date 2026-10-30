@@ -53,18 +53,25 @@ spec:
         - $formkit: toggle
           label: 图片墙样式
           name: photoWallStyle
+          renderType: image
+          size: 84
           value: original
           options:
             - label: 经典方案
               value: original
+              render: /plugins/footprint/assets/static/img/settings/photo-wall-original.webp
             - label: 地图侧边展开式画廊
               value: gallery
+              render: /plugins/footprint/assets/static/img/settings/photo-wall-gallery.webp
             - label: 胶片带模式
               value: filmstrip
+              render: /plugins/footprint/assets/static/img/settings/photo-wall-filmstrip.webp
             - label: 旅行手账模式
               value: journal
+              render: /plugins/footprint/assets/static/img/settings/photo-wall-journal.webp
             - label: 聚焦式照片墙
               value: focus
+              render: /plugins/footprint/assets/static/img/settings/photo-wall-focus.webp
           help: "选择桌面端图片墙的展示方式；移动端仍使用原有信息窗口(部分样式为固定图片数量)"
         - $formkit: secret
           label: 高德 Js Key
@@ -114,30 +121,42 @@ spec:
               value: amap://styles/wine
         - $formkit: toggle
           name: markerStyle
+          renderType: image
+          size: 84
           label: 标记点样式
           value: 'photo'
           options:
             - label: 水滴标记
               value: pin
+              render: /plugins/footprint/assets/static/img/settings/marker-pin.webp
             - label: 简约圆形
               value: circle
+              render: /plugins/footprint/assets/static/img/settings/marker-circle.webp
             - label: 卡片标记
               value: card
+              render: /plugins/footprint/assets/static/img/settings/marker-card.webp
             - label: 照片徽章
               value: photo
+              render: /plugins/footprint/assets/static/img/settings/marker-photo.webp
         - $formkit: toggle
           name: highlightScheme
+          renderType: image
+          size: 84
           label: 悬停高亮方案
           value: 'ring'
           options:
             - label: 缩放光晕
               value: glow
+              render: /plugins/footprint/assets/static/img/settings/highlight-glow.webp
             - label: 脉冲光环
               value: pulse
+              render: /plugins/footprint/assets/static/img/settings/highlight-pulse.webp
             - label: 弹跳动画
               value: bounce
+              render: /plugins/footprint/assets/static/img/settings/highlight-bounce.webp
             - label: 边框高亮环
               value: ring
+              render: /plugins/footprint/assets/static/img/settings/highlight-ring.webp
     - group: advanced
       label: 高级设置
       formSchema:
@@ -169,14 +188,19 @@ spec:
         - $formkit: toggle
           label: 地球地名标注
           name: globeLabels
+          renderType: image
+          size: 96
           value: all
           options:
             - label: 关闭（仅悬停显示）
               value: 'off'
+              render: /plugins/footprint/assets/static/img/settings/globe-labels-off.webp
             - label: 只显示城市名
               value: city
+              render: /plugins/footprint/assets/static/img/settings/globe-labels-city.webp
             - label: 城市名 + 足迹名
               value: all
+              render: /plugins/footprint/assets/static/img/settings/globe-labels-all.webp
           help: "地名的常驻显示方式：整球视图标注去过的城市，放大到城市后标注各条足迹（同名城市下按到访顺序编号）。
                  使用无字底图（高德卫星无字、天地图无标注）时尤其建议开启，否则画面上没有任何地名参照"
     - group: tianditu
@@ -203,12 +227,16 @@ spec:
         - $formkit: toggle
           label: 切换样式
           name: ticketGalleryStyle
+          renderType: image
+          size: 96
           value: fan
           options:
             - label: 票夹切换
               value: fan
+              render: /plugins/footprint/assets/static/img/settings/ticket-fan.webp
             - label: 横向长串浏览
               value: strip
+              render: /plugins/footprint/assets/static/img/settings/ticket-strip.webp
           help: "选择票根页的切换样式：票夹叠放式，或横向长串滚动浏览式（主图居中，支持滚轮与拖拽切换）"
         - $formkit: checkbox
           label: 重走一遍
