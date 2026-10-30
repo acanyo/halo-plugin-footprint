@@ -1,0 +1,209 @@
+/* ---------------- 主体 ---------------- */
+
+.ms-body {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* 空态与占位 */
+
+.ms-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 30px;
+    text-align: center;
+    color: var(--ms-muted);
+}
+
+.ms-empty strong {
+    color: var(--ms-ink);
+    font-family: "Noto Serif SC", "Songti SC", serif;
+    font-size: 21px;
+    font-weight: 600;
+}
+
+.ms-empty span { max-width: 460px; font-size: 14px; line-height: 1.7; }
+
+.ms-empty button {
+    margin-top: 8px;
+    padding: 10px 20px;
+    border: 1px solid rgba(155, 112, 78, 0.42);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--ms-ink);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.ms-empty button:hover { background: rgba(155, 112, 78, 0.14); }
+
+.ms-loading-bar {
+    width: 176px;
+    height: 2px;
+    margin-top: 4px;
+    border-radius: 2px;
+    background: rgba(47, 42, 36, 0.12);
+    overflow: hidden;
+}
+
+.ms-loading-bar i {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--ms-gold), transparent);
+    animation: msLoading 1.25s ease-in-out infinite;
+}
+
+@keyframes msLoading {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(320%); }
+}
+
+/* ---------------- L1 书架 ---------------- */
+
+.ms-scene {
+    display: grid;
+    grid-template-columns: minmax(300px, 372px) minmax(0, 1fr);
+    /* 行高也钉死成容器高度：两个子项同处一行时，行高若按内容自动计算，
+       舞台会比外框矮一截，四周就露出覆盖层的底色（看着像「背景缩小了一圈」） */
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+}
+
+/* 「正在装订书架…」：建 WebGL 场景与十一本书的贴图要几秒，这段时间必须
+   有东西可看，否则就是一块空白（用户反馈"之前不是有装订中的加载吗"）。 */
+.ms-scene { position: relative; }
+
+.ms-building {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(250, 244, 232, 0.97), rgba(240, 231, 214, 0.97));
+    color: var(--ms-ink);
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    transition: opacity 0.26s ease;
+}
+
+.ms-building span::after {
+    content: '';
+    display: inline-block;
+    width: 0.6em;
+    text-align: left;
+    animation: ms-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes ms-dots {
+    0% { content: ''; }
+    25% { content: '·'; }
+    50% { content: '··'; }
+    75% { content: '···'; }
+}
+
+.ms-building.is-done { opacity: 0; }
+
+/* 舞台铺满整行、信息板浮在它上面（同一行、第一列）。
+   这样**舞台的尺寸永远不变**：信息板收起时只是淡出+左移，
+   不会连带把舞台拉宽，也就不会出现「闪一下、书的位置跟着变」。 */
+.ms-info { grid-column: 1; grid-row: 1; }
+.ms-stage { grid-column: 1 / -1; grid-row: 1; }
+
+/* 两者同处一格时，靠 z-index 定序。舞台在 DOM 里靠后，不显式指定的话
+   它会盖在信息板上 —— 这正是「左侧省份信息不显示了」的原因。
+   网格子项不需要 position 就能用 z-index。 */
+.ms-info { z-index: 2; }
+.ms-stage { z-index: 1; }
+
+.ms-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    min-width: 0;
+    box-sizing: border-box;
+    /* ===== 从"全高侧栏"改成"棚里的一张纸卡" =====
+       原来：全高不透明奶油渐变 + 右侧分隔线 + inset 阴影 + 大留白，
+       压在 3D 房间上读起来像后台表单；现在浮起来，颜色跟着省份走。 */
+    /* ④ 卡片竖直位置由 --ms-card-y 决定：JS 把卡片**中心**对准选中的那条书脊
+       的中心（会越出舞台时夹回来）。这里用 translate 而不是 margin-top：
+         · margin-top 每帧重排布局（同一个网格里还挂着 WebGL 画布），translate
+           走合成器；
+         · margin-top 会把网格行高撑大，反过来改变舞台高度，等于自己扰动自己的
+           计算基准。
+       ⚠️ transition 不能写在这条规则里：后面还有一条同优先级的 .ms-info 规则，
+       它会整段覆盖 transition —— 之前那版 margin-top 过渡就是这样被吃掉、
+       从来没生效过（实测切换瞬间卡片就已经在目标高度上了）。 */
+    align-self: start;
+    translate: 0 var(--ms-card-y, 14vh);
+    justify-self: start;
+    width: min(322px, 34vw);
+    margin-left: 26px;
+    padding: 22px 24px;
+    position: relative;
+    border: 1px solid var(--ms-line);
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(255, 252, 244, 0.95), rgba(255, 252, 244, 0.9)),
+        linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
+    box-shadow: 0 20px 36px -20px rgba(60, 45, 28, 0.5),
+        0 2px 6px -3px rgba(60, 45, 28, 0.28);
+    transform: rotate(-0.6deg);      /* 微旋：像"放在棚里的一张卡" */
+    pointer-events: none;            /* 卡片背景不吃指针，在它上面照样能转书/选书 */
+    /* 不加 fill-mode：否则动画结束后的 transform 会盖掉书本模式的缩回位移 */
+    /* ③ 进场的晚 70ms 再开始：让旧卡先走一步，避开"两张卡的文字在同一时刻都
+       还实"的叠字区间。用 backwards 而不是 forwards：延迟这 70ms 里要保持
+       from 状态（透明）否则新卡会先整块闪一下；跑完后必须回到静态样式，
+       forwards 会把终值 transform 永远钉在元素上、盖掉书本模式的缩回位移。 */
+    animation: msInfoIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.07s backwards;
+}
+
+/* 卡角的藏书票印记：本书首字 + 烫金描边 */
+.ms-info-seal {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--ms-gold);
+    border-radius: 50%;
+    color: var(--ms-gold);
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 14px;
+    opacity: 0.85;
+    --ms-line-op: 0.85;            /* 入场动画的终值（见 msLineIn），同上 */
+}
+
+/* ④ 大号水印序号：极淡，压在卡片右下角外沿 */
+.ms-info-wm {
+    position: absolute;
+    right: 12px;
+    bottom: -22px;
+    font-family: "Songti SC", "SimSun", serif;
+    font-size: 88px;
+    line-height: 1;
+    color: var(--ms-ink);
+    opacity: 0.06;
+    --ms-line-op: 0.06;            /* 入场动画的终值：别让它被拉到不透明 */
+    pointer-events: none;
+    user-select: none;
+}
+
+.ms-info-rule {
+    height: 1px;
+    background: linear-gradient(90deg, var(--ms-line), transparent);
+}
+

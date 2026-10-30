@@ -98,6 +98,7 @@ for (const [name, entry] of Object.entries(BUNDLES)) {
 const CSS_BUNDLES = {
   'travel-memory': join(FRONTEND, 'styles/travel-memory/index.css'),
   footprint: join(FRONTEND, 'styles/footprint/index.css'),
+  'memory-shelf': join(FRONTEND, 'styles/memory-shelf/index.css'),
 };
 
 for (const [name, entry] of Object.entries(CSS_BUNDLES)) {

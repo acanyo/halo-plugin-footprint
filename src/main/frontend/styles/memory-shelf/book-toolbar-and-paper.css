@@ -1,0 +1,223 @@
+/* ---------------- L2 / L3 工具条与纸张 ---------------- */
+
+.ms-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding: 20px 30px 26px;
+}
+
+.ms-tools {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.ms-tools .ms-title { flex: 1 1 auto; min-width: 0; text-align: center; }
+
+/* 右侧占位：让中间标题在「返回按钮 + 占位」之间真正居中 */
+.ms-tools-spacer { flex: 0 0 auto; width: 96px; }
+
+.ms-tools .ms-title span {
+    display: block;
+    color: var(--ms-accent);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+}
+
+.ms-tools .ms-title h3 {
+    margin: 4px 0 0;
+    font-family: "Noto Serif SC", "Songti SC", serif;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.ms-spread,
+.ms-album-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    filter: drop-shadow(0 24px 42px rgba(96, 78, 56, 0.26));
+}
+
+.ms-spread { perspective: 1400px; }
+.ms-album-stage { perspective: 1800px; }
+
+/* 相册外框：左右各一枚翻页按钮，中间是跨页 */
+.ms-album-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ms-album-side {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--ms-line);
+    border-radius: 11px;
+    background: rgba(255, 253, 248, 0.94);
+    color: var(--ms-ink);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.ms-album-side:hover:not(:disabled) {
+    border-color: rgba(155, 112, 78, 0.55);
+    background: rgba(155, 112, 78, 0.14);
+}
+
+.ms-album-side:focus-visible { outline: 2px solid var(--ms-accent); outline-offset: 2px; }
+
+.ms-album-side:disabled { opacity: 0.28; cursor: default; }
+
+.ms-page,
+.ms-album-page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    color: var(--ms-paper-ink);
+    background: linear-gradient(180deg, var(--ms-paper), var(--ms-paper-2));
+}
+
+.ms-page { padding: 26px 28px; overflow: auto; }
+.ms-album-page { padding: 22px 24px 18px; gap: 14px; overflow: hidden; }
+
+.ms-page.left,
+.ms-album-page.left { border-radius: 4px 0 0 4px; }
+
+.ms-page.right,
+.ms-album-page.right { border-radius: 0 4px 4px 0; }
+
+.ms-page.left::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 26px;
+    background: linear-gradient(90deg, transparent, rgba(59, 49, 40, 0.13));
+    pointer-events: none;
+}
+
+.ms-page.left::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 12px;
+    background: linear-gradient(90deg, rgba(59, 49, 40, 0.16), transparent);
+    pointer-events: none;
+}
+
+/* 左页：省份封面与统计 */
+
+.ms-chapter-cover {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 170px;
+    border-radius: 3px;
+    background-color: rgba(59, 49, 40, 0.1);
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 0 0 1px rgba(59, 49, 40, 0.16);
+    transition: background-image 0.28s ease;
+}
+
+.ms-chapter-label {
+    margin: 18px 0 0;
+    color: #9b704e;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.ms-chapter-name {
+    margin: 8px 0 0;
+    font-family: "Noto Serif SC", "Songti SC", serif;
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.14;
+}
+
+.ms-chapter-cities {
+    margin: 8px 0 0;
+    color: var(--ms-paper-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.ms-chapter-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(59, 49, 40, 0.14);
+    color: var(--ms-paper-muted);
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.ms-chapter-totals span {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.ms-chapter-totals b {
+    display: inline;
+    color: var(--ms-paper-ink);
+    font-variant-numeric: tabular-nums;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+/* 右页：城市条目 */
+
+.ms-chapter-list { display: flex; flex-direction: column; gap: 4px; }
+
+.ms-chapter-entry {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 12px;
+    border: 0;
+    border-bottom: 1px dashed rgba(59, 49, 40, 0.2);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.18s ease;
+}
+
+.ms-chapter-entry:hover,
+.ms-chapter-entry:focus-visible { background: rgba(155, 112, 78, 0.12); outline: none; }
+
+.ms-chapter-no {
+    color: #9b704e;
+    font-family: "Noto Serif SC", "Songti SC", serif;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.ms-chapter-entry b { display: block; font-size: 16px; font-weight: 600; }
+.ms-chapter-entry small { color: var(--ms-paper-muted); font-size: 12px; }
+.ms-chapter-photos { color: var(--ms-paper-muted); font-size: 12px; white-space: nowrap; }
+
