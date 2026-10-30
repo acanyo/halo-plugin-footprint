@@ -360,8 +360,8 @@ function renderPhotoRing() {
     const viewHint = document.createElement('div');
     viewHint.className = 'photo-ring-viewhint';
     if (images.length > photoRingSlots.length) {
-        viewHint.textContent = '环上展示 ' + photoRingSlots.length + ' 张 · 全部 ' +
-            images.length + ' 张在「图片墙」';
+        viewHint.textContent = '这里是其中 ' + photoRingSlots.length + ' 张，全部 ' +
+            images.length + ' 张在图片墙';
         viewHint.classList.add('has-hint');
     }
     els.root.appendChild(viewHint);
@@ -735,7 +735,7 @@ function startPhotoRingEntrance(anchor) {
     void els.root.offsetWidth;   // 把"起点态"钉住，否则浏览器会把两帧合并
     moving.forEach((el, i) => {
         el.style.transition = 'transform ' + (PHOTO_RING_FLY_MS / 1000) +
-            's cubic-bezier(0.16, 1, 0.3, 1) ' + (i * PHOTO_RING_STAGGER_MS) + 'ms';
+            's var(--fp-ease) ' + (i * PHOTO_RING_STAGGER_MS) + 'ms';
     });
     requestAnimationFrame(() => {
         layoutPhotoRing(anchor);
@@ -770,7 +770,7 @@ export function showPhotoRing(fp, index, triggerBtn) {
         return false;
     }
     const els = photoRingElements();
-    els.root.setAttribute('aria-label', (fp.name || '足迹') + ' · ' + images.length + ' 张图片');
+    els.root.setAttribute('aria-label', (fp.name || '足迹') + '，' + images.length + ' 张图片');
     els.root.setAttribute('aria-hidden', 'false');
     els.root.classList.remove('is-viewing', 'is-hidden');
     els.root.classList.add('show');
@@ -886,7 +886,7 @@ function renderPhotoRingViewImage() {
     loadPhotoRingImage(photoRingViewerEl, img.url);
     const els = photoRingElements();
     if (els && els.counter) {
-        els.counter.textContent = '第 ' + (photoRingViewIndex + 1) + ' 张 · 共 ' + images.length + ' 张';
+        els.counter.textContent = (photoRingViewIndex + 1) + ' / ' + images.length;
     }
     if (els && els.dots) {
         Array.prototype.forEach.call(els.dots.children, (dot, i) => {

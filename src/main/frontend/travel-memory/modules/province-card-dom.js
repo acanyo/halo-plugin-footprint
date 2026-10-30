@@ -12,15 +12,11 @@ import { round1, snapDevicePx } from './geometry.js';
 export const PROVINCE_CARD_WIDTH = 244;            // 横版卡片默认档（与 CSS .prop-city-card 宽度一致）
 export const PROVINCE_CARD_HEIGHT = 96;
 
-// 连线走「地图标注引线」那套材质：细线 + 底下压一层很淡的深色描边（浅色底图上保底）。
-// 颜色取象牙白：中性暖白，和卡片文字同族、最不抢戏。
-// 注意这一版和最早那版"暖米白"的区别：那时深色描边是 3px/0.6，在卫星影像上会拖出一圈暗边；
-// 现在描边已压到 2.8px/0.42，观感会干净得多。
-const PROVINCE_LINE_FROM = '#FFF3E0';
-const PROVINCE_LINE_TO = 'rgba(255, 243, 224, 0.86)';
+// 连线走「地图标注引线」那套画法：一条细线 + 底下压一层很淡的纸色描边（浅色影像上保底）。
+// 颜色由 CSS 决定（.prop-leader-stop-from / -to，淡墨到弱墨），这里只建渐变结构。
 const PROVINCE_LINE_FAN = [0.10, 0.18];     // 弧度收敛：更像标注引线，不再像数据流
-export const PROVINCE_LINE_DOT_R = 3.6;            // 起点圆点：暖白实心 + 深色描边
-export const PROVINCE_LINE_DOT_R_ACTIVE = 5;
+export const PROVINCE_LINE_DOT_R = 3;              // 起点圆点：标注红实心 + 纸色细环
+export const PROVINCE_LINE_DOT_R_ACTIVE = 4;
 
 /**
  * 建一张卡片与它的连线节点，分别挂进卡片层与连线 SVG。
@@ -68,9 +64,9 @@ export function createProvinceCardNodes(view, index, els, defs, renderCardCover)
     const photoBold = document.createElement('b');
     photoBold.textContent = String(view.photos);
     stats.appendChild(countBold);
-    stats.appendChild(document.createTextNode(' 足迹 · '));
+    stats.appendChild(document.createTextNode(' 条足迹，'));
     stats.appendChild(photoBold);
-    stats.appendChild(document.createTextNode(' 照片'));
+    stats.appendChild(document.createTextNode(' 张照片'));
     const date = document.createElement('p');
     date.className = 'prop-card-date';
     date.textContent = view.latest ? '最近到访 ' + view.latest : '还没有记录时间';
@@ -81,7 +77,7 @@ export function createProvinceCardNodes(view, index, els, defs, renderCardCover)
     el.appendChild(body);
     els.layer.appendChild(el);
 
-    // ---- 连线：一条抛物线 + 起点圆点（颜色走每条线自己的青蓝渐变） ----
+    // ---- 连线：一条抛物线 + 起点圆点（颜色走每条线自己的渐变，色值见 province-cards.css） ----
     const gradId = 'prop-leader-grad-' + index;
     const grad = document.createElementNS(SVG_NS, 'linearGradient');
     grad.setAttribute('id', gradId);
@@ -89,17 +85,17 @@ export function createProvinceCardNodes(view, index, els, defs, renderCardCover)
     ['x1', 'y1', 'x2', 'y2'].forEach(attr => grad.setAttribute(attr, '0'));
     const stopFrom = document.createElementNS(SVG_NS, 'stop');
     stopFrom.setAttribute('offset', '0%');
-    stopFrom.setAttribute('stop-color', PROVINCE_LINE_FROM);
+    stopFrom.setAttribute('class', 'prop-leader-stop-from');
     const stopTo = document.createElementNS(SVG_NS, 'stop');
     stopTo.setAttribute('offset', '100%');
-    stopTo.setAttribute('stop-color', PROVINCE_LINE_TO);
+    stopTo.setAttribute('class', 'prop-leader-stop-to');
     grad.appendChild(stopFrom);
     grad.appendChild(stopTo);
     defs.appendChild(grad);
 
     const group = document.createElementNS(SVG_NS, 'g');
     group.setAttribute('class', 'prop-leader-group');
-    // 深色描边打底：浅色底图上靠它把线"垫"出来，深色底图上几乎看不见
+    // 纸色描边打底：浅色底图上靠它把线"垫"出来，深色底图上几乎看不见
     const pathBase = document.createElementNS(SVG_NS, 'path');
     pathBase.setAttribute('class', 'prop-leader-base');
     const path = document.createElementNS(SVG_NS, 'path');

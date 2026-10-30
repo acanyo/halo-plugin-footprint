@@ -235,7 +235,7 @@ export function activateProvinceCards(adcode) {
         mode: 'province',
         adcode: info.adcode,
         cities: cities,
-        labelText: info.name + ' · ' + cities.length + ' 座城市',
+        labelText: info.name + '，' + cities.length + ' 座城市',
         labelWorld: provinceLabelWorldFromInfo(info)
     });
 }
@@ -319,7 +319,7 @@ export function activateAllCityCards() {
         mode: 'all',
         adcode: '',
         cities: cities,
-        labelText: '全部城市 · ' + cities.length + ' 座',
+        labelText: '全部 ' + cities.length + ' 座城市',
         labelWorld: allCitiesLabelWorld()
     });
     // 相机还没放大到能看见中国轮廓（或者整球视图下城市挤成一团）时，

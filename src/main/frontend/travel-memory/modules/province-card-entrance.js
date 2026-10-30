@@ -8,8 +8,8 @@
 import { snapDevicePx } from './geometry.js';
 
 // ---- 展开动画：线到、卡到 ----
-const PROVINCE_LINE_GROW_MS = 500;    // 线从标记铺到卡片的时长
-const PROVINCE_CARD_FLY_MS = 500;     // 卡片从标记飞到落点的时长
+const PROVINCE_LINE_GROW_MS = 240;    // 线从标记铺到卡片的时长
+const PROVINCE_CARD_FLY_MS = 240;     // 卡片从标记飞到落点的时长（与 CSS .prop-city-card.is-flying 一致）
 const PROVINCE_CARD_LEAD_MS = 120;    // 卡片比线晚出发一点：线先探出去，卡片再沿线滑出
 const PROVINCE_STAGGER_STEP_MS = 40;  // 相邻两张的错峰步长
 const PROVINCE_STAGGER_MAX_MS = 600;  // 错峰总时长上限（卡片多时自动压缩步长）
@@ -185,7 +185,7 @@ export function startProvinceLinesGrow(items, reduceMotion) {
         requestAnimationFrame(() => {
             paths.forEach(p => {
                 p.style.transition = 'stroke-dashoffset ' + (PROVINCE_LINE_GROW_MS / 1000) +
-                    's cubic-bezier(0.16, 1, 0.3, 1) ' + delay + 'ms';
+                    's var(--fp-ease) ' + delay + 'ms';
                 p.style.strokeDashoffset = '0px';
             });
             window.setTimeout(() => {
@@ -206,7 +206,7 @@ export function animateProvinceCardsExit(items, els, isCurrentToken, hasNewItems
         const el = item.el;
         if (el) {
             el.style.pointerEvents = 'none';   // 退场途中不再响应点击
-            el.style.transition = 'transform 0.28s ease, opacity 0.24s ease';
+            el.style.transition = 'transform 200ms var(--fp-ease), opacity 200ms var(--fp-ease)';
             el.style.transitionDelay = '0ms';
             const backX = item.anchor ? item.anchor.x : item.x;
             const backY = item.anchor ? item.anchor.y : item.y;
@@ -219,12 +219,12 @@ export function animateProvinceCardsExit(items, els, isCurrentToken, hasNewItems
             let len = 0;
             try { len = p.getTotalLength ? p.getTotalLength() : 0; } catch (e) { len = 0; }
             if (!len || !Number.isFinite(len)) return;
-            p.style.transition = 'stroke-dashoffset 0.26s ease';
+            p.style.transition = 'stroke-dashoffset 200ms var(--fp-ease)';
             p.style.strokeDasharray = len + 'px';
             p.style.strokeDashoffset = len + 'px';
         });
         if (item.dot) {
-            item.dot.style.transition = 'opacity 0.24s ease';
+            item.dot.style.transition = 'opacity 200ms var(--fp-ease)';
             item.dot.style.opacity = '0';
         }
     });
