@@ -51,14 +51,23 @@ const indexText = readFileSync(INDEX, "utf8");
 // 允许两种写法：`key: value,` 与最后一项没有逗号的 `key`（简写）。
 function setupCalls(text) {
   const calls = [];
-  // 支持两种写法：多行 setupXxx({ ... \n    }) 与单行 setupXxx({ viewer: () => viewer })
-  const re = /setup(\w+)\(\{([^{}]*?)\}\)/g;
+  // 支持两种写法：多行 setupXxx({ ... \n    }) 与单行 setupXxx({ viewer: () => viewer })。
+  // 早期模块用的是 setXxxDeps({...}) 这个名字（lightbox / tdt-terrain / footprints-insight），同样要查：
+  // 漏查过一次，tdt-terrain 少注入 setTerrainNote，每次打开页面都抛 TypeError。
+  const re = /\b(setup\w+|set\w+Deps)\(\{([^{}]*?)\}\)/g;
   let m;
   while ((m = re.exec(text))) {
     const body = m[2];
     const keys = new Set();
     for (const km of body.matchAll(/^\s+(\w+)\s*[:,]/gm)) keys.add(km[1]);
     for (const km of body.matchAll(/^\s+(\w+)\s*$/gm)) keys.add(km[1]);
+    // 单行写法：{ a, b: x, c }
+    if (!body.includes("\n")) {
+      for (const part of body.split(",")) {
+        const km = part.trim().match(/^(\w+)\s*(?::|$)/);
+        if (km) keys.add(km[1]);
+      }
+    }
     calls.push({ setup: m[1], keys });
   }
   return calls;
@@ -71,9 +80,9 @@ const allSetupCalls = [
 ];
 
 for (const call of allSetupCalls) {
-  const mod = moduleFiles.find((f) => new RegExp(`export function setup${call.setup}\\(`).test(f.text));
+  const mod = moduleFiles.find((f) => new RegExp(`export function ${call.setup}\\(`).test(f.text));
   if (!mod) {
-    fail(`[注入] ${call.caller} 调用了 setup${call.setup}，但没有任何模块导出它`);
+    fail(`[注入] ${call.caller} 调用了 ${call.setup}，但没有任何模块导出它`);
     continue;
   }
   // 既算运行期的 deps.X，也算 setup 函数体里的 d.X（注入时直接取用的键）
@@ -83,7 +92,7 @@ for (const call of allSetupCalls) {
   ]);
   const missing = [...used].filter((k) => !call.keys.has(k)).sort();
   if (missing.length) {
-    fail(`[注入] setup${call.setup} (${mod.name}) 缺少注入: ${missing.join(", ")}`);
+    fail(`[注入] ${call.setup} (${mod.name}) 缺少注入: ${missing.join(", ")}`);
   }
   // 未使用的键：既没有 deps.key(...) 调用，也没有 deps.key 直接引用
   const referenced = new Set([
@@ -93,7 +102,7 @@ for (const call of allSetupCalls) {
   const unused = [...call.keys].filter((k) => !referenced.has(k)).sort();
   if (unused.length) {
     // 只在没有注释说明时提示；这里统一按 warn 处理，不计入失败
-    console.log(`  提示: setup${call.setup} 注入了未使用的键 ${unused.join(", ")}`);
+    console.log(`  提示: ${call.setup} 注入了未使用的键 ${unused.join(", ")}`);
   }
 }
 

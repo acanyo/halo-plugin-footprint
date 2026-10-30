@@ -70,23 +70,41 @@ function findPickedMarker(picked) {
 }
 
 // 悬停：足迹显示名称，城市显示「城市 · N 个足迹」
-// 只认「圆点本身」：标签文字与圆点同属一个实体，Cesium 拾取会把文字也算命中，
-// 于是光标划过文字也会弹提示 + 放大。这里按屏幕距离再过滤一次 ——
-// 文字总是排在圆点之外，所以只要避开图块周围这一小圈就能把它们排除掉。
-// （点击不过滤：文字是手指更容易点中的目标，点它的效果和点圆点一致。）
+//
+// 不用 scene.pick：它每次都要额外渲染一遍拾取帧再同步 readPixels，GPU 管线会停下来等。
+// 鼠标移动事件一秒能来上百次，拖动地球时尤其密集——实测拖拽期间主线程有 4.5 秒耗在这里，
+// 掉帧主要就是它。改成屏幕空间命中：把当前可见的标记投影到屏幕，取离指针最近、且落在
+// 圆点半径内的那个。只认「圆点本身」这条规则不变（文字排在圆点之外，不会被算进来）；
+// 点击仍走 scene.pick，点文字也算点中，且一次点击只拾取一次，不影响帧率。
 const markerHitScreen = new Cesium.Cartesian2();
+function nearestMarkerInList(list, type, screenPos, now, size, best) {
+    const scene = deps.viewer().scene;
+    for (let i = 0; i < list.length; i++) {
+        const ent = list[i];
+        // 隐藏的（转到背面 / 不属于当前层级）与入场动画里还没长出来的都不算
+        if (!ent || ent.show === false || !ent.billboard) continue;
+        const width = ent.billboard.width && ent.billboard.width.getValue(now);
+        if (!(width > 0)) continue;
+        const world = ent.position && ent.position.getValue(now);
+        if (!world) continue;
+        const sp = Cesium.SceneTransforms.worldToWindowCoordinates(scene, world, markerHitScreen);
+        if (!sp) continue;
+        const radius = size * MARKER_HIT_SLOP;
+        const dx = screenPos.x - sp.x;
+        const dy = screenPos.y - sp.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= radius * radius && d2 < best.d2) {
+            best.d2 = d2;
+            best.found = { type, index: i };
+        }
+    }
+}
 function pickMarkerUnderPointer(screenPos) {
-    const found = findPickedMarker(deps.viewer().scene.pick(screenPos));
-    if (!found) return null;
-    const ent = found.type === 'footprint' ? markerEntityList()[found.index] : cityMarkerEntityList()[found.index];
-    const world = ent && ent.position && ent.position.getValue(Cesium.JulianDate.now());
-    if (!world) return null;
-    const sp = Cesium.SceneTransforms.worldToWindowCoordinates(deps.viewer().scene, world, markerHitScreen);
-    if (!sp) return null;
-    const radius = (found.type === 'footprint' ? MARKER_SIZE : CITY_MARKER_SIZE) * MARKER_HIT_SLOP;
-    const dx = screenPos.x - sp.x;
-    const dy = screenPos.y - sp.y;
-    return (dx * dx + dy * dy <= radius * radius) ? found : null;
+    const now = Cesium.JulianDate.now();
+    const best = { d2: Infinity, found: null };
+    nearestMarkerInList(markerEntityList(), 'footprint', screenPos, now, MARKER_SIZE, best);
+    nearestMarkerInList(cityMarkerEntityList(), 'city', screenPos, now, CITY_MARKER_SIZE, best);
+    return best.found;
 }
 
 /**

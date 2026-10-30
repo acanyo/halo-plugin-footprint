@@ -305,6 +305,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // 实现见 modules/tdt-terrain.js；专有地形格式，默认不启用，导航栏「三维地形」
     // 开启时先探测授权，成功才启用，失败自动回退平面。
     setTdtTerrainDeps({
+        setTerrainNote,
         updateStatusText: refreshStatusText
     });
     // ================= 初始视角与开场动画 =================
