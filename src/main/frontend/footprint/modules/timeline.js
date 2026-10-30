@@ -25,7 +25,6 @@ export const populateTimeline = async (map) => {
 
     // 添加时间线按钮事件处理
     const timelineBtn = document.getElementById('timeline-btn');
-    const timelineDrawer = document.getElementById('timelineDrawer');
     const closeDrawerBtn = document.getElementById('closeBtn');
     const timeline = document.getElementById('timeline');
     const timelineContent = document.getElementById('timelineContent');
@@ -303,7 +302,6 @@ export const populateTimeline = async (map) => {
                                     f => f._position.lng === value.spec.longitude && f._position.lat === value.spec.latitude
                             ))
                             .filter(Boolean);
-                    state.lastPositions = newOverlays;
 
                     const byOverlays = map.getFitZoomAndCenterByOverlays(newOverlays, [350, 120, 120, 120]);
                     const newPosition = new AMap.LngLat(byOverlays[1].lng, byOverlays[1].lat);

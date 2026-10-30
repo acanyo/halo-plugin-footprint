@@ -35,9 +35,6 @@ export const state = {
     isElevationRestoring: false,
     elevationRestorePromise: null,
 
-    //保存上一次悬停卡片的坐标
-    lastPositions: [],
-
     // 原代码有几处 `isAnimating = false;` 写的是未声明变量（经典脚本下隐式挂到 window），
     // 抛物线动画读的是它自己函数内的同名局部变量，这个值实际没人读。
     // 模块是严格模式，给未声明变量赋值会抛 ReferenceError，因此收到这里保留写入。

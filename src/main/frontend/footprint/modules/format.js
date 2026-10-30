@@ -4,24 +4,6 @@
  * 时间线日期统一按北京时间展示；escapeHtml 用于所有拼进 innerHTML 的用户数据。
  */
 
-// 格式化时间
-export const formatTime = (timeString) => {
-    if (!timeString) return '';
-    try {
-        const date = new Date(timeString);
-        return date.toLocaleDateString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        }).replace(/\//g, '-');
-    } catch (e) {
-        console.warn('时间格式化失败:', e);
-        return timeString;
-    }
-};
-
 // 格式化为 yyyy-mm-dd
 export function formatDateToYMD(dateString) {
     if (!dateString) return '';

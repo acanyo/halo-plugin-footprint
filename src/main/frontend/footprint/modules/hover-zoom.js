@@ -6,7 +6,6 @@
 
 import { moveToLocation } from './map-motion.js';
 import { loadParabolaAnimation } from './parabola-animation.js';
-import { state } from './state.js';
 
 // 存储绑定的函数，方便解绑
 let boundZoomStart, boundZoom, boundZoomEnd;
@@ -41,20 +40,6 @@ export function clearTimelineHoverZoom(map) {
     frequency = undefined;
 }
 
-
-//绑定事件 用于card的悬停
-export function zoomOn(map, card, newPosition, zoom) {
-    // console.log("绑定事件!");
-
-    // 存储绑定的函数
-    boundZoomStart = mapZoomstart.bind(null, card);
-    boundZoom = mapZoom.bind(null, card);
-    boundZoomEnd = mapZoomend.bind(null, card, map, newPosition, zoom);
-
-    map.on('zoomstart', boundZoomStart);
-    map.on('zoomchange', boundZoom);
-    map.on('zoomend', boundZoomEnd);
-}
 
 export function zoomOff(map, card, newPosition, byOverlays) {
     // console.log("解除事件绑定!");
@@ -159,31 +144,5 @@ export async function mapZoomend(card, map, newPosition, byOverlays) {
 
     } else {
         zoomOff2(map);
-        /*if (isMobile) {
-            map.panBy(0, 120);
-        }*/
-        // calculateTheNewCenterPoint(map);
     }
-}
-
-// 计算打开抽屉后，中间点的偏移像素
-export const calculateTheNewCenterPoint = (map) => {
-    if (!state.isTimelineOpen) {
-        return;
-    }
-
-    const drawer = document.getElementById("timelineDrawer");
-    const drawerWidth = drawer.getBoundingClientRect().width;
-
-    // 1. 计算抽屉左边到窗口左边的距离
-    const availableWidth = window.innerWidth - drawerWidth;
-
-    // 2. 计算新的中心点（相对于窗口左侧）
-    const newCenterX = availableWidth / 2;
-
-    // 3. 计算原始中心点到新中心点的距离
-    const number = (window.innerWidth / 2) - newCenterX;
-
-    // 移动
-    map.panBy(-number + 60, (window.innerHeight / 4) - 80);
 }

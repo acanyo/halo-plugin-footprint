@@ -129,13 +129,6 @@ export const addButtonAnimation = (button) => {
     }
 };
 
-// 添加动画状态管理
-export const AnimationState = {
-    IDLE: 'idle',
-    ANIMATING: 'animating',
-    PAUSED: 'paused'
-};
-
 // 添加按钮波纹效果
 export const addRippleEffect = (button) => {
     button.addEventListener('click', function (e) {

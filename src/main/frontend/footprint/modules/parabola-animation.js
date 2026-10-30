@@ -3,7 +3,7 @@
  */
 
 import { debounce } from './debounce.js';
-import { getFootprintRelationNames, getFootprintRelationType } from './footprint-data.js';
+import { getFootprintRelationNames } from './footprint-data.js';
 import { markerCache, state } from './state.js';
 import { handleScroll } from './timeline-scroll.js';
 
@@ -80,7 +80,6 @@ export const loadParabolaAnimation = (card, map) => {
 
     // 获取所有相关的标记点
     const markerImages = [];
-    const relationType = getFootprintRelationType(footprint);
     const relationNames = getFootprintRelationNames(footprint);
     if (relationNames.length > 0) {
         const name = footprint.metadata.name;

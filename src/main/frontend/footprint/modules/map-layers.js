@@ -2,23 +2,6 @@
  * 地图图层：卫星 / 路网 / 路况切换，以及已去过城市的行政区高亮。
  */
 
-// 图层配置
-export const layerConfig = {
-    satellite: {
-        zIndex: 0,
-        opacity: 1
-    },
-    road: {
-        zIndex: 1,
-        opacity: 0.6,
-        strokeColor: '#666666'
-    },
-    traffic: {
-        zIndex: 2,
-        opacity: 0.6
-    }
-};
-
 // 优化图层切换
 export const handleLayerChange = (btn, type, layerState, map, layers) => {
     btn.classList.add('btn-clicked');

@@ -22,12 +22,9 @@ import { bindTimelinePointerTracking } from './modules/timeline-scroll.js';
 
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', () => {
-    // 判断是否为移动端
-
     // 判断当前路径是否为/footprints
     const currentPath = window.location.pathname;
     if (currentPath !== '/footprints') {
-        console.log('非足迹页面，不加载地图功能');
         return;
     }
 
@@ -87,7 +84,6 @@ window.Footprint2D = {
             return;
         }
         state.footprint2dInitializing = true;
-        console.log('高德地图API加载成功，初始化 2D 地图');
         renderStats();
         initializeApp(isMobile).finally(() => {
             state.footprint2dInitializing = false;
