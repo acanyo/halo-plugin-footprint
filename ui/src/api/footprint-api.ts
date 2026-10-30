@@ -89,14 +89,11 @@ export class FootprintApi {
       const { data } = await consoleApiClient.plugin.plugin.fetchPluginJsonConfig({
         name: 'footprint'
       });
-      const { advanced } = data as any;
-      const { footprintTypes = [] } = advanced || {};
-      const result = footprintTypes.map((type: any) => {
-        return {
-          label: type,
-          value: type
-        };
-      });
+      const { advanced } = (data ?? {}) as { advanced?: { footprintTypes?: unknown } };
+      const footprintTypes = Array.isArray(advanced?.footprintTypes) ? advanced.footprintTypes : [];
+      const result = footprintTypes
+        .filter((type): type is string => typeof type === 'string' && type.length > 0)
+        .map((type) => ({ label: type, value: type }));
       if (result.length === 0) {
         const defaultTypes = ["旅游", "美食", "购物", "住宿", "交通", "其他"];
         return defaultTypes.map(type => ({

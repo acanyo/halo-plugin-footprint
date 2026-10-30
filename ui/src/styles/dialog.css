@@ -1,0 +1,141 @@
+/* 编辑窗：分组布局与编辑模式下的预览头。弹窗挂在 body 上，所以都挂在 .fp-dialog 下。 */
+.fp-dialog .fp-form-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+  padding: 14px;
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-control-radius);
+  background: var(--fp-sidebar);
+}
+.fp-dialog .fp-form-preview img {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.fp-dialog .fp-form-preview strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+.fp-dialog .fp-form-preview p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--fp-muted);
+  font-size: 12px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.fp-dialog .fp-form-section {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px 0;
+}
+.fp-dialog .fp-form-section + .fp-form-section {
+  border-top: 1px solid var(--fp-border);
+}
+.fp-dialog .fp-form-section > header {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  padding-top: 4px;
+}
+.fp-dialog .fp-form-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.fp-dialog .fp-form-section > header p {
+  margin-top: 6px;
+  color: var(--fp-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.fp-dialog .fp-form-section :where(.formkit-outer):first-child {
+  padding-top: 0;
+}
+.fp-dialog .fp-readout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fp-dialog .fp-readout + .fp-readout {
+  margin-top: 8px;
+}
+.fp-dialog .fp-readout-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 7px 12px;
+  border: 1px solid var(--fp-border);
+  border-radius: 8px;
+  background: var(--fp-sidebar);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fp-dialog .fp-readout-value.is-empty {
+  color: var(--fp-faint);
+}
+
+@media (max-width: 760px) {
+  .fp-dialog .fp-form-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .fp-dialog .fp-form-section > header {
+    position: static;
+  }
+}
+
+/* 地图选点 */
+.fp-dialog.fp-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fp-dialog .fp-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fp-dialog .fp-picker-search input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--fp-border);
+  border-radius: 8px;
+  outline: none;
+  background: var(--fp-bg);
+  color: var(--fp-text);
+  font: inherit;
+  font-size: 13px;
+}
+.fp-dialog .fp-picker-search input:focus-visible {
+  border-color: var(--fp-muted);
+}
+.fp-dialog .fp-picker-error {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--fp-danger-bg);
+  color: var(--fp-danger);
+  font-size: 13px;
+}
+/* 高度必须写死：容器塌成 0 高时高德地图不渲染 */
+.fp-dialog .fp-picker-map {
+  position: relative;
+  width: 100%;
+  height: 420px;
+  overflow: hidden;
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-control-radius);
+}
+.fp-dialog .fp-picker-region {
+  margin-left: 12px;
+  color: var(--fp-muted);
+}

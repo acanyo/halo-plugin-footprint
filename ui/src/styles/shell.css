@@ -1,0 +1,150 @@
+/* 工作台外框：页头、主区、页脚、通用的区块标题与空状态。 */
+.fp-workbench {
+  container: footprint-workbench / inline-size;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  background: var(--fp-bg);
+}
+.fp-app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 76px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--fp-border);
+}
+.fp-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.fp-brand-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 33px;
+  height: 33px;
+  border-radius: 8px;
+  background: var(--fp-text);
+  color: var(--fp-bg);
+}
+.fp-brand h1 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+}
+.fp-brand-divider {
+  margin: 0 3px;
+  color: var(--fp-border);
+  font-size: 21px;
+  font-weight: 300;
+}
+.fp-brand-caption {
+  overflow: hidden;
+  color: var(--fp-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+.fp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fp-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1512px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 32px;
+}
+.fp-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.fp-section-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.fp-section-header p {
+  margin-top: 4px;
+  color: var(--fp-muted);
+  font-size: 12px;
+}
+.fp-section-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fp-count {
+  min-width: 24px;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--fp-subtle);
+  color: var(--fp-muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 2px;
+}
+.fp-state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  min-height: 280px;
+  padding: 24px;
+  color: var(--fp-muted);
+  text-align: center;
+}
+.fp-state h3 {
+  color: var(--fp-text);
+  font-size: 16px;
+  font-weight: 550;
+}
+.fp-state p {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.fp-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@container footprint-workbench (max-width: 640px) {
+  .fp-app-header {
+    min-height: 66px;
+    padding: 0 18px;
+    gap: 8px;
+  }
+  .fp-brand-divider,
+  .fp-brand-caption {
+    display: none;
+  }
+  .fp-header-actions .fp-text-button span {
+    display: none;
+  }
+  .fp-main {
+    padding: 24px 18px;
+  }
+}

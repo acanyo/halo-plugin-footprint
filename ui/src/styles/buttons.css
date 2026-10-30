@@ -1,0 +1,117 @@
+/* 工作台自有按钮与 Halo VButton 共用一套圆角胶囊样式。 */
+.fp-workbench .fp-button,
+.fp-workbench .fp-text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--fp-border);
+  border-radius: 999px;
+  min-height: var(--fp-control-height);
+  padding: 7px 15px;
+  background: var(--fp-bg);
+  color: var(--fp-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 140ms,
+    opacity 140ms;
+}
+.fp-workbench .fp-button:hover:not(:disabled) {
+  background: var(--fp-subtle);
+}
+.fp-workbench .fp-button.is-primary {
+  border-color: var(--fp-text);
+  background: var(--fp-text);
+  color: var(--fp-bg);
+}
+.fp-workbench .fp-button.is-primary:hover:not(:disabled) {
+  background: var(--fp-text);
+  opacity: 0.85;
+}
+.fp-workbench .fp-button.is-danger {
+  border-color: transparent;
+  background: var(--fp-danger-bg);
+  color: var(--fp-danger);
+}
+.fp-workbench .fp-button.is-danger:hover:not(:disabled) {
+  background: var(--fp-danger-bg);
+  opacity: 0.85;
+}
+.fp-workbench .fp-button.is-small {
+  min-height: 30px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+.fp-workbench .fp-button[aria-pressed='true'] {
+  border-color: var(--fp-text);
+  background: var(--fp-sidebar);
+}
+.fp-workbench .fp-text-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--fp-muted);
+  padding: 7px 10px;
+}
+.fp-workbench .fp-text-button:hover:not(:disabled) {
+  background: var(--fp-subtle);
+  color: var(--fp-text);
+}
+.fp-workbench :is(.fp-button, .fp-text-button):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fp-workbench .fp-icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fp-muted);
+  cursor: pointer;
+}
+.fp-workbench .fp-icon-button:hover:not(:disabled) {
+  background: var(--fp-subtle);
+  color: var(--fp-text);
+}
+.fp-workbench .fp-icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Halo 的 VButton（工作台与弹窗里）。宿主用 !important 写背景，这里只能跟着加。 */
+:is(.fp-workbench, .fp-dialog) .btn {
+  --fp-button-bg: var(--fp-bg);
+  --fp-button-color: var(--fp-text);
+  --fp-button-border: var(--fp-border);
+  border: 1px solid var(--fp-button-border);
+  border-radius: 999px;
+  min-height: 34px;
+  background-color: var(--fp-button-bg) !important;
+  color: var(--fp-button-color);
+  font-size: 12px;
+  box-shadow: none;
+}
+:is(.fp-workbench, .fp-dialog) :is(.btn-primary, .btn-secondary) {
+  --fp-button-bg: var(--fp-text);
+  --fp-button-color: var(--fp-bg);
+  --fp-button-border: var(--fp-text);
+}
+:is(.fp-workbench, .fp-dialog) .btn-danger {
+  --fp-button-bg: var(--fp-danger-bg);
+  --fp-button-color: var(--fp-danger);
+  --fp-button-border: transparent;
+}
+:is(.fp-workbench, .fp-dialog) .btn .btn-icon {
+  color: inherit;
+}
+:is(.fp-workbench, .fp-dialog) .btn:not(:disabled):not(.btn-loading):hover {
+  opacity: 0.85;
+}

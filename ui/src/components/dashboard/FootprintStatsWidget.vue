@@ -310,8 +310,15 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
 </template>
 
 <style scoped>
-/* 小组件的关键版式走自己的 CSS：不依赖控制台那份 Tailwind 里恰好有没有某个工具类 */
+/* 小组件的关键版式走自己的 CSS：不依赖控制台那份 Tailwind 里恰好有没有某个工具类。
+ * 配色与足迹管理页（styles/tokens.css）同一套中性色板；仪表盘不加载那份样式，所以这里自带变量。 */
 .fp-widget {
+  --fp-sidebar: #f9f9f9;
+  --fp-subtle: #f4f4f4;
+  --fp-text: #0d0d0d;
+  --fp-muted: #646464;
+  --fp-faint: #8f8f8f;
+  --fp-accent: #267566;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -329,7 +336,7 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
   transition: background-color 0.15s ease;
 }
 .fp-widget--clickable:hover {
-  background: #f9fafb;
+  background: var(--fp-sidebar);
 }
 .fp-widget__total {
   display: flex;
@@ -341,19 +348,19 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
   line-height: 1;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: #0b0e14;
+  color: var(--fp-text);
   font-variant-numeric: tabular-nums;
 }
 .fp-widget__total-unit {
   padding-bottom: 2px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--fp-muted);
 }
 .fp-widget__muted {
   margin: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: #6b7280;
+  color: var(--fp-muted);
 }
 .fp-widget__coverage {
   display: flex;
@@ -372,12 +379,12 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
 }
 .fp-widget__fact-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--fp-faint);
 }
 .fp-widget__fact-value {
   font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--fp-text);
   font-variant-numeric: tabular-nums;
 }
 .fp-widget__coverage-head {
@@ -385,14 +392,14 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--fp-faint);
   font-variant-numeric: tabular-nums;
 }
 .fp-widget__bar {
   display: block;
   height: 8px;
   border-radius: 9999px;
-  background: #f3f4f6;
+  background: var(--fp-subtle);
   overflow: hidden;
 }
 .fp-widget__bar--grow {
@@ -403,19 +410,19 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
   display: block;
   height: 100%;
   border-radius: 9999px;
-  background: #6366f1;
+  background: var(--fp-accent);
   transition: width 0.3s ease;
 }
 .fp-widget__latest {
   margin: auto 0 0;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--fp-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .fp-widget__latest-value {
-  color: #1f2937;
+  color: var(--fp-text);
 }
 .fp-widget__ranks {
   display: flex;
@@ -434,26 +441,26 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #4b5563;
+  color: var(--fp-muted);
 }
 .fp-widget__rank-count {
   width: 2rem;
   flex: none;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: #6b7280;
+  color: var(--fp-muted);
 }
 .fp-widget__footer {
   margin: auto 0 0;
   text-align: right;
   font-size: 12px;
-  color: #4f46e5;
+  color: var(--fp-accent);
 }
 .fp-widget__skeleton {
   height: 12px;
   width: 60%;
   border-radius: 6px;
-  background: #f3f4f6;
+  background: var(--fp-subtle);
   animation: fp-widget-pulse 1.4s ease-in-out infinite;
 }
 .fp-widget__skeleton--lg {
@@ -466,7 +473,7 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
   border: 0;
   background: none;
   font-size: 12px;
-  color: #4f46e5;
+  color: var(--fp-accent);
   cursor: pointer;
 }
 @keyframes fp-widget-pulse {
@@ -486,5 +493,14 @@ const wrapperTag = computed(() => (navigable.value ? "RouterLink" : "div"));
   .fp-widget__skeleton {
     animation: none;
   }
+}
+
+:where(.dark, [data-theme='dark'], [data-color-scheme='dark']) .fp-widget {
+  --fp-sidebar: #171717;
+  --fp-subtle: #2f2f2f;
+  --fp-text: #ececec;
+  --fp-muted: #a0a0a0;
+  --fp-faint: #898989;
+  --fp-accent: #89c7b2;
 }
 </style>

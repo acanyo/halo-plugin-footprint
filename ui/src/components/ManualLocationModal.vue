@@ -82,6 +82,7 @@ async function submit() {
       :mask-closable="false"
       @update:visible="emit('update:visible', $event)"
     >
+      <div class="fp-dialog">
       <FormKit type="form" :actions="false" @submit.prevent>
         <FormKit
           v-model="longitude"
@@ -102,10 +103,11 @@ async function submit() {
           help="取值范围 -90 到 90"
         />
       </FormKit>
+      </div>
       <template #footer>
-        <VSpace>
-          <VButton type="secondary" @click="close">取消</VButton>
-          <VButton type="primary" :loading="saving" @click="submit">确定</VButton>
+        <VSpace class="fp-dialog">
+          <VButton @click="close">取消</VButton>
+          <VButton type="secondary" :loading="saving" @click="submit">保存</VButton>
         </VSpace>
       </template>
     </VModal>

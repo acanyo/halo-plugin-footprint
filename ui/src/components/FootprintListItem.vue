@@ -2,14 +2,14 @@
 /**
  * 足迹列表项。
  *
- * 从管理页模板里抽出来的单行视图：勾选框、封面、名称/地址/类型、省市、
- * 经纬度、创建时间，外加右侧的下拉操作。只负责渲染一条足迹并把动作原样
- * 抛给父级，自己不做任何请求，也不持有状态 —— 这样列表页和以后可能出现的
- * 筛选预览都能直接复用。
+ * 单行视图：勾选框、封面、名称/地址/类型、省市、经纬度、创建时间，外加右侧操作。
+ * 只负责渲染一条足迹并把动作原样抛给父级，自己不做任何请求，也不持有状态。
  */
 
+import { VDropdown, VDropdownItem } from "@halo-dev/components";
 import RiImageLine from "~icons/ri/image-line";
-import { VDropdownItem, VEntity, VEntityField, VSpace, VStatusDot, VTag } from "@halo-dev/components";
+import RiMore2Line from "~icons/ri/more-2-line";
+import RiPencilLine from "~icons/ri/pencil-line";
 import { formatDatetime } from "@/utils/date";
 import type { Footprint } from "@/api/models";
 
@@ -28,81 +28,67 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <VEntity :is-selected="selected">
-    <template #checkbox>
-      <input
-        :checked="selected"
-        type="checkbox"
-        @change="emit('update:selected', ($event.target as HTMLInputElement).checked)"
-      />
-    </template>
-    <template #start>
-      <VEntityField>
-        <template #description>
-          <div class="h-10 w-10 overflow-hidden rounded border bg-white p-1">
-            <img
-              v-if="footprint.spec.image"
-              :src="footprint.spec.image"
-              class="h-full w-full rounded-sm object-cover"
-              alt=""
-            />
-            <RiImageLine v-else class="h-full w-full text-gray-300" />
-          </div>
+  <li class="fp-row" :class="{ 'is-selected': selected }">
+    <input
+      :checked="selected"
+      type="checkbox"
+      :aria-label="`选择 ${footprint.spec.name}`"
+      @change="emit('update:selected', ($event.target as HTMLInputElement).checked)"
+    />
+    <span class="fp-row-thumb">
+      <img v-if="footprint.spec.image" :src="footprint.spec.image" alt="" loading="lazy" />
+      <RiImageLine v-else width="18" height="18" aria-hidden="true" />
+    </span>
+
+    <div class="fp-row-main">
+      <div class="fp-row-title">
+        <button type="button" @click="emit('edit', footprint)">{{ footprint.spec.name }}</button>
+        <span v-if="footprint.spec.footprintType" class="fp-tag">
+          {{ footprint.spec.footprintType }}
+        </span>
+        <span
+          v-if="footprint.metadata.deletionTimestamp"
+          v-tooltip="'删除中'"
+          class="fp-status-dot is-warning"
+        />
+      </div>
+      <p class="fp-row-sub">{{ footprint.spec.address || "未填写地址" }}</p>
+    </div>
+
+    <span class="fp-row-cell" :class="{ 'is-missing': !footprint.spec.province }">
+      {{
+        [footprint.spec.province, footprint.spec.city].filter(Boolean).join(" · ") ||
+        "省 / 市未解析"
+      }}
+    </span>
+    <span class="fp-row-cell is-coords fp-num">
+      {{ footprint.spec.longitude }}, {{ footprint.spec.latitude }}
+    </span>
+    <span class="fp-row-cell is-date fp-num">
+      {{ formatDatetime(footprint.spec.createTime) }}
+    </span>
+
+    <div class="fp-row-actions">
+      <button
+        v-tooltip="'编辑'"
+        type="button"
+        class="fp-icon-button"
+        aria-label="编辑"
+        @click="emit('edit', footprint)"
+      >
+        <RiPencilLine width="16" height="16" />
+      </button>
+      <VDropdown>
+        <button type="button" class="fp-icon-button" aria-label="更多操作">
+          <RiMore2Line width="16" height="16" />
+        </button>
+        <template #popper>
+          <VDropdownItem @click="emit('update-location', footprint)">手动修正经纬度</VDropdownItem>
+          <VDropdownItem :disabled="geocoding" @click="emit('geocode', footprint)">
+            重新解析省 / 市
+          </VDropdownItem>
         </template>
-      </VEntityField>
-      <VEntityField :title="footprint.spec.name">
-        <template #description>
-          <VSpace class="flex-wrap">
-            <span class="text-xs text-gray-500">{{ footprint.spec.address }}</span>
-            <VTag v-if="footprint.spec.footprintType">
-              {{ footprint.spec.footprintType }}
-            </VTag>
-          </VSpace>
-        </template>
-      </VEntityField>
-    </template>
-    <template #end>
-      <VEntityField v-if="footprint.metadata.deletionTimestamp">
-        <template #description>
-          <VStatusDot v-tooltip="'删除中'" state="warning" animate />
-        </template>
-      </VEntityField>
-      <VEntityField>
-        <template #description>
-          <span
-            class="text-xs"
-            :class="footprint.spec.province ? 'text-gray-500' : 'text-gray-300'"
-          >
-            {{
-              [footprint.spec.province, footprint.spec.city].filter(Boolean).join(" · ") ||
-              "省 / 市未解析"
-            }}
-          </span>
-        </template>
-      </VEntityField>
-      <VEntityField>
-        <template #description>
-          <span class="truncate text-xs tabular-nums text-gray-500">
-            {{ footprint.spec.longitude }}, {{ footprint.spec.latitude }}
-          </span>
-        </template>
-      </VEntityField>
-      <VEntityField>
-        <template #description>
-          <span class="truncate text-xs tabular-nums text-gray-500">
-            {{ formatDatetime(footprint.spec.createTime) }}
-          </span>
-        </template>
-      </VEntityField>
-    </template>
-    <template #dropdownItems>
-      <VDropdownItem @click="emit('edit', footprint)">编辑</VDropdownItem>
-      <VDropdownItem @click="emit('update-location', footprint)">
-        手动修正经纬度
-      </VDropdownItem>
-      <VDropdownItem :disabled="geocoding" @click="emit('geocode', footprint)">
-        重新解析省/市
-      </VDropdownItem>
-    </template>
-  </VEntity>
+      </VDropdown>
+    </div>
+  </li>
 </template>

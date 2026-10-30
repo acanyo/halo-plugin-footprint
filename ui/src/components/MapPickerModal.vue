@@ -2,7 +2,7 @@
 import { Toast, VButton, VModal, VSpace, VLoading } from "@halo-dev/components";
 import { nextTick, ref, watch } from "vue";
 import { footprintApiClient } from "@/api";
-import { loadAMap } from "@/utils/amap-loader";
+import { loadAMap, type AMapMap, type AMapMarker } from "@/utils/amap-loader";
 
 /**
  * 高德地图选点。
@@ -57,8 +57,8 @@ const searchKeyword = ref("");
 
 // AMap 实例不放进 ref：它内部持有大量循环引用，被 Vue 做成响应式后
 // 会显著拖慢地图交互，社区惯例是用普通变量持有。
-let map: any = null;
-let marker: any = null;
+let map: AMapMap | null = null;
+let marker: AMapMarker | null = null;
 
 const onVisibleChange = (value: boolean) => {
   emit("update:visible", value);
@@ -128,8 +128,8 @@ const initMap = async () => {
     marker = new AMap.Marker({ position: center, draggable: true, cursor: "move" });
     map.add(marker);
 
-    map.on("click", (e: any) => setPoint(e.lnglat.getLng(), e.lnglat.getLat()));
-    marker.on("dragend", (e: any) => setPoint(e.lnglat.getLng(), e.lnglat.getLat()));
+    map.on("click", (e) => setPoint(e.lnglat.getLng(), e.lnglat.getLat()));
+    marker.on("dragend", (e) => setPoint(e.lnglat.getLng(), e.lnglat.getLat()));
 
     if (props.longitude != null && props.latitude != null) {
       await setPoint(props.longitude, props.latitude);
@@ -206,56 +206,45 @@ watch(
     :mask-closable="false"
     @update:visible="onVisibleChange"
   >
-    <div class="space-y-3">
-      <div class="flex items-center gap-2">
+    <div class="fp-dialog fp-picker">
+      <div class="fp-picker-search">
         <input
           v-model="searchKeyword"
-          type="text"
-          class="min-w-0 flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-base text-gray-900 outline-none"
+          type="search"
           placeholder="输入地址后回车定位，或直接在地图上点选"
           @keyup.enter="handleSearch"
         />
         <VButton size="sm" @click="handleSearch">定位</VButton>
       </div>
 
-      <div v-if="loadError" class="rounded-base bg-red-50 px-3 py-2 text-sm text-red-600">
-        {{ loadError }}
-      </div>
+      <p v-if="loadError" class="fp-picker-error" role="alert">{{ loadError }}</p>
 
-      <!--
-        高度必须用内联样式：本插件的 ui 没有引入 Tailwind/UnoCSS，模板里那些
-        工具类是靠 Halo Console 的全局样式表才生效的，而 h-[420px] 这类任意值
-        类不可能预先存在于全局样式表中，写了等于没写，容器会塌成 0 高。
-      -->
-      <div
-        class="relative w-full overflow-hidden rounded-base border border-gray-200"
-        style="height: 420px"
-      >
+      <div class="fp-picker-map">
         <VLoading v-if="loading" />
         <div ref="mapContainer" style="height: 100%; width: 100%"></div>
       </div>
 
-      <div class="rounded-base bg-gray-50 px-3 py-2 text-sm">
-        <template v-if="picked">
-          <span class="tabular-nums text-gray-900">
-            {{ picked.longitude.toFixed(6) }}, {{ picked.latitude.toFixed(6) }}
-          </span>
-          <span class="ml-3 text-gray-500">
-            <template v-if="resolving">省 / 市解析中…</template>
-            <template v-else-if="geoInfo.province">
-              {{ [geoInfo.province, geoInfo.city].filter(Boolean).join(" · ") }}
-            </template>
-            <template v-else>省 / 市未解析</template>
-          </span>
-        </template>
-        <span v-else class="text-gray-500">点击地图或拖动标记选择位置</span>
+      <div class="fp-readout">
+        <span class="fp-readout-value" :class="{ 'is-empty': !picked }">
+          <template v-if="picked">
+            <span class="fp-num">{{ picked.longitude.toFixed(6) }}, {{ picked.latitude.toFixed(6) }}</span>
+            <span class="fp-picker-region">
+              <template v-if="resolving">省 / 市解析中…</template>
+              <template v-else-if="geoInfo.province">
+                {{ [geoInfo.province, geoInfo.city].filter(Boolean).join(" · ") }}
+              </template>
+              <template v-else>省 / 市未解析</template>
+            </span>
+          </template>
+          <template v-else>点击地图或拖动标记选择位置</template>
+        </span>
       </div>
     </div>
 
     <template #footer>
-      <VSpace>
-        <VButton type="secondary" :disabled="!picked" @click="handleConfirm">确定</VButton>
+      <VSpace class="fp-dialog">
         <VButton @click="onVisibleChange(false)">取消</VButton>
+        <VButton type="secondary" :disabled="!picked" @click="handleConfirm">使用这个位置</VButton>
       </VSpace>
     </template>
   </VModal>
