@@ -64,10 +64,16 @@ function setupCalls(text) {
   return calls;
 }
 
-for (const call of setupCalls(indexText)) {
+// 除了 index.js，模块内部也可能把注入转发给子模块（如 ticket-gallery.js → ticket-*.js），一并检查
+const allSetupCalls = [
+  ...setupCalls(indexText).map((call) => ({ ...call, caller: "index.js" })),
+  ...moduleFiles.flatMap((f) => setupCalls(f.code).map((call) => ({ ...call, caller: f.name }))),
+];
+
+for (const call of allSetupCalls) {
   const mod = moduleFiles.find((f) => new RegExp(`export function setup${call.setup}\\(`).test(f.text));
   if (!mod) {
-    fail(`[注入] index.js 调用了 setup${call.setup}，但没有任何模块导出它`);
+    fail(`[注入] ${call.caller} 调用了 setup${call.setup}，但没有任何模块导出它`);
     continue;
   }
   // 既算运行期的 deps.X，也算 setup 函数体里的 d.X（注入时直接取用的键）
