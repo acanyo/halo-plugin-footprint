@@ -36,6 +36,7 @@ const OUT = join(ROOT, 'build/resources/main/static');
 const BUNDLES = {
   'travel-memory': join(FRONTEND, 'travel-memory/index.js'),
   'footprint': join(FRONTEND, 'footprint/index.js'),
+  'memory-shelf': join(FRONTEND, 'memory-shelf/index.js'),
 };
 
 /** 第 2 类：尚未模块化，只压缩。扫这两个目录下的散文件 */
