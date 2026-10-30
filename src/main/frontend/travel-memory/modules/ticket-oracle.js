@@ -45,7 +45,7 @@ function ticketOracleBackFace() {
     ticketOracleCard.classList.add('is-back');
     ticketOracleCard.innerHTML = '';
     if (ticketOracleStats) {
-        ticketOracleStats.textContent = '正在翻找一张票…';
+        ticketOracleStats.textContent = '正在抽…';
     }
     if (ticketOracleInspiration) ticketOracleInspiration.textContent = '';
     if (ticketOracleView) ticketOracleView.disabled = true;
@@ -60,14 +60,13 @@ function ticketOracleShowCandidate(fp) {
     img.referrerPolicy = 'no-referrer';
     img.src = ticketImageUrl(fp.ticketImage);
     img.onerror = () => {
-        ticketOracleCard.innerHTML = '<span style="padding:20px;color:#6e5945;">这张票根暂时打不开<br>但它仍是一段旅程</span>';
+        ticketOracleCard.innerHTML = '<span class="ticket-oracle-missing">这张票根图加载失败</span>';
     };
     ticketOracleCard.appendChild(img);
     const meta = ticketMeta(fp);
     if (ticketOracleStats) {
-        ticketOracleStats.textContent = (fp.city || meta.route || '未知城市') +
-            (meta.date ? ' · ' + meta.date : '') +
-            (fp.name ? ' · ' + fp.name : '');
+        ticketOracleStats.textContent = [fp.city || meta.route || '未知城市', meta.date, fp.name]
+            .filter(Boolean).join('，');
     }
     if (ticketOracleInspiration) {
         ticketOracleInspiration.textContent = nextTicketStopSuggestion();
@@ -87,12 +86,10 @@ function nextTicketStopSuggestion() {
     });
     if (candidates.length) {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
-        return '下一站，或许可以去「' + pick + '」看看。';
+        return '去过但还没有票根的城市：' + pick + '。';
     }
     const fallbacks = [
-        '把去过的城市再走一遍也不错，下一张票根正在等你。',
-        '旅行的下一站不在地图上，而在你的心里。',
-        '所有出发都是回家，只是路线不同。'
+        '去过的城市都已经有票根了。'
     ];
     return fallbacks[Math.floor(Math.random() * fallbacks.length)];
 }

@@ -64,26 +64,24 @@ function ticketLetterCanvas(fp, image) {
     canvas.width = 900;
     canvas.height = 1280;
     const ctx = canvas.getContext('2d');
-    const cream = '#f3eee2';
-    const ink = '#35423d';
-    const muted = '#8b7865';
-    const accent = '#9b704e';
-    const bg = ctx.createLinearGradient(0, 0, 0, 1280);
-    bg.addColorStop(0, '#e8e0d2');
-    bg.addColorStop(1, '#d6cbb8');
-    ctx.fillStyle = bg;
+    // 画布不能读 CSS 变量：颜色照抄 tokens.css 里白图（.fp-sheet）的值，改色板时两处一起改
+    const paper = '#f3f4f1';      // --fp-paper
+    const raised = '#fbfbf9';     // --fp-paper-raised
+    const ink = '#1e2a33';        // --fp-ink
+    const muted = '#7d878b';      // --fp-ink-faint
+    const rule = 'rgba(30, 42, 51, 0.14)';   // --fp-rule
+    const titleFont = '"LXGW WenKai Screen", "Kaiti SC", "STKaiti", "KaiTi", serif';
+    const textFont = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
+    ctx.fillStyle = paper;
     ctx.fillRect(0, 0, 900, 1280);
-    ctx.strokeStyle = 'rgba(118,92,61,0.34)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = rule;
+    ctx.lineWidth = 2;
     ctx.strokeRect(24, 24, 852, 1232);
 
-    ctx.fillStyle = accent;
-    ctx.font = '600 24px ui-monospace, Consolas, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('A LETTER FROM A TICKET', 450, 78);
     ctx.fillStyle = ink;
-    ctx.font = '400 44px "PingFang SC", "Microsoft YaHei", "Noto Serif SC", serif';
-    ctx.fillText('未寄出的明信片', 450, 132);
+    ctx.font = '400 44px ' + titleFont;
+    ctx.textAlign = 'center';
+    ctx.fillText('未寄出的明信片', 450, 112);
 
     // 票根图直接贴在纸面上：不垫白卡、不加粗边框，按内容宽度铺满，
     // 高度由图片自身比例决定；下面的正文起点跟着图高浮动，长图短图都不会顶到文字。
@@ -100,19 +98,19 @@ function ticketLetterCanvas(fp, image) {
         ctx.drawImage(image, dx, shotTop, dw, dh);
         shotBottom = shotTop + dh;
     } else {
-        ctx.fillStyle = '#e4dccd';
+        ctx.fillStyle = raised;
         ctx.fillRect(shotX, shotTop, shotW, shotBottom - shotTop);
         ctx.fillStyle = muted;
-        ctx.font = '400 150px "Noto Serif SC", "Songti SC", serif';
+        ctx.font = '400 150px ' + titleFont;
         ctx.textAlign = 'center';
         ctx.fillText((fp.city || '?').charAt(0), 450, shotTop + 260);
     }
-    // 图下小字：城市 · 日期 · 票根名
+    // 图下小字：城市，日期，票根名
     ctx.fillStyle = muted;
-    ctx.font = '400 24px "PingFang SC", "Microsoft YaHei", "Noto Serif SC", serif';
+    ctx.font = '400 24px ' + textFont;
     ctx.textAlign = 'center';
     ctx.fillText(
-        [fp.city || meta.route, meta.date, fp.name || meta.title].filter(Boolean).join(' · '),
+        [fp.city || meta.route, meta.date, fp.name || meta.title].filter(Boolean).join('，'),
         450,
         shotBottom + 44
     );
@@ -129,7 +127,7 @@ function ticketLetterCanvas(fp, image) {
         descText + '当时没有说出口的话，都留在这张纸里了。\n' +
         '—— 一张票根，代替当时的我寄出。';
     ctx.fillStyle = ink;
-    ctx.font = '400 30px "PingFang SC", "Microsoft YaHei", "Noto Serif SC", serif';
+    ctx.font = '400 30px ' + titleFont;
     ctx.textAlign = 'left';
     const lines = wrapTicketLetterText(ctx, letter, 760);
     const lineHeight = 46;
@@ -142,8 +140,8 @@ function ticketLetterCanvas(fp, image) {
 
     ctx.textAlign = 'right';
     ctx.fillStyle = muted;
-    ctx.font = '26px "PingFang SC", "Microsoft YaHei", serif';
-    ctx.fillText('旅行记忆 · 票根收藏', 852, 1245);
+    ctx.font = '24px ' + textFont;
+    ctx.fillText('旅行记忆', 852, 1245);
     return canvas;
 }
 
@@ -205,7 +203,7 @@ export async function openTicketLetter(fp) {
     pauseTicketReplayForOverlay();
     ticketLetterFp = fp;
     if (ticketLetterTitle) {
-        ticketLetterTitle.textContent = (fp.city ? fp.city + ' · ' : '') + '未寄出的明信片';
+        ticketLetterTitle.textContent = (fp.city ? fp.city + '，' : '') + '未寄出的明信片';
     }
     const meta = ticketMeta(fp);
     if (ticketLetterCaption) {
@@ -213,7 +211,7 @@ export async function openTicketLetter(fp) {
             '由「' + (fp.name || meta.title || '这张票根') + '」写成',
             fp.city || meta.route,
             meta.date
-        ].filter(Boolean).join(' · ');
+        ].filter(Boolean).join('，');
     }
     if (ticketLetterImg) {
         ticketLetterImg.alt = (fp.city || '票根') + ' 的未寄出的明信片';

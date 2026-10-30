@@ -179,25 +179,25 @@ function ticketReplayShowStop(index, animate) {
 
     const meta = ticketMeta(fp);
     ticketReplaySubtitle.textContent = [fp.name || meta.title, fp.city || meta.route, meta.date]
-        .filter(Boolean).join(' · ');
+        .filter(Boolean).join('，');
     // 时间有色：氛围色跟随当前放映到的那一张票根
     applyTicketSeason(fp);
     // 第二行拆成「状态文字 + 里程数字」两块：数字单独给强调色与等宽数字，移动中更醒目
     let routeText;
     let distanceText = '';
     if (ticketReplayIndex === 0) {
-        routeText = ticketHasCoordinate(fp) ? '旅程起点' : '旅程起点 · 这张票根没有定位';
+        routeText = ticketHasCoordinate(fp) ? '第一站' : '第一站，这条足迹没有坐标';
     } else {
         const prev = points[ticketReplayIndex - 1];
         const sameCity = isSameTicketCity(prev, fp);
         const noCoord = !ticketHasCoordinate(prev) || !ticketHasCoordinate(fp);
         if (noCoord) {
-            routeText = '上一站无法定位，原地淡入下一张';
+            routeText = '这一段缺少坐标，不飞行';
         } else if (sameCity) {
-            routeText = '与上一站同一城市，原地停留';
+            routeText = '与上一站同城';
         } else {
-            routeText = '沿着上一站的方向继续';
-            distanceText = '距上一站 ' + Math.round(haversineKm(prev, fp)).toLocaleString('zh-CN') + ' km';
+            routeText = '已到达';
+            distanceText = '距上一站 ' + Math.round(haversineKm(prev, fp)).toLocaleString('zh-CN') + ' 公里';
         }
     }
     ticketReplayRoute.textContent = routeText;
@@ -212,7 +212,7 @@ function ticketReplayShowStop(index, animate) {
             const group = ticketReplayPoints.filter(item => deps.cityKeyOf(item) === key);
             if (group.length > 1) {
                 const position = group.indexOf(fp) + 1;
-                badge = (String(fp.city || '').trim() || '同城') + ' · 同城 ' + position + '/' + group.length;
+                badge = (String(fp.city || '').trim() || '这座城市') + '第 ' + position + ' 张，共 ' + group.length + ' 张';
             }
         }
         ticketReplayCityBadge.textContent = badge;
@@ -223,7 +223,7 @@ function ticketReplayShowStop(index, animate) {
     // 累计里程和「距上一站」放在同一行，进度区只留进度与剩余时间
     if (ticketReplayTotal) {
         ticketReplayTotal.textContent = totalKm > 0
-            ? '累计 ' + Math.round(totalKm).toLocaleString('zh-CN') + ' km'
+            ? '累计 ' + Math.round(totalKm).toLocaleString('zh-CN') + ' 公里'
             : '';
     }
     if (ticketReplayEta) {
@@ -262,13 +262,13 @@ function ticketReplayShowFlight(from, to, kmValue, flightSeconds) {
     if (ticketReplayView) ticketReplayView.classList.add('is-flying');
     // 进度条动画时长跟着实际飞行时长走（变速时同步）
     ticketReplayFlight.style.setProperty('--flight-duration', (flightSeconds || 2.3) + 's');
-    const km = kmValue ? Math.round(kmValue).toLocaleString('zh-CN') + ' km' : '';
+    const km = kmValue ? Math.round(kmValue).toLocaleString('zh-CN') + ' 公里' : '';
     ticketReplayFlightLabel.textContent = '正在飞往';
     if (ticketReplayFlightFrom) {
         ticketReplayFlightFrom.textContent = (from && (from.city || from.name)) || '上一站';
     }
     ticketReplayFlightCity.textContent = to.city || to.name || '下一站';
-    ticketReplayFlightKm.textContent = km ? '约 ' + km + ' · 直线估算' : '';
+    ticketReplayFlightKm.textContent = km ? '直线约 ' + km : '';
     // 每次起飞都重放一次进度条：先摘掉 is-on 再强制重排
     ticketReplayFlight.classList.remove('is-on');
     void ticketReplayFlight.offsetWidth;
@@ -441,7 +441,7 @@ function finishTicketReplay() {
     if (ticketReplayEndRange) {
         const from = stamp(first);
         const to = stamp(last);
-        ticketReplayEndRange.textContent = (from && to && from !== to) ? from + ' → ' + to : (from || '');
+        ticketReplayEndRange.textContent = (from && to && from !== to) ? from + ' 到 ' + to : (from || '');
     }
     if (ticketReplayEndTickets) ticketReplayEndTickets.textContent = String(points.length);
     if (ticketReplayEndCities) ticketReplayEndCities.textContent = cities.size ? String(cities.size) : '—';
@@ -455,7 +455,7 @@ function finishTicketReplay() {
     if (ticketReplayEndNote) {
         const withoutTicket = Math.max(0, deps.footprints().length - getTicketItems().length);
         ticketReplayEndNote.textContent = withoutTicket
-            ? '重走只放映有票根图的足迹，另有 ' + withoutTicket + ' 个足迹未附票根'
+            ? '只放映有票根图的足迹，另有 ' + withoutTicket + ' 条足迹没有票根图'
             : '';
         ticketReplayEndNote.hidden = !withoutTicket;
     }
@@ -501,6 +501,7 @@ export function enterTicketReplay() {
     // 只在真正进入放映时记录一次当前票根，退出时复位
     ticketReplayEntryIndex = getTicketIndex();
     ticketGallery.classList.add('is-replay-mode');
+    ticketGallery.classList.remove('fp-sheet');   // 重走压在地球上，用夜图
     ticketReplayView.hidden = false;
     // 从票夹切回来时接着上次的站继续播（-1 表示从头开始）
     startTicketReplay(ticketReplayResumeIndex);
@@ -520,7 +521,10 @@ export function clearTicketReplay() {
     if (ticketReplayView) ticketReplayView.hidden = true;
     if (ticketReplayView) ticketReplayView.classList.remove('is-focused', 'is-flying', 'is-paused', 'is-ended');
     ticketReplaySetZoom(false);
-    if (ticketGallery) ticketGallery.classList.remove('is-replay-mode');
+    if (ticketGallery) {
+        ticketGallery.classList.remove('is-replay-mode');
+        ticketGallery.classList.add('fp-sheet');   // 回到票夹，换回白图
+    }
     // 回到进入放映前的票根，不停留在最后看过的那一张；
     // 只有真的在放映中才复位，避免之后切模式时把票夹游标拽回旧位置
     if (wasReplay) {

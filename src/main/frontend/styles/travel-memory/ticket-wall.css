@@ -1,4 +1,6 @@
-        /* ============ 票根档案墙 ============ */
+        /* ============ 票根册：票夹 ============
+           票夹是全屏翻阅的界面，#ticketGallery 带 .fp-sheet（白图）；
+           进入重走时 ticket-replay.js 摘掉 .fp-sheet，换回夜图并透出地球。 */
         body.ticket-gallery-open #topNav {
             opacity: 0;
             visibility: hidden;
@@ -9,14 +11,13 @@
         body.ticket-gallery-open #view-2d {
             pointer-events: none;
         }
-        /* 票根页透明背景会透出左下角的地图版权信息，打开时一并隐藏 */
+        /* 重走时票根页透明，会透出左下角的地图版权信息，打开时一并隐藏 */
         body.ticket-gallery-open #status,
         body.ticket-gallery-open #cesiumContainer .cesium-viewer-bottom,
         body.ticket-gallery-open #cesiumContainer .cesium-widget-credits {
             display: none !important;
         }
-        /* 从卡片墙 / 城市图片墙进票根页时，先把底下那层不透明浮层收起来：
-           票根页是透明底、要透出 3D 地球，不收起来背景就一直是那张卡片墙。
+        /* 从卡片墙 / 城市图片墙进票根页时，先把底下那层不透明浮层收起来。
            这里只改显隐，.show 和滚动位置都保留，关掉票根页时原样放回。 */
         body.ticket-underlay-hidden #cityWall,
         body.ticket-underlay-hidden #cityView {
@@ -24,26 +25,27 @@
             visibility: hidden;
             pointer-events: none;
         }
-        #ticketGallery,
-        #ticketLightbox {
+        #ticketGallery {
             position: fixed;
             inset: 0;
             z-index: 11000;
             display: none;
             box-sizing: border-box;
-            font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-        }
-        #ticketGallery.show,
-        #ticketLightbox.show {
-            display: block;
-        }
-        #ticketGallery {
             overflow-y: auto;
             overflow-x: hidden;
-            color: #f4efe6;
-            /* 背景透明：票根页直接透出背后的 3D 地球 */
-            /* 时间有色：只改文字强调色，不动任何背景（默认中性暖金，无日期时用这套） */
-            --season-accent: #d8ae78;
+            background: var(--fp-paper);
+            color: var(--fp-ink);
+            font-family: var(--fp-font-text);
+            /* 「时间有色」：按票根月份换一个强调色，只用在序号上。默认弱墨 */
+            --season-accent: var(--fp-ink-faint);
+            /* 重走时顶栏压在地球上，用一层纸色渐变托住文字 */
+            --ticket-veil: color-mix(in srgb, var(--fp-paper) 78%, transparent);
+        }
+        #ticketGallery.show {
+            display: block;
+        }
+        #ticketGallery.is-replay-mode {
+            background: transparent;
         }
         .ticket-gallery-top {
             position: sticky;
@@ -54,285 +56,77 @@
             align-items: center;
             gap: 20px;
             min-height: 72px;
-            padding: max(16px, env(safe-area-inset-top)) 34px 14px;
-            /* 与主页面顶部导航一致的轻渐变，不再使用深色面板 */
-            background: linear-gradient(180deg, rgba(5, 7, 12, 0.62), rgba(5, 7, 12, 0.28) 72%, transparent);
+            padding: max(14px, env(safe-area-inset-top)) 34px 12px;
+            background: var(--fp-paper);
+            border-bottom: 1px solid var(--fp-rule);
+        }
+        #ticketGallery.is-replay-mode .ticket-gallery-top {
+            background: linear-gradient(180deg, var(--ticket-veil), transparent);
+            border-bottom-color: transparent;
         }
         .ticket-gallery-heading {
             text-align: center;
         }
-        .ticket-gallery-eyebrow,
-        .ticket-meta-kicker {
-            margin: 0 0 8px;
-            color: var(--season-accent);
-            font: 600 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-            letter-spacing: 0.2em;
-            transition: color 0.8s ease;
-        }
         .ticket-gallery-heading h2 {
             margin: 0;
-            color: #f4efe6;
-            font: 400 clamp(26px, 3vw, 38px)/1.15 "STXingkai", "华文行楷", "FZKai-Z03", "KaiTi", cursive;
-            letter-spacing: 0.08em;
-            text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5);
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-xl)/1.25 var(--fp-font-title);
+            letter-spacing: 0.02em;
         }
         .ticket-gallery-heading p:last-child {
-            margin: 8px 0 0;
-            color: rgba(244, 239, 230, 0.58);
-            font-size: 11px;
-            letter-spacing: 0.08em;
-            text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
-        }
-        #ticketGalleryBack,
-        #ticketLightboxClose,
-        #ticketLightboxPrev,
-        #ticketLightboxNext {
-            appearance: none;
-            border: 0;
-            background: transparent;
-            color: rgba(244, 239, 230, 0.88);
-            cursor: pointer;
-            transition: color 0.18s ease, background 0.18s ease;
-            text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+            margin: 4px 0 0;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
         }
         #ticketGalleryBack {
+            appearance: none;
             display: inline-flex;
             align-items: center;
             justify-self: start;
             gap: 8px;
-            min-height: 44px;
-            padding: 9px 14px;
-            border-radius: 999px;
-            font-size: 12px;
-            letter-spacing: 0.08em;
+            min-height: 36px;
+            padding: 0 12px;
+            border: 1px solid transparent;
+            border-radius: var(--fp-radius-control);
+            background: transparent;
+            color: var(--fp-ink-soft);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            cursor: pointer;
+            transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease);
         }
         #ticketGalleryBack svg { width: 17px; height: 17px; }
-        #ticketGalleryBack:hover,
-        #ticketLightboxClose:hover,
-        #ticketLightboxPrev:hover,
-        #ticketLightboxNext:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.1);
+        #ticketGalleryBack:hover {
+            color: var(--fp-ink);
+            background: var(--fp-rule);
         }
-        #ticketGalleryBack:focus-visible,
-        #ticketLightboxClose:focus-visible,
-        #ticketLightboxPrev:focus-visible,
-        #ticketLightboxNext:focus-visible,
-        .ticket-card:focus-visible,
-        #ticketLightboxRetry:focus-visible {
-            outline: 2px solid rgba(247, 245, 241, 0.65);
-            outline-offset: 3px;
+        #ticketGalleryBack:focus-visible {
+            outline: 2px solid var(--fp-water);
+            outline-offset: 2px;
         }
-        .ticket-gallery-content {
-            width: min(1420px, calc(100% - 68px));
-            margin: 0 auto;
-            padding: 42px 0 70px;
-        }
-        .ticket-gallery-grid {
-            columns: 3;
-            column-gap: 24px;
-        }
-        .ticket-card {
-            display: block;
-            width: 100%;
-            margin: 0 0 26px;
-            padding: 8px 8px 32px;
-            break-inside: avoid;
-            border: 1px solid rgba(102, 76, 48, 0.28);
-            background: #fffdf7;
-            box-shadow: 6px 12px 24px rgba(0, 0, 0, 0.25);
-            color: #35423d;
-            cursor: zoom-in;
-            text-align: left;
-            transform: rotate(var(--ticket-rotation, 0deg));
-            transition: transform 0.28s ease, box-shadow 0.28s ease;
-        }
-        .ticket-card:nth-child(3n + 1) { --ticket-rotation: -1.2deg; }
-        .ticket-card:nth-child(3n + 2) { --ticket-rotation: 0.8deg; }
-        .ticket-card:nth-child(3n) { --ticket-rotation: -0.45deg; }
-        .ticket-card:hover,
-        .ticket-card:focus-visible {
-            position: relative;
-            z-index: 2;
-            box-shadow: 12px 20px 32px rgba(0, 0, 0, 0.34);
-            transform: translateY(-7px) rotate(0deg) scale(1.018);
-        }
-        .ticket-card-image {
-            position: relative;
-            display: block;
-            overflow: hidden;
-            background: #e8dfd1;
-        }
-        .ticket-card-image::after {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.24) 50%, transparent 70%);
-            content: "";
-            opacity: 0;
-            transform: translateX(-100%);
-        }
-        .ticket-card-image img {
-            display: block;
-            width: 100%;
-            height: auto;
-            min-height: 120px;
-            object-fit: contain;
-        }
-        .ticket-card-caption {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 10px 3px 0;
-        }
-        .ticket-card-caption strong {
-            overflow: hidden;
-            font: 600 15px/1.3 "Noto Serif SC", "Songti SC", "STSong", serif;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .ticket-card-caption span {
-            flex: 0 0 auto;
-            color: #9b704e;
-            font: 10px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
-            white-space: nowrap;
-        }
-        .ticket-card.is-error .ticket-card-image::before {
-            display: flex;
-            min-height: 180px;
-            align-items: center;
-            justify-content: center;
-            color: #9b8874;
-            content: "票根暂时无法加载";
-            font: 12px "Noto Serif SC", "Songti SC", "STSong", serif;
-        }
-        .ticket-card.is-error .ticket-card-image img { display: none; }
         .ticket-gallery-empty {
+            grid-column: 1 / -1;
+            width: 100%;
             padding: 18vh 20px;
-            color: rgba(244, 239, 230, 0.72);
+            color: var(--fp-ink-soft);
             text-align: center;
         }
         .ticket-gallery-empty p {
-            margin: 0 0 10px;
-            color: #f4efe6;
-            font: 400 30px "STXingkai", "华文行楷", cursive;
+            margin: 0 0 8px;
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-xl)/1.25 var(--fp-font-title);
         }
-        .ticket-gallery-empty span { font-size: 13px; letter-spacing: 0.08em; }
+        .ticket-gallery-empty span { font-size: var(--fp-size-sm); }
 
-        /* 票根灯箱：票根完整展示，右侧补充足迹档案 */
-        body.ticket-lightbox-open #ticketGallery { overflow: hidden; }
-        #ticketLightbox {
-            padding: 7vh 8vw;
-            overflow: auto;
-            background: rgba(8, 11, 12, 0.94);
-            color: #f4efe6;
-        }
-        .ticket-lightbox-body {
-            display: grid;
-            grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.65fr);
-            align-items: center;
-            gap: clamp(28px, 6vw, 100px);
-            width: min(1300px, 100%);
-            min-height: 86vh;
-            margin: 0 auto;
-        }
-        .ticket-lightbox-stage {
-            position: relative;
-            display: flex;
-            min-height: 260px;
-            align-items: center;
-            justify-content: center;
-        }
-        #ticketLightboxImage {
-            display: block;
-            max-width: 100%;
-            max-height: 78vh;
-            object-fit: contain;
-            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
-        }
-        .ticket-lightbox-loading,
-        .ticket-lightbox-error {
-            color: rgba(244, 239, 230, 0.7);
-            font-size: 13px;
-            letter-spacing: 0.08em;
-        }
-        .ticket-lightbox-loading[hidden],
-        .ticket-lightbox-error[hidden] { display: none; }
-        .ticket-lightbox-error {
-            display: grid;
-            gap: 16px;
-            justify-items: center;
-        }
-        #ticketLightboxRetry {
-            min-height: 42px;
-            padding: 8px 16px;
-            border: 1px solid rgba(244, 239, 230, 0.3);
-            background: transparent;
-            color: #f4efe6;
-            cursor: pointer;
-        }
-        .ticket-lightbox-meta { max-width: 340px; }
-        .ticket-lightbox-meta h2 {
-            margin: 0;
-            color: #f4efe6;
-            font: 400 clamp(30px, 4vw, 56px)/1.15 "STXingkai", "华文行楷", cursive;
-            letter-spacing: 0.05em;
-        }
-        .ticket-meta-subtitle { margin: 8px 0 28px; color: #d8ae78; font-size: 12px; letter-spacing: 0.14em; }
-        .ticket-lightbox-meta dl { margin: 0; border-top: 1px solid rgba(244, 239, 230, 0.16); }
-        .ticket-lightbox-meta dl > div { display: grid; grid-template-columns: 62px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(244, 239, 230, 0.11); }
-        .ticket-lightbox-meta dt { color: rgba(244, 239, 230, 0.48); font-size: 11px; }
-        .ticket-lightbox-meta dd { margin: 0; color: #f4efe6; font-size: 13px; line-height: 1.55; }
-        .ticket-meta-description { margin: 24px 0 0; color: rgba(244, 239, 230, 0.68); font: 14px/1.8 "Noto Serif SC", "Songti SC", serif; }
-        .ticket-meta-count {
-            margin: 28px 0 0;
-            color: var(--season-accent);
-            font: 11px ui-monospace, SFMono-Regular, Consolas, monospace;
-            letter-spacing: 0.12em;
-            transition: color 0.8s ease;
-        }
-        #ticketLightboxClose,
-        #ticketLightboxPrev,
-        #ticketLightboxNext { position: fixed; z-index: 2; border-radius: 50%; }
-        #ticketLightboxClose { top: 24px; right: 28px; width: 46px; height: 46px; font-size: 26px; }
-        #ticketLightboxPrev,
-        #ticketLightboxNext { top: 50%; width: 48px; height: 48px; font-size: 32px; line-height: 1; transform: translateY(-50%); }
-        #ticketLightboxPrev { left: 24px; }
-        #ticketLightboxNext { right: 24px; }
-        #ticketLightboxPrev:hover,
-        #ticketLightboxNext:hover { transform: translateY(-50%) scale(1.05); }
-
-        @media (max-width: 1023px) {
-            .ticket-gallery-grid { columns: 2; }
-            .ticket-lightbox-body { grid-template-columns: minmax(0, 1fr) minmax(220px, 0.6fr); gap: 32px; }
-            #ticketLightbox { padding-right: 7vw; padding-left: 7vw; }
-        }
-        @media (max-width: 700px) {
-            .ticket-gallery-top { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px 12px; padding-right: 16px; padding-left: 16px; }
-            .ticket-gallery-heading { grid-column: 1; grid-row: 1; }
-            #ticketGalleryBack { grid-column: 1; grid-row: 2; justify-self: center; }
-            .ticket-gallery-content { width: min(100% - 28px, 560px); padding-top: 24px; }
-            .ticket-gallery-grid { columns: 1; }
-            .ticket-card { transform: none; }
-            .ticket-card:hover,
-            .ticket-card:focus-visible { transform: translateY(-3px); }
-            #ticketLightbox { padding: 78px 22px 30px; }
-            .ticket-lightbox-body { display: flex; flex-direction: column; justify-content: center; gap: 28px; min-height: auto; }
-            #ticketLightboxImage { max-height: 58vh; }
-            .ticket-lightbox-meta { width: min(100%, 430px); }
-            #ticketLightboxPrev { left: 10px; }
-            #ticketLightboxNext { right: 10px; }
-            #ticketLightboxClose { top: 18px; right: 16px; }
-        }
-
-        /* 票根页：票夹叠放展示，无左右切换按钮 */
+        /* 票夹：当前票根完整展示，右侧是这张票根的条目 */
         .ticket-gallery-content {
             display: grid;
             grid-template-columns: minmax(0, 1fr);
             align-items: center;
+            width: min(1500px, calc(100% - 56px));
             min-height: calc(100vh - 120px);
-            padding-top: 34px;
-            padding-bottom: 64px;
+            margin: 0 auto;
+            padding: 34px 0 64px;
         }
         .ticket-gallery-view {
             display: grid;
@@ -363,12 +157,11 @@
             display: block;
             width: 100%;
             height: auto;
-            /* 不给图片元素加任何背景/圆角：透明票根的透明区域直接透出页面背景，
-               避免在图片背后形成一块独立的“盒子” */
-            transition: transform 0.32s ease;
+            /* 不给图片元素加任何背景/圆角：透明票根的透明区域直接透出纸面 */
+            transition: transform var(--fp-dur) var(--fp-ease);
             user-select: none;
             -webkit-user-drag: none;
-            -webkit-tap-highlight-color: transparent;   /* 点击切换票根时不闪蓝框 */
+            -webkit-tap-highlight-color: transparent;
         }
         .ticket-wallet-item.is-active {
             position: relative;
@@ -382,7 +175,7 @@
             width: 100%;
             height: auto;
             cursor: pointer;
-            filter: brightness(0.82) saturate(0.88);
+            filter: brightness(0.86);
         }
         .ticket-gallery-loading,
         .ticket-gallery-error {
@@ -391,46 +184,69 @@
             align-items: center;
             justify-content: center;
             padding: 18px 0;
-            color: rgba(244, 239, 230, 0.72);
-            font-size: 13px;
-            letter-spacing: 0.08em;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
         }
         .ticket-gallery-loading[hidden],
         .ticket-gallery-error[hidden] { display: none; }
         .ticket-gallery-error {
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
         }
         .ticket-gallery-error button {
-            min-height: 42px;
-            padding: 8px 16px;
-            border: 1px solid rgba(244, 239, 230, 0.3);
+            min-height: 32px;
+            padding: 0 12px;
+            border: 1px solid var(--fp-rule-strong);
+            border-radius: var(--fp-radius-control);
             background: transparent;
-            color: #f4efe6;
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
             cursor: pointer;
         }
         .ticket-gallery-hint {
             margin: 14px 0 0;
-            color: rgba(244, 239, 230, 0.45);
-            font-size: 12px;
-            letter-spacing: 0.08em;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
             text-align: center;
         }
         .ticket-gallery-hint[hidden] { display: none; }
+
+        /* 右侧条目：标题、城市 / 省份 / 日期 / 票号小表、说明、序号 */
         .ticket-gallery-meta { max-width: 360px; }
         .ticket-gallery-meta h2 {
-            margin: 0;
-            color: #f4efe6;
-            font: 400 clamp(32px, 4vw, 60px)/1.15 "STXingkai", "华文行楷", cursive;
-            letter-spacing: 0.05em;
+            margin: 0 0 18px;
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-2xl)/1.25 var(--fp-font-title);
+            letter-spacing: 0.02em;
         }
-        .ticket-gallery-meta dl { margin: 0; border-top: 1px solid rgba(244, 239, 230, 0.16); }
-        .ticket-gallery-meta dl > div { display: grid; grid-template-columns: 62px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(244, 239, 230, 0.11); }
-        .ticket-gallery-meta dt { color: rgba(244, 239, 230, 0.48); font-size: 11px; }
-        .ticket-gallery-meta dd { margin: 0; color: #f4efe6; font-size: 13px; line-height: 1.55; }
-        /* 图标仅用于横向长串（strip）字幕行；票夹表格里隐藏，避免图标打乱城市/日期行 */
+        .ticket-meta-subtitle { margin: 0 0 12px; color: var(--fp-ink-soft); font-size: var(--fp-size-sm); }
+        .ticket-gallery-meta dl { margin: 0; border-top: 1px solid var(--fp-rule); }
+        .ticket-gallery-meta dl > div { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--fp-rule); }
+        .ticket-gallery-meta dt { color: var(--fp-ink-faint); font-size: var(--fp-size-xs); line-height: 1.7; }
+        .ticket-gallery-meta dd { margin: 0; color: var(--fp-ink); font-size: var(--fp-size-sm); line-height: 1.7; font-variant-numeric: tabular-nums; }
+        /* 图标仅用于横向长串（strip）字幕行；票夹表格里隐藏 */
         .ticket-gallery-meta dl > div > svg { display: none; }
-        .ticket-gallery-empty { grid-column: 1 / -1; width: 100%; }
+        .ticket-meta-description {
+            margin: 18px 0 0;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
+            line-height: 1.7;
+        }
+        .ticket-meta-description:empty { display: none; }
+        .ticket-meta-count {
+            margin: 18px 0 0;
+            color: var(--season-accent);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
+            transition: color var(--fp-dur) var(--fp-ease);
+        }
+
+        @media (max-width: 700px) {
+            .ticket-gallery-top { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px 12px; padding-right: 16px; padding-left: 16px; }
+            .ticket-gallery-heading { grid-column: 1; grid-row: 1; }
+            #ticketGalleryBack { grid-column: 1; grid-row: 2; justify-self: center; }
+            .ticket-gallery-content { width: min(100% - 28px, 700px); padding-top: 24px; }
+        }
         @media (max-width: 900px) {
             /* 移动端：整屏不滚动 —— 顶部栏固定，票根在上、信息在下，共同占满一屏 */
             #ticketGallery.show {
@@ -447,18 +263,11 @@
                 padding-bottom: 8px;
                 gap: 4px 12px;
             }
-            .ticket-gallery-eyebrow {
-                margin-bottom: 2px;
-                font-size: 9px;
-                letter-spacing: 0.3em;
-                text-indent: 0.3em;
-            }
             .ticket-gallery-heading h2 {
-                font-size: 24px;
+                font-size: var(--fp-size-lg);
             }
             .ticket-gallery-heading p:last-child {
                 margin-top: 2px;
-                font-size: 10px;
             }
             .ticket-gallery-content {
                 flex: 1 1 auto;
@@ -493,10 +302,8 @@
                 width: 100%;
             }
             .ticket-wallet {
-                /* 高度由宽度 + 固定宽高比决定，不随屏幕高度变化，
-                   切换票根/加载中不跳动，折叠间隙在不同高度手机上保持一致 */
-                /* 两侧各留约 32px：后方扇形票根的左右边缘要展开在夹子外，
-                   否则第 2 张之后的票根会被屏幕/内容区裁掉，几乎看不到 */
+                /* 高度由宽度 + 固定宽高比决定，不随屏幕高度变化；
+                   两侧各留约 32px，后方扇形票根的左右边缘要展开在夹子外 */
                 width: min(100% - 64px, 620px);
                 aspect-ratio: 16 / 9;
                 height: auto;
@@ -507,12 +314,11 @@
                 height: 100%;
                 object-fit: contain;
             }
-            /* 后面的票根：保持自然比例露出折边；
-               仅在超高（会从顶部戳出）时把高度收进展示区，cover 防止被限高后变形 */
+            /* 后面的票根：保持自然比例露出折边；仅在超高时把高度收进展示区 */
             .ticket-wallet-item.is-behind {
                 bottom: -14px;
                 height: auto;
-                max-height: calc(100% + 2px);   /* 顶部留出旋转余量，避免角部戳出 */
+                max-height: calc(100% + 2px);
                 object-fit: cover;
             }
             /* 加载/失败提示浮在票根区中央，不参与布局，避免信息区上下跳动 */
@@ -530,15 +336,12 @@
                 flex-direction: column;
                 gap: 12px;
             }
-            /* 移动端：票根下方显示一行小字，提示可左右滑动切换 */
+            /* 移动端：票根下方一行小字，提示可左右滑动切换 */
             #ticketGalleryHint:not([hidden]) {
                 display: block;
-                margin: -8px 0 0;   /* 叠在票夹底部留白上，尽量少占空间 */
+                margin: -8px 0 0;
                 padding: 0;
-                font-size: 11px;
                 line-height: 1.4;
-                letter-spacing: 0.06em;
-                color: rgba(244, 239, 230, 0.42);
             }
             .ticket-gallery-meta {
                 flex: 1 1 auto;
@@ -549,14 +352,10 @@
                 max-width: none;
                 margin: 0 auto;
             }
-            .ticket-meta-kicker { display: none; }
-            .ticket-gallery-meta h2 { font-size: 24px; }
-            .ticket-meta-subtitle { margin-bottom: 12px; }
+            .ticket-gallery-meta h2 { margin-bottom: 10px; font-size: var(--fp-size-xl); }
             .ticket-gallery-meta dl > div { padding: 8px 0; }
             .ticket-meta-description {
                 margin-top: 10px;
-                font-size: 13px;
-                line-height: 1.6;
                 display: -webkit-box;
                 -webkit-line-clamp: 2;
                 -webkit-box-orient: vertical;
@@ -569,48 +368,6 @@
         }
         @media (prefers-reduced-motion: reduce) {
             #ticketGalleryBack,
-            #ticketLightboxClose,
-            #ticketLightboxPrev,
-            #ticketLightboxNext,
             .ticket-wallet-item,
-            .ticket-card { transition: none; }
-            .ticket-card:hover,
-            .ticket-card:focus-visible { transform: none; }
+            .ticket-meta-count { transition: none; }
         }
-
-        /* 票根墙使用大图档案布局：页面直接展示可阅读尺寸，不做三列缩略图 */
-        .ticket-gallery-content {
-            width: min(1500px, calc(100% - 56px));
-        }
-        .ticket-gallery-grid {
-            columns: 2;
-            column-gap: 30px;
-        }
-        .ticket-card {
-            padding: 10px 10px 34px;
-        }
-        .ticket-card-image img {
-            min-height: 220px;
-        }
-        .ticket-card-caption {
-            padding: 13px 5px 0;
-        }
-        .ticket-card-caption strong {
-            font-size: 17px;
-        }
-        @media (max-width: 1023px) {
-            .ticket-gallery-grid {
-                columns: 1;
-                max-width: 920px;
-                margin: 0 auto;
-            }
-        }
-        @media (max-width: 700px) {
-            .ticket-gallery-content {
-                width: min(100% - 28px, 700px);
-            }
-            .ticket-card-image img {
-                min-height: 0;
-            }
-        }
-

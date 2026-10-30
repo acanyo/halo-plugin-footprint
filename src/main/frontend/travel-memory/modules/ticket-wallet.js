@@ -219,7 +219,8 @@ function renderTicketMeta(fp) {
     }
     ticketLightboxSubtitle.textContent = '';
     ticketLightboxSubtitle.hidden = true;
-    ticketLightboxDescription.textContent = meta.description || '风吹洱海，云落苍山，生活在别处，也在此刻。';
+    // 只显示用户自己写的说明；没写就空着（样式里 :empty 不占位）
+    ticketLightboxDescription.textContent = meta.description || '';
     ticketLightboxDescription.hidden = false;
     ticketLightboxDetails.innerHTML = [
         ['城市', meta.route, 'route', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.5 6-11a6 6 0 1 0-12 0c0 5.5 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg>'],
@@ -227,7 +228,7 @@ function renderTicketMeta(fp) {
         ['日期', meta.date, 'date', '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2"/><path d="M7.5 3.5v4M16.5 3.5v4M3.5 10h17"/></svg>'],
         ['票号', meta.no, 'no', '']
     ].filter(item => item[1]).map(item => '<div class="ticket-meta-field ticket-meta-field-' + item[2] + '">' + item[3] + '<dt>' + ticketEscape(item[0]) + '</dt><dd>' + ticketEscape(item[1]) + '</dd></div>').join('');
-    ticketLightboxCount.textContent = (getTicketIndex() + 1) + ' / ' + getTicketItems().length;
+    ticketLightboxCount.textContent = '第 ' + (getTicketIndex() + 1) + ' 张，共 ' + getTicketItems().length + ' 张';
 }
 
 export function renderTicketWallet() {

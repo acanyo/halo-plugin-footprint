@@ -364,8 +364,8 @@ export function setTicketView(open, targetIndex, startRotation) {
         const cities = new Set(getTicketItems().map(fp => fp.city).filter(Boolean));
         const latest = getTicketItems().map(fp => ticketDate(fp.ticketDate || fp.createTime)).filter(Boolean)[0] || '';
         ticketGalleryStats.textContent = getTicketItems().length
-            ? getTicketItems().length + ' 张票根 · ' + (cities.size || '多个') + ' 个目的地' + (latest ? ' · 最近 ' + latest : '')
-            : '收集每一次出发的凭证';
+            ? getTicketItems().length + ' 张票根' + (cities.size ? '，' + cities.size + ' 座城市' : '') + (latest ? '，最近一张 ' + latest : '')
+            : '还没有票根';
         ticketGallery.classList.add('show');
         deps.setOverlayHidden(ticketGallery, false);
         document.body.classList.add('ticket-gallery-open');

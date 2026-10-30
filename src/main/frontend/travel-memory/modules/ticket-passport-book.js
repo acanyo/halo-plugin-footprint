@@ -53,13 +53,13 @@ export function renderTicketPassport() {
         status.textContent = stamped ? '已检票' : '未检票';
         const title = document.createElement('span');
         title.className = 'ticket-passport-cell-title';
-        title.textContent = [fp.name || fp.ticketTitle, fp.city].filter(Boolean).join(' · ');
+        title.textContent = [fp.name || fp.ticketTitle, fp.city].filter(Boolean).join('，');
         cell.append(img, status, title);
         ticketPassportGrid.appendChild(cell);
     });
     const stamped = ordered.filter(fp => isTicketStamped(fp)).length;
-    ticketPassportStats.textContent = stamped + ' / ' + ordered.length + ' 已集章' +
-        (stamped === ordered.length && ordered.length ? ' · 全站抵达' : '');
+    ticketPassportStats.textContent = '已检票 ' + stamped + ' 张，共 ' + ordered.length + ' 张' +
+        (stamped === ordered.length && ordered.length ? '，全部检过' : '');
     if (ticketPassportReset) {
         ticketPassportReset.hidden = ordered.length === 0;
     }

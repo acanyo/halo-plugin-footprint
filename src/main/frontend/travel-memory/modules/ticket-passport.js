@@ -103,8 +103,7 @@ export function updateTicketStampBadge(fp, animate) {
     ticketStampBadge.hidden = !stamped;
     if (!stamped) return;
     const meta = ticketMeta(fp);
-    ticketStampBadge.textContent = '已检票 · ' + (fp.city || meta.route || '') +
-        (meta.date ? ' · ' + meta.date : '');
+    ticketStampBadge.textContent = ['已检票', fp.city || meta.route, meta.date].filter(Boolean).join('　');
     if (animate) {
         ticketStampBadge.classList.remove('is-stale');
         void ticketStampBadge.offsetWidth;

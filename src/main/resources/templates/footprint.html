@@ -359,7 +359,7 @@
         </div>
     </div>
     <!-- 票根墙：仅展示配置了 ticketImage 的足迹 -->
-    <div id="ticketGallery" role="region" aria-label="旅行票根墙" aria-hidden="true">
+    <div id="ticketGallery" class="fp-sheet" role="region" aria-label="旅行票根墙" aria-hidden="true">
         <div class="ticket-gallery-top">
             <button id="ticketGalleryBack" type="button" aria-label="返回地球">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
@@ -368,9 +368,8 @@
                 <span>返回地球</span>
             </button>
             <div class="ticket-gallery-heading">
-                <p class="ticket-gallery-eyebrow">TRAVEL TICKET ARCHIVE</p>
                 <h2>旅途票根</h2>
-                <p id="ticketGalleryStats">收集每一次出发的凭证</p>
+                <p id="ticketGalleryStats">还没有票根</p>
             </div>
             <div class="ticket-gallery-actions" id="ticketGalleryActions">
                 <div id="ticketViewModes" class="ticket-view-modes" role="group" aria-label="票根浏览模式" hidden>
@@ -426,9 +425,8 @@
                     </div>
                     <span id="ticketStampBadge" class="ticket-stamp-badge" hidden aria-hidden="true"></span>
                 </div>
-                <!-- TicketCaption：当前选中票根下方的悬浮电影字幕信息区 -->
+                <!-- 当前票根的条目：票夹里在右侧，横向长串里在票根下方 -->
                 <aside id="ticketMetaPanel" class="ticket-gallery-meta ticket-caption">
-                    <p class="ticket-meta-kicker">FOOTPRINT RECORD</p>
                     <h2 id="ticketGalleryTitle">
                         <span class="ticket-meta-title-line">
                             <span class="ticket-meta-title-text"></span>
@@ -439,7 +437,6 @@
                     <p id="ticketGallerySubtitle" class="ticket-meta-subtitle"></p>
                     <dl id="ticketGalleryDetails"></dl>
                     <p id="ticketGalleryDescription" class="ticket-meta-description"></p>
-                    <p id="ticketGalleryTagline" class="ticket-meta-tagline">DIFFERENT PLACES, A BRIGHTER YOU</p>
                     <p id="ticketGalleryPosition" class="ticket-meta-count"></p>
                     <div class="ticket-meta-actions" id="ticketMetaActions">
                         <button id="ticketLetterBtn" type="button" hidden>给这张票写信</button>
@@ -448,7 +445,7 @@
             </div>
             <div id="ticketGalleryEmpty" class="ticket-gallery-empty" hidden>
                 <p>还没有收集票根</p>
-                <span>回到地球，继续记录下一段旅程。</span>
+                <span>在后台给足迹加上票根图后，会排在这里。</span>
             </div>
         </div>
         <div id="ticketReplayView" class="ticket-replay-view" hidden>
@@ -498,7 +495,6 @@
             </div>
             <div id="ticketReplayEnd" class="ticket-replay-end" hidden>
                 <div class="ticket-replay-end-card" role="dialog" aria-labelledby="ticketReplayEndTitle">
-                    <p class="ticket-replay-end-kicker">THE JOURNEY SO FAR</p>
                     <h3 id="ticketReplayEndTitle">重走完毕</h3>
                     <p id="ticketReplayEndRange" class="ticket-replay-end-range"></p>
                     <dl class="ticket-replay-end-metrics">
@@ -515,7 +511,7 @@
                             <dd id="ticketReplayEndKm">—</dd>
                         </div>
                         <div class="ticket-replay-end-metric">
-                            <dt>年跨度</dt>
+                            <dt>个年份</dt>
                             <dd id="ticketReplayEndSpan">—</dd>
                         </div>
                     </dl>
@@ -536,13 +532,12 @@
         </div>
     </div>
     <!-- 旅行护照：本机集章进度 -->
-    <div id="ticketPassport" class="feature-overlay ticket-passport-overlay" role="dialog" aria-modal="true" aria-label="旅行护照" aria-hidden="true">
+    <div id="ticketPassport" class="feature-overlay ticket-passport-overlay fp-sheet" role="dialog" aria-modal="true" aria-label="旅行护照" aria-hidden="true">
         <div class="feature-top">
             <button id="ticketPassportBack" class="feature-back" type="button" aria-label="返回票根页">
                 <span>‹ 返回票根页</span>
             </button>
             <div class="feature-head">
-                <p class="feature-eyebrow">TRAVEL PASSPORT</p>
                 <h2>旅行护照</h2>
                 <p id="ticketPassportStats"></p>
             </div>
@@ -554,13 +549,12 @@
         </div>
     </div>
     <!-- 命运抽票：随机翻开一张已有票根并给出“下一站”灵感 -->
-    <div id="ticketOracle" class="feature-overlay ticket-overlay-high" role="dialog" aria-modal="true" aria-label="命运抽票" aria-hidden="true">
+    <div id="ticketOracle" class="feature-overlay ticket-overlay-high fp-sheet" role="dialog" aria-modal="true" aria-label="命运抽票" aria-hidden="true">
         <div class="feature-top">
             <button id="ticketOracleBack" class="feature-back" type="button" aria-label="返回票根页">
                 <span>‹ 返回票根页</span>
             </button>
             <div class="feature-head">
-                <p class="feature-eyebrow">NEXT STOP ORACLE</p>
                 <h2>命运抽票</h2>
                 <p id="ticketOracleStats"></p>
             </div>
@@ -583,13 +577,12 @@
         </div>
     </div>
     <!-- 未寄出的明信片：为当前票根自动生成一封可分享的信 -->
-    <div id="ticketLetter" class="feature-overlay ticket-overlay-high" role="dialog" aria-modal="true" aria-label="未寄出的明信片" aria-hidden="true">
+    <div id="ticketLetter" class="feature-overlay ticket-overlay-high fp-sheet" role="dialog" aria-modal="true" aria-label="未寄出的明信片" aria-hidden="true">
         <div class="feature-top">
             <button id="ticketLetterBack" class="feature-back" type="button" aria-label="返回票根页">
                 <span>‹ 返回票根页</span>
             </button>
             <div class="feature-head">
-                <p class="feature-eyebrow">A LETTER FROM A TICKET</p>
                 <h2 id="ticketLetterTitle">未寄出的明信片</h2>
             </div>
             <div class="feature-nav"></div>
@@ -608,7 +601,7 @@
                 <button id="ticketLetterDownload" type="button" disabled>下载图片</button>
                 <button id="ticketLetterShare" type="button" hidden>分享</button>
             </div>
-            <p class="ticket-letter-note">这封信由票根自动写成，正面是票根，背面是当时想说的话。</p>
+            <p class="ticket-letter-note">这张图由票根和足迹信息自动生成，上面是票根，下面是一封写给自己的信。</p>
         </div>
     </div>
     <!-- 图片灯箱 -->
