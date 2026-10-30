@@ -27,7 +27,7 @@ export const openPhotoLightbox = (images, index, name) => {
         <div class="photo-lightbox-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(name || '图片预览')}">
             <span class="photo-lightbox-loader" role="status" aria-label="图片加载中"></span>
             <img class="photo-lightbox-image" src="${escapeHtml(getPhotoWallImageUrl(safeImages[currentIndex], 1200))}" alt="${escapeHtml(name || '足迹图片')}">
-            <div class="photo-lightbox-caption">${escapeHtml(name || '足迹')} · ${currentIndex + 1} / ${safeImages.length}</div>
+            <div class="photo-lightbox-caption">${escapeHtml(name || '足迹')}，${currentIndex + 1} / ${safeImages.length}</div>
         </div>
         <button class="photo-lightbox-arrow photo-lightbox-next" type="button" data-lightbox-action="next" aria-label="下一张">→</button>
     `;
@@ -71,7 +71,7 @@ export const openPhotoLightbox = (images, index, name) => {
         lightbox.dataset.index = String(nextIndex);
         const caption = lightbox.querySelector('.photo-lightbox-caption');
         loadLightboxImage(nextIndex);
-        if (caption) caption.textContent = `${lightbox.dataset.name} · ${nextIndex + 1} / ${imagesForLightbox.length}`;
+        if (caption) caption.textContent = `${lightbox.dataset.name}，${nextIndex + 1} / ${imagesForLightbox.length}`;
     };
     const close = () => {
         lightbox.remove();

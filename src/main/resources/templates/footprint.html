@@ -700,7 +700,7 @@
 </div>
 
 <!-- ================= 2D 高德地图视图（原页面，切 2D 时启用） ================= -->
-<div id="view-2d" hidden>
+<div id="view-2d" class="fp-sheet" hidden>
 <canvas id="canvas"></canvas>
 <div class="footprint-container">
     <!-- 地图容器 -->
@@ -711,25 +711,20 @@
 
     <!-- 左上角Logo和文字 -->
     <div class="logo-container">
-        <h1 class="footprint-logo" th:text="${settings.logoName}">足迹<span class="logo-version">2024</span></h1>
-        <p class="footprint-slogan" th:text="${settings.describe}">
-            每一处足迹都充满了故事，那是对人生的思考和无限的风光。</p>
+        <h1 class="footprint-logo" th:text="${settings.logoName}">足迹</h1>
+        <p class="footprint-slogan" th:text="${settings.describe}"></p>
     </div>
 
 
     <!-- 右上角统计面板 -->
     <div id="map-stats" class="map-stats-panel show" aria-label="足迹统计">
         <div class="stats-heading">
-            <div class="stats-heading-copy">
-                <span class="stats-kicker">TRAVEL LOG</span>
-                <span class="stats-title">足迹概览</span>
-            </div>
-            <span class="stats-live" aria-hidden="true"><i></i>LIVE</span>
+            <span class="stats-title">足迹记录</span>
         </div>
         <div class="stats-main">
             <div class="stats-item stats-total">
                 <span class="stats-number" id="stats-total">0</span>
-                <span class="stats-label">总足迹</span>
+                <span class="stats-label">足迹</span>
             </div>
             <div class="stats-item">
                 <span class="stats-number stats-accent" id="stats-provinces">0 / 34</span>
@@ -815,9 +810,8 @@
 <div class="timeline-drawer" id="timelineDrawer">
     <div class="drawer-header">
         <div class="drawer-header-copy">
-            <span class="drawer-eyebrow">TRAVEL ARCHIVE</span>
             <h2 id="timeline-title"><i class="fas fa-clock" aria-hidden="true"></i><span>旅行时间线</span></h2>
-            <p class="drawer-subtitle">按时间回看走过的地方</p>
+            <p class="drawer-subtitle">按记录时间排列</p>
         </div>
         <button class="time-close-btn" id="closeBtn" aria-label="关闭时间线"><span aria-hidden="true">X</span></button>
     </div>

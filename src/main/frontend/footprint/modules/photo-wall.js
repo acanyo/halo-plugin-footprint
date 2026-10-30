@@ -75,14 +75,14 @@ export const createPhotoWall = (spec, page = 0) => {
         : images.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
     let cards = '';
     let canvas = '';
-    let kicker = 'MEMORY WALL';
+    // 标题上方一行写足迹的地址（真实信息），没有地址就不显示
+    const kicker = escapeHtml(spec.address || '');
     let counter = `${currentPage + 1} / ${totalPages}`;
     let wallClass = '';
     let wallStyleAttribute = '';
 
     if (style === 'gallery') {
         wallClass = ' photo-wall-variant-a';
-        kicker = 'TRAVEL GALLERY';
         cards = pageImages.map((url, index) => {
             const absoluteIndex = currentPage * pageSize + index;
             const imageUrl = getPhotoWallImageUrl(url);
@@ -102,13 +102,12 @@ export const createPhotoWall = (spec, page = 0) => {
             <div class="photo-wall-canvas photo-wall-gallery-stage">
                 <button class="photo-wall-feature" type="button" data-photo-index="${primaryIndex}" aria-label="放大查看第 ${primaryIndex + 1} 张图片">
                     <img src="${escapeHtml(primaryUrl)}" alt="${escapeHtml(spec.name || '足迹图片')}" loading="eager" decoding="async">
-                    <span class="photo-wall-feature-caption">${escapeHtml(spec.name || '足迹')} · ${primaryIndex + 1}</span>
+                    <span class="photo-wall-feature-caption">第 ${primaryIndex + 1} 张，共 ${images.length} 张</span>
                 </button>
                 <div class="photo-wall-thumb-rail" aria-label="图片缩略图">${cards}</div>
             </div>`;
     } else if (style === 'filmstrip') {
         wallClass = ' photo-wall-variant-b';
-        kicker = 'FILM STRIP';
         counter = `${images.length} 张`;
         const thumbImages = isMobile ? pageImages.slice(1) : pageImages;
         cards = thumbImages.map((url, index) => {
@@ -134,7 +133,6 @@ export const createPhotoWall = (spec, page = 0) => {
             </div>`;
     } else if (style === 'journal') {
         wallClass = ' photo-wall-variant-c';
-        kicker = 'TRAVEL JOURNAL';
         const journalRows = Math.max(1, Math.ceil(pageImages.length / 3));
         const journalHeight = 324 + (journalRows - 1) * 145;
         wallStyleAttribute = ` style="--journal-wall-height:${journalHeight}px;"`;
@@ -155,7 +153,6 @@ export const createPhotoWall = (spec, page = 0) => {
         canvas = `<div class="photo-wall-canvas photo-wall-journal-grid">${cards}</div>`;
     } else if (style === 'focus') {
         wallClass = ' photo-wall-variant-d';
-        kicker = 'FOCUS FRAME';
         cards = pageImages.slice(1).map((url, index) => {
             const layout = PHOTO_WALL_FOCUS_LAYOUTS[index % PHOTO_WALL_FOCUS_LAYOUTS.length];
             const absoluteIndex = currentPage * pageSize + index + 1;

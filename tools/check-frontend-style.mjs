@@ -24,9 +24,9 @@ const walk = (dir, ext) => readdirSync(dir).flatMap((name) => {
   return statSync(p).isDirectory() ? walk(p, ext) : (p.endsWith(ext) ? [p] : []);
 });
 
-// 2D 地图页（footprint.css / footprint/）是另一套独立界面，暂不纳入
-const STYLE_DIRS = ["travel-memory", "memory-shelf", "shared"].map((d) => join(ROOT, "src/main/frontend/styles", d));
-const SCRIPT_DIRS = ["travel-memory", "memory-shelf"].map((d) => join(ROOT, "src/main/frontend", d));
+// footprint/ 是「2D 地图」页（高德地图）的样式与脚本
+const STYLE_DIRS = ["travel-memory", "memory-shelf", "shared", "footprint"].map((d) => join(ROOT, "src/main/frontend/styles", d));
+const SCRIPT_DIRS = ["travel-memory", "memory-shelf", "footprint"].map((d) => join(ROOT, "src/main/frontend", d));
 const TEMPLATE = join(ROOT, "src/main/resources/templates/footprint.html");
 
 const issues = { eyebrow: [], dot: [], color: [], font: [] };

@@ -1,454 +1,60 @@
-/* 时间线抽屉 */
+/*
+ * 时间线抽屉：从右侧滑出的一页白图，按时间列出足迹。
+ * 这里是抽屉本体与滚动区；头部和左侧轨道见 timeline-track-and-header.css，
+ * 每条足迹的照片卡见 timeline-archive-cards.css。
+ */
 .timeline-drawer {
     position: fixed;
     top: 0;
-    right: -500px;
-    width: 500px;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.94);
-    border-left: 1px solid rgba(15, 23, 42, 0.08);
-    box-shadow: -18px 0 44px rgba(15, 23, 42, 0.12);
+    right: min(-500px, -100vw);
     z-index: 2;
-    transition: right 0.35s ease;
     display: flex;
     flex-direction: column;
+    width: min(500px, 100vw);
+    height: 100%;
     overflow: hidden;
-    backdrop-filter: blur(12px);
+    background: var(--fp-paper);
+    border-left: 1px solid var(--fp-rule);
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
+    transition: right 0.24s var(--fp-ease);
 }
 .timeline-drawer.open {
     right: 0;
-    /* 保持透明度，背景色已用变量 */
 }
-.drawer-header {
-    background: rgba(255, 255, 255, 0.72);
-    padding: 20px 22px;
-    color: var(--text-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.timeline-drawer .timeline-content {
     position: relative;
-    z-index: 2;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    backdrop-filter: blur(12px);
-}
-.drawer-header h2 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-color);
-    letter-spacing: 0.02em;
-}
-.time-close-btn {
-    background: rgba(15, 23, 42, 0.04);
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    color: var(--text-light);
-    font-size: 1.2rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-.time-close-btn:hover {
-    background: hsla(var(--hsla-raw), 0.16);
-    color: #fff;
-    transform: rotate(90deg) scale(1.02);
-}
-.timeline-content {
-    padding: 18px 0 22px 18px;
-    overflow-y: auto;
     height: 100%;
-    background: transparent;
+    min-height: 0;
+    padding: 20px 22px 40px 24px;
+    overflow-y: auto;
+    background: var(--fp-paper);
 }
-/* 时间线主线 */
-.timeline {
-    position: relative;
-    padding: 0 0 28px;
-}
-.timeline::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 44px;
-    width: 2px;
-    background: linear-gradient(to bottom, hsla(var(--hsla-raw), 0.14), hsla(var(--hsla-raw), 0.5), hsla(var(--hsla-raw), 0.14));
-}
-.timeline-item {
-    position: relative;
-    margin: 0 22px 32px 0;
-    padding-left: 72px;
-    opacity: 0;
-    transform: translateX(16px);
-    transition: opacity 0.35s ease, transform 0.35s ease;
-}
-
-.timeline-item::after {
-    content: '';
-    position: absolute;
-    left: 32px;
-    top: 40px;
-    bottom: -32px;
-    width: 3px;
-    background: linear-gradient(to bottom, hsl(var(--hsla-raw)), hsla(var(--hsla-raw), 0.05));
-    z-index: 0;
-    border-radius: 2px;
-}
-
-.timeline-item:last-child::after {
+/* 模板里留着的装饰层，不再画东西 */
+.timeline-drawer .timeline-decoration {
     display: none;
 }
-.timeline-item.visible {
-    opacity: 1;
-    transform: translateX(0);
+.timeline-drawer .timeline-content::-webkit-scrollbar {
+    width: 8px;
 }
-.timeline-date {
-    position: absolute;
-    left: 0;
-    top: 14px;
-    background: hsl(var(--hsla-raw));
-    color: #fff;
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-weight: 600;
-    min-width: 65px;
-    font-size: 0.8rem;
-    text-align: center;
-    border: none;
-    box-shadow: 0 4px 12px hsla(var(--hsla-raw), 0.35);
-    z-index: 2;
-    letter-spacing: 0.03em;
+.timeline-drawer .timeline-content::-webkit-scrollbar-track {
+    background: transparent;
 }
-/* 卡片样式优化 */
-.timeline-content-card {
-    background: var(--bg-color, #fff);
-    border-radius: 12px;
-    border: 1px solid rgba(15, 23, 42, 0.06);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-    overflow: hidden;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    position: relative;
-    z-index: 1;
-    margin-top: 10px;
-    width: 320px;
+.timeline-drawer .timeline-content::-webkit-scrollbar-thumb {
+    border: 2px solid var(--fp-paper);
+    border-radius: 4px;
+    background: var(--fp-rule-strong);
 }
-
-.timeline-content-card::before {
-    content: '';
-    position: absolute;
-    left: -43px;
-    top: 20px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: hsl(var(--hsla-raw));
-    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.2);
-    z-index: 3;
-}
-.timeline-content-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
-}
-.timeline-media {
-    position: relative;
-    height: 220px;
-    overflow: hidden;
-    background: #f5f5f5;
-}
-.timeline-media img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform 0.5s ease;
-}
-.timeline-content-card:hover .timeline-media img {
-    transform: scale(1.02);
-    z-index: 10;
-}
-.media-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to top, rgba(7, 12, 20, 0.7) 0%, rgba(7, 12, 20, 0.34) 42%, transparent 72%);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 16px;
-    z-index: 2;
-}
-.timeline-location {
-    color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 6px;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-    transition: transform 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.timeline-content-card:hover .timeline-location {
-    transform: translateX(10px) translateY(-52px);
-    z-index: 10;
-}
-.timeline-info-overlay {
-    padding: 12px 0 0;
-}
-.timeline-desc {
-    color: rgba(255, 255, 255, 0.92);
-    line-height: 1.6;
-    margin: 0 0 12px 0;
-    font-size: 0.82rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-.detail-btn {
-    /*background: rgba(12, 18, 28, 0.46);*/
-    background: rgba(255, 255, 255, 0.46);
-    color: #fff;
-    border: 1px solid hsla(var(--hsla-raw), 0.42);
-    border-radius: 999px;
-    padding: 8px 14px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
-    letter-spacing: 0.02em;
-    backdrop-filter: blur(6px);
-}
-.detail-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to right, rgba(255,255,255,0.18), rgba(255,255,255,0));
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-}
-.detail-btn:hover {
-    transform: translateY(-1px);
-    /*box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);*/
-    box-shadow: 0 10px 24px rgba(231, 231, 231, 0.22);
-    background: hsla(var(--hsla-raw), 0.78);
-    border-color: hsla(var(--hsla-raw), 0.94);
-}
-.detail-btn:hover::before {
-    transform: translateX(100%);
-}
-/* 响应式设计 */
 @media (max-width: 768px) {
     .timeline-drawer {
-        width: 100vw;
         right: -100vw;
-        min-width: unset;
+        width: 100vw;
         max-width: 100vw;
-        border-radius: 0;
     }
     .timeline-drawer.open {
         right: 0;
     }
-    .map-controls.open {
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
-        border-radius: 16px;
-    }
-    .map-controls.open:hover {
-        transform: translateX(-50%) translateY(-2px);
-    }
-    .drawer-header {
-        padding: 14px 10px;
-        font-size: 1.1rem;
-    }
-    .timeline-content {
-        padding: 10px 0 10px 5px;
-    }
-    .timeline-item {
-        isolation: isolate;
-    }
-    .timeline-item::before {
-        display: none;
-    }
-    .timeline-content-card {
-        width: 65vw;
-        min-width: unset;
-        margin-top: 10px;
-        border-radius: 10px;
-        z-index: 1;
-    }
-    .timeline-content-card::before {
-        display: none;
-    }
-    .timeline-media {
-        height: 160px;
-    }
-    .media-overlay {
-        padding: 10px;
-    }
-    .timeline-location {
-        font-size: 0.95rem;
-        gap: 4px;
-        margin-bottom: 4px;
-    }
-    .timeline-content-card:hover .timeline-location {
-        transform: translateX(8px) translateY(-42px);
-    }
-    .timeline-date {
-        position: absolute;
-        z-index: 5;
-        box-sizing: border-box;
-        min-width: 60px;
-        font-size: 0.8rem;
-        padding: 5px 7px;
-        top: 8px;
-        background: hsl(var(--hsla-raw));
-    }
-    .timeline-desc {
-        font-size: 0.75rem;
-        height: 16px;
-        margin-bottom: 8px;
-    }
-    .detail-btn {
-        font-size: 0.7rem;
-        padding: 6px 10px;
-        border-radius: 10px;
-        gap: 4px;
-    }
-    .location-icon {
-        width: 16px;
-        height: 16px;
+    .timeline-drawer .timeline-content {
+        padding: 16px 16px 32px 18px;
     }
 }
-/* 时间线装饰 */
-.timeline-decoration {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 150px;
-    background: linear-gradient(to bottom, hsla(var(--hsla-raw), 0.12), transparent);
-    z-index: 1;
-}
-.timeline-content::-webkit-scrollbar {
-    width: 6px;
-}
-.timeline-content::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.06);
-}
-.timeline-content::-webkit-scrollbar-thumb {
-    background: hsla(var(--hsla-raw), 0.38);
-    border-radius: 4px;
-}
-.timeline-content::-webkit-scrollbar-thumb:hover {
-    background: hsla(var(--hsla-raw), 0.55);
-}
-.location-icon {
-    width: 20px;
-    height: 20px;
-}
-/* === 无障碍: prefers-reduced-motion === */
-@media (prefers-reduced-motion: reduce) {
-  #footprint-page *,
-  #footprint-page *::before,
-  #footprint-page *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  .animate-in {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-  .btn-pulse {
-    animation: none !important;
-  }
-  #footprint-map.map-shake {
-    animation: none !important;
-  }
-  .timeline-content-card:hover .timeline-media img,
-  .timeline-content-card:hover .timeline-location {
-    transform: none !important;
-  }
-  .detail-btn:hover {
-    transform: none !important;
-  }
-}
-/* === 深色模式基础支持 === */
-@media (prefers-color-scheme: dark) {
-  #footprint-page {
-    --bg-color: #1a1a2e;
-    --text-color: #e0e0e0;
-    --text-light: #a0a0a0;
-    --shadow-color: rgba(0, 0, 0, 0.4);
-    background: #12121f;
-  }
-  #footprint-page #footprint-map {
-    background: #1a1a2e;
-  }
-  .timeline-drawer {
-    background: #1a1a2e;
-    border-left-color: rgba(255, 255, 255, 0.08);
-  }
-  .drawer-header {
-    background: #16213e;
-    border-bottom-color: rgba(255, 255, 255, 0.06);
-  }
-  .drawer-header h2 {
-    color: #e0e0e0;
-  }
-  .timeline-content-card {
-    background: #1e2a3a;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
-  .timeline-content-card:hover {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  }
-  .timeline-desc {
-    color: rgba(200, 200, 200, 0.8);
-  }
-  .detail-btn {
-    /*background: rgba(8, 12, 20, 0.52);*/
-    border-color: hsla(var(--hsla-raw), 0.55);
-  }
-  #messageBoards,
-  #back3dBtn {
-    background: #1e2a3a;
-    color: #e0e0e0;
-  }
-  #zoom-restore,
-  #back3dBtn {
-    background: #1e2a3a;
-    color: #e0e0e0;
-  }
-  .plane-switch input[type="checkbox"]:checked + div > div {
-    background: #2a5a3a;
-    border-color: #42b983;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-    .map-stats-panel {
-        transition: none;
-    }
-}
-

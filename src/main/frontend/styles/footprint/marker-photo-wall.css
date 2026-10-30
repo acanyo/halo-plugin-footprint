@@ -1,8 +1,14 @@
-/* ===== 标记点图片墙 ===== */
+/*
+ * 标记点图片墙（点有多张照片的标记时打开）与大图预览。
+ *
+ * 图片墙是一张白图纸面，标题用文楷、日期是等宽数字；五种排法（后台「图片墙样式」）
+ * 只在照片怎么摆上不同，见 gallery-modes-and-timeline-polish.css。
+ * 这里是共用部分，也是默认「散放」排法（original）：照片带白边、轻微倾斜、一角贴纸胶带。
+ */
 .photo-wall-layer {
     position: absolute;
-    z-index: 950;
     inset: 0;
+    z-index: 950;
     width: 100%;
     height: 100%;
     overflow: visible;
@@ -13,38 +19,41 @@
     visibility: hidden;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-8px) scale(0.98);
 }
 .photo-wall-window {
-    --wall-ink: #26302d;
-    --wall-muted: #75817b;
-    --wall-accent: #b36b4e;
-    --wall-paper: rgba(248, 246, 239, 0.98);
+    --wall-photo-frame: var(--fp-paper-raised);
+    --wall-photo-empty: var(--fp-rule);
+    --wall-tape: color-mix(in srgb, var(--fp-ink-faint) 22%, var(--fp-paper-raised));
     position: absolute;
     width: 620px;
     height: 440px;
     overflow: visible;
-    color: var(--wall-ink);
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
     pointer-events: auto;
-    animation: photoWallShow 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-    font-family: Georgia, 'Times New Roman', serif;
     cursor: default;
     user-select: none;
     -webkit-user-select: none;
     caret-color: transparent;
+    animation: photoWallShow 0.24s var(--fp-ease) both;
+}
+/* footprint-markers.js 建一个外层 .photo-wall-window 负责定位与开合动画，
+   createPhotoWall() 的输出是里层 .photo-wall-window，带各排法自己的尺寸。纸面画在里层。 */
+.photo-wall-window > .photo-wall-window {
+    top: 0;
+    left: 0;
+    background: var(--fp-paper);
+    border: 1px solid var(--fp-rule);
+    border-radius: var(--fp-radius-panel);
+    animation: none;
 }
 .photo-wall-window.photo-wall-closing {
-    transform-origin: top left;
     pointer-events: none;
-    animation: photoWallClose 0.42s cubic-bezier(0.4, 0, 1, 1) forwards;
+    animation: photoWallClose 0.2s var(--fp-ease) forwards;
 }
 .photo-wall-window.photo-wall-zooming-out {
-    transition: opacity 0.16s ease-out;
     opacity: var(--photo-wall-zoom-opacity, 1);
-}
-.photo-wall-connector.photo-wall-closing {
-    opacity: 0;
-    transition: opacity 0.22s ease;
+    transition: opacity 0.16s ease-out;
 }
 .photo-wall-window * {
     user-select: none;
@@ -55,17 +64,16 @@
     outline: none;
 }
 .photo-wall-window button:focus-visible {
-    outline: 2px solid rgba(61, 91, 75, 0.7);
-    outline-offset: 3px;
+    outline: 2px solid var(--fp-water);
+    outline-offset: 2px;
 }
-.photo-wall-window::before {
-    display: none;
-}
+
+/* 标题区：左边足迹名 + 日期 + 描述，右边页码与翻页 */
 .photo-wall-heading,
 .photo-wall-footer {
     position: absolute;
-    left: 24px;
     right: 24px;
+    left: 24px;
     z-index: 3;
     display: flex;
     align-items: center;
@@ -73,8 +81,8 @@
 }
 .photo-wall-heading {
     top: 18px;
-    gap: 20px;
     align-items: flex-start;
+    gap: 20px;
 }
 .photo-wall-heading-copy {
     min-width: 0;
@@ -83,9 +91,18 @@
 .photo-wall-heading-meta {
     display: flex;
     flex: 0 0 auto;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 7px;
+    align-items: center;
+    gap: 10px;
+}
+.photo-wall-kicker {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    line-height: 1.5;
+}
+.photo-wall-kicker:empty {
+    display: none;
 }
 .photo-wall-title-row {
     display: flex;
@@ -93,44 +110,72 @@
     gap: 12px;
     min-width: 0;
 }
-.photo-wall-kicker {
-    display: block;
-    margin-bottom: 3px;
-    color: var(--wall-muted);
-    font: 600 9px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
-    letter-spacing: 0.2em;
-}
 .photo-wall-heading h3 {
     margin: 0;
-    font: 600 22px/1.1 Georgia, 'Times New Roman', serif;
-    letter-spacing: 0.01em;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+}
+.photo-wall-date {
+    flex: 0 0 auto;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-sm);
+    font-variant-numeric: tabular-nums;
 }
 .photo-wall-description {
     max-width: 410px;
-    margin: 7px 0 0;
+    margin: 4px 0 0;
     overflow: hidden;
-    color: var(--wall-ink);
-    font: 12px/1.45 Georgia, 'Times New Roman', serif;
-    opacity: 0.72;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+    line-height: 1.6;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
 }
-.photo-wall-date {
-    flex: 0 0 auto;
-    color: var(--wall-accent);
-    font: 600 11px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-    letter-spacing: 0.04em;
-}
 .photo-wall-counter {
-    min-width: 42px;
-    padding: 6px 9px;
-    border: 1px solid rgba(43, 55, 49, 0.2);
-    border-radius: 999px;
-    color: var(--wall-muted);
-    text-align: center;
-    font: 600 11px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-sm);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
+.photo-wall-navigation {
+    display: flex;
+    gap: 4px;
+}
+.photo-wall-nav,
+.photo-wall-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--fp-rule-strong);
+    border-radius: var(--fp-radius-control);
+    background: transparent;
+    color: var(--fp-ink);
+    font: 400 var(--fp-size-md)/1 var(--fp-font-text);
+    cursor: pointer;
+    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
+}
+.photo-wall-close {
+    flex: 0 0 30px;
+    font-size: var(--fp-size-lg);
+}
+.photo-wall-nav:not(:disabled):hover,
+.photo-wall-close:hover {
+    background: var(--fp-rule);
+    border-color: var(--fp-ink-soft);
+}
+.photo-wall-nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* 照片区 */
 .photo-wall-canvas {
     position: absolute;
     inset: 88px 22px 47px;
@@ -139,43 +184,35 @@
 .photo-wall-thread {
     display: none;
 }
-.photo-wall-thread::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: -4px;
-    width: 8px;
-    height: 8px;
-    transform: translateX(-50%);
-    border: 2px solid #873d2d;
-    border-radius: 50%;
-    background: #ba654d;
-    box-shadow: 0 2px 5px rgba(61, 31, 22, 0.25);
-}
+/* 从标记点拉到图片墙的一条细线，两端各一个小圆点 */
 .photo-wall-connector {
     position: absolute;
     z-index: 1;
-    height: 2px;
+    height: 1px;
+    background: var(--fp-ink-soft);
     transform-origin: left center;
     pointer-events: none;
-    background: linear-gradient(90deg, rgba(72, 65, 52, 0.8), rgba(72, 65, 52, 0.18));
-    box-shadow: 0 1px rgba(255, 255, 255, 0.55);
 }
 .photo-wall-connector::before,
 .photo-wall-connector::after {
     content: '';
     position: absolute;
     top: 50%;
-    width: 8px;
-    height: 8px;
-    transform: translateY(-50%);
-    border: 2px solid #873d2d;
+    width: 7px;
+    height: 7px;
+    border: 1.5px solid var(--fp-ink-soft);
     border-radius: 50%;
-    background: #ba654d;
-    box-shadow: 0 2px 5px rgba(61, 31, 22, 0.25);
+    background: var(--fp-paper);
+    transform: translateY(-50%);
 }
-.photo-wall-connector::before { left: -4px; }
-.photo-wall-connector::after { right: -4px; }
+.photo-wall-connector::before { left: -3px; }
+.photo-wall-connector::after { right: -3px; }
+.photo-wall-connector.photo-wall-closing {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* 一张照片：白边相纸，按 --card-rotation 微斜，悬停摆正抬起 */
 .photo-wall-card {
     position: absolute;
     z-index: 2;
@@ -184,227 +221,132 @@
     padding: 0;
     border: 0;
     background: transparent;
-    transform: rotate(var(--card-rotation));
     cursor: zoom-in;
-    animation: photoWallCardIn 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: var(--card-delay, 0ms);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), z-index 0s 0.28s;
+    transform: rotate(var(--card-rotation, 0deg));
+    transition: transform var(--fp-dur) var(--fp-ease), z-index 0s var(--fp-dur);
 }
 .photo-wall-card:hover,
 .photo-wall-card:focus-visible {
     z-index: 8;
-    transform: rotate(0deg) translateY(-7px) scale(1.08);
-    transition-delay: 0s;
     outline: none;
+    transform: rotate(0deg) translateY(-6px) scale(1.06);
+    transition-delay: 0s;
 }
 .photo-wall-card-inner {
     position: relative;
     display: block;
     width: 100%;
     height: 100%;
-    padding: 7px 7px 20px;
-    border: 1px solid rgba(39, 43, 39, 0.17);
-    background: #fffef9;
-    box-shadow: 3px 5px 9px rgba(32, 39, 34, 0.18);
-    perspective: 520px;
+    padding: 6px 6px 18px;
+    border: 1px solid var(--fp-rule);
+    background: var(--wall-photo-frame);
 }
 .photo-wall-card img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    background: #e6e3db;
+    border-radius: var(--fp-radius-photo);
+    background: var(--wall-photo-empty);
 }
+/* 纸胶带：一小条半透明的淡墨色 */
 .photo-wall-tape {
     position: absolute;
-    z-index: 4;
-    top: -9px;
+    top: -8px;
     left: 50%;
-    width: 42px;
-    height: 13px;
-    --tape-peel-angle: 78deg;
-    --tape-peel-duration: 0.58s;
-    --tape-hover-lift: 32deg;
-    transform: translateX(-50%) rotate(var(--tape-rotation, -12deg)) rotateX(0deg);
-    border: 1px solid rgba(125, 111, 81, 0.16);
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.34), transparent 24%, rgba(255, 255, 255, 0.22) 72%, transparent), #e9dfc7;
-    box-shadow: 0 2px 3px rgba(58, 48, 32, 0.2);
-    clip-path: polygon(0 8%, 100% 0, 96% 94%, 3% 100%);
-    transform-origin: 50% 0%;
-    will-change: transform, opacity, filter;
-    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), filter 0.32s ease, opacity 0.2s ease;
-    animation: photoWallTapePeel var(--tape-peel-duration) cubic-bezier(0.16, 1, 0.3, 1) backwards;
-    animation-delay: var(--card-delay, 0ms);
+    z-index: 4;
+    width: 40px;
+    height: 12px;
+    background: var(--wall-tape);
+    opacity: 0.85;
+    transform: translateX(-50%) rotate(var(--tape-rotation, -10deg));
 }
-.photo-wall-tape-right { --tape-rotation: 10deg; }
-.photo-wall-tape-left { --tape-rotation: -12deg; }
-.photo-wall-card:hover .photo-wall-tape,
-.photo-wall-card:focus-visible .photo-wall-tape {
-    transform: translateX(-50%) rotate(var(--tape-rotation, -12deg)) rotateX(var(--tape-hover-lift, 32deg)) translateY(-2px);
-    filter: drop-shadow(0 7px 5px rgba(58, 48, 32, 0.22));
-    transition-delay: 0s;
-}
+.photo-wall-tape-right { --tape-rotation: 8deg; }
+.photo-wall-tape-left { --tape-rotation: -10deg; }
+/* 散放排法中心的一枚淡菱形，给照片一个视觉重心 */
 .photo-wall-center-mark {
     position: absolute;
-    z-index: 0;
-    left: 50%;
     top: 50%;
+    left: 50%;
+    z-index: 0;
     width: 84px;
     height: 84px;
+    border: 1px solid var(--fp-rule);
     transform: translate(-50%, -50%) rotate(45deg);
-    border: 1px solid rgba(71, 88, 77, 0.16);
-    background: rgba(226, 230, 218, 0.3);
 }
 .photo-wall-footer {
     bottom: 14px;
-    color: var(--wall-muted);
-    font: 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
-}
-.photo-wall-navigation {
-    display: flex;
-    gap: 5px;
-}
-.photo-wall-nav {
-    width: 29px;
-    height: 25px;
-    border: 1px solid rgba(43, 55, 49, 0.2);
-    border-radius: 999px;
-    color: var(--wall-ink);
-    background: rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-    font: 16px/1 Georgia, serif;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-.photo-wall-nav:not(:disabled):hover {
-    color: #fff;
-    background: #35423d;
-    border-color: #35423d;
-    box-shadow: 0 8px 18px rgba(53, 66, 61, 0.24);
-    transform: translateY(-1px);
-}
-.photo-wall-nav:disabled {
-    opacity: 0.3;
-    cursor: default;
-}
-.photo-wall-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 30px;
-    width: 30px;
-    height: 30px;
-    box-sizing: border-box;
-    border: 1px solid rgba(43, 55, 49, 0.2);
-    border-radius: 10px;
-    color: var(--wall-ink, #26302d);
-    background: rgba(255, 255, 255, 0.72);
-    font-size: 17px;
-    line-height: 1;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-.photo-wall-close:hover {
-    color: #fff;
-    background: var(--wall-accent, #b36b4e);
-    transform: scale(1.05);
-}
-@keyframes photoWallShow {
-    0% { opacity: 0; transform: translateY(18px) scale(0.94) rotate(-1deg); }
-    100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
-}
-@keyframes photoWallClose {
-    0% {
-        opacity: var(--photo-wall-zoom-opacity, 1);
-        transform: translateY(calc(var(--photo-wall-zoom-progress, 0) * 12px))
-            scale(var(--photo-wall-zoom-scale, 1))
-            rotate(calc(var(--photo-wall-zoom-progress, 0) * 1deg));
-    }
-    100% { opacity: 0; transform: translateY(12px) scale(0.72) rotate(1deg); }
-}
-@keyframes photoWallCardIn {
-    0% {
-        opacity: 0;
-        transform: translateY(18px) rotate(calc(var(--card-rotation) - 5deg)) scale(0.86);
-    }
-    100% {
-        opacity: 1;
-        transform: rotate(var(--card-rotation)) scale(1);
-    }
-}
-@keyframes photoWallTapePeel {
-    0% {
-        opacity: 0;
-        transform: translateX(-50%) rotate(var(--tape-rotation, -12deg)) rotateX(var(--tape-peel-angle, 78deg)) translateY(-7px) scale(0.96);
-    }
-    38% {
-        opacity: 1;
-        transform: translateX(-50%) rotate(var(--tape-rotation, -12deg)) rotateX(18deg) translateY(-1px) scale(1.02);
-    }
-    72% {
-        opacity: 1;
-        transform: translateX(-50%) rotate(var(--tape-rotation, -12deg)) rotateX(-5deg) scale(1.02, 0.98);
-    }
-    100% {
-        opacity: 1;
-        transform: translateX(-50%) rotate(var(--tape-rotation, -12deg)) rotateX(0deg) scale(1);
-    }
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
 }
 
-/* ===== 图片墙放大预览 ===== */
+@keyframes photoWallShow {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes photoWallClose {
+    from {
+        opacity: var(--photo-wall-zoom-opacity, 1);
+        transform: scale(var(--photo-wall-zoom-scale, 1));
+    }
+    to { opacity: 0; transform: translateY(8px) scale(0.96); }
+}
+
+/* ===== 大图预览（挂在 body 上，不在 #view-2d 里，用默认的夜图配色） ===== */
 .photo-lightbox {
+    --lightbox-scrim: color-mix(in srgb, var(--fp-paper) 94%, transparent);
     position: fixed;
-    z-index: 3000;
     inset: 0;
+    z-index: 3000;
     display: grid;
     place-items: center;
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
 }
 .photo-lightbox-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(18, 24, 21, 0.84);
-    backdrop-filter: blur(8px);
-    animation: lightboxFadeIn 0.2s ease both;
+    background: var(--lightbox-scrim);
+    animation: lightboxFadeIn 0.2s var(--fp-ease) both;
 }
 .photo-lightbox-dialog {
     position: relative;
     z-index: 1;
     display: flex;
+    align-items: center;
+    justify-content: center;
     min-width: 320px;
     min-height: 220px;
     max-width: min(88vw, 1200px);
     max-height: 88vh;
-    align-items: center;
-    justify-content: center;
-    animation: lightboxRise 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: lightboxFadeIn 0.2s var(--fp-ease) both;
 }
 .photo-lightbox-image {
     display: block;
     max-width: min(78vw, 1100px);
     max-height: 80vh;
     object-fit: contain;
-    border: 7px solid #fffdf6;
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.42);
+    border-radius: var(--fp-radius-photo);
     opacity: 1;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--fp-dur) ease;
 }
 .photo-lightbox.is-loading .photo-lightbox-image {
     opacity: 0;
 }
+/* 加载转圈：只在加载时出现 */
 .photo-lightbox-loader {
     position: absolute;
-    z-index: 3;
     top: 50%;
     left: 50%;
-    width: 42px;
-    height: 42px;
-    transform: translate(-50%, -50%);
-    border: 3px solid rgba(255, 255, 255, 0.28);
-    border-top-color: var(--primary-color, #42b983);
+    z-index: 3;
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--fp-rule-strong);
+    border-top-color: var(--fp-ink);
     border-radius: 50%;
     opacity: 0;
     pointer-events: none;
+    transform: translate(-50%, -50%);
 }
 .photo-lightbox.is-loading .photo-lightbox-loader {
     opacity: 1;
@@ -415,64 +357,54 @@
 }
 .photo-lightbox-close,
 .photo-lightbox-arrow {
-    position: absolute;
+    position: fixed;
     z-index: 2;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.45);
-    color: #fff;
-    background: rgba(18, 24, 21, 0.5);
+    border: 1px solid var(--fp-rule-strong);
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-paper);
+    color: var(--fp-ink);
     cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease;
+    transition: background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
 }
 @media (hover: hover) {
     .photo-lightbox-close:hover,
     .photo-lightbox-arrow:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.06);
-    }
-
-    .photo-lightbox-arrow:hover {
-        transform: translateY(-50%) scale(1.06);
+        background: var(--fp-paper-raised);
+        border-color: var(--fp-ink-soft);
     }
 }
 .photo-lightbox-close {
-    position: fixed;
-    top: 28px;
-    right: 28px;
+    top: 24px;
+    right: 24px;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
-    font-size: 24px;
+    font-size: var(--fp-size-xl);
     line-height: 1;
 }
 .photo-lightbox-arrow {
-    position: fixed;
     top: 50%;
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
+    font-size: var(--fp-size-lg);
     transform: translateY(-50%);
-    border-radius: 50%;
-    font-size: 21px;
 }
-.photo-lightbox-arrow:active {
-    transform: translateY(-50%) scale(0.94);
+.photo-lightbox-prev { left: 24px; }
+.photo-lightbox-next { right: 24px; }
+.photo-lightbox-close:focus-visible,
+.photo-lightbox-arrow:focus-visible {
+    outline: 2px solid var(--fp-water);
+    outline-offset: 2px;
 }
-.photo-lightbox-close:active {
-    transform: scale(0.94);
-}
-.photo-lightbox-prev { left: 28px; }
-.photo-lightbox-next { right: 28px; }
 .photo-lightbox-caption {
     position: absolute;
-    bottom: -34px;
+    bottom: -32px;
     left: 50%;
-    transform: translateX(-50%);
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 12px;
-    letter-spacing: 0.06em;
+    transform: translateX(-50%);
 }
 @keyframes lightboxFadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes lightboxRise { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-

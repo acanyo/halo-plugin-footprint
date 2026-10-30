@@ -12,12 +12,7 @@ export const showElements = () => {
         {
             element: '.logo-container',
             className: 'show',
-            delay: 0,
-            callback: () => {
-                requestAnimationFrame(() => {
-                    document.querySelector('.footprint-logo').style.color = 'var(--primary-color)';
-                });
-            }
+            delay: 0
         },
         {
             element: '.map-controls',

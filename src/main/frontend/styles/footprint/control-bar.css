@@ -1,727 +1,168 @@
-/* 移除地图 Logo */
-.amap-logo {
-    display: none !important;
-}
-.amap-copyright {
-    display: none !important;
-}
-/* 按钮点击效果 */
-.control-btn.btn-clicked {
-    transform: scale(0.95) translateZ(0);
-    opacity: 0.9;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-/* 动画定义 */
-/* 控制栏动画 */
+/*
+ * 底部控制栏：一块白图纸面，按钮是描边/无底的小控件。
+ * 当前图层（标准 / 卫星）用等高线绿表示选中；没有投影、没有毛玻璃。
+ */
 .map-controls {
-    bottom: calc(20px + var(--safe-bottom));
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + var(--safe-bottom));
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: var(--fp-paper);
+    border: 1px solid var(--fp-rule);
+    border-radius: var(--fp-radius-panel);
+    white-space: nowrap;
+    font-family: var(--fp-font-text);
     opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-    transition: all 0.3s ease-out;
+    transform: translateX(-50%);
+    transition: opacity 0.24s var(--fp-ease);
 }
 .map-controls.show {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
 }
-.control-btn {
-    opacity: 0;
-    transform: scale(0.8);
-    transition: all 0.3s ease-out;
+.map-controls > * {
+    flex-shrink: 0;
 }
-.control-btn.show {
-    opacity: 1;
-    transform: scale(1);
-}
-.control-btn.scale-in {
-    animation: scaleIn 0.3s ease-out;
-}
-/* 按钮点击动画 */
-.btn-pulse {
-    animation: pulse 0.3s ease-out;
-}
-/* 动画关键帧 */
-@keyframes scaleIn {
-    0% {
-        transform: scale(0.8);
-    }
-    50% {
-        transform: scale(1.1);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(0.95);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-.control-btn {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-.control-btn::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 70%);
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-}
-.control-btn:active::after {
-    transform: translate(-50%, -50%) scale(2);
-    opacity: 1;
-}
-.control-btn.active {
-    background: var(--primary-color);
-    color: #fff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(var(--hsla-raw), 0.4);
-}
-body.mode-2d#footprint-page {
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-left: env(safe-area-inset-left, 0px);
-    --safe-right: env(safe-area-inset-right, 0px);
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-    --primary-color: hsl(var(--footprint-hsla, 200, 100%, 50%));
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background-color: #f5f5f5;
-}
-#canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    z-index: 3; /* 确保 canvas 位于下方 */
-    pointer-events: none; /* 允许点击通过 */
-}
-.footprint-container {
-    position: relative;
-    z-index: 2; /* 确保 footprint-container 是 above */
-}
-/* Logo和描述 */
-.logo-container {
-    top: calc(30px + var(--safe-top));
-    left: calc(30px + var(--safe-left));
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 100;
-    max-width: 300px;
-    max-height: 100px;
-}
-.footprint-logo {
-    font-size: 2rem;
-    color: var(--primary-color);
-    margin-bottom: 8px;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-.logo-version {
-    font-size: 0.8rem;
-    vertical-align: super;
-    opacity: 0.7;
-}
-.footprint-slogan {
-    font-size: 1rem;
-    color: #333;
-    line-height: 1.4;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-}
-/* 按钮组通用样式 */
-.button-group {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
-    padding: 4px;
-    margin: 0;
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
-    position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-/* 分隔线 */
-.button-group:not(:last-child) {
-    border-right: none;
-    padding-right: 0;
-    margin-right: 0;
-}
-/* 标准按钮样式 */
-.control-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.86);
-    padding: 9px 14px;
-    border-radius: 999px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-    font-weight: 500;
-    position: relative;
-    overflow: hidden;
-    box-shadow: none;
-    line-height: 1;
-    min-height: 34px;
-}
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: translateY(-1px);
-}
-.control-btn::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    background: rgba(var(--hsla-raw), 0.3);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(1) translate(-50%, -50%);
-    transform-origin: 50% 50%;
-}
-.control-btn:active::after {
-    opacity: 1;
-    transform: scale(20) translate(-50%, -50%);
-    transition: all 0.5s ease-out;
-}
-.control-btn.active {
-    background: var(--primary-color, #42b983);
-    color: #fff;
-}
-/* 缩放按钮组样式 */
-.zoom-buttons {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
-    padding: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
-}
-.hidden-important {
-    display: none !important;
-}
-.zoom-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    font-size: 17px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.zoom-btn:hover {
-    background: var(--primary-color, #42b983);
-}
-/* 比例尺文字样式 */
-/*.amap-scale-text {
-    color: #fff;
-    font-size: 12px;
-    opacity: 0.8;
-    margin-left: 8px;
-    font-weight: 500;
-}*/
-/* 飞机开关样式优化 */
-.plane-switch {
-    --dot: #fff;
-    --street: #6B6D76;
-    --street-line: #A8AAB4;
-    --street-line-mid: #C0C2C8;
-    --sky-1: #60A7FA;
-    --sky-2: #2F8EFC;
-    --light-1: rgba(255, 233, 0, 1);
-    --light-2: rgba(255, 233, 0, .3);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 4px;
-    border-radius: 999px;
-    transition: all 0.25s ease;
-}
-.plane-switch:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-.plane-switch .switch-text {
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    user-select: none;
-    min-width: 28px;
-    text-align: center;
-}
-.plane-switch input {
-    display: none;
-}
-.plane-switch input + div {
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
-    position: relative;
-    overflow: hidden;
-    width: 50px;
-    height: 25px;
-    padding: 1px;
-    border-radius: 13px;
-    background: linear-gradient(90deg, var(--street) 0%, var(--street) 25%, var(--sky-1) 75%, var(--sky-2) 100%) left var(--p, 0%) top 0;
-    background-position-x: var(--p, 0%);
-    background-size: 400% auto;
-    transition: background-position 0.6s;
-}
-.plane-switch input + div:before, .plane-switch input + div:after {
-    content: "";
-    display: block;
-    position: absolute;
-    transform: translateX(var(--s, 0));
-    transition: transform 0.3s;
-}
-.plane-switch input + div:before {
-    width: 42px;
-    right: 2px;
-    top: 4px;
-    height: 1px;
-    background: var(--street-line);
-    box-shadow: 0 16px 0 0 var(--street-line);
-}
-.plane-switch input + div:after {
-    width: 2px;
-    height: 2px;
-    border-radius: 50%;
-    left: 23px;
-    top: 1px;
-    -webkit-animation: lights2 2s linear infinite;
-    animation: lights2 2s linear infinite;
-    box-shadow: inset 0 0 0 2px var(--light-1), 0 21px 0 var(--light-1), 8px 0 0 var(--light-2), 8px 21px 0 var(--light-2), 16px 0 0 var(--light-2), 16px 21px 0 var(--light-2);
-}
-.plane-switch input + div span {
-    display: block;
-    position: absolute;
-}
-.plane-switch input + div span.street-middle {
-    top: 12px;
-    left: 21px;
-    width: 3px;
-    height: 1px;
-    transform: translateX(var(--s, 0));
-    background: var(--street-line-mid);
-    box-shadow: 5px 0 0 var(--street-line-mid), 10px 0 0 var(--street-line-mid), 15px 0 0 var(--street-line-mid), 20px 0 0 var(--street-line-mid), 25px 0 0 var(--street-line-mid);
-    transition: transform 0.3s;
-}
-.plane-switch input + div span.cloud {
-    width: 12px;
-    height: 4px;
-    border-radius: 2px;
-    background: #fff;
-    position: absolute;
-    top: var(--ct, 8px);
-    left: 100%;
-    opacity: var(--co, 0);
-    transition: opacity 0.3s;
-    -webkit-animation: clouds2 2s linear infinite var(--cd, 0s);
-    animation: clouds2 2s linear infinite var(--cd, 0s);
-}
-.plane-switch input + div span.cloud:before, .plane-switch input + div span.cloud:after {
-    content: "";
-    position: absolute;
-    transform: translateX(var(--cx, 0));
-    border-radius: 50%;
-    width: var(--cs, 5px);
-    height: var(--cs, 5px);
-    background: #fff;
-    bottom: 1px;
-    left: 1px;
-}
-.plane-switch input + div span.cloud:after {
-    --cs: 6px;
-    --cx: 4px;
-}
-.plane-switch input + div span.cloud.two {
-    --ct: 20px;
-    --cd: 1s;
-    opacity: var(--co-2, 0);
-}
-.plane-switch input + div div {
-    display: table;
-    position: relative;
-    z-index: 1;
-    padding: 5px;
-    border-radius: 50%;
-    background: var(--dot);
-    transform: translateX(var(--x, 0));
-    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.35, 1.2);
-}
-.plane-switch input + div div svg {
-    width: 13px;
-    height: 13px;
-    display: block;
-    color: var(--c, var(--street));
-    transition: color 0.6s;
-}
-.plane-switch input:checked + div {
-    --p: 100%;
-    --x: 25px;
-    --s: -50px;
-    --c: var(--sky-2);
-    --co: .8;
-    --co-2: .6;
-}
-@keyframes lights2 {
-    20%, 30% {
-        box-shadow: inset 0 0 0 2px var(--light-2), 0 21px 0 var(--light-2), 8px 0 0 var(--light-2), 8px 21px 0 var(--light-2), 16px 0 0 var(--light-1), 16px 21px 0 var(--light-1);
-    }
-    55%, 65% {
-        box-shadow: inset 0 0 0 2px var(--light-2), 0 21px 0 var(--light-2), 8px 0 0 var(--light-2), 8px 21px 0 var(--light-2), 16px 0 0 var(--light-1), 16px 21px 0 var(--light-1);
-    }
-    90%, 100% {
-        box-shadow: inset 0 0 0 2px var(--light-1), 0 21px 0 var(--light-1), 8px 0 0 var(--light-2), 8px 21px 0 var(--light-2), 16px 0 0 var(--light-2), 16px 21px 0 var(--light-2);
-    }
-}
-@keyframes clouds2 {
-    97% {
-        transform: translateX(-72px);
-        visibility: visible;
-    }
-    98%, 100% {
-        visibility: hidden;
-    }
-    99% {
-        transform: translateX(-72px);
-    }
-    100% {
-        transform: translateX(0);
-    }
-}
-#timeline-btn {
-    position: relative;
-    padding: 9px 14px;
-    min-height: 34px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
-    overflow: hidden;
-    letter-spacing: 0.2px;
-}
-#timeline-btn::before {
-    content: '';
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolyline points='12 6 12 12 16 14'%3E%3C/polyline%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-#timeline-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(66, 185, 131, 0.2), inset 0 1px 3px rgba(255, 255, 255, 0.2);
-    background: var(--primary-color, #42b983);
-    color: #fff;
-}
-#timeline-btn::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.3);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(1) translate(-50%, -50%);
-    transform-origin: 50% 50%;
-}
-#timeline-btn:active::after {
-    opacity: 1;
-    transform: scale(20) translate(-50%, -50%);
-    transition: all 0.5s ease-out;
-}
-#timeline-btn:active {
-    transform: scale(0.98);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
-}
-/* 移动端适配 */
-@media screen and (max-width: 768px) {
-    #timeline-btn::before {
-        width: 14px;
-        height: 14px;
-    }
-}
-/* 移动端适配 */
-@media screen and (max-width: 768px) {
-    .map-controls {
-        left: 50%;
-        right: auto;
-        bottom: calc(10px + var(--safe-bottom));
-        width: calc(100vw - 24px);
-        max-width: 440px;
-        min-height: 0;
-        box-sizing: border-box;
-        display: grid !important;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        grid-template-rows: 44px 42px;
-        align-items: stretch;
-        gap: 6px;
-        padding: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.72);
-        border-radius: 19px;
-        background: rgba(255, 255, 255, 0.86);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16),
-            0 2px 8px rgba(15, 23, 42, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(18px) saturate(1.15);
-        -webkit-backdrop-filter: blur(18px) saturate(1.15);
-        transform: translateX(-50%);
-    }
-    .map-controls:hover {
-        transform: translateX(-50%);
-        background: rgba(255, 255, 255, 0.86);
-        border-color: rgba(255, 255, 255, 0.72);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16),
-            0 2px 8px rgba(15, 23, 42, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    }
-    .map-controls > * {
-        min-width: 0;
-    }
-    .map-controls #timeline-btn {
-        grid-column: 1;
-        grid-row: 1;
-    }
-    .map-controls #messageBoards {
-        grid-column: 2;
-        grid-row: 1;
-    }
-    .map-controls .button-group {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        width: 100%;
-        display: flex;
-        align-items: stretch;
-        justify-content: stretch;
-        gap: 3px;
-        padding: 3px;
-        background: rgba(226, 232, 240, 0.62);
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        border-radius: 13px;
-        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
-    }
-    .map-controls #timeline-btn,
-    .map-controls #messageBoards {
-        width: 100%;
-        min-width: 0;
-        min-height: 44px;
-        box-sizing: border-box;
-        justify-content: center;
-        padding: 0 8px;
-        color: #526176;
-        background: rgba(248, 250, 252, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.14);
-        border-radius: 13px;
-        box-shadow: none;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-        white-space: nowrap;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .map-controls #timeline-btn:hover,
-    .map-controls #messageBoards:hover {
-        transform: none;
-        color: #526176;
-        background: rgba(248, 250, 252, 0.7);
-        border-color: rgba(148, 163, 184, 0.14);
-        box-shadow: none;
-    }
-    .map-controls #timeline-btn:active,
-    .map-controls #messageBoards:active {
-        transform: scale(0.97);
-        color: hsl(var(--hsla-raw));
-        background: hsla(var(--hsla-raw), 0.12);
-        border-color: hsla(var(--hsla-raw), 0.28);
-    }
-    .map-controls #timeline-btn::before {
-        width: 15px;
-        height: 15px;
-        opacity: 0.82;
-    }
-    .map-controls #messageBoards {
-        display: inline-flex;
-        gap: 6px;
-    }
-    .map-controls #messageBoards::before {
-        content: '';
-        width: 15px;
-        height: 15px;
-        flex: 0 0 15px;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23526176' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-4.1A7.5 7.5 0 1 1 20 11.5Z'/%3E%3Cpath d='M8 11h.01M12 11h.01M16 11h.01'/%3E%3C/svg%3E") center / contain no-repeat;
-        opacity: 0.82;
-    }
-    .map-controls #back3dBtn {
-        grid-column: 1 / -1;
-        grid-row: 3;
-    }
-    .map-controls .button-group .control-btn {
-        flex: 1 1 0;
-        min-width: 0;
-        width: 50%;
-        min-height: 34px;
-        padding: 0 6px;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0;
-        white-space: nowrap;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .map-controls .button-group .control-btn:hover {
-        transform: none;
-        background: transparent;
-        border-color: transparent;
-        box-shadow: none;
-    }
-    .map-controls .button-group .control-btn.active,
-    .map-controls .button-group .control-btn.active:hover,
-    .map-controls .button-group .control-btn.active:focus,
-    .map-controls .button-group .control-btn.active:focus-visible {
-        color: #fff;
-        background: linear-gradient(135deg, hsl(var(--hsla-raw)), hsla(var(--hsla-raw), 0.82));
-        border-color: hsla(var(--hsla-raw), 0.48);
-        transform: none;
-        box-shadow: 0 4px 10px hsla(var(--hsla-raw), 0.24),
-            inset 0 1px 0 rgba(255, 255, 255, 0.28);
-    }
-    .map-controls .button-group .control-btn:active {
-        transform: scale(0.97);
-    }
-    .map-controls #zoom-buttons,
-    .map-controls .zoom-buttons,
-    .map-controls #line,
-    .map-controls #zoom-restore {
-        display: none !important;
-    }
-    .footprint-logo {
-        font-size: 1.5rem;
-    }
-    .footprint-slogan {
-        font-size: 0.8rem;
-    }
-}
-@media screen and (max-width: 380px) {
-    .map-controls {
-        width: calc(100vw - 16px);
-        gap: 4px;
-        padding: 5px;
-        grid-template-rows: 42px 40px;
-    }
-    .map-controls #timeline-btn,
-    .map-controls #messageBoards {
-        padding-inline: 5px;
-        font-size: 11px;
-    }
-    .map-controls .button-group .control-btn {
-        padding-inline: 3px;
-        font-size: 10px;
-    }
-}
-.timeline {
-    width: 96%;
-    /*height: 255px; !* TODO *!*/
-    margin-left: 10px;
-    /*display: flex; !* TODO *!*/
-    justify-content: start;
-    /*border-left: 5px solid gray; !* TODO *!*/
-}
+/* 时间线打开时，控制栏贴到抽屉左边 */
 .map-controls.open {
     left: auto;
     right: calc(500px + 12px + var(--safe-right));
-    transform: translateX(0);
-    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, background 0.3s;
-    border-radius: 22px 0 0 22px;
-    background: rgba(30, 41, 59, 0.78);
+    transform: none;
 }
-.map-controls.open:hover {
-    transform: translateY(-2px);
+
+/* 一组按钮：一圈格线框起来 */
+.map-controls .zoom-buttons,
+.map-controls .button-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0;
+    padding: 2px;
+    border: 1px solid var(--fp-rule);
+    border-radius: var(--fp-radius-control);
+    background: transparent;
 }
-/* 底部控制栏白色主题 */
-.map-controls,
-.map-controls:hover,
-.map-controls.open,
-.map-controls.open:hover {
-    background: rgba(255, 255, 255, 0.96);
-    border-color: rgba(15, 23, 42, 0.08);
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+/* 底部控制栏不显示地图放大/缩小按钮 */
+#map-controls #zoom-buttons {
+    display: none !important;
 }
-.zoom-buttons,
-.button-group {
-    background: rgba(15, 23, 42, 0.05);
-    border-color: rgba(15, 23, 42, 0.08);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+
+/* 所有按钮共用的样子 */
+.map-controls .control-btn,
+.map-controls .zoom-btn,
+.map-controls #timeline-btn,
+.map-controls #zoom-restore,
+.map-controls #messageBoards,
+.map-controls #map-fullscreen,
+.map-controls #back3dBtn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: var(--fp-radius-control);
+    background: transparent;
+    color: var(--fp-ink-soft);
+    font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+    cursor: pointer;
+    overflow: visible;
+    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), border-color var(--fp-dur) var(--fp-ease);
 }
-.zoom-btn,
-#zoom-restore,
-#messageBoards,
-#timeline-btn,
-#back3dBtn {
-    background: rgba(255, 255, 255, 0.92);
-    color: #1f2937;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+.map-controls .control-btn:hover,
+.map-controls .zoom-btn:hover,
+.map-controls #timeline-btn:hover,
+.map-controls #zoom-restore:hover,
+.map-controls #messageBoards:hover,
+.map-controls #map-fullscreen:hover,
+.map-controls #back3dBtn:hover {
+    color: var(--fp-ink);
+    background: var(--fp-rule);
 }
-.control-btn,
-.plane-switch .switch-text {
-    color: #1f2937;
-    text-shadow: none;
+.map-controls .control-btn:focus-visible,
+.map-controls #timeline-btn:focus-visible,
+.map-controls #zoom-restore:focus-visible,
+.map-controls #messageBoards:focus-visible,
+.map-controls #map-fullscreen:focus-visible,
+.map-controls #back3dBtn:focus-visible {
+    outline: 2px solid var(--fp-water);
+    outline-offset: 2px;
 }
-.plane-switch:hover {
-    background: rgba(15, 23, 42, 0.04);
+/* 当前图层 */
+.map-controls .control-btn.active,
+.map-controls .control-btn.active:hover {
+    color: var(--fp-ink);
+    background: color-mix(in srgb, var(--fp-contour) 16%, transparent);
+    border-color: var(--fp-contour);
 }
-#timeline-btn::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolyline points='12 6 12 12 16 14'%3E%3C/polyline%3E%3C/svg%3E");
+.map-controls .zoom-btn {
+    width: 32px;
+    padding: 0;
+    font-size: var(--fp-size-lg);
 }
-#timeline-btn:hover::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolyline points='12 6 12 12 16 14'%3E%3C/polyline%3E%3C/svg%3E");
+
+/* 时间线、留言板按钮前的小图标：用遮罩画，颜色跟随文字 */
+.map-controls #timeline-btn::before,
+.map-controls #messageBoards::before {
+    content: '';
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
+    background-color: currentColor;
+    -webkit-mask: var(--fp2d-icon) center / contain no-repeat;
+    mask: var(--fp2d-icon) center / contain no-repeat;
 }
-.zIndex13 {
-    z-index: 13 !important;
+.map-controls #timeline-btn {
+    --fp2d-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E");
 }
-.zIndex14 {
-    z-index: 14 !important;
+.map-controls #messageBoards {
+    --fp2d-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-4.1A7.5 7.5 0 1 1 20 11.5Z'/%3E%3Cpath d='M8 11h.01M12 11h.01M16 11h.01'/%3E%3C/svg%3E");
+}
+/* 桌面端留言板按钮只写字，图标留给移动端的大按钮 */
+@media screen and (min-width: 769px) {
+    .map-controls #messageBoards::before {
+        display: none;
+    }
+}
+
+/* 全屏按钮：只有图标 */
+.map-controls #map-fullscreen {
+    min-width: 36px;
+    padding: 0 10px;
+}
+.map-controls #map-fullscreen svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.map-controls #map-fullscreen .fullscreen-exit-icon {
+    display: none;
+}
+.map-controls #map-fullscreen[data-fullscreen-state="exit"] .fullscreen-enter-icon {
+    display: none;
+}
+.map-controls #map-fullscreen[data-fullscreen-state="exit"] .fullscreen-exit-icon {
+    display: block;
+}
+
+/* 浏览器全屏时，地图及其覆盖层铺满视口 */
+#footprint-page:fullscreen,
+#footprint-page:fullscreen .footprint-container,
+#footprint-page:fullscreen #footprint-map {
+    width: 100vw;
+    height: 100vh;
+}
+
+.map-controls .control-btn .tooltip {
+    z-index: 1002;
 }

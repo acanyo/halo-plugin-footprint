@@ -19,7 +19,7 @@ export const populateTimeline = async (map) => {
     const footprints = window.FOOTPRINT_CONFIG.footprints;
 
     if (!Array.isArray(footprints) || footprints.length === 0) {
-        timelineContainer.innerHTML = '<p>No footprints available.</p>';
+        timelineContainer.innerHTML = '<p>还没有足迹。</p>';
         return;
     }
 

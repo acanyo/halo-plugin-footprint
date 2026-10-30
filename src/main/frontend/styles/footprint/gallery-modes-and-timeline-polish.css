@@ -1,17 +1,19 @@
-/* ===== 方案 A：地图侧边展开式画廊 ===== */
+/*
+ * 图片墙的另外四种排法（后台「图片墙样式」），与散放（original）共用同一张纸面和相纸：
+ *   gallery（a）：左边一张大图，右边 2×4 缩略图；
+ *   filmstrip（b）：上面大图，下面一条横向可滚的胶片；移动端固定用这一种；
+ *   journal（c）：三列网格，照片编号像手账；
+ *   focus（d）：中间一张主图，其余照片围一圈。
+ * 再往下是移动端底部抽屉，以及时间线的日期与标题细节。
+ */
+
+/* ===== gallery：大图 + 缩略图栏 ===== */
 .photo-wall-variant-a {
     width: min(620px, calc(100vw - 40px));
     height: 545px;
-    background: transparent !important;
-    border-color: transparent;
-    box-shadow: none;
-}
-.photo-wall-variant-a::before {
-    background: transparent !important;
-    opacity: 0;
 }
 .photo-wall-variant-a .photo-wall-canvas {
-    inset: 88px 24px 54px;
+    inset: 92px 24px 24px;
     display: flex;
     gap: 18px;
     align-items: stretch;
@@ -20,36 +22,33 @@
     position: relative;
     flex: 1 1 58%;
     min-width: 0;
-    padding: 8px 8px 30px;
-    border: 1px solid rgba(43, 55, 49, 0.18);
-    background: #fffef9;
-    box-shadow: 5px 8px 16px rgba(32, 39, 34, 0.18);
+    padding: 6px 6px 28px;
+    border: 1px solid var(--fp-rule);
+    background: var(--wall-photo-frame);
     cursor: zoom-in;
-    transform: rotate(-1.2deg);
-    transition: transform 0.28s ease, box-shadow 0.28s ease;
 }
-.photo-wall-variant-a .photo-wall-feature:hover,
 .photo-wall-variant-a .photo-wall-feature:focus-visible {
-    z-index: 4;
-    outline: none;
-    transform: rotate(0) translateY(-5px) scale(1.015);
-    box-shadow: 8px 14px 24px rgba(32, 39, 34, 0.24);
+    outline: 2px solid var(--fp-water);
+    outline-offset: 2px;
 }
 .photo-wall-variant-a .photo-wall-feature img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    background: #e6e3db;
+    border-radius: var(--fp-radius-photo);
+    background: var(--wall-photo-empty);
 }
 .photo-wall-variant-a .photo-wall-feature-caption {
     position: absolute;
-    right: 9px;
-    bottom: 9px;
-    left: 9px;
+    right: 8px;
+    bottom: 6px;
+    left: 8px;
     overflow: hidden;
-    color: #35423d;
-    font: 600 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-xs);
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -59,190 +58,125 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(4, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
     height: 100%;
-    box-sizing: border-box;
     overflow: visible;
-    padding: 16px 4px 4px;
 }
 .photo-wall-variant-a .photo-wall-card {
     position: relative;
     width: auto;
     height: auto;
     min-height: 0;
-    transform: rotate(var(--card-rotation, 0deg));
-    animation: photoWallCardIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform: none;
 }
 .photo-wall-variant-a .photo-wall-card:hover,
 .photo-wall-variant-a .photo-wall-card:focus-visible {
     z-index: 3;
-    transform: translateY(-4px) rotate(0) scale(1.04);
+    transform: translateY(-2px);
 }
 .photo-wall-variant-a .photo-wall-card-inner {
     height: 100%;
-    padding: 5px 5px 16px;
+    padding: 4px;
 }
 .photo-wall-variant-a .photo-wall-card img { height: 100%; }
-.photo-wall-variant-a .photo-wall-tape {
-    top: -10px;
-    width: 32px;
-    height: 10px;
-}
+.photo-wall-variant-a .photo-wall-tape { display: none; }
 .photo-wall-host-a { height: 545px; }
 
-/* ===== 方案 B：胶片带模式 ===== */
+/* ===== filmstrip：大图 + 胶片条 ===== */
 .photo-wall-variant-b {
     width: min(620px, calc(100vw - 40px));
     height: 455px;
-    color: #f4f0df;
-    background: transparent !important;
-    border-color: transparent;
-    box-shadow: none;
 }
-.photo-wall-variant-b::before { background: transparent !important; opacity: 0; }
-.photo-wall-variant-b .photo-wall-heading h3,
-.photo-wall-variant-b .photo-wall-kicker,
-.photo-wall-variant-b .photo-wall-description,
-.photo-wall-variant-b .photo-wall-footer,
-.photo-wall-variant-b .photo-wall-counter { color: var(--wall-ink); }
-.photo-wall-variant-b .photo-wall-date { color: var(--wall-accent, #b36b4e); }
-.photo-wall-variant-b .photo-wall-counter { border-color: rgba(43, 55, 49, 0.2); }
 .photo-wall-variant-b .photo-wall-canvas {
-    inset: 90px 18px 54px;
+    inset: 92px 18px 18px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 .photo-wall-variant-b .photo-wall-feature {
     position: relative;
     flex: 1 1 auto;
     min-height: 0;
-    padding: 8px;
-    border: 1px solid rgba(43, 55, 49, 0.16);
-    border-radius: 3px;
-    background:
-        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.74), transparent 58%),
-        repeating-linear-gradient(90deg, rgba(43, 55, 49, 0.035) 0 1px, transparent 1px 18px),
-        linear-gradient(145deg, rgba(235, 238, 226, 0.92), rgba(247, 244, 232, 0.92));
-    box-shadow: 0 12px 22px rgba(43, 55, 49, 0.13), 0 1px 0 rgba(255, 255, 255, 0.75) inset;
-    cursor: zoom-in;
+    padding: 0;
     overflow: hidden;
-    backdrop-filter: blur(6px);
+    border: 1px solid var(--fp-rule);
+    border-radius: var(--fp-radius-photo);
+    background: var(--fp-paper-raised);
+    cursor: zoom-in;
 }
-.photo-wall-variant-b .photo-wall-feature::before,
-.photo-wall-variant-b .photo-wall-feature::after {
-    content: '';
-    position: absolute;
-    z-index: 2;
-    pointer-events: none;
+.photo-wall-variant-b .photo-wall-feature:hover {
+    border-color: var(--fp-rule-strong);
 }
-.photo-wall-variant-b .photo-wall-feature::before {
-    inset: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.42);
-    background: none;
-}
-.photo-wall-variant-b .photo-wall-feature::after {
-    right: 8px;
-    bottom: 8px;
-    left: 8px;
-    height: 64px;
-    background: linear-gradient(180deg, transparent, rgba(20, 27, 25, 0.24));
-}
-.photo-wall-variant-b .photo-wall-feature:hover,
 .photo-wall-variant-b .photo-wall-feature:focus-visible {
-    outline: none;
-    border-color: rgba(179, 107, 78, 0.58);
-    box-shadow: 0 16px 28px rgba(43, 55, 49, 0.17), 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+    outline: 2px solid var(--fp-water);
+    outline-offset: 2px;
 }
 .photo-wall-variant-b .photo-wall-feature img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: transparent;
 }
+/* 胶片：上下两排齿孔用格线色圆点画 */
 .photo-wall-variant-b .photo-wall-filmstrip {
+    --film-hole: var(--fp-rule-strong);
     position: relative;
-    flex: 0 0 108px;
+    flex: 0 0 96px;
     display: flex;
-    gap: 12px;
     align-items: center;
+    gap: 10px;
+    padding: 14px 12px;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 17px 19px 15px;
-    border-top: 1px solid rgba(43, 55, 49, 0.18);
-    border-bottom: 1px solid rgba(43, 55, 49, 0.18);
+    border-top: 1px solid var(--fp-rule);
+    border-bottom: 1px solid var(--fp-rule);
     background:
-        radial-gradient(circle, rgba(43, 55, 49, 0.34) 0 2px, transparent 2.7px) 0 3px / 18px 7px repeat-x,
-        radial-gradient(circle, rgba(43, 55, 49, 0.34) 0 2px, transparent 2.7px) 0 calc(100% - 10px) / 18px 7px repeat-x,
-        linear-gradient(180deg, rgba(252, 250, 241, 0.65), rgba(232, 235, 222, 0.48));
-    box-shadow: none;
-    backdrop-filter: blur(7px);
+        radial-gradient(circle, var(--film-hole) 0 1.5px, transparent 2px) 0 3px / 14px 6px repeat-x,
+        radial-gradient(circle, var(--film-hole) 0 1.5px, transparent 2px) 0 calc(100% - 3px) / 14px 6px repeat-x;
     cursor: default;
     isolation: isolate;
     touch-action: auto;
-    user-select: none;
     scrollbar-width: none;
     -ms-overflow-style: none;
     scroll-behavior: smooth;
 }
 .photo-wall-variant-b .photo-wall-filmstrip::-webkit-scrollbar { display: none; width: 0; height: 0; }
-.photo-wall-variant-b .photo-wall-filmstrip::before,
-.photo-wall-variant-b .photo-wall-filmstrip::after {
-    display: none;
-    z-index: 4;
-    pointer-events: none;
-}
 .photo-wall-variant-b .photo-wall-card {
     position: relative;
     z-index: 1;
-    flex: 0 0 94px;
-    width: 94px;
-    height: 66px;
-    transform: rotate(var(--card-rotation, 0deg));
-    animation: photoWallCardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-    cursor: zoom-in;
+    flex: 0 0 90px;
+    width: 90px;
+    height: 62px;
+    transform: none;
 }
 .photo-wall-variant-b .photo-wall-card:hover,
 .photo-wall-variant-b .photo-wall-card:focus-visible {
     z-index: 3;
-    outline: none;
-    transform: translateY(-5px) rotate(0) scale(1.08);
+    transform: translateY(-2px);
 }
 .photo-wall-variant-b .photo-wall-card-inner {
     height: 100%;
-    padding: 4px;
-    border: 1px solid rgba(43, 55, 49, 0.15);
-    border-radius: 2px;
-    background: rgba(255, 254, 249, 0.88);
-    box-shadow: 0 4px 8px rgba(43, 55, 49, 0.16);
+    padding: 3px;
 }
 .photo-wall-variant-b .photo-wall-card img {
     height: 100%;
-    background: #e8e5da;
     pointer-events: none;
     -webkit-user-drag: none;
-    user-select: none;
 }
 .photo-wall-variant-b .photo-wall-tape { display: none; }
 
-/* ===== 方案 C：旅行手账模式 ===== */
+/* ===== journal：三列网格 + 编号 ===== */
 .photo-wall-variant-c {
     width: min(620px, calc(100vw - 40px));
     height: var(--journal-wall-height, 480px);
-    background: transparent !important;
-    border-color: transparent;
-    box-shadow: none;
 }
-.photo-wall-variant-c::before { background: transparent !important; opacity: 0; }
 .photo-wall-variant-c .photo-wall-canvas {
-    inset: 94px 24px 55px;
+    inset: 96px 24px 24px;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-auto-rows: 132px;
-    gap: 13px;
-    padding: 16px 4px 4px;
-    box-sizing: border-box;
+    gap: 14px;
+    padding: 10px 4px 4px;
     align-content: start;
     overflow-y: auto;
     scrollbar-width: none;
@@ -258,103 +192,85 @@
     width: auto;
     height: 132px;
     min-height: 0;
-    transform: rotate(var(--card-rotation, 0deg));
-    animation: photoWallCardIn 0.46s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.photo-wall-variant-c .photo-wall-card:nth-child(3n + 1) { --card-rotation: -1.8deg; }
-.photo-wall-variant-c .photo-wall-card:nth-child(3n + 2) { --card-rotation: 1.2deg; }
-.photo-wall-variant-c .photo-wall-card:nth-child(3n) { --card-rotation: -0.7deg; }
-.photo-wall-variant-c .photo-wall-card:hover,
-.photo-wall-variant-c .photo-wall-card:focus-visible {
-    z-index: 5;
-    outline: none;
-    transform: rotate(0) translateY(-5px) scale(1.06);
-}
+.photo-wall-variant-c .photo-wall-card:nth-child(3n + 1) { --card-rotation: -1.5deg; }
+.photo-wall-variant-c .photo-wall-card:nth-child(3n + 2) { --card-rotation: 1deg; }
+.photo-wall-variant-c .photo-wall-card:nth-child(3n) { --card-rotation: -0.6deg; }
 .photo-wall-variant-c .photo-wall-card-inner {
     height: 100%;
-    padding: 6px 6px 24px;
-    border: 1px solid rgba(87, 66, 46, 0.18);
-    background: #fffdf7;
-    box-shadow: 3px 5px 9px rgba(87, 66, 46, 0.17);
+    padding: 5px 5px 22px;
 }
 .photo-wall-variant-c .photo-wall-card img { height: 100%; }
 .photo-wall-variant-c .photo-wall-tape {
-    top: -11px;
-    width: 34px;
-    height: 11px;
+    top: -9px;
+    width: 32px;
+    height: 10px;
 }
 .photo-wall-journal-index {
     position: absolute;
-    right: 8px;
-    bottom: 7px;
-    color: #8b6e52;
-    font: 600 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
-    letter-spacing: 0.12em;
-}
-.photo-wall-variant-c .photo-wall-footer {
-    bottom: 50px;
-    color: #766049;
+    right: 7px;
+    bottom: 4px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
 }
 
-/* ===== 方案 D：聚焦式照片墙 ===== */
+/* ===== focus：主图居中，其余围一圈 ===== */
 .photo-wall-variant-d {
     width: min(620px, calc(100vw - 40px));
     height: 480px;
-    background: transparent !important;
-    border-color: transparent;
-    box-shadow: none;
 }
-.photo-wall-variant-d::before { background: transparent !important; opacity: 0; }
-.photo-wall-variant-d .photo-wall-canvas { inset: 88px 22px 54px; }
+.photo-wall-variant-d .photo-wall-canvas { inset: 88px 22px 24px; }
+/* 主图背后一圈淡环 */
 .photo-wall-focus-halo {
     position: absolute;
-    z-index: 1;
     top: 50%;
     left: 50%;
+    z-index: 1;
     width: 248px;
     height: 248px;
-    border: 1px solid rgba(117, 130, 106, 0.26);
+    border: 1px solid var(--fp-rule);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 0 0 18px rgba(255, 255, 255, 0.12), 0 18px 36px rgba(55, 68, 51, 0.12);
     transform: translate(-50%, -50%);
 }
 .photo-wall-focus-core {
     position: absolute;
-    z-index: 4;
     top: 50%;
     left: 50%;
+    z-index: 4;
     width: 42%;
     height: 80%;
-    padding: 8px 8px 29px;
-    border: 1px solid rgba(39, 43, 39, 0.2);
-    background: #fffef9;
-    box-shadow: 6px 10px 18px rgba(32, 39, 34, 0.22);
+    padding: 6px 6px 26px;
+    border: 1px solid var(--fp-rule-strong);
+    background: var(--wall-photo-frame);
     cursor: zoom-in;
-    transform: translate(-50%, -50%) rotate(-1deg);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    transform: translate(-50%, -50%);
+    transition: transform var(--fp-dur) var(--fp-ease);
 }
 .photo-wall-focus-core:hover,
 .photo-wall-focus-core:focus-visible {
     outline: none;
-    box-shadow: 10px 16px 28px rgba(32, 39, 34, 0.28);
-    transform: translate(-50%, -53%) rotate(0) scale(1.035);
+    transform: translate(-50%, -52%);
 }
 .photo-wall-focus-core img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    background: #e6e3db;
+    border-radius: var(--fp-radius-photo);
+    background: var(--wall-photo-empty);
 }
 .photo-wall-focus-label {
     position: absolute;
-    right: 9px;
-    bottom: 8px;
-    left: 9px;
+    right: 8px;
+    bottom: 5px;
+    left: 8px;
     overflow: hidden;
-    color: #35423d;
-    font: 600 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+    color: var(--fp-ink);
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-sm);
+    line-height: 1.5;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -362,20 +278,11 @@
     position: absolute;
     width: 102px;
     height: 124px;
-    transform: rotate(var(--card-rotation));
-    animation: photoWallCardIn 0.46s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.photo-wall-variant-d .photo-wall-card:hover,
-.photo-wall-variant-d .photo-wall-card:focus-visible {
-    z-index: 8;
-    outline: none;
-    transform: rotate(0) translateY(-7px) scale(1.08);
-}
-.photo-wall-variant-d .photo-wall-card-inner { height: 100%; padding: 6px 6px 18px; }
+.photo-wall-variant-d .photo-wall-card-inner { height: 100%; padding: 5px 5px 16px; }
 .photo-wall-variant-d .photo-wall-card img { height: 100%; }
-.photo-wall-variant-d .photo-wall-tape { top: -10px; }
 
-/* 图片墙响应式尺寸：桌面端小屏窗口缩小整体宽度和卡片 */
+/* 桌面端小屏窗口：整体与卡片缩小 */
 @media screen and (min-width: 769px) and (max-width: 1200px) {
     .photo-wall-window,
     .photo-wall-variant-a,
@@ -385,7 +292,6 @@
     .photo-wall-host-a {
         width: min(calc(100vw - 32px), 620px);
     }
-
     .photo-wall-window { height: clamp(360px, calc(100vh - 56px), 440px); }
     .photo-wall-variant-a { height: clamp(420px, calc(100vh - 56px), 545px); }
     .photo-wall-host-a { height: clamp(420px, calc(100vh - 56px), 545px); }
@@ -394,129 +300,95 @@
         height: min(var(--journal-wall-height, 480px), calc(100vh - 56px));
     }
     .photo-wall-variant-d { height: clamp(360px, calc(100vh - 56px), 480px); }
-
     .photo-wall-card {
         width: clamp(72px, 8vw, 96px);
         height: clamp(88px, 10vw, 118px);
     }
-
     .photo-wall-variant-b .photo-wall-card {
         flex-basis: clamp(64px, 7vw, 84px);
         width: clamp(64px, 7vw, 84px);
         height: clamp(46px, 5vw, 60px);
     }
-
     .photo-wall-variant-c .photo-wall-card {
         height: clamp(96px, 10vw, 118px);
     }
-
     .photo-wall-variant-d .photo-wall-card {
         width: clamp(74px, 8vw, 92px);
         height: clamp(90px, 10vw, 110px);
     }
 }
 
-/* 移动端隐藏全屏入口，图片墙改为底部抽屉式展示 */
+/* 移动端：隐藏全屏入口，图片墙改为底部抽屉 */
 @media (max-width: 768px) {
     #map-fullscreen {
         display: none !important;
     }
-
     .photo-wall-window.photo-wall-mobile {
         position: fixed;
-        left: 10px;
         right: 10px;
         bottom: calc(116px + var(--safe-bottom, 0px));
+        left: 10px;
         width: auto;
         height: min(430px, calc(100vh - 230px));
         height: min(430px, calc(100dvh - 230px));
         min-height: 280px;
-        box-sizing: border-box;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.72);
-        border-radius: 20px;
-        background: #fffdfa;
-        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22);
+        border-radius: var(--fp-radius-panel);
         transform-origin: bottom center;
     }
-
     body.photo-wall-mobile-open .map-controls {
         display: none !important;
     }
-
     body.photo-wall-mobile-open .photo-wall-window.photo-wall-mobile {
         bottom: calc(10px + var(--safe-bottom, 0px));
         height: min(470px, calc(100vh - 120px));
         height: min(470px, calc(100dvh - 120px));
     }
-
     .photo-wall-window.photo-wall-mobile > .photo-wall-window {
         position: absolute;
         inset: 0;
-        left: 0;
-        top: 0;
         width: 100%;
         height: 100%;
-        box-sizing: border-box;
-        border: 0;
         border-radius: inherit;
-        box-shadow: none;
         transform: none;
         animation: none;
     }
-
     .photo-wall-window.photo-wall-mobile .photo-wall-heading {
         top: 14px;
-        left: 16px;
         right: 16px;
+        left: 16px;
         gap: 10px;
     }
-
     .photo-wall-window.photo-wall-mobile .photo-wall-title-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 3px;
+        gap: 2px;
     }
-
+    .photo-wall-window.photo-wall-mobile .photo-wall-heading h3 {
+        font-size: var(--fp-size-lg);
+    }
     .photo-wall-window.photo-wall-mobile .photo-wall-description {
         margin-top: 4px;
-        font-size: 11px;
+        font-size: var(--fp-size-xs);
     }
-
     .photo-wall-window.photo-wall-mobile .photo-wall-canvas {
         inset: var(--photo-wall-canvas-top, 96px) 12px 14px;
     }
-
     .photo-wall-window.photo-wall-mobile .photo-wall-variant-b .photo-wall-feature {
         flex: 1 1 200px;
         min-height: 130px;
         max-height: 220px;
     }
-
     .photo-wall-window.photo-wall-mobile .photo-wall-variant-b .photo-wall-filmstrip {
-        flex-basis: 88px;
-        padding-top: 13px;
+        flex-basis: 84px;
+        padding-top: 12px;
         padding-bottom: 12px;
     }
-
     .photo-wall-window.photo-wall-mobile .photo-wall-variant-b .photo-wall-card {
         flex-basis: 78px;
         width: 78px;
         height: 56px;
-        box-sizing: border-box;
-        transform: translateY(-4px) rotate(var(--card-rotation, 0deg));
-        animation: none;
     }
-
-    .photo-wall-window.photo-wall-mobile .photo-wall-variant-b .photo-wall-card:hover,
-    .photo-wall-window.photo-wall-mobile .photo-wall-variant-b .photo-wall-card:focus-visible {
-        transform: translateY(-9px) rotate(0) scale(1.08);
-    }
-
-    .photo-wall-window.photo-wall-mobile .photo-wall-variant-b .photo-wall-card-inner {
-        box-sizing: border-box;
-    }
-
     .photo-wall-window button:focus-visible,
     .photo-lightbox button:focus,
     .photo-lightbox button:focus-visible {
@@ -524,136 +396,104 @@
     }
 }
 
-/* ===== 时间线交互细节：标题跃迁与分层日期 ===== */
+/* ===== 时间线：日期竖排（年 / 月.日 / 星期）与悬停时的标题上移 ===== */
 .timeline-drawer .timeline-date {
+    position: absolute;
     top: 33px;
     left: 0;
-    width: 58px;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 3px;
+    gap: 2px;
+    width: 58px;
     white-space: normal;
 }
-
 .timeline-drawer .timeline-date-year,
 .timeline-drawer .timeline-date-weekday {
     display: block;
-    color: var(--timeline-muted);
-    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    line-height: 1;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
 }
-
-.timeline-drawer .timeline-date-year {
-    color: var(--timeline-accent);
-}
-
 .timeline-drawer .timeline-date-day {
     display: block;
-    color: var(--timeline-ink);
-    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.08em;
-    line-height: 0.95;
+    color: var(--fp-ink);
+    font-size: var(--fp-size-lg);
+    font-weight: 500;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
-
-.timeline-drawer .timeline-date-weekday {
-    letter-spacing: 0.04em;
-}
-
 .timeline-drawer .timeline-location {
     position: relative;
     z-index: 4;
     display: flex;
     align-items: flex-end;
-    gap: 8px;
+    gap: 6px;
     min-height: 22px;
     overflow: visible;
 }
-
 .timeline-drawer .timeline-title-anchor {
     position: relative;
     z-index: 2;
     min-width: 0;
     transform-origin: left bottom;
-    transition: transform 0.52s cubic-bezier(0.16, 1, 0.3, 1),
-        opacity 0.24s ease;
-    will-change: transform;
+    transition: transform 0.24s var(--fp-ease), opacity 0.2s ease;
 }
-
 .timeline-drawer .timeline-title-anchor .card-header {
     max-width: 25ch;
     margin: 0;
     overflow: hidden;
     color: inherit;
     font: inherit;
-    line-height: 1.2;
+    line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
+/* 悬停卡片时标题移到照片上方，给描述和按钮让出位置 */
 .timeline-drawer .timeline-content-card:hover .timeline-title-anchor,
 .timeline-drawer .timeline-content-card:focus-within .timeline-title-anchor {
-    transform: translate(-26px, -72px) scale(1.28);
+    transform: translate(-24px, -72px) scale(1.2);
 }
-
+.timeline-drawer .location-icon {
+    position: relative;
+    z-index: 3;
+    transition: opacity 0.2s ease, transform 0.24s var(--fp-ease);
+}
 .timeline-drawer .timeline-content-card:hover .location-icon,
 .timeline-drawer .timeline-content-card:focus-within .location-icon {
     opacity: 0;
     transform: translateY(-4px) scale(0.72);
 }
-
-.timeline-drawer .location-icon {
-    position: relative;
-    z-index: 3;
-    transition: opacity 0.24s ease, transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 .timeline-drawer .timeline-info-overlay {
     min-height: 84px;
 }
-
 @media (max-width: 768px) {
     .timeline-drawer .timeline-date {
         top: 32px;
         width: 52px;
     }
-
     .timeline-drawer .timeline-date-day {
-        font-size: 18px;
+        font-size: var(--fp-size-md);
     }
-
     .timeline-drawer .timeline-content-card:hover .timeline-title-anchor,
     .timeline-drawer .timeline-content-card:focus-within .timeline-title-anchor {
-        transform: translate(-22px, -70px) scale(1.2);
+        transform: translate(-20px, -70px) scale(1.15);
+    }
+    /* 移动端抽屉盖过统计面板与底部控制栏，关闭按钮始终可点 */
+    .timeline-drawer {
+        z-index: 1001;
     }
 }
-
 @media (prefers-reduced-motion: reduce) {
-    .timeline-drawer .timeline-title-anchor,
-    .timeline-drawer .location-icon {
-        transition: none;
-    }
-
     .timeline-drawer .timeline-content-card:hover .timeline-title-anchor,
     .timeline-drawer .timeline-content-card:focus-within .timeline-title-anchor {
         transform: none;
     }
-
     .timeline-drawer .timeline-content-card:hover .location-icon,
     .timeline-drawer .timeline-content-card:focus-within .location-icon {
         opacity: 1;
         transform: none;
-    }
-}
-
-/* 移动端时间线抽屉需要盖过统计面板与底部控制栏，确保关闭按钮始终可点 */
-@media (max-width: 768px) {
-    .timeline-drawer {
-        z-index: 1001;
     }
 }

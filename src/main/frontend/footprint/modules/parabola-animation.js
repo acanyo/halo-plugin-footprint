@@ -31,8 +31,8 @@ export const loadParabolaAnimation = (card, map) => {
     if (!ctx) return;
 
     const accent = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? '#d47668'
-        : '#b65b51';
+        ? '#d65a4f'
+        : '#b8322a';   // 标注红（--fp-mark 夜图 / 白图），canvas 读不到 CSS 变量，这里写死同值
 
     // 使用设备像素比，避免 Retina 屏幕上的轨迹发糊。
     const resizeCanvas = () => {
@@ -254,7 +254,7 @@ export const loadParabolaAnimation = (card, map) => {
         ctx.fill();
 
         ctx.shadowBlur = 0;
-        ctx.fillStyle = '#fffdfa';
+        ctx.fillStyle = '#fbfbf9';   // --fp-paper-raised（白图）
         ctx.beginPath();
         ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
         ctx.fill();

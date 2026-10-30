@@ -1,4 +1,7 @@
-/* 标记点样式 */
+/*
+ * 标记点的四种样式（后台「标记点样式」）：pin / circle / card / photo。
+ * 照片四周用纸色细边与地图分开，品牌色只出现在描边、徽章和箭头上。
+ */
 .custom-marker,
 .custom-marker * {
     user-select: none;
@@ -9,168 +12,133 @@
 .custom-marker:focus-visible {
     outline: none;
 }
-/* ===== 水滴标记（pin，默认） ===== */
-.marker-style-pin .custom-marker {
+.custom-marker {
     cursor: pointer;
-    transition: var(--transition);
-    border-radius: 50% 50% 50% 0.5em;
-    border: 4px solid var(--bg-color);
-    transform: rotate(-45deg);
-    background: var(--bg-color);
     -webkit-tap-highlight-color: transparent;
 }
-.marker-style-pin .marker-image {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid var(--bg-color);
-    box-shadow: 0 2px 8px var(--shadow-color);
-    transition: var(--transition);
-    position: relative;
-}
-.marker-style-pin .marker-image::after {
-    content: '';
-    position: absolute;
-    top: -8px;
-    left: -8px;
-    right: -8px;
-    bottom: -8px;
-    border-radius: 50%;
-    background: transparent;
-    z-index: -1;
-}
-.marker-style-pin .marker-image img {
+.custom-marker .marker-image img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: rotate(45deg);
-    transition: var(--transition);
 }
-.marker-style-pin .custom-marker:hover .marker-image,
-.marker-style-pin .custom-marker:active .marker-image {
-    transform: scale(1.15);
-    box-shadow: 0 4px 12px var(--shadow-color);
+
+/* ===== 水滴（pin） ===== */
+.marker-style-pin .custom-marker {
+    border: 3px solid var(--fp-paper-raised);
+    border-radius: 50% 50% 50% 0.5em;
+    background: var(--fp-paper-raised);
+    transform: rotate(-45deg);
+    filter: drop-shadow(0 1px 2px var(--fp2d-mark-shadow));
+}
+.marker-style-pin .marker-image {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    overflow: hidden;
+    border-radius: 50%;
+}
+.marker-style-pin .marker-image img {
+    transform: rotate(45deg);
+}
+.marker-style-pin .custom-marker:hover .marker-image {
+    transform: scale(1.1);
 }
 .marker-style-pin .marker-badge,
 .marker-style-pin .marker-label,
-.marker-style-pin .marker-arrow { display: none; }
+.marker-style-pin .marker-arrow {
+    display: none;
+}
 
-/* ===== 简约圆形 + 徽章（circle） ===== */
+/* ===== 圆形 + 类型徽章（circle） ===== */
 .marker-style-circle .custom-marker {
-    cursor: pointer;
-    transition: transform 0.2s ease, filter 0.2s ease;
     position: relative;
-    -webkit-tap-highlight-color: transparent;
+    filter: drop-shadow(0 1px 2px var(--fp2d-mark-shadow));
+    transition: transform var(--fp-dur) var(--fp-ease);
 }
 .marker-style-circle .custom-marker:hover {
-    transform: scale(1.12);
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
+    transform: scale(1.1);
 }
 .marker-style-circle .marker-image {
+    position: relative;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
     overflow: hidden;
-    border: 3px solid hsl(var(--hsla-raw));
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transition: box-shadow 0.2s ease;
-    position: relative;
-}
-.marker-style-circle .custom-marker:hover .marker-image {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-}
-.marker-style-circle .marker-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    border: 3px solid var(--fp2d-accent);
+    border-radius: 50%;
+    background: var(--fp-paper-raised);
 }
 .marker-style-circle .marker-badge {
     position: absolute;
-    bottom: -4px;
     right: -4px;
+    bottom: -4px;
     width: 18px;
     height: 18px;
+    border: 1.5px solid var(--fp-paper-raised);
     border-radius: 50%;
-    background: hsl(var(--hsla-raw));
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 18px;
+    background: var(--fp2d-accent);
+    color: var(--fp-ink);
+    font: 400 10px/15px var(--fp-font-title);
     text-align: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     pointer-events: none;
-    user-select: none;
 }
 .marker-style-circle .marker-label,
-.marker-style-circle .marker-arrow { display: none; }
+.marker-style-circle .marker-arrow {
+    display: none;
+}
 
-/* ===== 卡片标记（card） ===== */
+/* ===== 名签卡片（card）：上面一条墨色名签，下面一张小照片 ===== */
 .marker-style-card .custom-marker {
-    cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
-    -webkit-tap-highlight-color: transparent;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-    transition: transform 0.2s ease, filter 0.2s ease;
+    filter: drop-shadow(0 1px 2px var(--fp2d-mark-shadow));
+    transition: transform var(--fp-dur) var(--fp-ease);
 }
 .marker-style-card .custom-marker:hover {
-    transform: scale(1.08);
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+    transform: scale(1.06);
 }
 .marker-style-card .marker-label {
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 8px;
-    border-radius: 4px 4px 0 0;
-    max-width: 80px;
+    max-width: 88px;
+    padding: 2px 8px;
     overflow: hidden;
+    border-radius: var(--fp-radius-photo) var(--fp-radius-photo) 0 0;
+    background: var(--fp-ink);
+    color: var(--fp-paper);
+    font: 400 var(--fp-size-xs)/1.5 var(--fp-font-title);
+    text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
-    text-align: center;
 }
 .marker-style-card .marker-image {
+    position: relative;
     width: 50px;
     height: 36px;
-    border-radius: 4px;
     overflow: hidden;
-    border: 2px solid #fff;
-    box-shadow: none;
-    position: relative;
-}
-.marker-style-card .custom-marker:hover .marker-image {
-    box-shadow: none;
-}
-.marker-style-card .marker-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    border: 2px solid var(--fp-paper-raised);
+    border-radius: var(--fp-radius-photo);
 }
 .marker-style-card .marker-arrow {
     width: 0;
     height: 0;
-    border-left: 7px solid transparent;
-    border-right: 7px solid transparent;
-    border-top: 6px solid rgba(0, 0, 0, 0.75);
+    border-top: 6px solid var(--fp-ink);
+    border-right: 6px solid transparent;
+    border-left: 6px solid transparent;
 }
-.marker-style-card .marker-badge { display: none; }
+.marker-style-card .marker-badge {
+    display: none;
+}
 
-/* ===== 照片徽章标记（photo） ===== */
+/* ===== 照片徽章（photo）：圆照片 + 品牌色箭头，悬停出名签 ===== */
 .marker-style-photo .custom-marker {
     position: relative;
     display: block;
     width: 46px;
     height: 44px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform 0.2s ease, filter 0.2s ease;
+    transition: transform var(--fp-dur) var(--fp-ease);
 }
 .marker-style-photo .custom-marker:hover {
-    transform: translateY(-2px) scale(1.06);
-    filter: drop-shadow(0 5px 12px rgba(15, 23, 42, 0.22));
+    transform: translateY(-2px);
 }
 .marker-style-photo .marker-image {
     position: absolute;
@@ -180,16 +148,10 @@
     width: 36px;
     height: 36px;
     overflow: hidden;
-    background: var(--bg-color);
-    border: 3px solid #fff;
+    border: 3px solid var(--fp-paper-raised);
     border-radius: 50%;
-    box-shadow: 0 0 0 2px hsl(var(--hsla-raw)), 0 4px 10px rgba(15, 23, 42, 0.2);
-    transition: box-shadow 0.2s ease;
-}
-.marker-style-photo .marker-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    background: var(--fp-paper-raised);
+    box-shadow: 0 0 0 2px var(--fp2d-accent), 0 1px 3px var(--fp2d-mark-shadow);
 }
 .marker-style-photo .marker-badge {
     position: absolute;
@@ -200,16 +162,12 @@
     place-items: center;
     width: 16px;
     height: 16px;
-    color: #fff;
-    background: hsl(var(--hsla-raw));
-    border: 2px solid #fff;
+    border: 2px solid var(--fp-paper-raised);
     border-radius: 50%;
-    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.2);
-    font-size: 9px;
-    font-weight: 800;
-    line-height: 1;
+    background: var(--fp2d-accent);
+    color: var(--fp-ink);
+    font: 400 9px/1 var(--fp-font-title);
     pointer-events: none;
-    user-select: none;
 }
 .marker-style-photo .marker-arrow {
     position: absolute;
@@ -219,50 +177,32 @@
     display: block;
     width: 0;
     height: 0;
-    border-top: 10px solid hsl(var(--hsla-raw));
+    border-top: 10px solid var(--fp2d-accent);
     border-right: 7px solid transparent;
     border-left: 7px solid transparent;
     transform: translateX(-50%);
 }
 .marker-style-photo .marker-label {
     position: absolute;
-    bottom: calc(100% - 1px);
+    bottom: calc(100% + 2px);
     left: 50%;
     z-index: 3;
     max-width: 150px;
-    padding: 4px 8px;
+    padding: 3px 8px;
     overflow: hidden;
-    color: #fff;
-    background: rgba(15, 23, 42, 0.86);
-    border: 1px solid hsla(var(--hsla-raw), 0.4);
-    border-radius: 7px;
-    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1.2;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-ink);
+    color: var(--fp-paper);
+    font: 400 var(--fp-size-xs)/1.4 var(--fp-font-title);
     text-overflow: ellipsis;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     transform: translate(-50%, 4px);
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
 }
 .marker-style-photo .custom-marker:hover .marker-label,
 .marker-style-photo .custom-marker:focus-visible .marker-label {
     opacity: 1;
     transform: translate(-50%, 0);
-}
-.marker-style-photo .custom-marker:hover .marker-image {
-    box-shadow: 0 0 0 3px hsla(var(--hsla-raw), 0.26), 0 5px 14px rgba(15, 23, 42, 0.24);
-}
-@media (prefers-color-scheme: dark) {
-    .marker-style-photo .marker-image,
-    .marker-style-photo .marker-badge {
-        border-color: #1e2a3a;
-    }
-    .marker-style-photo .marker-label {
-        color: #f8fafc;
-        background: rgba(15, 23, 42, 0.94);
-        border-color: hsla(var(--hsla-raw), 0.52);
-    }
 }

@@ -1,32 +1,28 @@
-/* 信息窗口样式 */
+/*
+ * 高德信息窗体：只给没有图片墙的足迹用。整张是照片，信息压在底部暗影上。
+ */
 .info-window {
-    width: 220px;
-    height: 280px;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 12px 12px 0px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    opacity: 0;
-    transform: translateY(10px);
-    animation: infoWindowShow 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    width: 220px;
+    height: 280px;
+    overflow: hidden;
+    border-radius: var(--fp-radius-panel);
+    border: 1px solid var(--fp-rule);
+    background: var(--fp-paper-raised);
+    font-family: var(--fp-font-text);
     cursor: pointer;
-    -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-    -khtml-user-select: none; /* Konqueror HTML */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* Internet Explorer/Edge */
-    user-select: none; /* Non-prefixed version, currently supported by Chrome and Opera */
-    touch-action: manipulation; /* 优化触摸操作 */
+    animation: infoWindowShow 0.2s var(--fp-ease) both;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
 }
 .info-window .image {
     position: relative;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    /*pointer-events: none;*/
 }
 .info-window .image img {
     width: 100%;
@@ -35,127 +31,101 @@
 }
 .info-window .image-info {
     position: absolute;
+    right: 0;
     bottom: 0;
     left: 0;
-    right: 0;
-    padding: 15px;
-    color: white;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0) 100%);
     z-index: 10;
+    padding: 14px;
+    color: var(--fp2d-photo-ink);
+    background: linear-gradient(to top, var(--fp2d-photo-shade) 0%, var(--fp2d-photo-shade-soft) 60%, transparent 100%);
 }
 .info-window .title {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0 0 8px 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    margin: 0 0 6px;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-lg);
+    font-weight: 400;
+    line-height: 1.25;
 }
 .info-window .description {
-    font-size: 13px;
-    line-height: 1.5;
-    margin: 0 0 12px 0;
+    margin: 0 0 10px;
+    overflow: hidden;
+    font-size: var(--fp-size-xs);
+    line-height: 1.6;
     opacity: 0.9;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 .info-window .meta {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 12px;
+    margin-bottom: 4px;
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
     opacity: 0.9;
-    margin-bottom: 12px;
 }
 .info-window .meta span {
     display: flex;
     align-items: center;
     gap: 4px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 .info-window .meta svg {
     width: 12px;
     height: 12px;
-    opacity: 0.9;
 }
+/* 照片上的按钮：纸色实底，墨色字 */
 .info-window .article-btn {
-    --primary-color: rgba(255, 255, 255, 0.9);
-    --secondary-color: rgba(0, 0, 0, 0.8);
-    --hover-color: #fff;
-    --arrow-width: 10px;
-    --arrow-stroke: 2px;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 20px;
-    color: var(--secondary-color);
-    padding: 8px 16px;
-    background: var(--primary-color);
-    display: flex;
-    transition: 0.2s all;
+    display: inline-flex;
     align-items: center;
-    gap: 0.6em;
-    font-weight: 500;
-    font-size: 13px;
-    backdrop-filter: blur(4px);
+    gap: 6px;
+    min-height: 30px;
+    margin-top: 8px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-paper);
+    color: var(--fp-ink);
+    font: 500 var(--fp-size-xs)/1 var(--fp-font-text);
     text-decoration: none;
+    transition: background-color var(--fp-dur) var(--fp-ease);
+}
+.info-window .article-btn:hover {
+    background: var(--fp-paper-raised);
 }
 .info-window .article-btn .arrow-wrapper {
     display: flex;
-    justify-content: center;
     align-items: center;
 }
 .info-window .article-btn .arrow {
-    margin-top: 1px;
-    width: 0;
-    background: var(--secondary-color);
-    height: var(--arrow-stroke);
     position: relative;
-    transition: 0.2s;
+    width: 8px;
+    height: 1.5px;
+    margin-top: 1px;
+    background: currentColor;
 }
 .info-window .article-btn .arrow::before {
     content: "";
-    box-sizing: border-box;
     position: absolute;
-    border: solid var(--secondary-color);
-    border-width: 0 var(--arrow-stroke) var(--arrow-stroke) 0;
-    display: inline-block;
     top: -3px;
     right: 0;
-    transition: 0.2s;
     padding: 3px;
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
     transform: rotate(-45deg);
-}
-.info-window .article-btn:hover {
-    background-color: var(--hover-color);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-.info-window .article-btn:hover .arrow {
-    width: var(--arrow-width);
-}
-.info-window .article-btn:hover .arrow:before {
-    right: 0;
 }
 .info-window .time-close-btn {
     display: none;
 }
 @keyframes infoWindowShow {
-    0% {
-        opacity: 0;
-        transform: translateY(30px) scale(0.95);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
-/* 隐藏高德地图默认的关闭按钮 */
-.amap-info-close {
+/* 隐藏高德信息窗体默认的外框、箭头与关闭按钮 */
+.amap-info-close,
+.amap-info-sharp {
     display: none !important;
 }
-/* 隐藏高德地图默认的信息窗体样式 */
 .amap-info-content {
     padding: 0 !important;
     background: transparent !important;
@@ -168,7 +138,3 @@
     border: none !important;
     box-shadow: none !important;
 }
-.amap-info-sharp {
-    display: none !important;
-}
-
