@@ -138,10 +138,17 @@
         #topNav button:active:not(:disabled) {
             transform: scale(0.94);
         }
+        /* 开着的开关：淡紫底 + 紫字，和 2D 的图层按钮同一种选中态。坞里常有两三个开关同时开着，
+           实心紫块并排会抢走主入口的注意力 */
         #topNav button.active,
         #topNav button[aria-pressed="true"] {
-            color: var(--fp-accent-ink);
-            background: var(--fp-accent);
+            color: var(--fp-accent);
+            background: var(--fp-accent-soft);
+        }
+        #topNav button.active:hover:not(:disabled),
+        #topNav button[aria-pressed="true"]:hover:not(:disabled) {
+            color: var(--fp-accent);
+            background: color-mix(in srgb, var(--fp-accent) 22%, transparent);
         }
         #topNav button:disabled {
             opacity: 0.35;

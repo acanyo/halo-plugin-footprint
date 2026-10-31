@@ -380,9 +380,9 @@ document.addEventListener('keydown', (e) => {
 // 城市标记图标：白色圆环 + 中心数量
 
 
-// 状态栏文案：当前底图 + 坐标系 + 地形状态 + 足迹数 + 数据来源。
-// 天地图每日额度属于运维数据，只在调试模式下显示（地址栏加 ?debug，
-// 或 localStorage.footprintDebug = '1'），不把后台指标丢给读者看。
+// 状态栏文案：平时只写数据来源（访客不需要知道底图名和坐标系）。
+// 底图、坐标系、地形状态与天地图每日额度是给站长排查用的，只在调试模式下显示
+// （地址栏加 ?debug，或 localStorage.footprintDebug = '1'）。
 const DEBUG_STATUS = (() => {
     try {
         return new URLSearchParams(window.location.search).has('debug') ||
@@ -391,15 +391,18 @@ const DEBUG_STATUS = (() => {
 })();
 
 function updateStatusText() {
+    const credit = '地图数据 © 高德、天地图';
+    if (!DEBUG_STATUS) {
+        deps.statusText().textContent = credit;
+        return;
+    }
     const item = deps.currentBaseKey() ? deps.baseProviders()[deps.currentBaseKey()] : null;
     const coordName = item && item.gcj ? 'GCJ-02' : 'CGCS2000/WGS84';
-    const usage = DEBUG_STATUS && item && item.needKey
+    const usage = item && item.needKey
         ? `；今日天地图瓦片 ${tdtTodayUsage()} 张，额度约 1 万`
         : '';
-    // 一句话写清楚：用的什么底图、什么坐标系，再标出数据来源
     deps.statusText().textContent =
-        (item ? item.label : '底图') + `，${coordName}${terrainNote}` + usage +
-        '。地图数据 © 高德、天地图';
+        (item ? item.label : '底图') + `，${coordName}${terrainNote}` + usage + '。' + credit;
 }
 
 // 把一条足迹从它自己的坐标系转换到当前底图坐标系：
