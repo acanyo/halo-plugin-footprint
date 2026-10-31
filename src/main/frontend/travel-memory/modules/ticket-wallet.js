@@ -163,7 +163,7 @@ export function buildTicketWallet() {
             // 移动端没有鼠标，改用滑动提示；桌面端隐藏顶部提示
             ticketGalleryHint.textContent = isTouch
                 ? '左右滑动切换票根'
-                : '滚动鼠标或拖动查看票根';
+                : '拖动或用滚轮切换票根';
             ticketGalleryHint.hidden = !isTouch || getTicketItems().length < 2;
         } else {
             ticketGalleryHint.hidden = true;
@@ -185,7 +185,7 @@ function buildFanWallet() {
         return { fp, img };
     });
     const isTouch = window.matchMedia('(hover: none)').matches || 'ontouchstart' in window;
-    ticketGalleryHint.textContent = isTouch ? '左右滑动切换票根' : '点击票根或滚动鼠标切换';
+    ticketGalleryHint.textContent = isTouch ? '左右滑动切换票根' : '点票根或用滚轮切换';
     ticketGalleryHint.hidden = getTicketItems().length < 2;
 }
 
