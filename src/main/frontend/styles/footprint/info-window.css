@@ -1,0 +1,165 @@
+/*
+ * 高德信息窗体：2D 地图点开任何足迹都是这一张。216px 宽的玻璃卡：
+ * 顶部一张方形照片（封面，没有封面用图片墙第一张），下面地名 + 图标行（地址、城市、类型、日期），
+ * 有关联文章时底部一颗整宽浅底胶囊「查看文章」。
+ * 卡片挂在标记右侧，打开时从标记方向（卡片左边中点）去模糊弹出。
+ */
+.info-window {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 216px;
+    padding: 6px;
+    border-radius: var(--fp-radius-panel);
+    background: var(--fp-glass);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow-lift);
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
+    cursor: default;
+    transform-origin: 0 50%;
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+.info-window .image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: var(--fp-radius-photo);
+    background: var(--fp-accent-soft);
+}
+.info-window .image img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.info-window .image-info {
+    display: flex;
+    flex-direction: column;
+    padding: 2px 6px 0;
+}
+.info-window .title {
+    margin: 0 0 2px;
+    overflow: hidden;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-md);
+    font-weight: 400;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.info-window .description {
+    margin: 0 0 4px;
+    overflow: hidden;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-xs);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.info-window .info-window-rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.info-window .info-window-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: var(--fp-ink);
+    font-size: var(--fp-size-xs);
+    line-height: 24px;
+    font-variant-numeric: tabular-nums;
+}
+.info-window .info-window-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.info-window .info-window-row svg {
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--fp-ink-soft);
+}
+/* 「查看文章」：整宽浅底胶囊，新标签页打开 */
+.info-window .article-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    margin: 8px -6px 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-rule);
+    color: var(--fp-ink);
+    font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+    text-decoration: none;
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.info-window .article-btn svg {
+    width: 14px;
+    height: 14px;
+}
+.info-window .article-btn:hover {
+    background: var(--fp-rule-strong);
+}
+.info-window .article-btn:active {
+    transform: scale(0.96);
+}
+.info-window .article-btn:focus-visible {
+    outline: 2px solid var(--fp-accent);
+    outline-offset: 2px;
+}
+.info-window .time-close-btn {
+    display: none;
+}
+/* 手机上卡片在标记正上方，照片压扁一些，整张卡不会顶出屏幕 */
+@media (max-width: 768px) {
+    .info-window {
+        transform-origin: 50% 100%;
+    }
+    .info-window .image {
+        aspect-ratio: 16 / 10;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .info-window {
+        animation-name: infoWindowFade;
+    }
+    .info-window .article-btn:active {
+        transform: none;
+    }
+}
+@keyframes infoWindowFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+/* 隐藏高德信息窗体默认的外框、箭头与关闭按钮 */
+.amap-info-close,
+.amap-info-sharp {
+    display: none !important;
+}
+.amap-info-content {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+.amap-info-outer,
+.amap-info-inner {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}

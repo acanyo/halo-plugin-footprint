@@ -1,0 +1,159 @@
+        /* ============ 城市图片墙：左侧足迹目录 ============
+           一条足迹一枚圆角标签：序号 / 圆形缩略图 / 足迹名（快看世界体）+ 日期与照片数。
+           常态是浅底，悬停换白底并上浮，当前项是强调色浅底。手机端改成横排胶囊，见 city-gallery-mobile.css。 */
+        .city-tabs {
+            position: relative;
+            flex: 0 0 288px;
+            width: 288px;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            /* 留出悬停上浮与阴影的空间，免得被滚动区裁掉 */
+            padding: 4px 6px 24px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--fp-rule-strong) transparent;
+        }
+        .city-tabs::before {
+            content: "这座城市的足迹";
+            display: block;
+            padding: 0 10px 6px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+        }
+        .city-tab {
+            position: relative;
+            display: grid;
+            grid-template-columns: 20px 52px minmax(0, 1fr);
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            min-height: 72px;
+            padding: 8px 12px 8px 10px;
+            box-sizing: border-box;
+            border: 0;
+            border-radius: var(--fp-radius-panel);
+            background: transparent;
+            color: var(--fp-ink-soft);
+            text-align: left;
+            font: inherit;
+            cursor: pointer;
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+            transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease),
+                transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+        }
+        /* 目录首次出现错峰：前 8 项每项晚 40ms（::before 是小标题，不占 nth-child 序号） */
+        .city-tab:nth-child(1) { animation-delay: 60ms; }
+        .city-tab:nth-child(2) { animation-delay: 100ms; }
+        .city-tab:nth-child(3) { animation-delay: 140ms; }
+        .city-tab:nth-child(4) { animation-delay: 180ms; }
+        .city-tab:nth-child(5) { animation-delay: 220ms; }
+        .city-tab:nth-child(6) { animation-delay: 260ms; }
+        .city-tab:nth-child(7) { animation-delay: 300ms; }
+        .city-tab:nth-child(n + 8) { animation-delay: 340ms; }
+        .city-tab:hover {
+            color: var(--fp-ink);
+            background: var(--fp-paper-raised);
+            box-shadow: var(--fp-shadow);
+            transform: translateY(-2px);
+        }
+        .city-tab:active {
+            transform: scale(0.97);
+        }
+        .city-tab:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        .city-tab.active,
+        .city-tab.active:hover {
+            color: var(--fp-ink);
+            background: var(--fp-paper-raised);
+            box-shadow: var(--fp-shadow);
+        }
+        /* 当前项：白卡左缘一枚强调色短条 */
+        .city-tab.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 18px;
+            bottom: 18px;
+            width: 3px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-accent);
+        }
+        .city-tab-index {
+            align-self: center;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
+        .city-tab.active .city-tab-index {
+            color: var(--fp-accent);
+        }
+        .city-tab-thumb {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            flex: none;
+            overflow: hidden;
+            border-radius: var(--fp-radius-photo);
+            background: var(--cv-skeleton);
+        }
+        .city-tab-thumb img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .city-tab-info {
+            min-width: 0;
+            overflow: hidden;
+        }
+        .city-tab-name {
+            display: block;
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-md);
+            line-height: 1.35;
+            letter-spacing: 0.02em;
+            color: inherit;
+            overflow-wrap: anywhere;
+        }
+        .city-tab-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px 10px;
+            margin-top: 4px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            line-height: 1.4;
+            font-variant-numeric: tabular-nums;
+        }
+        @media (max-width: 1020px) {
+            .city-tabs {
+                flex-basis: 240px;
+                width: 240px;
+            }
+        }
+        @media (hover: none) {
+            .city-tab:hover {
+                transform: none;
+            }
+            .city-tab:not(.active):hover {
+                background: transparent;
+                box-shadow: none;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .city-tab {
+                transition: none;
+                animation-name: cityFadeIn;
+            }
+            .city-tab:hover,
+            .city-tab:active {
+                transform: none;
+            }
+        }

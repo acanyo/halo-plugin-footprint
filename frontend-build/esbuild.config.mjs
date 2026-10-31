@@ -35,6 +35,8 @@ const OUT = join(ROOT, 'build/resources/main/static');
 /** 第 1 类：已模块化，需要 bundle。key 是输出的文件名（不含扩展名） */
 const BUNDLES = {
   'travel-memory': join(FRONTEND, 'travel-memory/index.js'),
+  'footprint': join(FRONTEND, 'footprint/index.js'),
+  'memory-shelf': join(FRONTEND, 'memory-shelf/index.js'),
 };
 
 /** 第 2 类：尚未模块化，只压缩。扫这两个目录下的散文件 */
@@ -71,14 +73,38 @@ const COMMON = {
   logLevel: 'warning',
 };
 
+/** bundle 的源码体积：metafile 里所有被打进来的输入文件之和（只算入口文件会严重低估） */
+const sourceBytes = (result) =>
+  Object.values(result.metafile.inputs).reduce((sum, input) => sum + input.bytes, 0);
+
 let before = 0;
 let after = 0;
 let count = 0;
 
 for (const [name, entry] of Object.entries(BUNDLES)) {
   const out = join(OUT, 'js', `${name}.js`);
-  before += statSync(entry).size;
-  await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, format: 'iife' });
+  const result = await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, format: 'iife', metafile: true });
+  before += sourceBytes(result);
+  after += statSync(out).size;
+  count++;
+}
+
+/**
+ * 第 1 类的样式：按 UI 领域拆成 partial，index.css 用 @import 串起来，bundle 回单文件。
+ * 输出路径与原 static/css/<name>.css 一致，FootprintHeadProcessor 引用的 URL 不变。
+ * partial 里的 url("../font/...") 等是按运行时 /static/css/ 写的相对路径，
+ * 标成 external 原样保留，不让 esbuild 按 partial 所在目录去解析或内联。
+ */
+const CSS_BUNDLES = {
+  'travel-memory': join(FRONTEND, 'styles/travel-memory/index.css'),
+  footprint: join(FRONTEND, 'styles/footprint/index.css'),
+  'memory-shelf': join(FRONTEND, 'styles/memory-shelf/index.css'),
+};
+
+for (const [name, entry] of Object.entries(CSS_BUNDLES)) {
+  const out = join(OUT, 'css', `${name}.css`);
+  const result = await build({ ...COMMON, entryPoints: [entry], outfile: out, bundle: true, external: ['../font/*', '../img/*'], metafile: true });
+  before += sourceBytes(result);
   after += statSync(out).size;
   count++;
 }

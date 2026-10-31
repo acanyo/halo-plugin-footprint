@@ -7,19 +7,18 @@ metadata:
   name: footprint
 spec:
   enabled: true
-  requires: ">=2.26.0"
-  version: "3.0.0-beta.3"
+  requires: ">=2.27.0"
   author:
-    name: Handsome
-    website: https://www.lik.cc/
+    name: Handsome&云端
+    website: https://www.xhhao.com/
   logo: logo.svg
-  homepage: https://www.lik.cc/
+  homepage: https://www.xhhao.com/
   repo: https://github.com/acanyo/halo-plugin-footprint
   issues: https://github.com/acanyo/halo-plugin-footprint/issues
   settingName: plugin-footprint-settings
   configMapName: plugin-footprint-configmap
   displayName: "足迹插件"
-  description: "基于高德地图的足迹记录插件，可以记录和展示您去过的地方"
+  description: "把去过的地方放到一颗 3D 地球上：城市相册、票根册、按省翻的书，也能切回 2D 高德地图按时间回看。带留言板"
   license:
     - name: "GPL-3.0"
       url: "https://github.com/acanyo/halo-plugin-footprint/blob/main/LICENSE"

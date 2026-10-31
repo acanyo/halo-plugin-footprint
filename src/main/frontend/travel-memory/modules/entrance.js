@@ -114,8 +114,8 @@ function playEntranceAnimation() {
         resumeAutoRotate('entrance');
     };
     // 用户拖动/滚轮交互时立即结束入场动画，避免相机被“抢”
-    cesiumCanvas.addEventListener('pointerdown', cancelEntrance);
-    cesiumCanvas.addEventListener('wheel', cancelEntrance, { passive: true });
+    cesiumCanvas().addEventListener('pointerdown', cancelEntrance);
+    cesiumCanvas().addEventListener('wheel', cancelEntrance, { passive: true });
 
     deps.viewer().camera.setView({ destination: Cesium.Cartesian3.fromDegrees(startLng, startLat, startH) });
     function tick(now) {

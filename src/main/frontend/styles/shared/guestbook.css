@@ -1,0 +1,140 @@
+/* ============ 留言板 ============
+   整页一个 Halo 评论区。右侧滑出一块不透明白面板（评论组件里有输入框，玻璃底会让字发虚），
+   底下一层浅色遮罩，点遮罩或 Esc 关闭。手机上改成从底部升起的抽屉。
+   评论组件的配色用它自己的 --halo-cw-* 变量对上柔光玻璃色板，主题色跟着 --fp-accent。 */
+.guestbook {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    --halo-cw-primary-1-color: var(--fp-accent);
+    --halo-cw-primary-2-color: color-mix(in srgb, var(--fp-accent) 60%, white);
+    --halo-cw-primary-3-color: var(--fp-accent-soft);
+    --halo-cw-text-1-color: var(--fp-ink);
+    --halo-cw-text-2-color: var(--fp-ink-soft);
+    --halo-cw-text-3-color: var(--fp-ink-faint);
+    --halo-cw-muted-1-color: var(--fp-rule-strong);
+    --halo-cw-muted-2-color: var(--fp-rule);
+    --halo-cw-muted-3-color: var(--fp-paper);
+    --halo-cw-base-rounded: 12px;
+    --halo-cw-base-font-size: var(--fp-size-sm);
+    --halo-cw-base-font-family: var(--fp-font-text);
+}
+.guestbook[hidden] {
+    display: none;
+}
+.guestbook-backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--fp-scrim);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity var(--fp-dur) var(--fp-ease);
+}
+.guestbook-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: min(520px, calc(100vw - 24px));
+    border-radius: calc(var(--fp-radius-panel) + 4px);
+    background: var(--fp-paper-raised);
+    box-shadow: var(--fp-shadow-lift);
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
+    opacity: 0;
+    transform: translateX(24px);
+    transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.guestbook.is-open .guestbook-backdrop,
+.guestbook.is-open .guestbook-panel {
+    opacity: 1;
+}
+.guestbook.is-open .guestbook-panel {
+    transform: none;
+}
+.guestbook-head {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 20px 12px 24px;
+}
+.guestbook-title {
+    margin: 0;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
+}
+.guestbook-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-rule);
+    color: var(--fp-ink);
+    cursor: pointer;
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.guestbook-close:hover {
+    background: var(--fp-rule-strong);
+}
+.guestbook-close:active {
+    transform: scale(0.96);
+}
+.guestbook-close:focus-visible {
+    outline: 2px solid var(--fp-accent);
+    outline-offset: 2px;
+}
+.guestbook-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 4px 24px 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* 手机：底部抽屉，留出顶上一截看得见地球 */
+@media (max-width: 768px) {
+    .guestbook-panel {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-height: 86dvh;
+        height: 86dvh;
+        border-radius: calc(var(--fp-radius-panel) + 4px) calc(var(--fp-radius-panel) + 4px) 0 0;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        transform: translateY(24px);
+    }
+    .guestbook-head {
+        padding: 16px 16px 8px 20px;
+    }
+    .guestbook-body {
+        padding: 4px 16px 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guestbook-backdrop,
+    .guestbook-panel {
+        transition: opacity var(--fp-dur) linear;
+    }
+    .guestbook-panel,
+    .guestbook.is-open .guestbook-panel {
+        transform: none;
+    }
+    .guestbook-close:active {
+        transform: none;
+    }
+}

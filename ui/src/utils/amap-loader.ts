@@ -10,17 +10,53 @@
 
 const AMAP_VERSION = "2.0";
 
+/**
+ * 只声明控制台实际用到的那一小部分高德 API（地图选点）。
+ * 高德没有官方类型包，这里不追求完整，够用、能拦住拼写错误即可。
+ */
+export type LngLatTuple = [number, number];
+
+export interface AMapClickEvent {
+  lnglat: { getLng(): number; getLat(): number };
+}
+
+export interface AMapEventTarget {
+  on(event: string, handler: (e: AMapClickEvent) => void): void;
+}
+
+export interface AMapMap extends AMapEventTarget {
+  add(overlay: AMapMarker): void;
+  setZoomAndCenter(zoom: number, center: LngLatTuple): void;
+  destroy(): void;
+}
+
+export interface AMapMarker extends AMapEventTarget {
+  setPosition(position: LngLatTuple): void;
+}
+
+export interface AMapNamespace {
+  Map: new (
+    container: HTMLElement,
+    options: { zoom: number; center: LngLatTuple; mapStyle?: string },
+  ) => AMapMap;
+  Marker: new (options: {
+    position: LngLatTuple;
+    draggable?: boolean;
+    cursor?: string;
+  }) => AMapMarker;
+}
+
 declare global {
   interface Window {
-    AMap?: any;
+    AMap?: AMapNamespace;
     _AMapSecurityConfig?: { securityJsCode?: string };
   }
 }
 
-let loadingPromise: Promise<any> | null = null;
+let loadingPromise: Promise<AMapNamespace> | null = null;
 let loadedKey: string | null = null;
 
-export function loadAMap(key: string): Promise<any> {
+export function loadAMap(key: string): Promise<AMapNamespace> {
   if (!key) {
     return Promise.reject(new Error("缺少高德 Js Key"));
   }

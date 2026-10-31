@@ -12,7 +12,7 @@
 import { Toast, VButton, VModal, VSpace } from "@halo-dev/components";
 import { computed, onMounted, ref, watch } from "vue";
 import { footprintApiClient } from "@/api";
-import type { Footprint, GalleryImage, Option } from "@/api/models";
+import type { Footprint, Option } from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { parseCoordinate } from "@/utils/coordinate";
 import {
@@ -331,8 +331,8 @@ function handleManualInput() {
     mount-to-body
     @update:visible="onVisibleChange"
   >
+    <div v-if="formVisible" class="fp-dialog">
     <FormKit
-      v-if="formVisible"
       id="footprint-form"
       name="footprint-form"
       type="form"
@@ -340,19 +340,11 @@ function handleManualInput() {
       @submit.prevent
     >
       <!-- 编辑模式预览 -->
-      <div v-if="isUpdateMode" class="mb-6 rounded-lg bg-gray-50 p-4" style="margin-bottom: 10px">
-        <div class="flex items-center gap-4">
-          <img
-            v-if="formState.spec.image"
-            :src="formState.spec.image"
-            width="80"
-            class="rounded-lg object-cover"
-            alt="足迹图片"
-          />
-          <div>
-            <p class="text-lg font-semibold text-gray-900">{{ formState.spec.name }}</p>
-            <p class="mt-1 text-sm text-gray-500">{{ formState.spec.description }}</p>
-          </div>
+      <div v-if="isUpdateMode" class="fp-form-preview">
+        <img v-if="formState.spec.image" :src="formState.spec.image" alt="" />
+        <div>
+          <strong>{{ formState.spec.name }}</strong>
+          <p>{{ formState.spec.description }}</p>
         </div>
       </div>
 
@@ -377,12 +369,13 @@ function handleManualInput() {
         :footprint-types="footprintTypes"
       />
     </FormKit>
+    </div>
 
     <template #footer>
-      <VSpace>
-        <VButton type="secondary" @click="onVisibleChange(false)">取消</VButton>
-        <VButton type="primary" :loading="saving" :disabled="!isFormValid" @click="handleSubmit">
-          确定
+      <VSpace class="fp-dialog">
+        <VButton @click="onVisibleChange(false)">取消</VButton>
+        <VButton type="secondary" :loading="saving" :disabled="!isFormValid" @click="handleSubmit">
+          {{ isUpdateMode ? "保存" : "创建" }}
         </VButton>
       </VSpace>
     </template>
@@ -396,32 +389,35 @@ function handleManualInput() {
       title="手动输入经纬度"
       :mask-closable="false"
     >
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">经度</label>
-          <input
+      <div class="fp-dialog">
+        <p class="fp-muted" style="margin-bottom: 8px">
+          地址「{{ formState.spec.address }}」没能自动解析出经纬度，填好后会继续保存。
+        </p>
+        <FormKit type="form" :actions="false" @submit.prevent>
+          <FormKit
             v-model="manualLongitude"
+            name="longitude"
+            label="经度"
             type="number"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            placeholder="请输入经度（-180到180）"
             step="0.000001"
+            validation="required|between:-180,180"
+            help="取值范围 -180 到 180"
           />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">纬度</label>
-          <input
+          <FormKit
             v-model="manualLatitude"
+            name="latitude"
+            label="纬度"
             type="number"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            placeholder="请输入纬度（-90到90）"
             step="0.000001"
+            validation="required|between:-90,90"
+            help="取值范围 -90 到 90"
           />
-        </div>
+        </FormKit>
       </div>
       <template #footer>
-        <VSpace>
-          <VButton type="secondary" @click="showManualInput = false">取消</VButton>
-          <VButton type="primary" @click="handleManualInput">确定</VButton>
+        <VSpace class="fp-dialog">
+          <VButton @click="showManualInput = false">取消</VButton>
+          <VButton type="secondary" @click="handleManualInput">继续保存</VButton>
         </VSpace>
       </template>
     </VModal>

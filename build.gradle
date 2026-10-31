@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id "io.freefair.lombok" version "8.13"
-    id "run.halo.plugin.devtools" version "0.6.1"
+    id "io.freefair.lombok" version "9.2.0"
+    id "run.halo.plugin.devtools" version "0.8.0"
     // 前台 js/css 的压缩步骤要用（ui 子项目也用同一个插件管 node）
     id "com.github.node-gradle.node" version "7.1.0"
 }
@@ -9,21 +9,11 @@ plugins {
 group 'cc.lik.footprint'
 
 repositories {
-    // 国内镜像放最前面：本机到 repo.maven.apache.org / s01.oss.sonatype.org 是超时的
-    // （实测 12 秒无响应），而 haloServer 需要下载 Halo 运行时（run.halo.app:halo），
-    // 走原仓库会一直卡在超时重试上，表现为「Gradle Daemon started 之后就没动静」。
-    // 能连通后可以删掉这几行。
-    maven { url 'https://maven.aliyun.com/repository/public' }
-    maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-    maven { url 'https://maven.aliyun.com/repository/spring' }
     mavenCentral()
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/releases' }
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
-    maven { url 'https://repo.spring.io/milestone' }
 }
 
 dependencies {
-    implementation platform('run.halo.tools.platform:plugin:2.26.0')
+    implementation platform('run.halo.tools.platform:plugin:2.27.0')
     compileOnly 'run.halo.app:api'
 
     testImplementation 'run.halo.app:api'
@@ -74,18 +64,66 @@ tasks.register('minifyFrontendInstall', com.github.gradle.node.npm.task.NpmTask)
     outputs.dir('frontend-build/node_modules')
 }
 
+// 前台模块契约检查：注入键、顶层 deps 访问、setup/init 顺序这类 esbuild 不报的错，
+// 在打包前拦下，而不是等浏览器里炸。脚本纯 Node、无依赖，详见 tools/check-frontend-contract.mjs。
+tasks.register('checkFrontendContract', com.github.gradle.node.task.NodeTask) {
+    group = 'verification'
+    description = '检查前台模块注入契约与装配顺序'
+    script = file('tools/check-frontend-contract.mjs')
+
+    inputs.dir('src/main/frontend/travel-memory')
+    inputs.file('tools/check-frontend-contract.mjs')
+    // 无产物；声明一个标记文件，让输入不变时可跳过
+    def marker = layout.buildDirectory.file('tmp/checkFrontendContract/ok')
+    outputs.file(marker)
+    doLast { marker.get().asFile.text = 'ok' }
+}
+
+// 前台纯函数单测：Node 自带的 node:test，不引入测试框架依赖。挂在 test 上，./gradlew build 会跑。
+tasks.register('testFrontend', com.github.gradle.node.task.NodeTask) {
+    group = 'verification'
+    description = '运行前台纯函数单测（src/test/frontend）'
+    script = file('tools/run-frontend-tests.mjs')
+
+    inputs.dir('src/main/frontend')
+    inputs.dir('src/test/frontend')
+    def marker = layout.buildDirectory.file('tmp/testFrontend/ok')
+    outputs.file(marker)
+    doLast { marker.get().asFile.text = 'ok' }
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('testFrontend')
+}
+
+// 前台视觉规范（柔光玻璃，见 src/main/frontend/styles/DESIGN.md）：英文大写小标题、「·」拼接、
+// 散落的色值、旧字体栈。和契约检查一样挂在打包前，不过就失败。
+tasks.register('checkFrontendStyle', com.github.gradle.node.task.NodeTask) {
+    group = 'verification'
+    description = '检查前台视觉规范'
+    script = file('tools/check-frontend-style.mjs')
+    args = ['--strict', '--quiet']
+
+    inputs.dir('src/main/frontend')
+    inputs.file('src/main/resources/templates/footprint.html')
+    inputs.file('tools/check-frontend-style.mjs')
+    def marker = layout.buildDirectory.file('tmp/checkFrontendStyle/ok')
+    outputs.file(marker)
+    doLast { marker.get().asFile.text = 'ok' }
+}
+
 tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
     group = 'build'
     description = '压缩前台 js/css（源文件不动，只改构建产物）'
     workingDir = file('frontend-build')
     args = ['run', 'minify']
 
+    dependsOn tasks.named('checkFrontendContract')
+    dependsOn tasks.named('checkFrontendStyle')
     dependsOn tasks.named('minifyFrontendInstall')
     dependsOn tasks.named('processResources')
 
     inputs.dir('src/main/frontend')
-    inputs.dir('src/main/resources/static/js')
-    inputs.dir('src/main/resources/static/css')
     inputs.files('frontend-build/esbuild.config.mjs', 'frontend-build/package.json')
     outputs.dir(layout.buildDirectory.dir('resources/main/static/js'))
     outputs.dir(layout.buildDirectory.dir('resources/main/static/css'))
@@ -96,58 +134,9 @@ tasks.named('classes') {
     dependsOn tasks.named('minifyFrontend')
 }
 
-def haloAdminUsername = providers.gradleProperty('haloAdminUsername')
-    .orElse(providers.environmentVariable('HALO_ADMIN_USERNAME'))
-def haloAdminPassword = providers.gradleProperty('haloAdminPassword')
-    .orElse(providers.environmentVariable('HALO_ADMIN_PASSWORD'))
-
 halo {
-    version = '2.26.0'
+    version = '2.27'
     debug = true
-
-    // Halo devtools 默认使用 admin/admin 探测插件状态。已有开发数据
-    // 通常改过管理员密码，此时需通过环境变量或 -P 参数提供真实凭据。
-    if (haloAdminUsername.isPresent()) {
-        superAdminUsername = haloAdminUsername.get()
-    }
-    if (haloAdminPassword.isPresent()) {
-        superAdminPassword = haloAdminPassword.get()
-    }
-}
-
-/*
- * Halo 的 devtools 插件只在 generatePluginComponentsIdx 执行时，
- * 临时把组件索引加入 jar 的拷贝规则。若 jar 被 Gradle 判定为
- * UP-TO-DATE，生成任务不会执行，产物就会缺少
- * META-INF/plugin-components.idx，插件 Bean 也不会被注册。
- *
- * 在这里把索引声明成 jar 的固定输入，确保增量构建和 clean build
- * 都能稳定产出可加载的插件包。
- */
-def pluginComponentsIndex = layout.buildDirectory.file('tmp/META-INF/plugin-components.idx')
-
-tasks.named('generatePluginComponentsIdx') {
-    outputs.file(pluginComponentsIndex)
-}
-
-/*
- * Halo devtools 的开发容器以 build/resources/main 作为插件资源根目录。
- * 组件索引只生成到 build/tmp，因此还需同步一份到开发模式的类路径。
- */
-def syncDevPluginComponentsIndex = tasks.register('syncDevPluginComponentsIndex', Copy) {
-    dependsOn tasks.named('generatePluginComponentsIdx')
-    from(pluginComponentsIndex)
-    into layout.buildDirectory.dir('resources/main/META-INF')
-}
-
-tasks.named('jar') {
-    inputs.file(pluginComponentsIndex)
-    from(pluginComponentsIndex) {
-        into 'META-INF'
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-tasks.named('classes') {
-    dependsOn syncDevPluginComponentsIndex
+    // 本机 8090 被别的 Halo 占用时：./gradlew haloServer -PhaloPort=8092
+    port = (findProperty('haloPort') ?: '8090') as Integer
 }

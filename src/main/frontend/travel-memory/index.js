@@ -6,17 +6,16 @@
  *   2) 按依赖顺序 setup / init 各模块 —— 先注入数据与元素，再绑定事件；
  *   3) 收尾：恢复上次视图、暴露 window.FootprintMemoryData 给书架脚本。
  *
- * 还没搬走的代码仍是一整片顶层语句（当年从 <script> 里抠出来的，
- * 所以整体带着 4 格缩进）。别被缩进误导：它们都在模块顶层，互相可见。
+ * 下面的装配代码整体带着 4 格缩进（当年从 <script> 里抠出来的）。
+ * 别被缩进误导：它们都在模块顶层，互相可见。
+ * 模块约定与契约检查见 ../README.md。
  */
 
-;
+import { applyAccentToDocument } from '../shared/accent.js';
+import { initGuestbook } from '../shared/guestbook.js';
 import {
     setTileBatchHandler
 } from './modules/tianditu-usage.js';
-;
-;
-;
 import {
     lightbox,
     closeLightbox,
@@ -25,6 +24,7 @@ import {
 import { setTdtTerrainDeps, initTdtTerrain } from './modules/tdt-terrain.js';
 import {
     setupViewMode,
+    initViewMode,
     restoreSavedViewMode,
     forceGlobeForTickets
 } from './modules/view-mode.js';
@@ -58,13 +58,15 @@ import {
     setupProvinceCards,
     initProvinceCards,
     closeProvinceCards,
+    isProvinceCardsActive,
+    clearProvinceRestorePending
+} from './modules/province-cards.js';
+import {
     loadProvinceGeoJson,
     normalizeProvinceName,
     provinceAdcodeOfEntity,
-    isProvinceCardsActive,
-    clearProvinceRestorePending,
     setProvinceEntityIndex
-} from './modules/province-cards.js';
+} from './modules/province-index.js';
 import {
     setupPhotoRing,
     initPhotoRing,
@@ -108,18 +110,14 @@ import {
     setTerrainNote,
     refreshStatusText,
     applyGlobeBranding,
-    closeNavigationTools,
-    dismissIntroForTickets,
-    hideBoundaryForTickets,
-    restoreGlobeViewForAutoRotate
+    restoreGlobeViewForAutoRotate,
+    cityFillFloatBtn
 } from './modules/navigation.js';
 import {
     setupMarkers,
     initMarkers,
+    prewarmMarkerLabels,
     initMarkersOverlay,
-    markerCard,
-    cityCard,
-    markerCardGallery,
     markerTip,
     markerFocusLayer,
     buildMarkers,
@@ -131,25 +129,31 @@ import {
     cityCenter,
     cityViewItems,
     cityPhotoItems,
-    hideMarkerCard,
     hideMarkerTip,
-    showMarkerCard,
-    hideCityCard,
-    showCityCard,
-    markerScreenPosition,
-    cardLayoutRect,
     refreshMarkerColors,
     setMarkerFocus,
-    setOverlayHidden,
     markerEntityList,
     cityMarkerEntityList,
     cityListSnapshot,
     isCityMode,
     focusedMarkerEntity,
-    currentPositionList,
-    invalidateMarkerLabelLayout
+    currentPositionList
 } from './modules/markers.js';
-;
+import {
+    setupMarkerDetailCard,
+    markerCard,
+    cityCard,
+    markerCardGallery,
+    hideMarkerCard,
+    showMarkerCard,
+    hideCityCard,
+    showCityCard,
+    markerScreenPosition,
+    cardLayoutRect,
+    setOverlayHidden,
+    rememberKeyboardMarkerBtn
+} from './modules/marker-detail-card.js';
+import { setupMarkerInput, initMarkersInput } from './modules/marker-input.js';
 import {
     setupCityWall,
     initCityWall,
@@ -169,27 +173,25 @@ import {
     setCityWallProvinceFilter
 } from './modules/city-wall.js';
 import {
-    setupHomeStory,
-    refreshHomeStory
-} from './modules/home-story.js';
-import { setupMessageBoard } from './modules/message-board.js';
-import {
     setupCreativeOverlays,
     initCreativeOverlays,
-    refreshCityWallFeatureActions,
+    refreshCityWallFeatureActions
+} from './modules/creative-overlays.js';
+import { setupTimeCapsule } from './modules/time-capsule.js';
+import { setupInsightView } from './modules/insight-view.js';
+import {
+    setupPostcard,
     loadPostcardImage,
     postcardToBlob,
     canvasSafeImageUrl,
     openPostcard
-} from './modules/creative-overlays.js';
+} from './modules/postcard.js';
 import {
     setupTicketGallery,
     initTicketGallery,
     ticketImageUrl,
-    openTicketGalleryForCity,
-    setTicketView
+    openTicketGalleryForCity
 } from './modules/ticket-gallery.js';
-;
 import {
     setInsightDeps
 } from './modules/footprints-insight.js';
@@ -200,7 +202,9 @@ setTileBatchHandler(refreshStatusText);
 setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
 // 洞察的统计口径同样靠注入拿数据：FOOTPRINTS / cityList 是 let，要取值函数而不是快照
 setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(), cityViewItems, cityWallImages, ticketImageUrl, cityKeyOf });
-setupMessageBoard(window.FOOTPRINT_CONFIG || {});
+    // 后台「主题色」写到 :root，所有 --fp-accent 系列跟着变（2D 与书架的入口也各写一次，值相同）
+    applyAccentToDocument();
+
     // ================= 初始化 Viewer =================
     const viewer = new Cesium.Viewer('cesiumContainer', {
         baseLayer: false,          // 不用 Cesium 默认底图，全部换成国内服务
@@ -238,10 +242,8 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
 
     // ================= 自动旋转与画布光标 =================
     setupAutoRotate({
-        viewer: () => viewer,
-        reduceMotion: () => reduceMotion
+        viewer: () => viewer
     });
-
     // ================= 顶部导航与左侧标题卡 =================
     // 实现见 modules/navigation.js：标题卡/导航显隐、状态栏、底图菜单、Esc 逐级关闭。
     setupNavigation({
@@ -252,20 +254,18 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         baseProviders: baseProviderMap,
         currentBaseKey: currentBase,
         statusText: () => document.getElementById('statusText'),
-        statusRetry: () => document.getElementById('statusRetry'),
         hasTdtKey: hasTiandituKey,
         footprintCfg: () => footprintCfg
     });
-
     // ================= 底图 =================
     // 实现见 modules/basemap.js：天地图 provider、7 档底图切换、瓦片容错。
     setupBaseMap({
         viewer: () => viewer,
         cityFillOn: isCityFillEnabled
     });
-
     // ================= 足迹标记与详情卡 =================
-    // 实现见 modules/markers.js：标记构建、城市聚合、详情卡、悬停与标签避让。
+    // 标记构建、城市聚合与悬停见 modules/markers.js；详情卡见 marker-detail-card.js，
+    // 指针拾取见 marker-input.js，遮挡与标签避让见 marker-visibility.js。
     setupMarkers({
         footprints: () => FOOTPRINTS,
         viewer: () => viewer,
@@ -274,9 +274,20 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         reduceMotion: () => reduceMotion,
         boundaryVisible: isBoundaryVisible,
         cityLabelVisible: isCityLabelVisible,
-        applyScreenSpaceError
+        // 键盘焦点按钮打开详情卡：走注入，避免 markers.js 与 marker-detail-card.js 互相 import
+        showMarkerCard,
+        showCityCard,
+        rememberKeyboardMarkerBtn
     });
-
+    setupMarkerDetailCard({
+        footprints: () => FOOTPRINTS,
+        viewer: () => viewer,
+        reduceMotion: () => reduceMotion
+    });
+    setupMarkerInput({
+        footprints: () => FOOTPRINTS,
+        viewer: () => viewer
+    });
     // ================= 城市淡色填充 =================
     // 实现见 modules/city-fill.js；主题配色在 modules/province-style.js。
     setupCityFill({
@@ -285,37 +296,16 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         cityList: () => cityListSnapshot(),
         baseProviders: baseProviderMap,
         currentBaseKey: currentBase,
+        cityFillFloatBtn: () => cityFillFloatBtn
     });
-
     // ================= 2D/3D 视图切换 =================
     // 实现见 modules/view-mode.js；morph 动画与视图模式记忆都在那边。
     setupViewMode({
         viewer: () => viewer,
-        markerCard: () => markerCard,
-        markerTip: () => markerTip,
-        reduceMotion: () => reduceMotion,
-        hideCityCard,
-        hideMarkerCard,
-        closeNavigationTools,
-        dismissIntroForTickets,
-        hideBoundaryForTickets,
-        invalidateMarkerLabelLayout
+        reduceMotion: () => reduceMotion
     });
-
     // ================= 首屏配置（相机 / 忙碌标志 / 光照 / 地球可用信号） =================
     setupGlobeBasics({ viewer: () => viewer });
-
-    // 所有模块先完成依赖注入，再开始任何可能回调其他模块的初始化。
-    initAutoRotate();
-    initGlobeBasics();
-    initNavigation();
-    initBaseMap();
-    initMarkers();
-    initMarkersOverlay();
-    initCityFill();
-
-    // 3D 地球品牌文案（实现见 modules/navigation.js）
-    applyGlobeBranding();
 
     // ================= 天地图三维地形（可选开关，默认关闭） =================
     // 实现见 modules/tdt-terrain.js；专有地形格式，默认不启用，导航栏「三维地形」
@@ -324,12 +314,6 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         setTerrainNote,
         updateStatusText: refreshStatusText
     });
-    initTdtTerrain(viewer, {
-        hasTDTKey: hasTiandituKey(),
-        tdtKey: tiandituKey(),
-        enableDefault: !!(window.FOOTPRINT_CONFIG && window.FOOTPRINT_CONFIG.enableTerrainDefault)
-    });
-
     // ================= 初始视角与开场动画 =================
     // 实现见 modules/entrance.js：入场动画、已看过判断、减弱动效与 2D 恢复。
     setupEntrance({
@@ -338,15 +322,11 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         footprintsDataReady: isFootprintDataReady,
         reduceMotion: () => reduceMotion
     });
-    initEntrance();
-
     // 图片灯箱在 modules/lightbox.js
 
     // ================= 城市卡片墙（「城记」） =================
     // 实现见 modules/city-wall.js。封面懒加载、悬停轮播、省市筛选都在那边。
-    setupCityWall({
-        footprints: () => FOOTPRINTS,
-        cityList: () => cityListSnapshot(),
+    setupCityWall({        cityList: () => cityListSnapshot(),
         cityViewItems,
         cityWallImages,
         formatCityDate,
@@ -366,19 +346,11 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         refreshCityWallFeatureActions,
         setOverlayHidden
     });
-    initCityWall();
     // ================= 创意覆盖层（时间胶囊 / 足迹洞察 / 旅行明信片） =================
-    // 实现见 modules/creative-overlays.js。三块都叠在城市卡片墙之上，共享同一套层级约定。
+    // 入口与共用的遮罩关闭见 modules/creative-overlays.js；三块各自的实现在
+    // time-capsule.js / insight-view.js / postcard.js。三块都叠在城市卡片墙之上，共享同一套层级约定。
     setupCreativeOverlays({
-        footprints: () => FOOTPRINTS,
-        cityList: () => cityListSnapshot(),
-        cityViewItems,
-        cityWallImages,
         featureEnabled,
-        formatCityDate,
-        cityWallCardData,
-        openCityView,
-        setOverlayHidden,
         setCityWallProvinceFilter,
         closeCityWall,
         openCityWall,
@@ -390,7 +362,32 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         cityWallTimeCapsuleBtn: () => cityWallTimeCapsuleBtn,
         cityWallProvinceFilter: () => cityWallProvinceFilter
     });
-    initCreativeOverlays();
+    setupTimeCapsule({
+        footprints: () => FOOTPRINTS,
+        cityList: () => cityListSnapshot(),
+        cityWallImages,
+        featureEnabled,
+        formatCityDate,
+        openCityView,
+        closeCityWall,
+        setOverlayHidden
+    });
+    setupInsightView({
+        footprints: () => FOOTPRINTS,
+        cityList: () => cityListSnapshot(),
+        featureEnabled,
+        openCityView,
+        setOverlayHidden,
+        setCityWallProvinceFilter
+    });
+    setupPostcard({
+        cityList: () => cityListSnapshot(),
+        cityViewItems,
+        featureEnabled,
+        formatCityDate,
+        cityWallCardData,
+        setOverlayHidden
+    });
     // ================= 加载足迹数据并重建标记 =================
     loadFootprintsFromJson().then(loaded => {
         if (applyFootprints(loaded)) {
@@ -404,11 +401,11 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
             buildMarkers();
             buildCityMarkers();
             rebuildMarkerModeFromCamera();
+            prewarmMarkerLabels();   // 新数据里可能有没见过的字
             if (isCityFillEnabled()) buildCityFills();   // 城市高亮开关开启时才随新数据重建
         }
         markFootprintDataReady();
         updateIntroStats();
-        refreshHomeStory();
         document.dispatchEvent(new CustomEvent('footprints:loaded'));
     });
 
@@ -422,12 +419,9 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         cityWallImages,
         loadCardCoverImage,
         markerScreenPosition,
-        cardLayoutRect,
         pauseAutoRotate,
         resumeAutoRotate
     });
-    initPhotoRing();
-
     // ================= 城市足迹全屏视图（左侧足迹 Tab 卡片 + 右侧详情） =================
     // 实现见 modules/city-view.js；卡片封面队列与时间线也在那边。
     setupCityView({
@@ -444,20 +438,6 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         showMarkerCard,
         setOverlayHidden
     });
-    initCityView();
-
-    // ================= 首次进入的旅行档案摘要 =================
-    setupHomeStory({
-        footprints: () => FOOTPRINTS,
-        cityList: () => cityListSnapshot(),
-        cityKeyOf,
-        cityWallImages,
-        cityCardImageUrl,
-        showRecentTripCard: () => footprintCfg.showRecentTripCard !== false,
-        showCityCard,
-        showMarkerCard
-    });
-
     // ================= 省份城市卡片（点击省份 → 每个有足迹的城市各一张小卡片 + 抛物线） =================
     // 实现见 modules/province-cards.js；命中判定的几何索引也在那边。
     setupProvinceCards({
@@ -489,8 +469,6 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         refreshMarkerColors,
         setMarkerFocus
     });
-    initProvinceCards();
-
     // ================= 票根册（票夹 / 重走 / 护照 / 抽票 / 明信片） =================
     // 实现见 modules/ticket-gallery.js。六块功能共用一套票根状态，整体作为一个领域迁出；
     // 这里只负责把宿主侧的取值函数与动作注进去，再绑定事件。
@@ -511,8 +489,6 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         hideCityCard,
         closeProvinceCards,
         forceGlobeForTickets,
-        openCityView,
-        openCityWall,
         pauseAutoRotate,
         resumeAutoRotate,
         restoreGlobeViewForAutoRotate,
@@ -521,10 +497,33 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
         loadPostcardImage,
         postcardToBlob
     });
-    // 票根按钮在模块初始化之前先绑定，避免票根模块内部后续初始化出错时入口完全失效。
-    document.getElementById('ticketGalleryBtn')?.addEventListener('click', () => setTicketView(true));
-    initTicketGallery();
 
+    // ---------- 启动顺序：全部 setup 完成后，再按依赖依次 init ----------
+    initGlobeBasics();
+    // 留言板（3D 底部坞与 2D 控制栏共用一个面板，2D 入口也调一次，只有第一次生效）
+    initGuestbook();
+    initAutoRotate();
+    initNavigation();
+    initBaseMap();
+    initMarkers();
+    initMarkersInput();
+    initMarkersOverlay();
+    initCityFill();
+    initViewMode();
+    initTdtTerrain(viewer, {
+        hasTDTKey: hasTiandituKey(),
+        tdtKey: tiandituKey(),
+        enableDefault: !!(window.FOOTPRINT_CONFIG && window.FOOTPRINT_CONFIG.enableTerrainDefault)
+    });
+    initEntrance();
+    initCityWall();
+    initCreativeOverlays();
+    initPhotoRing();
+    initCityView();
+    initProvinceCards();
+    initTicketGallery();
+    // 3D 地球品牌文案（实现见 modules/navigation.js，依赖 setupNavigation 注入的配置）
+    applyGlobeBranding();
     // 省界轮廓同样挂在 globeReady 之后：它只在放大到国内范围才显示
     // （见下面 boundaryVisible 的高度判定），整球视图下这 208 KB 纯属白占首屏带宽。
     // 挂在瓦片铺完之后而不是等到真正放大时才拉，是为了让用户放大时已经准备好，
@@ -532,6 +531,9 @@ setupMessageBoard(window.FOOTPRINT_CONFIG || {});
     //
     // 传已解析的 GeoJSON 对象而不是 URL：GeoJsonDataSource.load 两者都收，
     // 传对象就不会再发一次请求，与几何索引共用 loadProvinceGeoJson 那一次下载。
+    // 地名字形预热也挂在首批瓦片之后：首屏不和它抢时间，用户放大前已经备好
+    globeReadySignal().then(prewarmMarkerLabels);
+
     const chinaDataSource = globeReadySignal()
         .then(loadProvinceGeoJson)
         .then(geojson =>

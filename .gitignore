@@ -85,8 +85,6 @@ frontend-build/node_modules/
 
 docs
 
-### 本地 Codex 指令（任务结束自动重载插件）
-/AGENTS.md
-
 ### 视觉自检脚本的输出（tools/shelf-visual-check.mjs 生成的截图）
 tools/.visual-check/
+tools/.ui-tour/

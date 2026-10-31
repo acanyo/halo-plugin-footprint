@@ -20,7 +20,7 @@ function normalizeGallery(value: unknown): GalleryImage[] {
   if (typeof gallery === "string") {
     try {
       gallery = JSON.parse(gallery);
-    } catch (e) {
+    } catch {
       gallery = [];
     }
   }

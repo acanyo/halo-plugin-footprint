@@ -1,5 +1,7 @@
 package cc.lik.footprint;
 
+import cc.lik.footprint.guestbook.FootprintGuestbook;
+import cc.lik.footprint.guestbook.GuestbookInitializer;
 import cc.lik.footprint.migration.SettingsMigration;
 import cc.lik.footprint.model.Footprint;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +20,14 @@ import run.halo.app.plugin.PluginContext;
 public class FootprintPlugin extends BasePlugin {
     private final SchemeManager schemeManager;
     private final SettingsMigration settingsMigration;
+    private final GuestbookInitializer guestbookInitializer;
 
     public FootprintPlugin(PluginContext pluginContext, SchemeManager schemeManager,
-        SettingsMigration settingsMigration) {
+        SettingsMigration settingsMigration, GuestbookInitializer guestbookInitializer) {
         super(pluginContext);
         this.schemeManager = schemeManager;
         this.settingsMigration = settingsMigration;
+        this.guestbookInitializer = guestbookInitializer;
     }
 
     @Override
@@ -41,10 +45,16 @@ public class FootprintPlugin extends BasePlugin {
         // 迁移完成前读配置会命中 FootprintServiceImpl 中的 globe3d 兜底，因此这里不存在竞态问题。
         settingsMigration.migrate()
             .subscribe(null, e -> log.error("足迹插件配置迁移未能完成", e));
+
+        // 留言板：Halo 评论要挂在一个模型实例上，这里注册模型并确保那一条存在
+        schemeManager.register(FootprintGuestbook.class);
+        guestbookInitializer.ensure()
+            .subscribe(null, e -> log.error("足迹留言板初始化未能完成", e));
     }
 
     @Override
     public void stop() {
         schemeManager.unregister(Scheme.buildFromType(Footprint.class));
+        schemeManager.unregister(Scheme.buildFromType(FootprintGuestbook.class));
     }
 }

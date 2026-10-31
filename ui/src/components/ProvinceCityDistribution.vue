@@ -2,13 +2,13 @@
 /**
  * 省 / 市分布卡片。
  *
- * 管理页里「省 / 市分布」按钮展开的那块：省份、城市两个 Tab，共用一份搜索词；
+ * 概览里「省 / 市分布」展开的那块：省份、城市两个分段，共用一份搜索词；
  * 点某一项会把它写进列表的关键字筛选。数据由父级传入（同一份 stats），
- * 这里只维护 Tab、搜索词和「当前选中项」这三个纯视图状态。
+ * 这里只维护分段、搜索词这两个纯视图状态。
  */
 
 import { computed, ref, watch } from "vue";
-import { VCard, VEmpty, VTabbar } from "@halo-dev/components";
+import RiSearchLine from "~icons/ri/search-line";
 import type { StatsResult } from "@/api/models";
 
 interface DistributionItem {
@@ -31,241 +31,78 @@ const tab = ref<"province" | "city">("province");
 const keyword = ref("");
 
 // 省份展示前 5 个城市名作为副标题；城市展示所属省份
-const source = computed<DistributionItem[]>(() => {
-  if (props.stats) {
-    return tab.value === "province"
-      ? props.stats.provinces.map((p) => ({
-          key: p.adcode,
-          name: p.name,
-          count: p.count,
-          description: p.cities?.length ? p.cities.slice(0, 5).join("、") : "",
-        }))
-      : props.stats.cities.map((c) => ({
-          key: c.adcode,
-          name: c.name,
-          count: c.count,
-          description: c.province,
-        }));
-  }
-  return [];
-});
+const source = computed<DistributionItem[]>(() =>
+  tab.value === "province"
+    ? props.stats.provinces.map((p) => ({
+        key: p.adcode,
+        name: p.name,
+        count: p.count,
+        description: p.cities?.length ? p.cities.slice(0, 5).join("、") : "",
+      }))
+    : props.stats.cities.map((c) => ({
+        key: c.adcode,
+        name: c.name,
+        count: c.count,
+        description: c.province,
+      })),
+);
 
 const items = computed(() => {
   const q = keyword.value.trim().toLowerCase();
   if (!q) return source.value;
   return source.value.filter(
-    (item) =>
-      item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q),
+    (item) => item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q),
   );
 });
 
-// 切换 Tab 时清掉搜索词，避免搜「杭州」后切到城市 Tab 还残留筛选
+// 切换分段时清掉搜索词，避免搜「杭州」后切到城市还残留筛选
 watch(tab, () => {
   keyword.value = "";
 });
 </script>
 
 <template>
-  <VCard class="fp-distribution" :body-class="['!p-0']">
-    <template #header>
-      <div class="fp-distribution__header">
-        <p id="fp-region-hint" class="fp-distribution__hint">
-          点击省份或城市可筛选下方足迹列表
-        </p>
-        <div class="fp-distribution__toolbar">
-          <VTabbar
-            v-model:active-id="tab"
-            :items="[
-              { id: 'province', label: `省份 ${stats.provinces.length}` },
-              { id: 'city', label: `城市 ${stats.cities.length}` },
-            ]"
-            type="outline"
-          />
-          <div class="fp-distribution__search">
-            <SearchInput v-model="keyword" placeholder="搜索省份或城市" />
-          </div>
+  <section class="fp-distribution" aria-labelledby="fp-distribution-title">
+    <header class="fp-section-header">
+      <div>
+        <h2 id="fp-distribution-title">省 / 市分布</h2>
+        <p>点击某个地区可筛选下方的足迹列表，再点一次取消。</p>
+      </div>
+      <div class="fp-section-actions">
+        <div class="fp-segmented" role="group" aria-label="分布维度">
+          <button type="button" :aria-pressed="tab === 'province'" @click="tab = 'province'">
+            省份 {{ stats.provinces.length }}
+          </button>
+          <button type="button" :aria-pressed="tab === 'city'" @click="tab = 'city'">
+            城市 {{ stats.cities.length }}
+          </button>
         </div>
+        <label class="fp-search">
+          <RiSearchLine width="15" height="15" aria-hidden="true" />
+          <input v-model="keyword" type="search" placeholder="搜索省份或城市" />
+        </label>
       </div>
-    </template>
-    <div class="fp-distribution__body">
-      <div id="footprint-stats-detail" class="fp-region-grid" aria-describedby="fp-region-hint">
-        <button
-          v-for="(item, index) in items"
-          :key="item.key"
-          type="button"
-          class="fp-region-item"
-          :class="{ 'is-active': activeRegion === item.name }"
-          :aria-pressed="activeRegion === item.name"
-          :aria-label="`${item.name}，${item.count} 条足迹${activeRegion === item.name ? '，已筛选' : ''}`"
-          @click="emit('select', item.name)"
-        >
-          <span class="fp-region-item__index" aria-hidden="true">{{ index + 1 }}</span>
-          <span class="fp-region-item__body">
-            <strong>{{ item.name }}</strong>
-            <small v-if="item.description">
-              {{ item.description }}
-            </small>
-          </span>
-          <span class="fp-region-item__count">{{ item.count }} 条</span>
-        </button>
-      </div>
-      <VEmpty v-if="!items.length" message="没有匹配的地区" />
+    </header>
+
+    <div v-if="items.length" class="fp-region-grid">
+      <button
+        v-for="item in items"
+        :key="item.key"
+        type="button"
+        class="fp-region"
+        :aria-pressed="activeRegion === item.name"
+        @click="emit('select', item.name)"
+      >
+        <span class="fp-region-text">
+          <strong>{{ item.name }}</strong>
+          <span v-if="item.description">{{ item.description }}</span>
+        </span>
+        <span class="fp-region-count">{{ item.count }}</span>
+      </button>
     </div>
-  </VCard>
+    <p v-else-if="source.length" class="fp-muted">没有匹配的地区</p>
+    <p v-else class="fp-muted">
+      还没有解析出省 / 市。在足迹的更多操作里选「重新解析省 / 市」，或编辑时用地图选点。
+    </p>
+  </section>
 </template>
-
-<style scoped>
-.fp-distribution {
-  margin-bottom: 1rem;
-}
-
-.fp-distribution__header {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: #f9fafb;
-}
-
-.fp-distribution__hint {
-  margin: 0 0 0.75rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-
-.fp-distribution__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.75rem;
-}
-
-.fp-distribution__search {
-  width: 16rem;
-  max-width: 100%;
-}
-
-.fp-distribution__body {
-  padding: 1rem;
-}
-
-.fp-region-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.fp-region-item {
-  display: flex;
-  min-width: 0;
-  min-height: 3.5rem;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #f3f4f6;
-  border-radius: 6px;
-  background: #fff;
-  color: #111827;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.fp-region-item:hover,
-.fp-region-item:focus-visible {
-  border-color: #d1d5db;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-}
-
-.fp-region-item:focus-visible {
-  outline: 2px solid var(--primary, #6366f1);
-  outline-offset: 1px;
-}
-
-.fp-region-item.is-active {
-  border-color: var(--primary, #6366f1);
-  background: #f9fafb;
-}
-
-.fp-region-item__index {
-  display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
-  flex: none;
-  place-items: center;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #6b7280;
-  font-size: 0.75rem;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
-.fp-region-item.is-active .fp-region-item__index {
-  background: var(--primary, #6366f1);
-  color: #fff;
-}
-
-.fp-region-item__body {
-  min-width: 0;
-  flex: 1;
-}
-
-.fp-region-item__body strong,
-.fp-region-item__body small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fp-region-item__body strong {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.fp-region-item__body small {
-  margin-top: 0.15rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-.fp-region-item__count {
-  flex: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #6b7280;
-  font-size: 0.75rem;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.fp-region-item.is-active .fp-region-item__count {
-  background: #e0e7ff;
-  color: #4338ca;
-}
-
-@media (max-width: 767px) {
-  .fp-distribution__toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .fp-distribution__search {
-    width: 100%;
-  }
-}
-
-@media (max-width: 479px) {
-  .fp-region-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fp-region-item {
-    transition: none;
-  }
-}
-</style>

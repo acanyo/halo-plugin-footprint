@@ -1,0 +1,63 @@
+/*
+ * 时间线抽屉：从右侧滑出的一张白玻璃，按时间列出足迹。
+ * 每次打开，前 8 条卡片每条晚 40ms 依次弹入。
+ * 这里是抽屉本体与滚动区；头部和左侧轨道见 timeline-track-and-header.css，
+ * 每条足迹的照片卡见 timeline-archive-cards.css。
+ */
+.timeline-drawer {
+    position: fixed;
+    top: 0;
+    right: min(-500px, -100vw);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    width: min(500px, 100vw);
+    height: 100%;
+    overflow: hidden;
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow-lift);
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
+    transition: right var(--fp-dur) var(--fp-ease);
+}
+.timeline-drawer.open {
+    right: 0;
+}
+.timeline-drawer .timeline-content {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    padding: 20px 22px 40px 24px;
+    overflow-y: auto;
+    background: transparent;
+}
+/* 模板里留着的装饰层，不再画东西 */
+.timeline-drawer .timeline-decoration {
+    display: none;
+}
+.timeline-drawer .timeline-content::-webkit-scrollbar {
+    width: 8px;
+}
+.timeline-drawer .timeline-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+.timeline-drawer .timeline-content::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-rule-strong) padding-box;
+}
+@media (max-width: 768px) {
+    .timeline-drawer {
+        right: -100vw;
+        width: 100vw;
+        max-width: 100vw;
+    }
+    .timeline-drawer.open {
+        right: 0;
+    }
+    .timeline-drawer .timeline-content {
+        padding: 16px 16px 32px 18px;
+    }
+}

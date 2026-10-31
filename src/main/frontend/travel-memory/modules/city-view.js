@@ -215,25 +215,26 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
     const imgs = cityWallImages(fp);
     const prevScrollTop = preserveScroll ? cityStage.scrollTop : 0;
     const content = document.createElement('div');
-    content.className = 'city-stage-content';
+    // 滚动加载下一批时整块重建：带 is-appending，样式里不再重播入场动画
+    content.className = 'city-stage-content' + (preserveScroll ? ' is-appending' : '');
     content.style.setProperty('--extra-height', Math.max(0, Math.ceil((imgs.length - 4) / 4)) * 188 + 'px');
 
     const hero = document.createElement('button');
     hero.type = 'button';
     hero.className = 'city-fp-hero';
-    hero.setAttribute('aria-label', fp.name + ' · 查看第 1 张照片');
+    hero.setAttribute('aria-label', fp.name + '，查看第 1 张照片');
     if (imgs[0]) hero.style.backgroundImage = 'url("' + imgs[0].url + '")';
     const heroBody = document.createElement('div');
     heroBody.className = 'city-fp-hero-body';
     const eyebrow = document.createElement('p');
     eyebrow.className = 'city-fp-eyebrow';
-    eyebrow.textContent = 'Footprint · ' + (fp.footprintType || '旅行');
+    eyebrow.textContent = fp.footprintType || '旅行';
     const name = document.createElement('h3');
     name.className = 'city-fp-name';
     name.textContent = fp.name;
     const meta = document.createElement('p');
     meta.className = 'city-fp-meta';
-    meta.textContent = [fp.city, fp.createTime, fp.address].filter(Boolean).join(' · ');
+    meta.textContent = [fp.city, fp.createTime, fp.address].filter(Boolean).join('，');
     heroBody.append(eyebrow, name, meta);
     hero.appendChild(heroBody);
     if (imgs[0]) {
@@ -269,7 +270,7 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
                 tile.style.setProperty('--extra-left', (8 + extraColumn * 23) + '%');
                 tile.style.setProperty('--extra-top', (650 + extraRow * 188) + 'px');
             }
-            tile.setAttribute('aria-label', fp.name + ' · 第 ' + (idx + 1) + ' 张');
+            tile.setAttribute('aria-label', fp.name + '，第 ' + (idx + 1) + ' 张');
             const photo = document.createElement('img');
             photo.loading = 'lazy';
             photo.src = img.url;
@@ -281,7 +282,7 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
         if (imgs.length > 5) {
             const overflowNote = document.createElement('span');
             overflowNote.className = 'city-wall-overflow-note';
-            overflowNote.textContent = '共 ' + imgs.length + ' 张照片 · 主图与卡片均可点击放大';
+            overflowNote.textContent = '共 ' + imgs.length + ' 张照片，点任意一张放大';
             wall.appendChild(overflowNote);
         }
     } else {
@@ -302,7 +303,7 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
     mapCore.className = 'city-map-core';
     const mapCoreKicker = document.createElement('span');
     mapCoreKicker.className = 'city-map-core-kicker';
-    mapCoreKicker.textContent = 'LOCATION MAP';
+    mapCoreKicker.textContent = '位置';
     const mapCoreTitle = document.createElement('strong');
     mapCoreTitle.textContent = fp.city || fp.name;
     const mapCoreMeta = document.createElement('small');
@@ -333,7 +334,7 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
         const cardX = slot ? slot[0] : 4 + ((idx - orbitSlots.length) % 5) * 21;
         const cardY = slot ? slot[1] : 900;
         card.style.setProperty('--line-angle', Math.atan2(50 - cardY, 50 - cardX) * 180 / Math.PI + 'deg');
-        card.setAttribute('aria-label', fp.name + ' · 地图照片 ' + (idx + 1));
+        card.setAttribute('aria-label', fp.name + '，地图照片 ' + (idx + 1));
         const connector = document.createElement('span');
         connector.className = 'city-map-connector';
         const pin = document.createElement('span');
@@ -355,11 +356,11 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
     journalHead.className = 'city-journal-head';
     const journalKicker = document.createElement('span');
     journalKicker.className = 'city-journal-kicker';
-    journalKicker.textContent = 'TRAVEL JOURNAL';
+    journalKicker.textContent = fp.footprintType || '';
     const journalTitle = document.createElement('h3');
     journalTitle.textContent = fp.name;
     const journalDate = document.createElement('time');
-    journalDate.textContent = formatCityDate(fp.createTime);
+    journalDate.textContent = formatCityDate(fp.createTime).replace(/\s*\/\s*/, '.');
     const journalCount = document.createElement('span');
     journalCount.className = 'city-journal-count';
     journalCount.textContent = imgs.length + ' 张照片';
@@ -381,7 +382,7 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
         card.type = 'button';
         card.className = 'city-journal-card';
         card.classList.add('is-loading');
-        card.setAttribute('aria-label', fp.name + ' · 第 ' + (idx + 1) + ' 张');
+        card.setAttribute('aria-label', fp.name + '，第 ' + (idx + 1) + ' 张');
         const photo = document.createElement('img');
         photo.loading = idx < 4 ? 'eager' : 'lazy';
         photo.src = img.url;
@@ -424,7 +425,7 @@ function renderCityStage(fp, photoLimit = 8, preserveScroll = false) {
         const sentinel = document.createElement('div');
         sentinel.className = 'city-journal-more city-journal-more-auto';
         sentinel.setAttribute('role', 'status');
-        sentinel.textContent = '已加载 ' + visibleImages.length + ' / ' + imgs.length + ' 张 · 继续向下自动加载';
+        sentinel.textContent = '已显示 ' + visibleImages.length + ' / ' + imgs.length + ' 张，继续往下滚动加载';
         journal.appendChild(sentinel);
     }
     content.appendChild(journal);
@@ -553,7 +554,7 @@ function renderCityView() {
     const city = deps.cityList()[cityViewCityIndex];
     const photoCount = fps.reduce((n, fp) => n + cityWallImages(fp).length, 0);
     cityViewTitle.textContent = city.city;
-    cityViewStats.textContent = fps.length + ' 个足迹 · ' + photoCount + ' 张照片';
+    cityViewStats.textContent = fps.length + ' 条足迹，' + photoCount + ' 张照片';
     // 这座城市有票根时，给一个键盘也能到达的入口（卡片上的徽章只能鼠标点）
     if (cityViewTickets) {
         const ticketCount = fps.reduce((n, fp) => n + (ticketImageUrl(fp.ticketImage) ? 1 : 0), 0);
@@ -611,7 +612,7 @@ function renderCityView() {
         tMeta.className = 'city-tab-meta';
         const tDate = document.createElement('span');
         tDate.className = 'city-tab-date';
-        tDate.textContent = formatCityDate(fp.createTime);
+        tDate.textContent = formatCityDate(fp.createTime).replace(/\s*\/\s*/, '.');
         const tPhotos = document.createElement('span');
         tPhotos.className = 'city-tab-photos';
         tPhotos.textContent = imgs.length ? imgs.length + ' 张照片' : '暂无照片';
@@ -664,7 +665,7 @@ function renderCitySwitcher() {
         nameEl.textContent = city.city;
         const countEl = document.createElement('span');
         countEl.className = 'city-view-city-option-count';
-        countEl.textContent = meta.count + ' 个足迹 · ' + meta.photos + ' 张照片';
+        countEl.textContent = meta.count + ' 条足迹，' + meta.photos + ' 张照片';
         btn.append(nameEl, countEl);
         btn.addEventListener('click', () => {
             goToCityViewCity(ci);
@@ -718,8 +719,8 @@ export function openCityView(ci, triggerBtn) {
     const fromWall = !!(cityWall && cityWall.classList.contains('show'));
     cityViewFromWall = fromWall;
     if (fromWall) {
-        if (cityViewBackLabel) cityViewBackLabel.textContent = '返回城市墙';
-        cityViewBack.setAttribute('aria-label', '返回城市墙');
+        if (cityViewBackLabel) cityViewBackLabel.textContent = '返回城记';
+        cityViewBack.setAttribute('aria-label', '返回城记');
     } else {
         if (cityViewBackLabel) cityViewBackLabel.textContent = '返回地球';
         cityViewBack.setAttribute('aria-label', '返回地球');

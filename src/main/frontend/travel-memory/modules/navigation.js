@@ -12,26 +12,25 @@
 
 import { isAmapMode } from './view-mode.js';
 import { setCityFillVisible } from './city-fill.js';
+import { syncMarkerModeByHeight } from './markers.js';
 import {
-    syncMarkerModeByHeight,
     hideMarkerCard,
     hideCityCard,
     hideDetailCardsForIntro,
     areDetailCardsReady,
     markerCard,
     cityCard
-} from './markers.js';
-import { isProvinceCardsActive, closeProvinceCards, cancelAllCityFlight, isProvinceAllFlying, syncProvinceAllAvailability, maybeShowProvinceHint } from './province-cards.js';
+} from './marker-detail-card.js';
+import { isProvinceCardsActive, closeProvinceCards, cancelAllCityFlight, syncProvinceAllAvailability, maybeShowProvinceHint } from './province-cards.js';
+import { isProvinceAllFlying } from './province-all-flight.js';
 import { isPhotoRingViewing, exitPhotoRingView, isPhotoRingActive, hidePhotoRing, switchPhotoRingView } from './photo-ring.js';
 import { lightbox, closeLightbox, switchLightbox } from './lightbox.js';
-import { closePostcard, postcardPreview, closeTimeCapsule, timeCapsule, closeInsight, insightView } from './creative-overlays.js';
+import { closePostcard, postcardPreview } from './postcard.js';
+import { closeTimeCapsule, timeCapsule } from './time-capsule.js';
+import { closeInsight, insightView } from './insight-view.js';
 import { cityView, closeCityView } from './city-view.js';
 import { cityWall, closeCityWall } from './city-wall.js';
-import {
-    isAutoRotating,
-    refreshAutoRotate,
-    setTicketGlobeAutoRotate
-} from './auto-rotate.js';
+import { isAutoRotating } from './auto-rotate.js';
 import { tdtTodayUsage } from './tianditu-usage.js';
 
 let deps = null;
@@ -46,26 +45,23 @@ let terrainNote = '';   // 由 setupNavigation 按是否配置天地图 Key 初�
  * @param d.footprints             () => Footprint[]
  * @param d.baseProviders          () => Record<string, provider>
  * @param d.currentBaseKey         () => string | null
- * @param d.statusText / d.statusRetry  () => HTMLElement
+ * @param d.statusText           () => HTMLElement
  * @param d.hasTdtKey              () => boolean
  * @param d.footprintCfg           () => object
  */
 export function setupNavigation(d) {
     deps = d;
-    terrainNote = d.hasTdtKey() ? '，未启用三维地形' : '，未配置天地图 Key（无地形）';
+    terrainNote = '';
 }
 
 // ================= 左侧标题卡（仅 3D，整球视图显示） =================
 const pageIntro = document.getElementById('pageIntro');
-// 开发热更新期间可能短暂出现「新 JS + 旧模板」；主题覆盖也可能保留旧 #topNav。
-// 先兼容旧节点，避免单个缓存错位让整页渲染直接中断。
-const topNav = document.getElementById('footprintToolbar') ||
-    document.getElementById('topNav');
-const contentDock = document.getElementById('footprintContentDock');
+const topNav = document.getElementById('topNav');   // 导航栏与标题卡同步显隐
 const navTools = document.getElementById('navTools');
 const navMoreBtn = document.getElementById('navMoreBtn');
+const navBackGlobeBtn = document.getElementById('navBackGlobeBtn');
 const backGlobeBtn = document.getElementById('backGlobeBtn');   // 放大后显示，一键回球
-export const cityFillFloatBtn = document.getElementById('cityFillFloatBtn');   // 旧模板兼容；新模板只在工具面板里保留城市高亮
+export const cityFillFloatBtn = document.getElementById('cityFillFloatBtn');   // 放大后显示，城市高亮开关
 // 相机高度（米）：高于 SHOW 时显示（能看到整个地球），低于 HIDE 时隐藏；
 // 两个值必须拉开一段（回滞区间），否则在阈值附近轻微缩放就会来回闪烁。
 const INTRO_SHOW_HEIGHT = 10500000;
@@ -98,8 +94,7 @@ function introOverlayElements() {
         introOverlayEls = [
             document.getElementById('cityView'),
             document.getElementById('cityWall'),
-            document.getElementById('ticketGallery'),
-            document.getElementById('memoryShelf')
+            document.getElementById('ticketGallery')
         ];
     }
     return introOverlayEls;
@@ -113,41 +108,38 @@ function updateIntroVisibility() {
             pageIntro.classList.remove('visible');
         }
         topNav.classList.add('visible');
-        contentDock?.classList.add('visible');
         document.body.classList.remove('nav-zoom');
-        backGlobeBtn.disabled = true;
+        backGlobeBtn.classList.remove('show');
+        cityFillFloatBtn.classList.remove('show');
         return;
     }
     // 全屏覆盖层（城市卡片墙 / 城市足迹 / 票根）打开时隐藏顶部导航栏与标题卡，避免遮挡；
     // 这里用 getElementById 动态判断，避免引用后置声明的变量（TDZ）。
-    const [cityViewEl, cityWallEl, ticketGalleryEl, memoryShelfEl] = introOverlayElements();
+    const [cityViewEl, cityWallEl, ticketGalleryEl] = introOverlayElements();
     const overlayOpen = !!(cityViewEl && cityViewEl.classList.contains('show')) ||
         !!(cityWallEl && cityWallEl.classList.contains('show')) ||
-        !!(ticketGalleryEl && ticketGalleryEl.classList.contains('show')) ||
-        document.body.classList.contains('memory-shelf-open') ||
-        !!(memoryShelfEl && memoryShelfEl.classList.contains('show'));
+        !!(ticketGalleryEl && ticketGalleryEl.classList.contains('show'));
     if (overlayOpen) {
         if (introVisible) {
             introVisible = false;
             pageIntro.classList.remove('visible');
         }
         topNav.classList.remove('visible');
-        contentDock?.classList.remove('visible');
         document.body.classList.remove('nav-zoom');
         navTools.classList.remove('open');
         topNav.classList.remove('tools-open');
-        document.body.classList.remove('footprint-tools-open');
         navMoreBtn.setAttribute('aria-expanded', 'false');
-        backGlobeBtn.disabled = true;
+        backGlobeBtn.classList.remove('show');
+        cityFillFloatBtn.classList.remove('show');
         return;
     }
     // 2D 高德视图：导航栏常驻（保证 2D/3D 切换按钮可用），地球标题卡/浮动按钮隐藏
     if (isAmapMode()) {
         pageIntro.classList.remove('visible');
         topNav.classList.add('visible');
-        contentDock?.classList.add('visible');
         document.body.classList.remove('nav-zoom');
-        backGlobeBtn.disabled = true;
+        backGlobeBtn.classList.remove('show');
+        cityFillFloatBtn.classList.remove('show');
         return;
     }
     // 相机高度每帧只取一次：positionCartographic 每次调用都会新建 Cartographic 并做坐标换算，
@@ -160,9 +152,9 @@ function updateIntroVisibility() {
             pageIntro.classList.remove('visible');
         }
         topNav.classList.add('visible');
-        contentDock?.classList.add('visible');
         document.body.classList.remove('nav-zoom');
-        backGlobeBtn.disabled = true;
+        backGlobeBtn.classList.remove('show');
+        cityFillFloatBtn.classList.remove('show');
     } else {
         const h = cameraHeight;
         if (!introVisible && h > INTRO_SHOW_HEIGHT) {
@@ -171,7 +163,6 @@ function updateIntroVisibility() {
             // 回到整球视图时复位“工具”溢出菜单，避免残留展开态
             navTools.classList.remove('open');
             topNav.classList.remove('tools-open');
-            document.body.classList.remove('footprint-tools-open');
             navMoreBtn.setAttribute('aria-expanded', 'false');
             if (areDetailCardsReady()) {
                 // 回到整球视图时自动关闭详情卡：标题卡就在左下角，卡片不收会和它叠在一起；
@@ -187,10 +178,10 @@ function updateIntroVisibility() {
         // 导航常驻：整球视图显示全部工具；放大后保留 2D/票根/回到整球等入口。
         // 每次渲染都按当前相机高度校正状态，覆盖层关闭后也能自动恢复。
         topNav.classList.add('visible');
-        contentDock?.classList.add('visible');
         document.body.classList.toggle('nav-zoom', !introVisible);
-        // 视图组始终可见：整球态保持禁用，放大后启用“整球视角”。
-        backGlobeBtn.disabled = introVisible;
+        // 浮动快捷按钮只作为非导航场景的补充；nav-zoom 时由 CSS 隐藏
+        backGlobeBtn.classList.toggle('show', !introVisible);
+        cityFillFloatBtn.classList.toggle('show', !introVisible);
     }
 
     // 中国边界：放大到国内范围才显示，拉远/整球视图隐藏；带 SHOW/HIDE 回滞区间
@@ -234,13 +225,12 @@ function flyBackToGlobe() {
     });
 }
 backGlobeBtn.addEventListener('click', flyBackToGlobe);
+if (navBackGlobeBtn) navBackGlobeBtn.addEventListener('click', flyBackToGlobe);
 
 // 票根页（重走放映）会把镜头停在某个城市附近，
 // 这个高度下自动旋转看起来像原地打转；返回地球/回到票夹时若自动旋转开着，
 // 就把视角收回整个地球。只在确实被拉近（低于整球高度）时触发，避免多余飞行。
 export function restoreGlobeViewForAutoRotate() {
-    setTicketGlobeAutoRotate(false);
-    refreshAutoRotate();
     if (!isAutoRotating()) return;
     if (deps.viewer().scene.mode !== Cesium.SceneMode.SCENE3D) return;
     if (deps.viewer().camera.positionCartographic.height >= INTRO_SHOW_HEIGHT) return;
@@ -282,7 +272,6 @@ document.addEventListener('click', (e) => {
 function setNavToolsOpen(open) {
     navTools.classList.toggle('open', open);
     topNav.classList.toggle('tools-open', open);
-    document.body.classList.toggle('footprint-tools-open', open);
     navMoreBtn.setAttribute('aria-expanded', String(open));
     if (!open && !layerPanel.hidden) {
         layerPanel.hidden = true;
@@ -299,6 +288,21 @@ document.addEventListener('click', (e) => {
         setNavToolsOpen(false);
     }
 });
+// 从窄屏切回桌面时复位“工具”弹出态，避免残留的下拉样式
+const navMobileMql = window.matchMedia('(max-width: 820px)');
+function syncNavToolsState() {
+    if (!navMobileMql.matches) {
+        navTools.classList.remove('open');
+        topNav.classList.remove('tools-open');
+        navMoreBtn.setAttribute('aria-expanded', 'false');
+    }
+}
+if (navMobileMql.addEventListener) {
+    navMobileMql.addEventListener('change', syncNavToolsState);
+} else {
+    navMobileMql.addListener(syncNavToolsState);
+}
+
 document.addEventListener('keydown', (e) => {
     // 灯箱打开时：← / → 切换图片
     if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && lightbox.classList.contains('show')) {
@@ -376,9 +380,9 @@ document.addEventListener('keydown', (e) => {
 // 城市标记图标：白色圆环 + 中心数量
 
 
-// 状态栏文案：当前底图 + 坐标系 + 地形状态 + 足迹数 + 数据来源。
-// 天地图每日额度属于运维数据，只在调试模式下显示（地址栏加 ?debug，
-// 或 localStorage.footprintDebug = '1'），不把后台指标丢给读者看。
+// 状态栏文案：平时只写数据来源（访客不需要知道底图名和坐标系）。
+// 底图、坐标系、地形状态与天地图每日额度是给站长排查用的，只在调试模式下显示
+// （地址栏加 ?debug，或 localStorage.footprintDebug = '1'）。
 const DEBUG_STATUS = (() => {
     try {
         return new URLSearchParams(window.location.search).has('debug') ||
@@ -387,14 +391,18 @@ const DEBUG_STATUS = (() => {
 })();
 
 function updateStatusText() {
+    const credit = '地图数据 © 高德、天地图';
+    if (!DEBUG_STATUS) {
+        deps.statusText().textContent = credit;
+        return;
+    }
     const item = deps.currentBaseKey() ? deps.baseProviders()[deps.currentBaseKey()] : null;
     const coordName = item && item.gcj ? 'GCJ-02' : 'CGCS2000/WGS84';
-    const usage = DEBUG_STATUS && item && item.needKey
-        ? ` · 今日天地图瓦片 ${tdtTodayUsage()} 张 / 额度约 1 万`
+    const usage = item && item.needKey
+        ? `；今日天地图瓦片 ${tdtTodayUsage()} 张，额度约 1 万`
         : '';
     deps.statusText().textContent =
-        (item ? item.label + '底图' : '底图') + `（${coordName}）${terrainNote}` +
-        ` · ${deps.footprints().length} 个足迹标记` + usage + ' · 地图数据 © 高德 / 天地图 · 渲染 CesiumJS';
+        (item ? item.label : '底图') + `，${coordName}${terrainNote}` + usage + '。' + credit;
 }
 
 // 把一条足迹从它自己的坐标系转换到当前底图坐标系：
@@ -402,15 +410,21 @@ function updateStatusText() {
 
 // 底图选择持久化：localStorage 保存，刷新后继续使用上次选择的底图
 /**
- * 3D 地球品牌文案：标题/描述使用「3D 地球」Tab 的独立配置（globeTitle/globeDesc）。
- * 页面不再复制全站导航或双语报头，站点名称由主题导航负责。
+ * 3D 地球品牌文案：标题/描述使用「3D 地球」Tab 的独立配置（globeTitle/globeDesc），
+ * 导航栏英文名保持默认 "Travel Memory"，不再从基本设置读取。
  */
+const LEGACY_GLOBE_DESC = '把每一次出发，收藏成地球上的坐标；让走过的城市，成为星空下的故事。';
+
 export function applyGlobeBranding() {
     const cfg = deps.footprintCfg();
+    const navBrandZh = document.querySelector('.nav-brand-zh');
     const introTitleEl = document.querySelector('.intro-title');
     const introDescEl = document.querySelector('.intro-desc');
+    if (navBrandZh && cfg.globeTitle) navBrandZh.textContent = cfg.globeTitle;
     if (introTitleEl && cfg.globeTitle) introTitleEl.textContent = cfg.globeTitle;
-    if (introDescEl && cfg.globeDesc) introDescEl.textContent = cfg.globeDesc;
+    // 旧版本内置的默认句子当作「没设置」：升级前没改过描述的站点不再显示它，自己写过的照常显示
+    const desc = (cfg.globeDesc || '').trim();
+    if (introDescEl) introDescEl.textContent = desc === LEGACY_GLOBE_DESC ? '' : desc;
 }
 
 /** 标题卡 / 导航栏当前是否处于整球视图（其他模块判层级时用）。 */
@@ -451,31 +465,6 @@ export function setTerrainNote(note) {
 /** 用最新状态重绘状态栏。 */
 export function refreshStatusText() {
     updateStatusText();
-}
-
-/** 工具菜单收起（视图切换等模块在切换前主动复位）。 */
-export function closeNavigationTools() {
-    setNavToolsOpen(false);
-}
-
-/** 票根页覆盖导航时同步收起标题卡和工具菜单。 */
-export function dismissIntroForTickets() {
-    introVisible = false;
-    pageIntro.classList.remove('visible');
-    topNav.classList.remove('visible');
-    contentDock?.classList.remove('visible');
-    document.body.classList.remove('nav-zoom');
-    setNavToolsOpen(false);
-}
-
-/**
- * 票根页只展示干净的地球背景：收起随低视角出现的省界与城市填充。
- * 票根浮层打开时逐帧更新会提前返回，所以必须由这里显式清一次。
- */
-export function hideBoundaryForTickets() {
-    boundaryVisible = false;
-    if (chinaBoundarySource) chinaBoundarySource.show = false;
-    setCityFillVisible(false);
 }
 
 

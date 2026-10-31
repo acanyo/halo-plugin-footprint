@@ -28,7 +28,6 @@ const GLOBE_SSE_NEAR_HEIGHT = 2500000;   // 相机低于此高度算「贴近」
 
 /** 按当前相机高度调整 LOD 容差（相机 moveEnd 与逐帧逻辑都会调）。 */
 export function applyScreenSpaceError() {
-    if (!deps) return;
     const h = deps.viewer().camera.positionCartographic.height;
     const next = h < GLOBE_SSE_NEAR_HEIGHT ? GLOBE_SSE_NEAR : GLOBE_SSE_FAR;
     if (deps.viewer().scene.maximumScreenSpaceError !== next) {
@@ -57,7 +56,7 @@ export function initGlobeBasics() {
     // 1.120 中设置 zoomFactor 不会生效（滚轮逻辑读取的是私有字段 _zoomFactor）。
     // 这里做特性检测：新版本用公开属性，1.120 用私有字段回退。
     const cameraController = deps.viewer().scene.screenSpaceCameraController;
-    const WHEEL_ZOOM_FACTOR = 1.8;   // 滚轮灵敏度系数（默认 5；降到 1.8，单格缩放更细）
+    const WHEEL_ZOOM_FACTOR = 3.5;   // 滚轮灵敏度系数（默认 5，越小滚一格缩放越精细）
     if ('zoomFactor' in cameraController) {
         cameraController.zoomFactor = WHEEL_ZOOM_FACTOR;
     } else {
@@ -75,6 +74,11 @@ export function initGlobeBasics() {
 
     // 开启昼夜光照：按时钟时间计算太阳位置，夜半球变暗（2D 平面模式下不生效）
     deps.viewer().scene.globe.enableLighting = true;
+    // 关掉地面大气。相机离得远时 Cesium 会对地球的每个像素算一遍大气散射，
+    // 2 倍高分屏上这是帧时间的大头：实测（M3 Pro，地球持续旋转）
+    // 450 万米 63→119 fps、900 万米 67→112 fps；150 万米以下它本来就自动关闭。
+    // 代价只是地球边缘那圈淡蓝光晕，地球外的天空光圈与昼夜明暗不受影响。
+    deps.viewer().scene.globe.showGroundAtmosphere = false;
     // 让时间自动推进，明暗分界线随时间缓缓移动
     deps.viewer().clock.shouldAnimate = true;
 
@@ -109,11 +113,13 @@ export function initGlobeBasics() {
         });
     }
 
-    // 3D 地球品牌文案：标题/描述使用“3D 地球”Tab 的独立配置（globeTitle/globeDesc）。
-    // 页面不再复制全站导航或双语报头，站点名称由主题导航负责。
+    // 3D 地球品牌文案：标题/描述使用“3D 地球”Tab 的独立配置（globeTitle/globeDesc），
+    // 导航栏英文名保持默认 "Travel Memory"，不再从基本设置读取。
     const footprintCfg = window.FOOTPRINT_CONFIG || {};
+    const navBrandZh = document.querySelector('.nav-brand-zh');
     const introTitleEl = document.querySelector('.intro-title');
     const introDescEl = document.querySelector('.intro-desc');
+    if (navBrandZh && footprintCfg.globeTitle) navBrandZh.textContent = footprintCfg.globeTitle;
     if (introTitleEl && footprintCfg.globeTitle) introTitleEl.textContent = footprintCfg.globeTitle;
     if (introDescEl && footprintCfg.globeDesc) introDescEl.textContent = footprintCfg.globeDesc;
 

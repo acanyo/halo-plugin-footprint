@@ -1,0 +1,172 @@
+        /* ============ 城市图片墙：手机端 ============
+           顶栏是一条玻璃条：返回 / 城市名 / 到访；足迹目录改成横排一行胶囊；照片每排两张。 */
+        @media (max-width: 820px) {
+            #cityView .city-view-top {
+                flex-wrap: nowrap;
+                gap: 8px;
+                width: calc(100% - 20px);
+                margin-top: max(10px, env(safe-area-inset-top));
+                padding: 8px 10px;
+            }
+            #cityView .city-view-head {
+                flex: 1 1 auto;
+                min-width: 0;
+                gap: 6px;
+            }
+            #cityView .city-view-headline {
+                gap: 8px;
+                min-width: 0;
+            }
+            #cityView .city-view-meta {
+                gap: 8px;
+            }
+            /* 到访折成一个「到访 N 次」按钮，点开才展开那一排 */
+            #cityView .city-view-timeline {
+                flex: none;
+                max-width: 100%;
+            }
+            #cityView .city-view-timeline-label {
+                display: none;
+            }
+            #cityView .city-view-timeline-toggle {
+                display: inline-flex;
+            }
+            #cityView .city-view-timeline-list {
+                display: none;
+            }
+            #cityView .city-view-timeline.is-expanded {
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                width: 100%;
+            }
+            #cityView .city-view-timeline.is-expanded .city-view-timeline-list {
+                display: flex;
+                width: 100%;
+                max-width: 100%;
+                padding: 2px;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+            #cityView #cityViewStats {
+                display: none;
+            }
+            #cityView #cityViewTitle {
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 22px;
+            }
+            #cityView #cityViewBack {
+                flex: none;
+                width: 36px;
+                padding: 0;
+            }
+            #cityView #cityViewBack span,
+            #cityView .city-view-nav {
+                display: none;
+            }
+
+            /* 正文纵向排：足迹目录一行 + 照片手簿滚动区 */
+            #cityView .city-view-body {
+                flex-direction: column;
+                gap: 0;
+                padding: 0;
+            }
+            #cityView .city-tabs {
+                flex: none;
+                width: 100%;
+                flex-direction: row;
+                align-items: stretch;
+                gap: 8px;
+                padding: 12px 10px 10px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                touch-action: pan-x pan-y;
+                overscroll-behavior-x: contain;
+                scrollbar-width: none;
+            }
+            #cityView .city-tabs::-webkit-scrollbar {
+                display: none;
+            }
+            #cityView .city-tabs::before {
+                display: none;
+            }
+            #cityView .city-tab {
+                flex: none;
+                width: 184px;
+                min-height: 0;
+                grid-template-columns: 40px minmax(0, 1fr);
+                gap: 10px;
+                padding: 5px 14px 5px 5px;
+                border-radius: var(--fp-radius-control);
+                background: var(--fp-glass);
+            }
+            #cityView .city-tab.active {
+                background: var(--fp-accent-soft);
+                box-shadow: none;
+                color: var(--fp-accent);
+            }
+            #cityView .city-tab.active::before,
+            #cityView .city-tab-index,
+            #cityView .city-tab-photos {
+                display: none;
+            }
+            #cityView .city-tab-thumb {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+            }
+            #cityView .city-tab-name {
+                font-size: var(--fp-size-sm);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            #cityView .city-stage {
+                flex: 1 1 auto;
+                min-height: 0;
+                padding: 4px 12px 0;
+                scrollbar-gutter: auto;
+            }
+            #cityView .city-journal-head {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
+                padding: 14px 16px;
+            }
+            #cityView .city-journal-head h3 {
+                font-size: var(--fp-size-xl);
+            }
+            #cityView .city-journal-count {
+                display: none;
+            }
+            #cityView .city-journal-description {
+                margin: 12px 0 0;
+                font-size: var(--fp-size-sm);
+            }
+            #cityView .city-journal-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                align-items: start;
+                gap: 10px;
+                padding: 12px 0;
+            }
+            #cityView .city-journal-card {
+                margin: 0;
+            }
+            #cityView .city-journal-caption {
+                left: 6px;
+                right: 6px;
+                bottom: 6px;
+                padding: 3px 8px;
+                font-size: 11px;
+            }
+            #cityView .city-journal-card img {
+                aspect-ratio: 4 / 3;
+                max-height: none;
+                object-fit: cover;
+            }
+        }

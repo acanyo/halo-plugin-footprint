@@ -1,0 +1,170 @@
+/*
+ * 控制栏里的开关（路网 / 路况 / 标记点）与移动端控制栏排版。
+ *
+ * 开关原先是一套飞机过云的动画皮肤，模板里的 svg 和 .cloud / .street-middle 还在，
+ * 这里画成一枚浅底胶囊：左边一颗小滑块，关是浅灰，开是强调色；开着时整枚胶囊也换成强调色浅底。
+ */
+.map-controls .plane-switch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px 0 10px;
+    border-radius: var(--fp-radius-control);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.map-controls .plane-switch:has(input:checked) {
+    background: var(--fp-accent-soft);
+}
+.map-controls .plane-switch:has(input:checked) .switch-text {
+    color: var(--fp-accent);
+}
+.map-controls .plane-switch:hover {
+    background: var(--fp-rule);
+}
+.map-controls .plane-switch .switch-text {
+    min-width: 28px;
+    color: var(--fp-ink-soft);
+    font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+    text-align: center;
+}
+.map-controls .plane-switch input {
+    display: none;
+}
+.map-controls .plane-switch input + div {
+    position: relative;
+    width: 26px;
+    height: 16px;
+    padding: 2px;
+    overflow: hidden;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-rule-strong);
+    transition: background-color var(--fp-dur) var(--fp-ease);
+}
+.map-controls .plane-switch input + div::before,
+.map-controls .plane-switch input + div::after,
+.map-controls .plane-switch input + div span {
+    display: none;
+}
+.map-controls .plane-switch input + div div {
+    display: block;
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--fp-paper-raised);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    transform: translateX(0);
+    transition: transform var(--fp-dur) var(--fp-ease);
+}
+.map-controls .plane-switch input + div div svg {
+    display: none;
+}
+.map-controls .plane-switch input:checked + div {
+    background: var(--fp-accent);
+}
+.map-controls .plane-switch input:checked + div > div {
+    transform: translateX(10px);
+}
+
+/* 防止开关点击后出现文本光标 */
+.map-controls .plane-switch,
+.map-controls .plane-switch * {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    caret-color: transparent;
+}
+.map-controls .plane-switch:focus,
+.map-controls .plane-switch input:focus {
+    outline: none;
+}
+
+/* ===== 移动端：两行网格，第一行时间线 / 留言板，第二行图层 ===== */
+@media screen and (max-width: 768px) {
+    .map-controls {
+        left: 50%;
+        right: auto;
+        bottom: calc(10px + var(--safe-bottom));
+        width: calc(100vw - 24px);
+        max-width: 440px;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: 44px 40px;
+        align-items: stretch;
+        gap: 6px;
+        padding: 6px;
+        border-radius: calc(var(--fp-radius-panel) + 4px);
+        transform: translateX(-50%);
+    }
+    .map-controls .button-group::after {
+        display: none;
+    }
+    .map-controls.open {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+    .map-controls > * {
+        min-width: 0;
+    }
+    .map-controls #timeline-btn {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    .map-controls #messageBoards {
+        grid-column: 2;
+        grid-row: 1;
+    }
+    .map-controls #back3dBtn {
+        grid-column: 1 / -1;
+        grid-row: 3;
+    }
+    .map-controls .button-group {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: 100%;
+        align-items: stretch;
+    }
+    .map-controls #timeline-btn,
+    .map-controls #messageBoards {
+        width: 100%;
+        min-height: 44px;
+        padding: 0 8px;
+        background: var(--fp-rule);
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .map-controls .button-group .control-btn {
+        flex: 1 1 0;
+        width: 50%;
+        min-width: 0;
+        min-height: 34px;
+        padding: 0 6px;
+        font-size: var(--fp-size-xs);
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .map-controls #zoom-buttons,
+    .map-controls .zoom-buttons,
+    .map-controls #line,
+    .map-controls #zoom-restore,
+    .map-controls .marker-visibility-control {
+        display: none !important;
+    }
+}
+@media screen and (max-width: 380px) {
+    .map-controls {
+        width: calc(100vw - 16px);
+        gap: 4px;
+        padding: 5px;
+        grid-template-rows: 42px 38px;
+    }
+    .map-controls #timeline-btn,
+    .map-controls #messageBoards {
+        padding-inline: 5px;
+    }
+}

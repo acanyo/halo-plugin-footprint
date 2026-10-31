@@ -1,0 +1,171 @@
+/* 足迹列表：工具栏、行、分页。 */
+.fp-panel {
+  min-width: 0;
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-radius);
+  background: var(--fp-bg);
+  overflow: hidden;
+}
+.fp-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--fp-border);
+  background: var(--fp-sidebar);
+}
+.fp-toolbar-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+}
+.fp-toolbar-main > :last-child {
+  flex: 1;
+  max-width: 360px;
+}
+.fp-toolbar-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.fp-selection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.fp-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fp-row {
+  display: grid;
+  grid-template-columns: auto 48px minmax(0, 1fr) minmax(0, 150px) minmax(0, 170px) minmax(0, 130px) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--fp-border);
+  transition: background-color 120ms;
+}
+.fp-row:last-child {
+  border-bottom: 0;
+}
+.fp-row:hover {
+  background: var(--fp-sidebar);
+}
+.fp-row.is-selected {
+  background: var(--fp-subtle);
+}
+.fp-row-thumb {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--fp-subtle);
+  color: var(--fp-faint);
+}
+.fp-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fp-row-main {
+  min-width: 0;
+}
+.fp-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.fp-row-title button {
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fp-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fp-row-title button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fp-tag {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border: 1px solid var(--fp-border);
+  border-radius: 999px;
+  color: var(--fp-muted);
+  font-size: 11px;
+}
+.fp-row-sub {
+  overflow: hidden;
+  margin-top: 3px;
+  color: var(--fp-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fp-row-cell {
+  overflow: hidden;
+  color: var(--fp-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fp-row-cell.is-missing {
+  color: var(--fp-faint);
+}
+.fp-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.fp-panel-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--fp-border);
+}
+
+@container footprint-workbench (max-width: 1100px) {
+  .fp-row {
+    grid-template-columns: auto 48px minmax(0, 1fr) minmax(0, 140px) auto;
+  }
+  .fp-row-cell.is-coords,
+  .fp-row-cell.is-date {
+    display: none;
+  }
+}
+@container footprint-workbench (max-width: 640px) {
+  /* flex: 1 的 basis 是 0，width 不生效；要独占一行得改 basis */
+  .fp-toolbar-main {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  .fp-toolbar-main > :last-child {
+    max-width: none;
+  }
+  .fp-row {
+    grid-template-columns: auto 40px minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .fp-row-thumb {
+    width: 40px;
+    height: 40px;
+  }
+  .fp-row-cell {
+    display: none;
+  }
+}

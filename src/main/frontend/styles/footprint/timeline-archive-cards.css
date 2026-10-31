@@ -1,0 +1,126 @@
+/*
+ * 时间线里每条足迹的照片卡：白玻璃柔阴影卡，6px 内边距里一张圆角照片，
+ * 地名（快看世界体）与描述压在照片底部暗影上，一个「查看旅行故事」玻璃胶囊。悬停上浮 3px。
+ */
+.timeline-drawer .timeline-content-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    margin-top: 34px;
+    padding: 6px;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--fp-radius-panel);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--fp-shadow);
+    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+}
+.timeline-drawer .timeline-content-card:hover {
+    box-shadow: var(--fp-shadow-lift);
+    transform: translateY(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .timeline-drawer .timeline-content-card:hover {
+        transform: none;
+    }
+}
+.timeline-drawer .timeline-media {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+    border-radius: var(--fp-radius-photo);
+    background: var(--fp-accent-soft);
+}
+.timeline-drawer .timeline-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s var(--fp-ease);
+}
+.timeline-drawer .timeline-content-card:hover .timeline-media img {
+    transform: scale(1.04);
+}
+.timeline-drawer .media-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 20px 18px 16px;
+    background: linear-gradient(to top, var(--fp2d-photo-shade) 0%, var(--fp2d-photo-shade-soft) 50%, transparent 100%);
+}
+.timeline-drawer .timeline-location {
+    margin-bottom: 6px;
+    color: var(--fp2d-photo-ink);
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-lg);
+    font-weight: 400;
+    line-height: 1.25;
+}
+.timeline-drawer .location-icon {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+}
+.timeline-drawer .timeline-info-overlay {
+    padding: 0;
+}
+.timeline-drawer .timeline-desc {
+    display: -webkit-box;
+    max-width: 31ch;
+    margin: 0 0 12px;
+    overflow: hidden;
+    color: var(--fp2d-photo-ink);
+    font-size: var(--fp-size-xs);
+    line-height: 1.6;
+    opacity: 0.88;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+/* 照片上的按钮：白玻璃胶囊，墨色字。Font Awesome 望远镜图标隐藏 */
+.timeline-drawer .detail-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: var(--fp-ink);
+    font: 500 var(--fp-size-xs)/1 var(--fp-font-text);
+    cursor: pointer;
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.timeline-drawer .detail-btn:active {
+    transform: scale(0.96);
+}
+.timeline-drawer .detail-btn i {
+    display: none;
+}
+.timeline-drawer .detail-btn:hover {
+    background: var(--fp-paper-raised);
+}
+.timeline-drawer .detail-btn:focus-visible {
+    outline: 2px solid var(--fp-accent);
+    outline-offset: 2px;
+}
+@media (max-width: 768px) {
+    .timeline-drawer .timeline-content-card {
+        margin-top: 32px;
+    }
+    .timeline-drawer .timeline-media {
+        height: 200px;
+    }
+    .timeline-drawer .media-overlay {
+        padding: 12px;
+    }
+    .timeline-drawer .timeline-location {
+        font-size: var(--fp-size-md);
+    }
+}

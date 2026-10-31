@@ -1,0 +1,234 @@
+/* 统计概览：三张数字卡 + 覆盖率卡，以及展开的省 / 市分布。 */
+.fp-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 2fr);
+  gap: 14px;
+}
+.fp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-radius);
+  background: var(--fp-bg);
+}
+.fp-stat dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--fp-muted);
+  font-size: 12px;
+}
+.fp-stat dd {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.fp-stat dd small {
+  margin-left: 4px;
+  color: var(--fp-faint);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.fp-stat.is-coverage {
+  gap: 14px;
+}
+.fp-coverage-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fp-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--fp-subtle);
+}
+.fp-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--fp-accent);
+  transition: width 300ms;
+}
+.fp-bar.is-thin {
+  height: 4px;
+}
+.fp-bar.is-thin > span {
+  opacity: 0.75;
+}
+.fp-categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+}
+.fp-category-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+.fp-category-label span:first-child {
+  overflow: hidden;
+  color: var(--fp-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fp-category-label span:last-child {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.fp-category-label small {
+  color: var(--fp-faint);
+  font-size: 12px;
+}
+
+/* 省 / 市分布 */
+.fp-distribution {
+  padding: 18px 20px 20px;
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-radius);
+  background: var(--fp-bg);
+}
+.fp-segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--fp-subtle);
+}
+.fp-segmented button {
+  min-height: 28px;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fp-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.fp-segmented button[aria-pressed='true'] {
+  background: var(--fp-bg);
+  color: var(--fp-text);
+  font-weight: 550;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.fp-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 220px;
+  height: var(--fp-control-height);
+  padding: 0 11px;
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-control-radius);
+  color: var(--fp-muted);
+}
+.fp-search:focus-within {
+  outline: 2px solid var(--fp-border);
+  outline-offset: 2px;
+}
+.fp-search input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--fp-text);
+  font: inherit;
+  font-size: 13px;
+}
+.fp-region-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.fp-region {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--fp-border);
+  border-radius: var(--fp-control-radius);
+  background: var(--fp-bg);
+  color: var(--fp-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms,
+    background-color 140ms;
+}
+.fp-region:hover {
+  background: var(--fp-sidebar);
+}
+.fp-region[aria-pressed='true'] {
+  border-color: var(--fp-text);
+  background: var(--fp-sidebar);
+}
+.fp-region-text {
+  flex: 1;
+  min-width: 0;
+}
+.fp-region-text strong,
+.fp-region-text span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fp-region-text strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.fp-region-text span {
+  color: var(--fp-muted);
+  font-size: 11px;
+}
+.fp-region-count {
+  flex-shrink: 0;
+  color: var(--fp-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@container footprint-workbench (max-width: 1100px) {
+  .fp-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .fp-stat.is-coverage {
+    grid-column: 1 / -1;
+  }
+}
+@container footprint-workbench (max-width: 640px) {
+  .fp-overview {
+    gap: 10px;
+  }
+  .fp-stat {
+    padding: 12px 14px;
+  }
+  .fp-stat dt {
+    font-size: 11px;
+  }
+  .fp-stat dt svg {
+    display: none;
+  }
+  .fp-stat dd {
+    font-size: 22px;
+  }
+  .fp-search {
+    width: 100%;
+  }
+}

@@ -48,7 +48,7 @@ function setTdtTerrain(on, viewer, { hasTDTKey, tdtKey }) {
     if (!on) {
         terrainEnabled = false;
         saveTerrain(false);
-        deps.setTerrainNote('，未启用三维地形');
+        deps.setTerrainNote('');
         viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
         applyTerrainBtnState();
         deps.updateStatusText();
@@ -82,13 +82,13 @@ function setTdtTerrain(on, viewer, { hasTDTKey, tdtKey }) {
             };
             viewer.terrainProvider = provider;
             terrainEnabled = true;
-            deps.setTerrainNote('，已启用天地图三维地形');
+            deps.setTerrainNote('，三维地形');
             saveTerrain(true);
         })
         .catch(e => {
             terrainEnabled = false;
             saveTerrain(false);
-            deps.setTerrainNote('，未启用三维地形（Key 未授权当前域名或未开通地形服务）');
+            deps.setTerrainNote('，三维地形不可用');
             console.warn('天地图三维地形不可用，使用平面地球：', e.message || e);
             statusText.textContent =
                 '三维地形不可用：天地图 Key 未授权当前域名或未开通地形服务。' +

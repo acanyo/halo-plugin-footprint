@@ -59,9 +59,8 @@ export function isCityFillEnabled() {
 function applyCityFillBtnState() {
     cityFillBtn.classList.toggle('active', cityFillEnabled);
     cityFillBtn.setAttribute('aria-pressed', String(cityFillEnabled));
-    const floatingBtn = deps.cityFillFloatBtn?.();
-    floatingBtn?.classList.toggle('active', cityFillEnabled);
-    floatingBtn?.setAttribute('aria-pressed', String(cityFillEnabled));
+    deps.cityFillFloatBtn().classList.toggle('active', cityFillEnabled);
+    deps.cityFillFloatBtn().setAttribute('aria-pressed', String(cityFillEnabled));
 }
 
 export function setCityFillEnabled(on) {
@@ -80,7 +79,7 @@ export function setCityFillEnabled(on) {
 export function initCityFill() {
     applyCityFillBtnState();
     cityFillBtn.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
-    deps.cityFillFloatBtn?.()?.addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
+    deps.cityFillFloatBtn().addEventListener('click', () => setCityFillEnabled(!cityFillEnabled));
 }
 
 /** 主文件的可见性阈值（updateIntroVisibility）调用：同步边界与城市填充的显隐。 */

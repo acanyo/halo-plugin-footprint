@@ -1,0 +1,210 @@
+/*
+ * 2D 地图页（高德地图）的页面骨架：局部变量、地图容器、左上角字标、按钮提示气泡。
+ *
+ * 配色走 --fp-*（见 ../DESIGN.md）。浮在地图上的面板一律是白玻璃（--fp-glass + 背景模糊 + 柔阴影）。
+ * 强调色 --fp-accent 就是后台的「主题色」（shared/accent.js 写到 :root 上）。面板底始终是玻璃，不染色。
+ */
+body.mode-2d#footprint-page {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+    font-family: var(--fp-font-text);
+    line-height: 1.7;
+}
+#view-2d {
+    /* 只给贴在地图上的小记号用的一层薄影，面板不用投影 */
+    --fp2d-mark-shadow: color-mix(in srgb, var(--fp-ink) 22%, transparent);
+    /* 照片上的文字：深色渐变压底 + 白字 */
+    --fp2d-photo-shade: rgba(0, 0, 0, 0.66);
+    --fp2d-photo-shade-soft: rgba(0, 0, 0, 0.32);
+    --fp2d-photo-ink: #ffffff;
+    font-family: var(--fp-font-text);
+    color: var(--fp-ink);
+}
+#footprint-page * {
+    box-sizing: border-box;
+}
+
+/* 点击波纹、按钮脉冲、逐个弹入：都不是操作反馈，JS 仍会挂这些类，这里让它们不产生动效 */
+.ripple {
+    display: none;
+}
+.animate-in,
+.btn-pulse {
+    animation: none;
+}
+
+/* 按钮提示气泡：墨色小胶囊，弹出时去模糊 */
+#view-2d .tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    z-index: 1000;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-ink);
+    color: var(--fp-paper);
+    font: 400 var(--fp-size-xs)/1.5 var(--fp-font-text);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateX(-50%) translateY(6px) scale(0.92);
+    transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease), filter var(--fp-dur) var(--fp-ease);
+}
+#view-2d .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border: 5px solid transparent;
+    border-top-color: var(--fp-ink);
+}
+#view-2d .tooltip.show {
+    opacity: 1;
+    filter: none;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* 地图容器 */
+#footprint-page .footprint-container {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    content-visibility: auto;
+    contain: layout style paint;
+}
+#footprint-page #footprint-map {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--fp-paper);
+}
+#footprint-map.map-transitioning {
+    filter: brightness(0.96);
+    transition: filter var(--fp-dur) var(--fp-ease);
+}
+/* 切换路网 / 路况时原来会抖一下地图，去掉 */
+#footprint-map.map-shake {
+    animation: none;
+}
+/* 飞线动画画布，叠在地图上方、不接收点击 */
+#canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    width: 100%;
+    height: 100vh;
+    pointer-events: none;
+}
+
+/* 左上角：站点名（快看世界体）+ 一句描述，直接写在地图上，不垫面板。内容来自后台的 logoName / describe。
+   字外描一圈柔白光，压在道路、水系或卫星图上也看得清；没有面板，这一块也不挡地图拖动 */
+.logo-container {
+    position: fixed;
+    top: calc(24px + var(--safe-top));
+    left: calc(24px + var(--safe-left));
+    z-index: 100;
+    max-width: 300px;
+    --logo-halo: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.85);
+    text-shadow: var(--logo-halo);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform-origin: top left;
+    transition: opacity 0.2s var(--fp-ease), visibility 0.2s;
+}
+.logo-container.show {
+    opacity: 1;
+    visibility: visible;
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+}
+.footprint-logo {
+    margin: 0;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
+    color: var(--fp-ink);
+}
+.footprint-slogan {
+    max-width: 260px;
+    margin: 6px 0 0;
+    font-size: var(--fp-size-sm);
+    line-height: 1.7;
+    color: var(--fp-ink-soft);
+}
+.footprint-slogan:empty {
+    display: none;
+}
+/* 卫星图底色深：换白字 + 暗光晕（照片可读性暗影） */
+body:has(.control-btn[data-type="satellite"].active) .logo-container {
+    --logo-halo: 0 0 2px rgba(0, 0, 0, 0.7), 0 1px 10px rgba(0, 0, 0, 0.55);
+}
+body:has(.control-btn[data-type="satellite"].active) .footprint-logo,
+body:has(.control-btn[data-type="satellite"].active) .footprint-slogan {
+    color: rgba(255, 255, 255, 0.96);
+}
+@media screen and (max-width: 768px) {
+    .logo-container {
+        top: calc(12px + var(--safe-top));
+        left: calc(14px + var(--safe-left));
+        max-width: 160px;
+    }
+    .footprint-logo {
+        font-size: var(--fp-size-md);
+    }
+    .footprint-slogan {
+        display: none;
+    }
+}
+
+/* 隐藏高德自带的比例尺、Logo、版权 */
+.amap-scale,
+.amap-scale-line {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+    z-index: -9999 !important;
+    pointer-events: none !important;
+}
+.amap-logo,
+.amap-copyright {
+    display: none !important;
+}
+
+.hidden-important {
+    display: none !important;
+}
+.zIndex13 {
+    z-index: 13 !important;
+}
+.zIndex14 {
+    z-index: 14 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #footprint-page *,
+    #footprint-page *::before,
+    #footprint-page *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

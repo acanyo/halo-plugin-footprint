@@ -22,13 +22,12 @@ const articleType = ref<ArticleType>("post");
 </script>
 
 <template>
-  <div class="mt-8 md:grid md:grid-cols-4 md:gap-6">
-    <div class="md:col-span-1">
-      <div class="sticky top-0 pt-1">
-        <span class="text-sm font-semibold text-gray-700">其他信息</span>
-      </div>
-    </div>
-    <div class="divide-y divide-gray-100 md:col-span-3">
+  <section class="fp-form-section">
+    <header>
+      <h3>其他信息</h3>
+      <p>类型、关联的文章或链接、同一次旅程的其他足迹，以及出发时间。</p>
+    </header>
+    <div>
       <FormKit
         v-model="spec.footprintType"
         :options="footprintTypes"
@@ -112,5 +111,5 @@ const articleType = ref<ArticleType>("post");
         help="如果为空，则使用当前时间"
       />
     </div>
-  </div>
+  </section>
 </template>

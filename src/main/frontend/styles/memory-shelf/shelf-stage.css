@@ -1,0 +1,210 @@
+/* ---------------- 主体 ---------------- */
+
+.ms-body {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* 空态与占位 */
+
+.ms-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 30px;
+    text-align: center;
+    color: var(--fp-ink-soft);
+}
+
+.ms-empty strong {
+    color: var(--fp-ink);
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
+}
+
+.ms-empty span { max-width: 460px; font-size: var(--fp-size-md); line-height: 1.7; }
+
+/* 空态里唯一的按钮：强调色实底胶囊 */
+.ms-empty button {
+    margin-top: 8px;
+    min-height: 34px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
+    font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+    cursor: pointer;
+    transition: filter var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+
+.ms-empty button:hover { filter: brightness(1.06); }
+.ms-empty button:active { transform: scale(0.96); }
+
+/* 加载条：一条浅轨，上面跑一段强调色（加载提示，允许循环） */
+.ms-loading-bar {
+    width: 176px;
+    height: 4px;
+    margin-top: 4px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-rule-strong);
+    overflow: hidden;
+}
+
+.ms-loading-bar i {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--fp-accent);
+    animation: msLoading 1.25s ease-in-out infinite;
+}
+
+@keyframes msLoading {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(320%); }
+}
+
+/* ---------------- L1 书架 ---------------- */
+
+.ms-scene {
+    display: grid;
+    grid-template-columns: minmax(300px, 372px) minmax(0, 1fr);
+    /* 行高也钉死成容器高度：两个子项同处一行时，行高若按内容自动计算，
+       舞台会比外框矮一截，四周就露出覆盖层的底色（看着像「背景缩小了一圈」） */
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+}
+
+/* 「正在装订书架…」：建 WebGL 场景与十一本书的贴图要几秒，这段时间必须
+   有东西可看，否则就是一块空白。省略号直接写在文案里，不再做循环点点点。 */
+.ms-scene { position: relative; }
+
+.ms-building {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+    transition: opacity 0.26s ease;
+}
+
+.ms-building.is-done { opacity: 0; }
+
+/* 舞台铺满整行、信息板浮在它上面（同一行、第一列）。
+   这样**舞台的尺寸永远不变**：信息板收起时只是淡出+左移，
+   不会连带把舞台拉宽，也就不会出现「闪一下、书的位置跟着变」。 */
+.ms-info { grid-column: 1; grid-row: 1; }
+.ms-stage { grid-column: 1 / -1; grid-row: 1; }
+
+/* 两者同处一格时，靠 z-index 定序。舞台在 DOM 里靠后，不显式指定的话
+   它会盖在信息板上 —— 这正是「左侧省份信息不显示了」的原因。
+   网格子项不需要 position 就能用 z-index。 */
+.ms-info { z-index: 2; }
+.ms-stage { z-index: 1; }
+
+/* 信息板：一张玻璃卡（白玻璃 + 模糊 + 柔影，无描边），不旋转。 */
+.ms-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    min-width: 0;
+    box-sizing: border-box;
+    /* 卡片竖直位置由 --ms-card-y 决定：JS 把卡片**中心**对准选中的那条书脊
+       的中心（会越出舞台时夹回来）。这里用 translate 而不是 margin-top：
+         · margin-top 每帧重排布局（同一个网格里还挂着 WebGL 画布），translate
+           走合成器；
+         · margin-top 会把网格行高撑大，反过来改变舞台高度。
+       ⚠️ transition 不能写在这条规则里：后面还有一条同优先级的 .ms-info 规则，
+       它会整段覆盖 transition。 */
+    align-self: start;
+    translate: 0 var(--ms-card-y, 14vh);
+    justify-self: start;
+    width: min(300px, 34vw);
+    margin-left: 26px;
+    padding: 20px 22px;
+    position: relative;
+    border: 0;
+    border-radius: var(--fp-radius-panel);
+    background: var(--fp-glass);
+    pointer-events: none;            /* 卡片背景不吃指针，在它上面照样能转书/选书 */
+    /* 换省时整张卡弹出（只回应选书这个操作）。用 backwards 而不是 forwards：
+       跑完后必须回到静态样式，forwards 会把终值钉在元素上、盖掉书本模式的缩回位移。 */
+    animation: msInfoIn var(--fp-dur) var(--fp-ease) backwards;
+}
+
+/* 位次与本数：「第 3 本，共 11 本」，放在省名上面；一枚强调色浅底小胶囊 */
+.ms-info-count {
+    align-self: flex-start;
+    padding: 3px 10px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
+    font-size: var(--fp-size-xs);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-info-name {
+    margin: 0;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-3xl);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    word-break: break-all;
+}
+
+.ms-info-name.long { font-size: var(--fp-size-2xl); }
+.ms-info-name.extra-long { font-size: var(--fp-size-xl); }
+
+/* 小表：标签一列、数据一列，行与行之间一条很淡的分隔 */
+.ms-info-log {
+    display: grid;
+    grid-template-columns: 4.5em minmax(0, 1fr);
+    margin: 4px 0 0;
+}
+
+.ms-info-log > div { display: contents; }
+
+.ms-info-log dt,
+.ms-info-log dd {
+    margin: 0;
+    padding: 8px 0;
+    border-top: 1px solid var(--fp-rule);
+    font-size: var(--fp-size-sm);
+    line-height: 1.5;
+}
+
+.ms-info-log dt { color: var(--fp-ink-faint); }
+
+.ms-info-log dd {
+    min-width: 0;
+    color: var(--fp-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 城市那一行：顿号连起来的地名，最多三行，多的收成「等 N 座」 */
+.ms-info-log dd.ms-info-cities {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    font-family: var(--fp-font-title);
+}
+
+.ms-info-hint { color: var(--fp-ink-faint); font-size: var(--fp-size-xs); line-height: 1.7; }

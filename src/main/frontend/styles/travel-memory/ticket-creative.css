@@ -1,0 +1,657 @@
+        /* ============ 票根页：顶栏按钮、检票章、护照、抽票、写信 ============ */
+        .ticket-gallery-actions {
+            justify-self: end;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            min-width: 0;
+        }
+        /* 顶栏的「抽一张」「护照」与 .fp-btn 同一套浅底胶囊 */
+        #ticketPassportBtn,
+        #ticketOracleBtn,
+        #ticketLetterBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 34px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            cursor: pointer;
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+        }
+        #ticketPassportBtn:hover,
+        #ticketOracleBtn:hover,
+        #ticketLetterBtn:hover {
+            background: var(--fp-rule-strong);
+        }
+        #ticketPassportBtn:active,
+        #ticketOracleBtn:active,
+        #ticketLetterBtn:active {
+            transform: scale(0.96);
+        }
+        /* 写信是条目卡里唯一的操作：强调色实底 */
+        #ticketLetterBtn {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        #ticketLetterBtn:hover {
+            background: var(--fp-accent);
+            filter: brightness(1.06);
+        }
+        #ticketPassportBtn:focus-visible,
+        #ticketOracleBtn:focus-visible,
+        #ticketLetterBtn:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        #ticketPassportBtn[hidden],
+        #ticketOracleBtn[hidden],
+        #ticketLetterBtn[hidden] {
+            display: none;
+        }
+        #ticketPassportCount {
+            color: var(--fp-accent);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 检票章：在一张票根上停留 1.5 秒后盖上。强调色实底徽章，表示「去过」 */
+        .ticket-gallery-stage {
+            position: relative;
+        }
+        .ticket-stamp-badge {
+            position: absolute;
+            left: 50%;
+            top: 7%;
+            z-index: 32;
+            pointer-events: none;
+            max-width: 46%;
+            padding: 5px 14px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-accent);
+            box-shadow: var(--fp-shadow);
+            color: var(--fp-accent-ink);
+            font: 500 var(--fp-size-sm)/1.5 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: 0;
+        }
+        .ticket-stamp-badge:not([hidden]) {
+            animation: ticketStampIn var(--fp-dur) var(--fp-ease) forwards;
+        }
+        .ticket-stamp-badge.is-stale {
+            opacity: 1;
+            animation: none;
+        }
+        /* 盖章：从略大、模糊落到清晰（用 scale 属性，transform 留给水平居中） */
+        @keyframes ticketStampIn {
+            from { opacity: 0; scale: 1.25; filter: blur(6px); }
+            to   { opacity: 1; scale: 1; filter: none; }
+        }
+        /* 横条模式：stage 是 display: contents（不生成盒子），
+           绝对定位的检票章会失去定位基准，这里把基准绑到横条视图上 */
+        body.ticket-strip-active .ticket-gallery-view {
+            position: relative;
+        }
+        body.ticket-strip-active .ticket-stamp-badge {
+            top: 6px;
+        }
+
+        /* 「时间有色」：按票根月份给序号换色（只改这一处文字） */
+        #ticketGallery[data-season='spring'],
+        #ticketGallery[data-season='summer'] {
+            --season-accent: var(--fp-accent);
+        }
+        #ticketGallery[data-season='autumn'],
+        #ticketGallery[data-season='winter'] {
+            --season-accent: var(--fp-accent);
+        }
+
+        /* ============ 护照 / 抽票 / 写信：浅灰半透明底上的玻璃面板 ============
+           通用骨架 .feature-overlay 在 creative-features.css；
+           这里按 id 换成柔光玻璃：整层是模糊过的浅灰，顶栏与内容是玻璃面板，打开时弹出，关闭 200ms 淡出。 */
+        #ticketPassport,
+        #ticketOracle,
+        #ticketLetter {
+            background: var(--fp-scrim);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            color: var(--fp-ink);
+            font-family: var(--fp-font-text);
+            transition: opacity 200ms var(--fp-ease), visibility 200ms var(--fp-ease);
+        }
+        #ticketPassport.show,
+        #ticketOracle.show,
+        #ticketLetter.show {
+            transition-duration: var(--fp-dur);
+        }
+        #ticketPassport .feature-top,
+        #ticketOracle .feature-top,
+        #ticketLetter .feature-top {
+            margin: max(12px, env(safe-area-inset-top)) 16px 0;
+            padding: 10px 14px;
+            border: 0;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow);
+        }
+        #ticketPassport.show .feature-top,
+        #ticketOracle.show .feature-top,
+        #ticketLetter.show .feature-top {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+        }
+        #ticketPassport .feature-back,
+        #ticketOracle .feature-back,
+        #ticketLetter .feature-back {
+            min-height: 34px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            letter-spacing: 0;
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+        }
+        #ticketPassport .feature-back:hover,
+        #ticketOracle .feature-back:hover,
+        #ticketLetter .feature-back:hover {
+            background: var(--fp-rule-strong);
+            color: var(--fp-ink);
+        }
+        #ticketPassport .feature-back:active,
+        #ticketOracle .feature-back:active,
+        #ticketLetter .feature-back:active {
+            transform: scale(0.96);
+        }
+        #ticketPassport .feature-back:focus-visible,
+        #ticketOracle .feature-back:focus-visible,
+        #ticketLetter .feature-back:focus-visible {
+            color: var(--fp-ink);
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        #ticketPassport .feature-head h2,
+        #ticketOracle .feature-head h2,
+        #ticketLetter .feature-head h2 {
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-xl)/1.25 var(--fp-font-title);
+            letter-spacing: 0.02em;
+        }
+        #ticketPassport .feature-head p:last-child,
+        #ticketOracle .feature-head p:last-child {
+            margin-top: 4px;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-xs);
+            letter-spacing: 0;
+            font-variant-numeric: tabular-nums;
+        }
+        #ticketPassport .feature-body,
+        #ticketOracle .feature-body,
+        #ticketLetter .feature-body {
+            scrollbar-color: var(--fp-rule-strong) transparent;
+        }
+
+        /* 浮层里的按钮：浅底胶囊（.fp-btn 同款），按下缩一下 */
+        .ticket-passport-reset,
+        .ticket-oracle-actions button,
+        #ticketLetterRetry,
+        #postcardRetry,
+        .ticket-letter-actions button {
+            min-height: 34px;
+            padding: 0 16px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            letter-spacing: 0;
+            cursor: pointer;
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+        }
+        .ticket-passport-reset:hover,
+        .ticket-oracle-actions button:hover:not([disabled]),
+        #ticketLetterRetry:hover,
+        #postcardRetry:hover,
+        .ticket-letter-actions button:hover:not([disabled]) {
+            background: var(--fp-rule-strong);
+            color: var(--fp-ink);
+        }
+        .ticket-passport-reset:active,
+        .ticket-oracle-actions button:active:not([disabled]),
+        #ticketLetterRetry:active,
+        #postcardRetry:active,
+        .ticket-letter-actions button:active:not([disabled]) {
+            transform: scale(0.96);
+        }
+        .ticket-passport-reset:focus-visible,
+        .ticket-oracle-actions button:focus-visible,
+        #ticketLetterRetry:focus-visible,
+        #postcardRetry:focus-visible,
+        .ticket-letter-actions button:focus-visible {
+            color: var(--fp-ink);
+            box-shadow: none;
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        /* 抽票里「再抽一次」是主操作 */
+        #ticketOracleAgain {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        #ticketOracleAgain:hover:not([disabled]) {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+            filter: brightness(1.06);
+        }
+        .ticket-oracle-actions button[disabled],
+        .ticket-letter-actions button[disabled] {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        /* —— 护照：每张票根一张玻璃小卡，已检票的盖强调色徽章；打开时前 8 张错峰弹出 —— */
+        .ticket-passport-overlay {
+            z-index: 11500;
+        }
+        .ticket-passport-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 178px), 1fr));
+            gap: 16px;
+            width: min(1080px, 100%);
+            margin: 0 auto 12px;
+        }
+        .ticket-passport-cell {
+            position: relative;
+            min-width: 0;
+            padding: 6px;
+            border: 0;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow);
+            overflow: hidden;
+            transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+        }
+        /* backwards：跑完后回到静态样式，不把 transform 钉住（否则悬停上浮失效） */
+        #ticketPassport.show .ticket-passport-cell {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+        }
+        #ticketPassport.show .ticket-passport-cell:nth-child(2) { animation-delay: 40ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(3) { animation-delay: 80ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(4) { animation-delay: 120ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(5) { animation-delay: 160ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(6) { animation-delay: 200ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(7) { animation-delay: 240ms; }
+        #ticketPassport.show .ticket-passport-cell:nth-child(n + 8) { animation-delay: 280ms; }
+        .ticket-passport-cell:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--fp-shadow-lift);
+        }
+        .ticket-passport-cell img {
+            display: block;
+            width: 100%;
+            height: 126px;
+            border-radius: var(--fp-radius-photo);
+            object-fit: cover;
+            background: var(--fp-rule);
+        }
+        .ticket-passport-cell.is-missing {
+            background: var(--fp-glass);
+            box-shadow: none;
+        }
+        .ticket-passport-cell.is-missing img {
+            opacity: 0.4;
+            filter: grayscale(1);
+        }
+        .ticket-passport-cell-title {
+            display: block;
+            padding: 8px 6px 4px;
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-sm)/1.5 var(--fp-font-title);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .ticket-passport-cell-status {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 2px 10px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-accent);
+            box-shadow: var(--fp-shadow);
+            color: var(--fp-accent-ink);
+            font-size: var(--fp-size-xs);
+            line-height: 1.6;
+        }
+        .ticket-passport-cell.is-missing .ticket-passport-cell-status {
+            border: 0;
+            background: var(--fp-glass-strong);
+            box-shadow: none;
+            color: var(--fp-ink-soft);
+        }
+        .ticket-passport-reset {
+            display: block;
+            margin: 22px auto 0;
+            color: var(--fp-ink-soft);
+        }
+
+        @media (max-width: 700px) {
+            .ticket-gallery-top {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .ticket-gallery-actions {
+                grid-column: 1;
+                grid-row: 3;
+                justify-self: center;
+                justify-content: center;
+            }
+            .ticket-passport-grid {
+                grid-template-columns: repeat(auto-fill, minmax(min(100%, 142px), 1fr));
+                gap: 10px;
+            }
+            .ticket-stamp-badge {
+                max-width: 60%;
+                font-size: var(--fp-size-xs);
+            }
+        }
+
+        /* —— 抽票 / 写信 —— */
+        .ticket-overlay-high {
+            z-index: 11500;
+        }
+        .ticket-meta-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .ticket-oracle-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+        }
+        /* 卡片必须落在屏幕正中间：只让卡片参与居中，
+           下方「建议 + 按钮」用绝对定位挂在卡片底部 */
+        .ticket-oracle-stack {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .ticket-oracle-below {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: max-content;
+            max-width: min(560px, 90vw);
+        }
+        .ticket-oracle-card {
+            /* 背面的斜纹用格线色 */
+            --oracle-stripe: var(--fp-accent-soft);
+            position: relative;
+            width: min(520px, 92vw);
+            aspect-ratio: 3 / 4;
+            /* 给下方文案与按钮留位置，矮屏时卡片自己缩下来 */
+            max-height: min(62vh, calc(100vh - 320px));
+            box-sizing: border-box;
+            padding: 6px;
+            border: 0;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow-lift);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ticket-oracle-card img {
+            width: 100%;
+            height: 100%;
+            border-radius: var(--fp-radius-photo);
+            object-fit: contain;
+            background: transparent;
+        }
+        /* 打开时卡片与下方文案弹出；洗牌动画挂在 .is-shuffling 上，不受影响 */
+        #ticketOracle.show .ticket-oracle-card:not(.is-shuffling) {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+        }
+        #ticketOracle.show .ticket-oracle-below {
+            animation: ticketOracleBelowIn var(--fp-dur) var(--fp-ease) 80ms both;
+        }
+        @keyframes ticketOracleBelowIn {
+            from { opacity: 0; filter: blur(6px); }
+            to   { opacity: 1; filter: none; }
+        }
+        .ticket-oracle-missing {
+            padding: 20px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-sm);
+        }
+        .ticket-oracle-card.is-back::before {
+            /* 用半角 ?：全角「？」的字形在字身框里靠左，肉眼看着不居中 */
+            content: "?";
+            color: var(--fp-accent);
+            opacity: 0.35;
+            font: 400 180px/1 var(--fp-font-title);
+            /* 行盒按字体基线排，墨迹比卡片中心略低，这里抬回来 */
+            transform: translateY(-0.058em);
+        }
+        .ticket-oracle-card.is-back {
+            background:
+                repeating-linear-gradient(45deg, var(--oracle-stripe) 0 1px, transparent 1px 12px),
+                var(--fp-glass-strong);
+        }
+        /* 点「抽一张 / 再抽一次」后的短暂洗牌：约 0.9 秒，随结果出现停下 */
+        .ticket-oracle-card.is-shuffling {
+            animation: ticketOracleShuffle 0.16s linear infinite alternate;
+        }
+        @keyframes ticketOracleShuffle {
+            from { transform: translateX(-3px); }
+            to   { transform: translateX(3px); }
+        }
+        .ticket-oracle-inspiration {
+            min-height: 1.7em;
+            margin: 20px 0 4px;
+            color: var(--fp-ink-soft);
+            font: var(--fp-size-md)/1.7 var(--fp-font-text);
+            text-align: center;
+        }
+        .ticket-oracle-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .ticket-letter-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 20px 32px;
+        }
+        /* 滚动安全的垂直居中：用 auto 外边距分配空白，内容超高时不会把顶部裁掉 */
+        .ticket-letter-stage,
+        .postcard-stage {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .ticket-letter-body > .ticket-letter-note {
+            margin-bottom: auto;
+        }
+        .postcard-body > .postcard-actions {
+            margin-bottom: auto;
+        }
+        /* 每页用自己的画布比例；宽度取「最大宽」和「最大高换算出的宽」里更紧的一边 */
+        .ticket-letter-stage {
+            --media-ratio: 0.703125;      /* 写信画布 900 × 1280 */
+            --media-aspect: 900 / 1280;
+        }
+        .postcard-stage {
+            --media-ratio: 0.75;          /* 城市明信片画布 1080 × 1440 */
+            --media-aspect: 3 / 4;
+        }
+        .ticket-letter-skeleton,
+        .postcard-skeleton,
+        #ticketLetterImg,
+        #postcardPreviewImg {
+            --media-max-w: min(460px, 90vw);
+            --media-max-h: min(78vh, 700px);
+            width: min(var(--media-max-w), calc(var(--media-max-h) * var(--media-ratio)));
+            aspect-ratio: var(--media-aspect);
+            border-radius: var(--fp-radius-photo);
+            background: transparent;   /* 预览图不垫底 */
+            box-shadow: var(--fp-shadow-lift);
+            outline: 0;
+        }
+        /* 写信：成图出来时从模糊里弹出 */
+        .ticket-letter-stage.is-ready #ticketLetterImg {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+        }
+        .ticket-letter-skeleton,
+        .postcard-skeleton {
+            --skeleton-sheen: color-mix(in srgb, var(--fp-paper-raised) 70%, transparent);
+            position: relative;
+            overflow: hidden;
+            background: var(--fp-rule);
+        }
+        /* 加载骨架的扫光保留：它说明「正在生成」 */
+        .ticket-letter-skeleton::after,
+        .postcard-skeleton::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(100deg, transparent 18%, var(--skeleton-sheen) 50%, transparent 82%);
+            transform: translateX(-100%);
+            animation: ticketLetterShimmer 1.6s ease-in-out infinite;
+        }
+        @keyframes ticketLetterShimmer {
+            to { transform: translateX(100%); }
+        }
+        .ticket-letter-status,
+        .postcard-status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            color: var(--fp-ink-soft);
+            font: var(--fp-size-xs)/1.7 var(--fp-font-text);
+            text-align: center;
+        }
+        #ticketLetterImg,
+        #postcardPreviewImg {
+            /* 宽度由上面的公式给，高度跟着图片自身比例走 —— 这样永远不会有白边 */
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+        .ticket-letter-stage.is-loading #ticketLetterImg,
+        .ticket-letter-stage.is-error #ticketLetterImg,
+        .postcard-stage.is-loading #postcardPreviewImg,
+        .postcard-stage.is-error #postcardPreviewImg {
+            visibility: hidden;
+        }
+        .ticket-letter-stage.is-ready .ticket-letter-skeleton,
+        .postcard-stage.is-ready .postcard-skeleton {
+            display: none;
+        }
+        .ticket-letter-stage.is-ready .ticket-letter-status,
+        .postcard-stage.is-ready .postcard-status {
+            display: none;
+        }
+        .ticket-letter-caption {
+            margin: 12px 0 0;
+            max-width: min(430px, 90vw);
+            color: var(--fp-ink-soft);
+            font: var(--fp-size-xs)/1.7 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
+        .ticket-letter-caption:empty {
+            display: none;
+        }
+        .ticket-letter-actions {
+            margin-top: 18px;
+            gap: 8px;
+        }
+        /* 下载是这一页唯一的主操作：强调色实底 */
+        #ticketLetterDownload {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        #ticketLetterDownload:hover:not([disabled]) {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+            filter: brightness(1.06);
+        }
+        #ticketLetterDownload:focus-visible {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        .ticket-letter-note {
+            margin: 16px 0 0;
+            color: var(--fp-ink-faint);
+            font: var(--fp-size-xs)/1.7 var(--fp-font-text);
+            text-align: center;
+        }
+
+        @media (max-width: 700px) {
+            .ticket-oracle-card {
+                width: min(360px, 88vw);
+                max-height: min(52vh, calc(100vh - 320px));
+            }
+            .ticket-meta-actions {
+                justify-content: center;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #ticketPassportBtn,
+            #ticketOracleBtn,
+            #ticketLetterBtn,
+            #ticketPassport,
+            #ticketOracle,
+            #ticketLetter,
+            #ticketPassport .feature-back,
+            #ticketOracle .feature-back,
+            #ticketLetter .feature-back,
+            .ticket-passport-reset,
+            .ticket-oracle-actions button,
+            #ticketLetterRetry,
+            #postcardRetry,
+            .ticket-letter-actions button {
+                transition: none;
+            }
+            .ticket-letter-skeleton::after,
+            .postcard-skeleton::after {
+                animation: none;
+            }
+            /* 只留透明度 */
+            #ticketPassport.show .feature-top,
+            #ticketOracle.show .feature-top,
+            #ticketLetter.show .feature-top,
+            #ticketPassport.show .ticket-passport-cell,
+            #ticketOracle.show .ticket-oracle-card:not(.is-shuffling),
+            #ticketOracle.show .ticket-oracle-below,
+            .ticket-letter-stage.is-ready #ticketLetterImg {
+                animation: ticketGalleryFade var(--fp-dur) linear both;
+            }
+            .ticket-passport-cell:hover { transform: none; }
+        }

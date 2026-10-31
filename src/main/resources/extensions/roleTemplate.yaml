@@ -11,7 +11,7 @@ metadata:
       ["plugin:footprint:view"]
 rules:
   - apiGroups: [ "footprint.lik.cc" ]
-    resources: [ "footprints" ]
+    resources: [ "footprints", "footprintguestbooks" ]
     verbs: [ "get", "list" ]
 
 ---

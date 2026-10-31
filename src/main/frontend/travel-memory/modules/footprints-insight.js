@@ -327,15 +327,15 @@ export function insightAchievements(m, time, province, segment, stats) {
             name: '长途跋涉',
             desc: '单段行程超过 500 公里',
             done: s.longest >= 500,
-            progress: s.longest ? insightKm(s.longest) + ' km' : '暂无数据',
-            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 500 - s.longest)) + ' km' : '暂无数据'
+            progress: s.longest ? insightKm(s.longest) + ' 公里' : '暂无数据',
+            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 500 - s.longest)) + ' 公里' : '暂无数据'
         },
         {
             name: '千里单骑',
             desc: '单段行程超过 1000 公里',
             done: s.longest >= 1000,
-            progress: s.longest ? insightKm(s.longest) + ' km' : '暂无数据',
-            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 1000 - s.longest)) + ' km' : '暂无数据'
+            progress: s.longest ? insightKm(s.longest) + ' 公里' : '暂无数据',
+            remaining: s.longest ? '还差 ' + insightKm(Math.max(0, 1000 - s.longest)) + ' 公里' : '暂无数据'
         },
         {
             name: '票根收藏家',
@@ -448,8 +448,8 @@ export function insightAchievements(m, time, province, segment, stats) {
             name: '万里行者',
             desc: '累计里程 1 万公里以上',
             done: m.distanceKm >= 10000,
-            progress: insightKm(m.distanceKm) + ' km',
-            remaining: '还差 ' + insightKm(Math.max(0, 10000 - m.distanceKm)) + ' km'
+            progress: insightKm(m.distanceKm) + ' 公里',
+            remaining: '还差 ' + insightKm(Math.max(0, 10000 - m.distanceKm)) + ' 公里'
         },
         {
             name: '主题收藏家',
@@ -466,25 +466,25 @@ export function insightAchievements(m, time, province, segment, stats) {
 export function insightTitlesOf(m, time, province, segment, stats) {
     const s = stats || insightDerived(segment);
     const list = [];
-    if (m.cityCount >= 30) list.push('百城 · 点亮 ' + m.cityCount + ' 座城市');
-    if (m.distanceKm >= 10000) list.push('万里行者 · 约 ' + insightKm(m.distanceKm) + ' 公里');
-    if (s.photos >= 500) list.push('快门收藏家 · 收下 ' + s.photos + ' 张照片');
-    if (s.lngSpan >= 20) list.push('东西横穿者 · 跨越 ' + s.lngSpan.toFixed(1) + ' 个经度');
-    if (s.latSpan >= 12) list.push('南北纵贯者 · 跨越 ' + s.latSpan.toFixed(1) + ' 个纬度');
-    if (s.repeatCities >= 5) list.push('老地方收集者 · ' + s.repeatCities + ' 座城市去过两次以上');
-    if (time && time.spanYears >= 3) list.push('常年旅人 · 记录横跨 ' + time.spanYears + ' 年');
-    if (province.total >= 10) list.push('远行者 · 走过 ' + province.total + ' 个省份');
-    if (province.total >= 8) list.push('疆域辽阔者 · 走过 ' + province.total + ' 个省份');
-    if (insightTicketCollectorDone(m)) list.push('票根收藏家 · 攒下 ' + m.ticketCount + ' 张票根');
-    if (m.cityCount >= 10) list.push('城市收集者 · 点亮 ' + m.cityCount + ' 座城市');
-    if (s.weekendCount >= 10) list.push('周末出走者 · ' + s.weekendCount + ' 次出发落在周末');
-    if (time && time.monthStreak >= 3) list.push('四季旅人 · 连续 ' + time.monthStreak + ' 个月出发');
+    if (m.cityCount >= 30) list.push('百城（' + m.cityCount + ' 座城市）');
+    if (m.distanceKm >= 10000) list.push('万里行者（约 ' + insightKm(m.distanceKm) + ' 公里）');
+    if (s.photos >= 500) list.push('快门收藏家（' + s.photos + ' 张照片）');
+    if (s.lngSpan >= 20) list.push('东西横穿者（跨 ' + s.lngSpan.toFixed(1) + ' 个经度）');
+    if (s.latSpan >= 12) list.push('南北纵贯者（跨 ' + s.latSpan.toFixed(1) + ' 个纬度）');
+    if (s.repeatCities >= 5) list.push('老地方收集者（' + s.repeatCities + ' 座城市去过两次以上）');
+    if (time && time.spanYears >= 3) list.push('常年旅人（记录跨 ' + time.spanYears + ' 年）');
+    if (province.total >= 10) list.push('远行者（' + province.total + ' 个省份）');
+    if (province.total >= 8) list.push('疆域辽阔者（' + province.total + ' 个省份）');
+    if (insightTicketCollectorDone(m)) list.push('票根收藏家（' + m.ticketCount + ' 张票根）');
+    if (m.cityCount >= 10) list.push('城市收集者（' + m.cityCount + ' 座城市）');
+    if (s.weekendCount >= 10) list.push('周末出走者（' + s.weekendCount + ' 条足迹在周末）');
+    if (time && time.monthStreak >= 3) list.push('四季旅人（连续 ' + time.monthStreak + ' 个月有足迹）');
     return list;
 }
 
 // 一句条件称号都没解锁时的兜底，不算进「N / 13」
 export function insightFallbackTitle(m) {
-    return '刚出发的旅人 · ' + m.footprintCount + ' 段旅程';
+    return '刚出发（' + m.footprintCount + ' 条足迹）';
 }
 
 // 还是保留「给一个最贴切的」这个入口，给需要单句的地方用
@@ -535,7 +535,7 @@ export function insightMetrics() {
     };
 }
 
-// 概览卡的几句总结：数据是真的，语气留一点文艺。
+// 概览卡的几句总结：一句一个事实，不加抒情。
 // 说法大致按「总览 → 节奏 → 地理 → 偏爱 → 距离 → 收藏 → 年份 → 称号」铺开，
 // 缺哪块数据就跳过哪句：「换一个说法」在数据齐全时能翻二十来次，数据少时也不会露出空话。
 // 第 1 句保持任何数据都成立，打开洞察时默认显示的就是它。
@@ -544,56 +544,48 @@ export function insightSentences(m, time, province, segment, extras = {}) {
     const title = extras.title || '';
     const longest = segment && segment.longest;
     const list = [];
-    list.push('约 ' + m.footprintCount + ' 次出发、' + m.cityCount +
-        ' 座城市，地图上的每一处坐标都是一个故事。');
+    list.push(m.footprintCount + ' 条足迹，' + m.cityCount + ' 座城市。');
     if (m.distanceKm) {
-        list.push(m.cityCount + ' 座城市、约 ' + m.distanceKm.toLocaleString('zh-CN') +
-            ' 公里的路，是你一步一步走出来的版图。');
+        list.push(m.cityCount + ' 座城市，按先后顺序连起来约 ' + m.distanceKm.toLocaleString('zh-CN') + ' 公里。');
     }
-    list.push((m.topSeason ? '你似乎总在' + m.topSeason + '天收拾行囊，' : '你总在合适的时候出发，') +
-        (m.topType ? '「' + m.topType + '」是你写得最多的一页。' : '每一程都值得被记住。'));
+    list.push((m.topSeason ? '足迹最多的季节是' + m.topSeason + '天' : '各个季节的足迹差不多') +
+        (m.topType ? '，记录最多的类型是「' + m.topType + '」。' : '。'));
 
-    // 节奏：平均多久出发一次。密一点说「熟练」，疏一点说「算数」
+    // 节奏：平均多久一条足迹
     if (time && m.footprintCount >= 3) {
         const gapDays = Math.round(time.spanDays / (m.footprintCount - 1));
         if (gapDays > 0) {
-            list.push(m.footprintCount + ' 次出发散在 ' + time.monthCount + ' 个月里，平均每 ' + gapDays +
-                (gapDays <= 60
-                    ? ' 天就收拾一次行李 —— 出发这件事，你早就做得很熟练。'
-                    : ' 天才动身一回 —— 不算频繁，但每一次都算数。'));
+            list.push(m.footprintCount + ' 条足迹分布在 ' + time.monthCount + ' 个月里，平均 ' + gapDays +
+                ' 天一条。');
         }
     }
     if (time && time.monthStreak >= 3) {
-        list.push('最长的一段，你连着 ' + time.monthStreak +
-            ' 个月都在路上 —— 那段时间，行李箱大概一直没收起来过。');
+        list.push('最长连续 ' + time.monthStreak + ' 个月每月都有足迹。');
     }
     if (time && time.topMonthCount >= 2) {
-        list.push(time.topMonth + ' 月是你的高发期，前后一共出发了 ' + time.topMonthCount +
-            ' 次，那个月份的风，你大概最熟悉。');
+        list.push('足迹最多的月份是 ' + time.topMonth + ' 月，共 ' + time.topMonthCount + ' 条。');
     }
     if (m.topSeason && m.topSeasonCount >= 2) {
-        list.push(m.topSeason + '季是你最常选中的时节，' + m.topSeasonCount + ' 次出发落在了那里。');
+        list.push(m.topSeason + '天的足迹最多，共 ' + m.topSeasonCount + ' 条。');
     }
 
     if (province && province.total) {
-        list.push(province.total + ' 个省份里，' + province.list[0].name +
-            '被你翻开的次数最多 —— 那里大概有值得反复抵达的理由。');
+        list.push('去过 ' + province.total + ' 个省份，足迹最多的是' + province.list[0].name + '。');
     }
     // 地理跨度：纬度看南北，经度看东西
     const latSpan = m.south && m.north ? Math.abs(m.north.lat - m.south.lat) : 0;
     if (latSpan >= 3) {
-        list.push('从最南的 ' + insightPlaceName(m.south) + ' 到最北的 ' + insightPlaceName(m.north) +
-            '，你把 ' + latSpan.toFixed(1) + ' 个纬度装进了自己的地图。');
+        list.push('最南到' + insightPlaceName(m.south) + '，最北到' + insightPlaceName(m.north) +
+            '，相差 ' + latSpan.toFixed(1) + ' 个纬度。');
     } else if (!province.total && m.south && m.north &&
         insightPlaceName(m.south) !== insightPlaceName(m.north)) {
-        list.push('从 ' + insightPlaceName(m.south) + ' 到 ' + insightPlaceName(m.north) +
-            '，世界在地图上被你慢慢点亮。');
+        list.push('最南到' + insightPlaceName(m.south) + '，最北到' + insightPlaceName(m.north) + '。');
     }
     if (m.west && m.east) {
         const lngSpan = Math.abs(m.east.lng - m.west.lng);
         if (lngSpan >= 3) {
-            list.push('最东是 ' + insightPlaceName(m.east) + '，最西是 ' + insightPlaceName(m.west) +
-                '，中间隔着 ' + lngSpan.toFixed(1) + ' 个经度 —— 那是你横向丈量世界的方式。');
+            list.push('最东到' + insightPlaceName(m.east) + '，最西到' + insightPlaceName(m.west) +
+                '，相差 ' + lngSpan.toFixed(1) + ' 个经度。');
         }
     }
 
@@ -611,52 +603,46 @@ export function insightSentences(m, time, province, segment, extras = {}) {
         }
     });
     if (topCityName && topCityVisits >= 2) {
-        list.push('在 ' + m.cityCount + ' 座城市里，' + topCityName + ' 是你回去最多的地方（' +
-            topCityVisits + ' 次），有些地方就是值得反复抵达。');
+        list.push('去得最多的城市是' + topCityName + '，' + topCityVisits + ' 条足迹。');
     }
     if (repeatCities >= 2) {
-        list.push('有 ' + repeatCities + ' 座城市你去过两次以上，它们大概更像「老地方」。');
+        list.push(repeatCities + ' 座城市去过两次以上。');
     }
 
     if (longest) {
-        list.push('走得最远的一次，是从' + insightPlaceName(longest.from) + '到' +
+        list.push('相邻两条足迹之间最远的一段是从' + insightPlaceName(longest.from) + '到' +
             insightPlaceName(longest.to) + '，约 ' + insightKm(longest.km) + ' 公里。');
     }
     if (segment && segment.count >= 2 && segment.average > 0) {
-        list.push('平均每一段约 ' + insightKm(segment.average) +
-            ' 公里，步子不算大，但一直没有停下来过。');
+        list.push('相邻两条足迹之间平均约 ' + insightKm(segment.average) + ' 公里。');
     }
 
     // 收藏：照片和票根都有就合起来说，只有一样时只说那一样
     if (m.ticketCount && m.photoCount) {
-        list.push(m.photoCount + ' 张照片、' + m.ticketCount +
-            ' 张票根，你不仅出发，也把它们都妥帖地留了下来。');
+        list.push('收了 ' + m.photoCount + ' 张照片、' + m.ticketCount + ' 张票根。');
     } else {
         list.push(m.ticketCount
-            ? '你还留下了 ' + m.ticketCount + ' 张票根，每一次出发都被妥帖地收着。'
-            : m.photoCount + ' 张照片被好好收着，' +
-                (m.photoCount > 1 ? '它们替你说着' : '它替你说着') + '当时的光线与心情。');
+            ? '收了 ' + m.ticketCount + ' 张票根。'
+            : '收了 ' + m.photoCount + ' 张照片。');
     }
     if (m.photoCount - m.footprintCount >= 2) {
-        list.push('照片比足迹多出 ' + (m.photoCount - m.footprintCount) +
-            ' 张 —— 有些地方，你显然舍不得只拍一张。');
+        list.push('照片比足迹多 ' + (m.photoCount - m.footprintCount) + ' 张，有的足迹不止一张照片。');
     }
 
     if (time && time.spanDays > 0) {
-        list.push('从 ' + insightSpotDate(time.first) + ' 到 ' + insightSpotDate(time.last) + '，' +
+        list.push('记录从 ' + insightSpotDate(time.first) + ' 到 ' + insightSpotDate(time.last) + '，共 ' +
             (time.spanYears > 0
                 ? time.spanYears + ' 年 ' + time.restDays + ' 天'
                 : time.spanDays + ' 天') +
-            '的光阴，被你拆成了 ' + time.monthCount + ' 个月的出发。');
+            '，其中 ' + time.monthCount + ' 个月有足迹。');
     }
     if (years.length >= 2) {
         const busiest = years.reduce((best, item) =>
             item.footprints > best.footprints ? item : best, years[0]);
-        list.push(busiest.year + ' 年是你出发最多的一年，一共 ' + busiest.footprints +
-            ' 次，那一年你把地图铺得最开。');
+        list.push('足迹最多的一年是 ' + busiest.year + ' 年，共 ' + busiest.footprints + ' 条。');
     }
     if (title) {
-        list.push('按现在的记录，你担得起「' + title + '」—— 这不是标签，是你自己走出来的。');
+        list.push('按现在的记录，称号是「' + title + '」。');
     }
-    return list.length ? list : ['还没有足迹数据，出发后回来看看你的旅行洞察。'];
+    return list.length ? list : ['还没有足迹。'];
 }

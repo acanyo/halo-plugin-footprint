@@ -1,0 +1,306 @@
+/* ---------------- L3 相册 ---------------- */
+
+.ms-album-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--fp-rule);
+}
+
+.ms-album-head strong {
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-lg);
+    font-weight: 400;
+}
+
+.ms-album-head span {
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-album-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    /* 每页只放一张照片，所以只有一行，图片铺满整页 */
+    grid-template-rows: minmax(0, 1fr);
+    gap: 12px;
+}
+
+.ms-album-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--fp-radius-photo);
+    background: var(--ms-shade);
+    overflow: hidden;
+    cursor: zoom-in;
+}
+
+.ms-album-slot.is-empty { background: var(--fp-rule); border: 0; cursor: default; }
+
+.ms-album-slot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ms-album-slot:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
+
+.ms-album-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 翻页：两阶段动画（当前页飞出 -> 下一页翻回）。
+   时长和 album.js 里的 620ms 定时器绑在一起，这里不改。 */
+
+.ms-album-stage.turning { pointer-events: none; }
+
+.ms-page-turner { backface-visibility: hidden; transform-style: preserve-3d; }
+
+.ms-page-turner.front-forward {
+    transform-origin: left center;
+    animation: msTurnFrontFwd 0.6s cubic-bezier(0.55, 0.06, 0.68, 0.19) both;
+}
+
+.ms-page-turner.back-forward {
+    transform-origin: left center;
+    animation: msTurnBackFwd 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ms-page-turner.front-backward {
+    transform-origin: right center;
+    animation: msTurnFrontBwd 0.6s cubic-bezier(0.55, 0.06, 0.68, 0.19) both;
+}
+
+.ms-page-turner.back-backward {
+    transform-origin: right center;
+    animation: msTurnBackBwd 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes msTurnFrontFwd {
+    from { transform: rotateY(0deg); opacity: 1; }
+    to { transform: rotateY(-92deg); opacity: 0.12; }
+}
+
+@keyframes msTurnBackFwd {
+    from { transform: rotateY(92deg); opacity: 0.12; }
+    to { transform: rotateY(0deg); opacity: 1; }
+}
+
+@keyframes msTurnFrontBwd {
+    from { transform: rotateY(0deg); opacity: 1; }
+    to { transform: rotateY(92deg); opacity: 0.12; }
+}
+
+@keyframes msTurnBackBwd {
+    from { transform: rotateY(-92deg); opacity: 0.12; }
+    to { transform: rotateY(0deg); opacity: 1; }
+}
+
+/* 原地放大：纸色遮罩铺满，不做毛玻璃 */
+
+.ms-photo-view {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 4vw;
+    background: var(--fp-scrim);
+}
+
+.ms-photo-view.show { display: flex; }
+
+.ms-photo-view img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--fp-radius-photo);
+}
+
+.ms-photo-view.show img {
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+}
+
+/* 原地放大的底部控制条：玻璃胶囊（和首屏底部控制条同形） */
+.ms-photo-view-bar {
+    position: absolute;
+    left: 50%;
+    bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-ink);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+    transform: translateX(-50%);
+}
+
+.ms-photo-view-bar button {
+    padding: 2px 6px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fp-size-lg);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ms-photo-view-bar button:disabled { opacity: 0.45; cursor: default; }
+.ms-photo-view-bar button:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
+
+/* ---------------- CSS 3D 回退书架（WebGL 不可用） ----------------
+   书本身的布色（--fb-cover / --fb-spine / --fb-ink）由 JS 按 BOOK_COLORS 写进来，
+   和 3D 书架同一套；这里只给书体的明暗，用墨色混出来。 */
+
+.ms-fallback {
+    --ms-book-shade: color-mix(in srgb, var(--fp-ink) 30%, transparent);
+    --ms-book-cast: color-mix(in srgb, var(--fp-ink) 26%, transparent);
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    height: 100%;
+    padding: 30px 40px 74px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    perspective: 1200px;
+}
+
+.ms-fbook {
+    position: relative;
+    flex: 0 0 auto;
+    width: 168px;
+    height: 252px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transform: rotateY(68deg);
+    transform-origin: left center;
+    transition: transform 0.24s var(--fp-ease), opacity var(--fp-dur) var(--fp-ease);
+}
+
+.ms-fbook.active { transform: rotateY(-8deg) scale(1.12) translateY(-8px); cursor: zoom-in; }
+
+/* 书体：布面 + 书脊暗角；脚下一道落影，表示书立在架上（物体的投影，不是卡片层次） */
+.ms-fbook-body {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--fp-radius-photo);
+    background: linear-gradient(105deg, var(--fb-cover), var(--fb-cover) 62%, var(--ms-book-shade));
+    box-shadow: 0 14px 24px -10px var(--ms-book-cast), inset -10px 0 18px var(--ms-book-shade);
+    overflow: hidden;
+}
+
+.ms-fbook-spine {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 22px;
+    background: var(--fb-spine);
+    box-shadow: inset -6px 0 12px var(--ms-book-shade);
+}
+
+.ms-fbook-face {
+    position: absolute;
+    inset: 14px 14px 14px 34px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--fb-ink);
+}
+
+.ms-fbook-face b {
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
+    word-break: break-all;
+}
+
+.ms-fbook-face small {
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.8;
+}
+
+.ms-fbook-photo {
+    flex: 1 1 auto;
+    min-height: 0;
+    border-radius: var(--fp-radius-photo);
+    background-color: var(--ms-book-shade);
+    background-size: cover;
+    background-position: center;
+}
+
+/* ---------------- 桌面窄窗 ---------------- */
+
+@media (max-width: 1060px) {
+    .ms-scene { grid-template-columns: minmax(250px, 292px) minmax(0, 1fr); }
+    .ms-info-name { font-size: var(--fp-size-2xl); }
+    .ms-info-name.long { font-size: var(--fp-size-xl); }
+    .ms-info-name.extra-long { font-size: var(--fp-size-lg); }
+    /* 窄窗口：卡片收小、隐藏城市那一行，少挤舞台 */
+    .ms-info {
+        width: min(248px, 30vw);
+        margin-left: 16px;
+        padding: 16px;
+        gap: 10px;
+    }
+    .ms-info-log > .ms-info-row-cities { display: none; }
+    .ms-view { padding: 16px 20px 20px; }
+    .ms-page { padding: 20px; }
+    .ms-album-page { padding: 18px; }
+    .ms-chapter-name { font-size: var(--fp-size-xl); }
+    .ms-head h2 { font-size: var(--fp-size-lg); }
+    .ms-fbook { width: 132px; height: 198px; }
+    .ms-fbook-face b { font-size: var(--fp-size-lg); }
+}
+
+/* ---------------- 动效偏好 ---------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    #memoryShelf,
+    .ms-stage { transition: none; }
+    #memoryShelf.show { animation: none; }
+    .ms-loading-bar i { width: 100%; animation: none; }
+    .ms-page-turner { animation: none !important; }
+    .ms-info { animation: msInfoFade var(--fp-dur) linear backwards; }
+    .ms-top,
+    .ms-view-reset,
+    .ms-photo-view.show img { animation: none; }
+    .ms-view-reset:hover { transform: none; }
+    .ms-album-side:hover:not(:disabled) { transform: none; }
+    .ms-scene,
+    .ms-top,
+    .ms-head > *,
+    .ms-rail,
+    #memoryShelf.book-mode .ms-rail,
+    .ms-building,
+    .ms-fbook,
+    .ms-info { transition: none; }
+    /* 交叉淡入的幽灵：JS 那边也会跳过克隆，这里只是 CSS 兜底 */
+    .ms-info-ghost { animation: none !important; opacity: 0; }
+}

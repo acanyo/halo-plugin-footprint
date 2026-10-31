@@ -1,0 +1,229 @@
+        /* ============ 城市图片墙：右侧照片瀑布流 ============
+           一条足迹一页：白卡头（类型、足迹名、日期与照片数、正文），下面是圆角照片瀑布流。
+           照片按原比例排三列，逐张错峰弹出；悬停上浮、阴影加深。 */
+        .city-journal-wall {
+            position: relative;
+            padding: 0 0 8px;
+            color: var(--fp-ink);
+        }
+        .city-journal-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: baseline;
+            gap: 4px 18px;
+            padding: 18px 22px;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-paper-raised);
+            box-shadow: var(--fp-shadow);
+        }
+        /* 足迹类型：强调色浅底小胶囊；空着时不占位 */
+        .city-journal-kicker {
+            grid-column: 1 / -1;
+            justify-self: start;
+            margin-bottom: 4px;
+            padding: 3px 10px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-accent-soft);
+            color: var(--fp-accent);
+            font-size: var(--fp-size-xs);
+        }
+        .city-journal-kicker:empty {
+            display: none;
+        }
+        .city-journal-head h3 {
+            margin: 0;
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-2xl);
+            font-weight: 400;
+            line-height: 1.25;
+            letter-spacing: 0.02em;
+            color: var(--fp-ink);
+        }
+        .city-journal-head time,
+        .city-journal-count {
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-sm);
+            font-variant-numeric: tabular-nums;
+        }
+        .city-journal-count {
+            grid-column: 1 / -1;
+        }
+        .city-journal-description {
+            max-width: 680px;
+            margin: 14px 4px 0;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-md);
+            line-height: 1.7;
+        }
+        .city-journal-grid {
+            columns: 3;
+            column-gap: 16px;
+            padding: 20px 0 16px;
+        }
+        .city-journal-card {
+            position: relative;
+            display: block;
+            width: 100%;
+            margin: 0 0 16px;
+            padding: 0;
+            border: 0;
+            border-radius: var(--fp-radius-photo);
+            overflow: hidden;
+            background: var(--fp-paper-raised);
+            box-shadow: var(--fp-shadow);
+            color: inherit;
+            text-align: left;
+            cursor: zoom-in;
+            break-inside: avoid;
+            -webkit-column-break-inside: avoid;
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+            animation-delay: 360ms;
+            transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+        }
+        .city-journal-card:nth-child(1) { animation-delay: 80ms; }
+        .city-journal-card:nth-child(2) { animation-delay: 120ms; }
+        .city-journal-card:nth-child(3) { animation-delay: 160ms; }
+        .city-journal-card:nth-child(4) { animation-delay: 200ms; }
+        .city-journal-card:nth-child(5) { animation-delay: 240ms; }
+        .city-journal-card:nth-child(6) { animation-delay: 280ms; }
+        .city-journal-card:nth-child(7) { animation-delay: 320ms; }
+        .city-journal-card:nth-child(8) { animation-delay: 360ms; }
+        /* 滚动加载下一批是整块重建：已经看到的照片别再弹一次 */
+        .city-stage-content.is-appending,
+        .city-stage-content.is-appending .city-journal-card {
+            animation: none;
+        }
+        .city-journal-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--fp-shadow-lift);
+        }
+        .city-journal-card:active {
+            transform: scale(0.98);
+        }
+        .city-journal-card img {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 620px;
+            object-fit: cover;
+            transition: transform 600ms var(--fp-ease);
+        }
+        .city-journal-card:hover img {
+            transform: scale(1.04);
+        }
+        .city-journal-card:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 3px;
+        }
+        /* 说明压在照片下沿，白玻璃条 */
+        .city-journal-caption {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            z-index: 3;
+            display: block;
+            padding: 5px 10px;
+            overflow: hidden;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            color: var(--fp-ink);
+            font-size: var(--fp-size-xs);
+            line-height: 1.45;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .city-journal-empty {
+            padding: 64px 0;
+            color: var(--fp-ink-faint);
+            text-align: center;
+            font-size: var(--fp-size-sm);
+            break-inside: avoid;
+        }
+        /* 滚动到底自动加载的提示（结构样式在 ticket-strip-caption.css） */
+        #cityView .city-journal-more-auto,
+        #cityView .city-journal-more-auto:hover {
+            clear: both;
+            color: var(--fp-ink-faint);
+            font: var(--fp-size-xs)/1.6 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0;
+        }
+
+        /* —— 图片加载状态：缩略图与照片先占位 —— */
+        .city-tab-thumb.is-loading::before,
+        .city-journal-card.is-loading::before {
+            content: "";
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+            background: linear-gradient(105deg, var(--cv-skeleton) 20%, var(--cv-skeleton-hi) 42%, var(--cv-skeleton) 64%);
+            background-size: 220% 100%;
+            animation: cityImageSkeleton 1.25s ease-in-out infinite;
+        }
+        .city-journal-card.is-loading {
+            min-height: 220px;
+        }
+        .city-tab-thumb.is-loading img,
+        .city-journal-card.is-loading img,
+        .city-tab-thumb.is-error img,
+        .city-journal-card.is-error img {
+            opacity: 0;
+        }
+        .city-tab-thumb.is-error::before,
+        .city-journal-card.is-error::before,
+        .city-tab-thumb.is-empty::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--cv-skeleton);
+        }
+        .city-journal-card.is-error {
+            min-height: 160px;
+        }
+        .city-tab-thumb.is-error::after,
+        .city-journal-card.is-error::after,
+        .city-tab-thumb.is-empty::after {
+            content: "暂无图片";
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--fp-ink-faint);
+            font-size: 11px;
+        }
+        @keyframes cityImageSkeleton {
+            from { background-position: 100% 0; }
+            to { background-position: -100% 0; }
+        }
+        @media (hover: none) {
+            .city-journal-card:hover {
+                transform: none;
+                box-shadow: var(--fp-shadow);
+            }
+            .city-journal-card:hover img {
+                transform: none;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .city-tab-thumb.is-loading::before,
+            .city-journal-card.is-loading::before {
+                animation: none;
+            }
+            .city-journal-card {
+                animation-name: cityFadeIn;
+                transition: none;
+            }
+            .city-journal-card:hover,
+            .city-journal-card:active,
+            .city-journal-card:hover img {
+                transform: none;
+            }
+            .city-journal-card img {
+                transition: none;
+            }
+        }

@@ -1,0 +1,233 @@
+/*
+ * 标记点的四种样式（后台「标记点样式」）：photo / circle / pin / card。
+ *
+ * 四种都是同一套白玻璃：半透明白底 + 背景模糊 + 柔阴影，没有描边。
+ *   photo（默认，与参考站一致）：58px 玻璃圆环里一张 50px 圆照片，悬停出名签；
+ *   circle：一颗小玻璃圆点，中心是强调色；
+ *   pin：玻璃水滴，里面一张圆照片；
+ *   card：玻璃胶囊名签，左边一张小圆照片。
+ * 没有封面时 marker-content.js 先用图片墙第一张，再没有就画足迹名的第一个字（.marker-initial）。
+ */
+.custom-marker,
+.custom-marker * {
+    user-select: none;
+    -webkit-user-select: none;
+    caret-color: transparent;
+}
+.custom-marker:focus,
+.custom-marker:focus-visible {
+    outline: none;
+}
+.custom-marker {
+    --marker-glass: rgba(255, 255, 255, 0.6);
+    position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--fp-dur) var(--fp-ease);
+}
+.custom-marker .marker-image {
+    position: relative;
+    overflow: hidden;
+    background: var(--fp-accent-soft);
+    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+}
+.custom-marker .marker-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* 没有照片时的首字 */
+.custom-marker .marker-initial {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    color: var(--fp-accent);
+    font: 400 var(--fp-size-lg)/1 var(--fp-font-title);
+}
+.custom-marker:active {
+    transform: scale(0.96);
+}
+
+/* 名签：悬停时浮出的一枚玻璃胶囊（photo / pin / circle 共用） */
+.custom-marker .marker-label {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 3;
+    max-width: 160px;
+    padding: 4px 10px;
+    overflow: hidden;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-ink);
+    font: 400 var(--fp-size-xs)/1.4 var(--fp-font-title);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    filter: blur(4px);
+    transform: translate(-50%, 6px) scale(0.92);
+    transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease), filter var(--fp-dur) var(--fp-ease);
+}
+.custom-marker:hover .marker-label,
+.custom-marker:focus-visible .marker-label {
+    opacity: 1;
+    filter: none;
+    transform: translate(-50%, 0) scale(1);
+}
+.custom-marker .marker-badge,
+.custom-marker .marker-arrow {
+    display: none;
+}
+
+/* ===== 照片圆环（photo，默认） ===== */
+.marker-style-photo .custom-marker {
+    width: 58px;
+    height: 58px;
+    padding: 4px;
+    border-radius: 50%;
+    background: var(--marker-glass);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
+}
+.marker-style-photo .custom-marker:hover {
+    transform: translateY(-3px) scale(1.06);
+    box-shadow: var(--fp-shadow-lift);
+}
+.marker-style-photo .marker-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+/* ===== 玻璃圆点（circle）：小圆点，中心一颗强调色 ===== */
+.marker-style-circle .custom-marker {
+    width: 24px;
+    height: 24px;
+    padding: 6px;
+    border-radius: 50%;
+    background: var(--marker-glass);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
+}
+.marker-style-circle .custom-marker:hover {
+    transform: scale(1.25);
+    box-shadow: var(--fp-shadow-lift);
+}
+.marker-style-circle .marker-image {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--fp-accent);
+}
+.marker-style-circle .marker-image img,
+.marker-style-circle .marker-image .marker-initial {
+    display: none;
+}
+
+/* ===== 玻璃水滴（pin）：转 45° 的水滴，照片反向转回来 ===== */
+.marker-style-pin .custom-marker {
+    width: 46px;
+    height: 46px;
+    padding: 4px;
+    border-radius: 50% 50% 50% 6px;
+    background: var(--marker-glass);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
+    transform: rotate(-45deg);
+}
+.marker-style-pin .custom-marker:hover {
+    transform: rotate(-45deg) translate(2px, -2px) scale(1.06);
+    box-shadow: var(--fp-shadow-lift);
+}
+.marker-style-pin .custom-marker:active {
+    transform: rotate(-45deg) scale(0.96);
+}
+.marker-style-pin .marker-image {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+}
+.marker-style-pin .marker-image img,
+.marker-style-pin .marker-image .marker-initial {
+    transform: rotate(45deg);
+}
+/* 水滴是转过的，名签要转回来、放到右上 */
+.marker-style-pin .marker-label {
+    bottom: auto;
+    top: -2px;
+    left: calc(100% + 4px);
+    transform: rotate(45deg) translate(0, 6px) scale(0.92);
+    transform-origin: left top;
+}
+.marker-style-pin .custom-marker:hover .marker-label,
+.marker-style-pin .custom-marker:focus-visible .marker-label {
+    transform: rotate(45deg) translate(0, 0) scale(1);
+}
+
+/* ===== 玻璃名签（card）：胶囊，左边小圆照片，右边地名 ===== */
+.marker-style-card .custom-marker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 150px;
+    padding: 3px 12px 3px 3px;
+    border-radius: var(--fp-radius-control);
+    background: var(--marker-glass);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow);
+}
+.marker-style-card .custom-marker:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--fp-shadow-lift);
+}
+.marker-style-card .marker-image {
+    order: -1;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+.marker-style-card .marker-image .marker-initial {
+    font-size: var(--fp-size-sm);
+}
+.marker-style-card .marker-label {
+    position: static;
+    max-width: 104px;
+    padding: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    font-size: var(--fp-size-sm);
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+}
+.marker-style-card .custom-marker:hover .marker-label,
+.marker-style-card .custom-marker:focus-visible .marker-label {
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-marker .marker-label {
+        filter: none;
+        transform: translate(-50%, 0);
+    }
+    .marker-style-pin .marker-label {
+        transform: rotate(45deg);
+    }
+    .marker-style-card .marker-label {
+        transform: none;
+    }
+}

@@ -1,0 +1,444 @@
+        /* ============ 城记：城市卡片墙 ============
+           浅灰底（模板里 #cityWall 带 .fp-sheet），顶栏是一条浮起的玻璃条。
+           一座城市一张白卡：大圆角照片、快看世界体城市名、一行事实（足迹数、最近一次）。
+           打开时卡片错峰弹出（前 8 张每张晚 40ms）；悬停卡片上浮、照片轻轻放大。 */
+
+        /* 打开全屏浮层时顶栏要立刻让位：只写 visibility 会被顶栏自身的 0.6s 过渡拖住，
+           结果浮层淡入的这段时间里顶栏一直以 opacity:1 透在下面，约 0.6s 后才突然移除 */
+        body.city-view-open #topNav,
+        body.city-view-open #pageIntro,
+        body.city-wall-open #topNav,
+        body.city-wall-open #pageIntro {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.18s ease, visibility 0.18s;
+        }
+        #cityWall {
+            /* 压在照片上的小标签（票根数、明信片）：白玻璃胶囊 */
+            --cw-photo-chip: rgba(255, 255, 255, 0.78);
+            --cw-photo-chip-hover: rgba(255, 255, 255, 0.95);
+            --cw-photo-ink: var(--fp-ink);
+
+            position: fixed;
+            inset: 0;
+            z-index: 10010;   /* 浮层之下、城市图片墙之下（互斥打开，二者不会同屏） */
+            display: flex;
+            flex-direction: column;
+            background: var(--fp-paper);
+            color: var(--fp-ink);
+            font-family: var(--fp-font-text);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur);
+            overflow: hidden;
+        }
+        #cityWall.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* 顶栏：浮起的玻璃条，和地球页上的面板同一种材质 */
+        .city-wall-top {
+            width: calc(100% - 48px);
+            max-width: 1392px;
+            margin: max(16px, env(safe-area-inset-top)) auto 0;
+            flex: none;
+            display: grid;
+            grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
+            align-items: center;
+            gap: 20px;
+            padding: 10px 12px;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow);
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
+        }
+        #cityWall.show .city-wall-top {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+        }
+        #cityWallBack {
+            justify-self: start;
+        }
+        #cityWallBack svg {
+            width: 16px;
+            height: 16px;
+        }
+        .city-wall-head {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 0;
+            text-align: center;
+        }
+        #cityWallTitle {
+            font-size: var(--fp-size-2xl);
+        }
+        #cityWallStats {
+            font-variant-numeric: tabular-nums;
+        }
+        #cityWallStats:empty {
+            display: none;
+        }
+        /* 只看某个省：从足迹洞察的省份排行点进来，点掉即恢复全部城市 */
+        .city-wall-province-filter {
+            margin-top: 6px;
+            background: var(--fp-accent-soft);
+            color: var(--fp-accent);
+        }
+        .city-wall-province-filter:hover:not(:disabled) {
+            background: var(--fp-accent-soft);
+            filter: brightness(0.97);
+        }
+        .city-wall-province-filter[hidden] {
+            display: none;
+        }
+        .city-wall-body {
+            flex: 1;
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 28px 44px 64px;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: var(--fp-rule-strong) transparent;
+            scrollbar-gutter: stable;
+        }
+        .city-wall-grid {
+            max-width: 1540px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 248px), 1fr));
+            gap: 24px;
+            align-items: stretch;
+        }
+        /* 错峰弹出：前 8 张每张晚 40ms，其余一起出现。卡片墙每次打开都会重建网格，所以每次打开都会播一次 */
+        .city-wall-card-wrap {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+            animation-delay: 320ms;
+        }
+        .city-wall-card-wrap:nth-child(1) { animation-delay: 40ms; }
+        .city-wall-card-wrap:nth-child(2) { animation-delay: 80ms; }
+        .city-wall-card-wrap:nth-child(3) { animation-delay: 120ms; }
+        .city-wall-card-wrap:nth-child(4) { animation-delay: 160ms; }
+        .city-wall-card-wrap:nth-child(5) { animation-delay: 200ms; }
+        .city-wall-card-wrap:nth-child(6) { animation-delay: 240ms; }
+        .city-wall-card-wrap:nth-child(7) { animation-delay: 280ms; }
+        .city-wall-card-wrap:nth-child(8) { animation-delay: 320ms; }
+        /* 白卡：四周留 8px，照片是卡里的一块圆角图 */
+        .city-wall-card {
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            border: 0;
+            appearance: none;
+            -webkit-appearance: none;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-paper-raised);
+            box-shadow: var(--fp-shadow);
+            color: var(--fp-ink);
+            overflow: hidden;
+            cursor: pointer;
+            text-align: left;
+            font: inherit;
+            box-sizing: border-box;
+            transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+        }
+        .city-wall-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--fp-shadow-lift);
+        }
+        .city-wall-card:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+        .city-wall-card:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 3px;
+        }
+        .city-wall-card-media {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            border-radius: var(--fp-radius-photo);
+            background: var(--fp-accent-soft);
+            overflow: hidden;
+            /* Safari：圆角裁切里有放大的图片时要单独开一层，否则悬停放大会露出直角 */
+            isolation: isolate;
+        }
+        .city-wall-card-cover {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity var(--fp-dur) var(--fp-ease), transform 600ms var(--fp-ease);
+        }
+        .city-wall-card-media.is-loaded .city-wall-card-cover {
+            opacity: 1;
+        }
+        .city-wall-card-media.is-error .city-wall-card-cover {
+            display: none;
+        }
+        .city-wall-card:hover .city-wall-card-cover,
+        .city-wall-card:hover .city-wall-card-preview {
+            transform: scale(1.05);
+        }
+        /* 没有封面 / 封面没加载出来：城市名首字做底 */
+        .city-wall-card-monogram {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--fp-accent);
+            font: 400 var(--fp-size-3xl)/1 var(--fp-font-title);
+        }
+        .city-wall-card-tickets {
+            position: absolute;
+            left: 8px;
+            bottom: 8px;
+            z-index: 4;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: var(--fp-radius-control);
+            background: var(--cw-photo-chip);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fp-shadow);
+            color: var(--cw-photo-ink);
+            font: 500 var(--fp-size-xs)/1.3 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
+            /* 它是个入口：点它只看这座城市的票根 */
+            cursor: pointer;
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+        }
+        .city-wall-card-tickets:hover,
+        .city-wall-card-tickets:focus-visible {
+            background: var(--cw-photo-chip-hover);
+        }
+        .city-wall-card-tickets:active {
+            transform: scale(0.96);
+        }
+        .city-wall-card-tickets::after {
+            content: "›";
+            margin-left: 1px;
+        }
+        /* 卡片正文：省份（有就写）、城市名、一行事实 */
+        .city-wall-card-body {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            align-items: center;
+            gap: 2px 0;
+            flex: 1;
+            padding: 12px 6px 4px;
+            box-sizing: border-box;
+        }
+        .city-wall-card-eyebrow {
+            color: var(--fp-accent);
+            font-size: var(--fp-size-xs);
+        }
+        .city-wall-card-eyebrow:empty {
+            display: none;
+        }
+        .city-wall-card-name {
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-xl);
+            font-weight: 400;
+            line-height: 1.25;
+            letter-spacing: 0.02em;
+            color: var(--fp-ink);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* 一行事实：「3 条足迹 │ 最近 2025.10.03」，中间一条细竖线 */
+        .city-wall-card-meta,
+        .city-wall-card-recent {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 4px;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            line-height: 1.4;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        /* 省份与城市名各占一整行；meta 与 recent 排在同一行 */
+        .city-wall-card-eyebrow,
+        .city-wall-card-name {
+            flex: 0 0 100%;
+            min-width: 0;
+        }
+        .city-wall-card-recent::before {
+            content: "";
+            width: 1px;
+            height: 11px;
+            margin: 0 9px;
+            background: var(--fp-rule-strong);
+        }
+        .city-wall-empty-view {
+            max-width: 420px;
+            margin: 12vh auto 0;
+            padding: 36px 28px;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-paper-raised);
+            box-shadow: var(--fp-shadow);
+            text-align: center;
+            color: var(--fp-ink-soft);
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+        }
+        .city-wall-empty-view[hidden] {
+            display: none;
+        }
+        .city-wall-empty-view p {
+            margin: 0;
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-xl)/1.25 var(--fp-font-title);
+        }
+        .city-wall-empty-view span {
+            display: block;
+            margin-top: 8px;
+            font-size: var(--fp-size-sm);
+            line-height: 1.7;
+        }
+        @media (max-width: 900px) {
+            .city-wall-body {
+                padding: 22px 22px 48px;
+            }
+            .city-wall-grid {
+                grid-template-columns: repeat(auto-fill, minmax(min(100%, 218px), 1fr));
+                gap: 16px;
+            }
+        }
+        @media (max-width: 720px) {
+            .city-wall-top {
+                width: calc(100% - 20px);
+                margin-top: max(10px, env(safe-area-inset-top));
+                grid-template-columns: auto 1fr auto;
+                gap: 10px;
+                padding: 8px 10px;
+            }
+            #cityWallBack {
+                width: 36px;
+                padding: 0;
+            }
+            #cityWallBack span {
+                display: none;
+            }
+            #cityWallTitle {
+                font-size: var(--fp-size-xl);
+            }
+            .city-wall-body {
+                padding: 16px 12px 40px;
+            }
+            .city-wall-grid {
+                grid-template-columns: repeat(var(--city-wall-mobile-columns, 2), minmax(0, 1fr));
+                gap: 12px;
+            }
+            .city-wall-card {
+                padding: 6px;
+                border-radius: 14px;
+            }
+            .city-wall-card-media {
+                border-radius: 10px;
+            }
+            .city-wall-card-body {
+                padding: 10px 6px 6px;
+            }
+            .city-wall-card-name {
+                font-size: var(--fp-size-lg);
+            }
+            .city-wall-card-media {
+                aspect-ratio: 16 / 10;
+            }
+            /* 每排 2-3 个的紧凑模式：图片为主，只留城市名和足迹数 */
+            #cityWall.city-wall-multi .city-wall-card-media {
+                aspect-ratio: 1 / 1;
+            }
+            #cityWall.city-wall-multi .city-wall-card-body {
+                padding: 8px 4px 4px;
+            }
+            #cityWall.city-wall-multi .city-wall-card-eyebrow,
+            #cityWall.city-wall-multi .city-wall-card-recent {
+                display: none;
+            }
+            #cityWall.city-wall-multi .city-wall-card-name {
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+                overflow: hidden;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                font-size: var(--fp-size-md);
+            }
+            #cityWall.city-wall-multi .city-wall-card-meta {
+                margin-top: 2px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            #cityWall.city-wall-multi .city-wall-card-monogram {
+                font-size: 40px;
+            }
+            #cityWall.city-wall-multi .city-wall-card-tickets {
+                left: 6px;
+                bottom: 6px;
+                gap: 4px;
+                padding: 3px 7px;
+                font-size: 11px;
+            }
+            .city-wall-empty-view {
+                margin-top: 14vh;
+            }
+        }
+        /* 触屏没有悬停：去掉上浮与放大，只留按下反馈 */
+        @media (hover: none) {
+            .city-wall-card:hover {
+                transform: none;
+                box-shadow: var(--fp-shadow);
+            }
+            .city-wall-card:hover .city-wall-card-cover,
+            .city-wall-card:hover .city-wall-card-preview {
+                transform: none;
+            }
+            .city-wall-card:active {
+                transform: scale(0.98);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #cityWall,
+            .city-wall-card,
+            .city-wall-card-cover,
+            .city-wall-card-tickets {
+                transition: opacity var(--fp-dur) linear;
+            }
+            .city-wall-card:hover,
+            .city-wall-card:active {
+                transform: none;
+            }
+            .city-wall-card:hover .city-wall-card-cover,
+            .city-wall-card:hover .city-wall-card-preview {
+                transform: none;
+            }
+            #cityWall.show .city-wall-top,
+            .city-wall-card-wrap,
+            .city-wall-empty-view {
+                animation-name: cityFadeIn;
+            }
+        }
+        /* 减少动效时的弹出：只留透明度。城记、城市图片墙、洞察几页共用 */
+        @keyframes cityFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }

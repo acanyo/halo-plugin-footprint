@@ -5,38 +5,29 @@
  * 这个文件只负责「把几块拼起来」和页头动作。具体职责已经分出去：
  * - 列表请求与筛选条件：composables/useFootprintList
  * - 统计数据：composables/useFootprintStats
+ * - 统计概览与覆盖率：components/FootprintOverview
  * - 单行视图：components/FootprintListItem
  * - 省/市分布：components/ProvinceCityDistribution
- * - 覆盖率面板：components/ProvinceCoveragePanel
  * - 手动修正经纬度：components/ManualLocationModal
+ *
+ * 外观与 plugin-auth-ui / plugin-lingui 的工作台一致，样式在 styles/。
  */
 
-import {
-  Dialog,
-  IconAddCircle,
-  IconRefreshLine,
-  Toast,
-  VButton,
-  VCard,
-  VEmpty,
-  VEntityContainer,
-  VLoading,
-  VPageHeader,
-  VPagination,
-  VSpace,
-} from "@halo-dev/components";
+import { Dialog, IconRefreshLine, Toast, VButton, VLoading, VPagination } from "@halo-dev/components";
+import RiAddLine from "~icons/ri/add-line";
+import RiExternalLinkLine from "~icons/ri/external-link-line";
 import RiMapPinLine from "~icons/ri/map-pin-line";
-import RiEarthLine from "~icons/ri/earth-line";
 import { computed, onMounted, ref } from "vue";
 import { useFootprintList } from "@/composables/useFootprintList";
 import { useFootprintStats } from "@/composables/useFootprintStats";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
 import FootprintListItem from "../components/FootprintListItem.vue";
-import FootprintStatsOverview from "../components/FootprintStatsOverview.vue";
+import FootprintOverview from "../components/FootprintOverview.vue";
 import ManualLocationModal from "../components/ManualLocationModal.vue";
 import ProvinceCityDistribution from "../components/ProvinceCityDistribution.vue";
 import { footprintApiClient } from "@/api";
 import type { Footprint, Option } from "@/api/models";
+import "@/styles/index.css";
 
 defineOptions({
   name: "FootprintManagement",
@@ -111,6 +102,11 @@ function handleCheckAllChange(e: Event) {
     : [];
 }
 
+function clearSelection() {
+  selectedFootprints.value = [];
+  checkedAll.value = false;
+}
+
 function setSelected(name: string, selected: boolean) {
   const next = new Set(selectedFootprints.value);
   if (selected) next.add(name);
@@ -129,8 +125,7 @@ async function handleDeleteInBatch() {
       try {
         await footprintApiClient.footprint.deleteFootprints(names);
         Toast.success("删除成功");
-        selectedFootprints.value = [];
-        checkedAll.value = false;
+        clearSelection();
         // 服务端为最终一致，稍等再拉一次，避免读到删除前的快照
         setTimeout(refreshAll, 300);
       } catch (e) {
@@ -192,64 +187,72 @@ function handleOpenFrontend() {
 </script>
 
 <template>
-  <VPageHeader title="足迹管理">
-    <template #icon>
-      <RiMapPinLine class="self-center" />
-    </template>
-    <template #actions>
-      <VSpace>
-        <VButton size="sm" ghost @click="handleOpenFrontend">
-          <template #icon>
-            <RiEarthLine class="h-full w-full" />
-          </template>
-          前台地图
-        </VButton>
-        <VButton size="sm" type="secondary" @click="handleEdit()">
-          <template #icon>
-            <IconAddCircle class="h-full w-full" />
-          </template>
-          新建足迹
-        </VButton>
-      </VSpace>
-    </template>
-  </VPageHeader>
+  <div class="fp-workbench">
+    <header class="fp-app-header">
+      <div class="fp-brand">
+        <span class="fp-brand-mark" aria-hidden="true">
+          <RiMapPinLine width="19" height="19" />
+        </span>
+        <h1>足迹</h1>
+        <span class="fp-brand-divider" aria-hidden="true">/</span>
+        <span class="fp-brand-caption">去过的地方 · 照片 · 票根</span>
+      </div>
+      <div class="fp-header-actions">
+        <button
+          type="button"
+          class="fp-text-button"
+          title="在新窗口打开前台足迹页"
+          @click="handleOpenFrontend"
+        >
+          <RiExternalLinkLine width="15" height="15" aria-hidden="true" /><span>前台地图</span>
+        </button>
+        <button type="button" class="fp-button is-primary" @click="handleEdit()">
+          <RiAddLine width="15" height="15" aria-hidden="true" />新建足迹
+        </button>
+      </div>
+    </header>
 
-  <div class="p-4">
-    <FootprintStatsOverview
-      v-if="stats"
-      :stats="stats"
-      :expanded="showDistribution"
-      @toggle-details="showDistribution = !showDistribution"
-    />
+    <main class="fp-main">
+      <FootprintOverview
+        v-if="stats"
+        :stats="stats"
+        :distribution-open="showDistribution"
+        @toggle-distribution="showDistribution = !showDistribution"
+      />
 
-    <ProvinceCityDistribution
-      v-if="stats && showDistribution"
-      :stats="stats"
-      :active-region="activeRegion"
-      @select="handleRegionSelect"
-    />
+      <ProvinceCityDistribution
+        v-if="stats && showDistribution"
+        :stats="stats"
+        :active-region="activeRegion"
+        @select="handleRegionSelect"
+      />
 
-    <VCard :body-class="['!p-0']">
-      <template #header>
-        <div class="block w-full bg-gray-50 px-4 py-3">
-          <div
-            class="relative flex flex-col flex-wrap items-start gap-4 sm:flex-row sm:items-center"
-          >
-            <div class="hidden items-center sm:flex">
-              <input v-model="checkedAll" type="checkbox" @change="handleCheckAllChange" />
-            </div>
-            <div class="flex w-full flex-1 items-center sm:w-auto">
-              <SearchInput v-if="!selectedFootprints.length" v-model="keyword" />
-              <VSpace v-else>
-                <VButton type="danger" @click="handleDeleteInBatch">删除选中</VButton>
-                <VButton @click="selectedFootprints = []">取消选择</VButton>
-              </VSpace>
-            </div>
-            <VSpace spacing="lg" class="flex-wrap">
-              <FilterCleanButton
-                v-if="hasFilters || hasRegionFilter"
-                @click="handleClearFilters"
+      <section aria-labelledby="fp-list-title">
+        <header class="fp-section-header">
+          <h2 id="fp-list-title">
+            全部足迹<span class="fp-count">{{ total }}</span>
+          </h2>
+        </header>
+
+        <div class="fp-panel">
+          <div class="fp-toolbar">
+            <div class="fp-toolbar-main">
+              <input
+                v-model="checkedAll"
+                type="checkbox"
+                aria-label="全选本页"
+                :disabled="!footprints?.length"
+                @change="handleCheckAllChange"
               />
+              <div v-if="selectedFootprints.length" class="fp-selection">
+                <span>已选 {{ selectedFootprints.length }} 项</span>
+                <VButton size="sm" type="danger" @click="handleDeleteInBatch">删除</VButton>
+                <VButton size="sm" @click="clearSelection">取消</VButton>
+              </div>
+              <SearchInput v-else v-model="keyword" placeholder="搜索名称、地址或省市" />
+            </div>
+            <div class="fp-toolbar-filters">
+              <FilterCleanButton v-if="hasFilters || hasRegionFilter" @click="handleClearFilters" />
               <FilterDropdown
                 v-model="footprintType"
                 label="类型"
@@ -270,60 +273,69 @@ function handleOpenFrontend() {
               <button
                 v-tooltip="'刷新'"
                 type="button"
-                class="group cursor-pointer rounded p-1 hover:bg-gray-200"
+                class="fp-icon-button"
+                aria-label="刷新"
                 @click="handleRefreshAll"
               >
                 <IconRefreshLine
-                  :class="{ 'animate-spin text-gray-900': refreshing || isFetching }"
-                  class="h-4 w-4 text-gray-600 group-hover:text-gray-900"
+                  :class="{ 'animate-spin': refreshing || isFetching }"
+                  width="16"
+                  height="16"
                 />
               </button>
-            </VSpace>
+            </div>
+          </div>
+
+          <VLoading v-if="isLoading" />
+          <div v-else-if="!footprints?.length" class="fp-state" role="status">
+            <RiMapPinLine width="28" height="28" aria-hidden="true" />
+            <h3>{{ hasFilters || hasRegionFilter ? "没有符合条件的足迹" : "还没有足迹" }}</h3>
+            <p>
+              {{
+                hasFilters || hasRegionFilter
+                  ? "换个关键字或清除筛选条件试试。"
+                  : "新建第一条足迹，它会出现在前台的地图和地球上。"
+              }}
+            </p>
+            <div class="fp-state-actions">
+              <button
+                v-if="hasFilters || hasRegionFilter"
+                type="button"
+                class="fp-button"
+                @click="handleClearFilters"
+              >
+                清除筛选
+              </button>
+              <button v-else type="button" class="fp-button is-primary" @click="handleEdit()">
+                <RiAddLine width="15" height="15" aria-hidden="true" />新建足迹
+              </button>
+            </div>
+          </div>
+          <ul v-else class="fp-rows">
+            <FootprintListItem
+              v-for="footprint in footprints"
+              :key="footprint.metadata.name"
+              :footprint="footprint"
+              :selected="selectedFootprints.includes(footprint.metadata.name)"
+              :geocoding="awaitingGeocode === footprint.metadata.name"
+              @update:selected="setSelected(footprint.metadata.name, $event)"
+              @edit="handleEdit"
+              @update-location="handleUpdateLocation"
+              @geocode="handleGeocodeFootprint"
+            />
+          </ul>
+
+          <div v-if="total > 0" class="fp-panel-footer">
+            <VPagination
+              v-model:page="page"
+              v-model:size="size"
+              :total="total"
+              :size-options="[20, 30, 50, 100]"
+            />
           </div>
         </div>
-      </template>
-
-      <VLoading v-if="isLoading" />
-      <Transition v-else-if="!footprints?.length" appear name="fade">
-        <VEmpty message="没有找到足迹，你可以尝试刷新或者新建足迹" title="暂无足迹">
-          <template #actions>
-            <VSpace>
-              <VButton @click="handleRefreshAll">刷新</VButton>
-              <VButton type="primary" @click="handleEdit()">
-                <template #icon>
-                  <IconAddCircle />
-                </template>
-                新建足迹
-              </VButton>
-            </VSpace>
-          </template>
-        </VEmpty>
-      </Transition>
-      <Transition v-else appear name="fade">
-        <VEntityContainer>
-          <FootprintListItem
-            v-for="footprint in footprints"
-            :key="footprint.metadata.name"
-            :footprint="footprint"
-            :selected="selectedFootprints.includes(footprint.metadata.name)"
-            :geocoding="awaitingGeocode === footprint.metadata.name"
-            @update:selected="setSelected(footprint.metadata.name, $event)"
-            @edit="handleEdit"
-            @update-location="handleUpdateLocation"
-            @geocode="handleGeocodeFootprint"
-          />
-        </VEntityContainer>
-      </Transition>
-
-      <template #footer>
-        <VPagination
-          v-model:page="page"
-          v-model:size="size"
-          :total="total"
-          :size-options="[20, 30, 50, 100]"
-        />
-      </template>
-    </VCard>
+      </section>
+    </main>
   </div>
 
   <ManualLocationModal

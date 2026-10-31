@@ -73,7 +73,7 @@ function renderLightboxImage() {
     lightboxNext.hidden = single;
     lightboxCount.textContent = (lightboxIndex + 1) + ' / ' + imgs.length;
     lightboxCaption.textContent = img.caption ||
-        (lightboxFp.name + (lightboxFp.createTime ? ' · ' + deps.formatLightboxDate(lightboxFp.createTime) : ''));
+        (lightboxFp.name + (lightboxFp.createTime ? '，' + deps.formatLightboxDate(lightboxFp.createTime) : ''));
     loadLightboxImage(img.url);
     preloadLightboxNeighbors();
 }

@@ -1,0 +1,364 @@
+        /* ============ 城市图片墙：外框（顶栏、到访、左右两栏） ============
+           浅灰底（模板里 #cityView 带 .fp-sheet）。顶栏是一条浮起的玻璃条：返回 / 城市名与统计 / 上一座下一座；
+           下面是左侧足迹目录（胶囊标签）+ 右侧照片瀑布流，两栏各自滚动。
+           目录见 city-catalog-nav.css，照片手簿见 city-gallery-unified.css，手机端见 city-gallery-mobile.css。 */
+        #cityView {
+            /* ticket-strip-caption.css 里的城市下拉列表还读这几个名字，映射到白图变量上 */
+            --city-ink: var(--fp-ink);
+            --city-muted: var(--fp-ink-soft);
+            --city-faint: var(--fp-ink-faint);
+            --city-line: var(--fp-rule);
+            --city-accent: var(--fp-contour);
+            --cv-skeleton: color-mix(in srgb, var(--fp-ink) 7%, var(--fp-paper));
+            --cv-skeleton-hi: var(--fp-paper-raised);
+
+            position: fixed;
+            inset: 0;
+            z-index: 10015;   /* 相册之上、灯箱之下 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--fp-paper);
+            color: var(--fp-ink);
+            font-family: var(--fp-font-text);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--fp-dur) var(--fp-ease), visibility var(--fp-dur);
+        }
+        #cityView.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* —— 顶栏 —— */
+        .city-view-top {
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            width: calc(100% - 48px);
+            max-width: 1392px;
+            margin: max(16px, env(safe-area-inset-top)) auto 0;
+            padding: 10px 12px;
+            box-sizing: border-box;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow);
+            position: relative;
+            z-index: 4;
+        }
+        #cityView.show .city-view-top {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) backwards;
+        }
+        #cityViewBack {
+            flex: none;
+        }
+        #cityViewBack svg {
+            width: 16px;
+            height: 16px;
+        }
+        .city-view-head {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 220px;
+            text-align: center;
+        }
+        /* 标题行：城市名 / 统计。到访条放到下一行，否则到访一多会把城市名顶到一边 */
+        .city-view-headline {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 14px;
+            max-width: 100%;
+        }
+        #cityView #cityViewTitle {
+            font-family: var(--fp-font-title);
+            font-size: clamp(24px, 2.4vw, 34px);
+            font-weight: 400;
+            line-height: 1.25;
+            letter-spacing: 0.02em;
+            color: var(--fp-ink);
+        }
+        #cityView #cityViewTitle:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 4px;
+        }
+        #cityViewStats {
+            margin: 0;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-sm);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        /* —— 到访与票根入口：标题下面一行 —— */
+        .city-view-meta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-width: 100%;
+        }
+        .city-view-meta[hidden],
+        .city-view-timeline[hidden],
+        .city-view-tickets[hidden] {
+            display: none;
+        }
+        /* 到访时间线：第几次来、隔了多少天；点一下切到那一站。
+           内容超宽时横向滚动，所以用 flex-start：center 会把左侧内容滚出可视区且拉不回来 */
+        .city-view-timeline {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            max-width: min(100%, 62vw);
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .city-view-timeline-label {
+            flex: none;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+        }
+        .city-view-timeline-list {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .city-view-timeline-list li {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        /* 两站之间一小段格线 */
+        .city-view-timeline-list li + li::before {
+            content: "";
+            flex: none;
+            width: 8px;
+            height: 1px;
+            background: var(--fp-rule-strong);
+        }
+        .city-view-timeline-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            flex: none;
+            min-height: 30px;
+            padding: 5px 12px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink-soft);
+            font: var(--fp-size-xs)/1.2 var(--fp-font-text);
+            cursor: pointer;
+            transition: background-color var(--fp-dur) var(--fp-ease), color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+        }
+        .city-view-timeline-item b {
+            color: var(--fp-ink);
+            font-weight: 500;
+        }
+        .city-view-timeline-item span,
+        .city-view-timeline-item em {
+            font-style: normal;
+            font-variant-numeric: tabular-nums;
+        }
+        .city-view-timeline-item em {
+            color: var(--fp-ink-faint);
+        }
+        .city-view-timeline-item:hover {
+            background: var(--fp-rule-strong);
+        }
+        .city-view-timeline-item:active {
+            transform: scale(0.96);
+        }
+        .city-view-timeline-item:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        .city-view-timeline-item.is-active {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
+        .city-view-timeline-item.is-active b,
+        .city-view-timeline-item.is-active em {
+            color: var(--fp-accent-ink);
+        }
+        /* 手机端折叠「到访」用的按钮：桌面端不显示 */
+        .city-view-timeline-toggle {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            min-height: 32px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink);
+            font: var(--fp-size-xs)/1.2 var(--fp-font-text);
+            cursor: pointer;
+        }
+        .city-view-timeline-toggle b {
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+        .city-view-timeline-toggle:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        .city-view-timeline-chevron {
+            font-style: normal;
+            font-size: 10px;
+            color: var(--fp-ink-faint);
+            transition: transform var(--fp-dur) var(--fp-ease);
+        }
+        .city-view-timeline.is-expanded .city-view-timeline-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* —— 城市下拉列表（结构样式在 ticket-strip-caption.css，这里改成玻璃菜单，从标题下方弹出） —— */
+        #cityView #cityViewCityList {
+            border: 0;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass-strong);
+            box-shadow: var(--fp-shadow-lift);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            color: var(--fp-ink);
+            scrollbar-color: var(--fp-rule-strong) transparent;
+            transform-origin: 50% 0;
+            animation: cityListPop var(--fp-dur) var(--fp-ease) both;
+        }
+        /* 下拉自己带 translateX(-50%) 居中，不能直接用 fpPopIn（它会把 transform 清掉） */
+        @keyframes cityListPop {
+            from { opacity: 0; transform: translateX(-50%) scale(0.92) translateY(8px); filter: blur(8px); }
+            to   { opacity: 1; transform: translateX(-50%); filter: none; }
+        }
+        #cityView #cityViewCityList::before {
+            content: "选择城市";
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            letter-spacing: 0;
+            text-indent: 0;
+        }
+        #cityView .city-view-city-option {
+            border-radius: var(--fp-radius-control);
+            color: var(--fp-ink-soft);
+            font: var(--fp-size-sm)/1.4 var(--fp-font-text);
+            letter-spacing: 0;
+        }
+        #cityView .city-view-city-option::before {
+            color: var(--fp-ink-faint);
+            font: var(--fp-size-xs)/1 var(--fp-font-text);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0;
+        }
+        #cityView .city-view-city-option:hover,
+        #cityView .city-view-city-option:focus-visible {
+            background: var(--fp-rule);
+            color: var(--fp-ink);
+        }
+        #cityView .city-view-city-option.is-current {
+            background: var(--fp-accent-soft);
+            box-shadow: none;
+            color: var(--fp-accent);
+        }
+        #cityView .city-view-city-option.is-current::before {
+            color: var(--fp-accent);
+        }
+        #cityView .city-view-city-option-name {
+            font-family: var(--fp-font-title);
+            font-size: var(--fp-size-md);
+            letter-spacing: 0.02em;
+        }
+        #cityView .city-view-city-option-count {
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* —— 上一座 / 下一座 —— */
+        .city-view-nav {
+            flex: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .city-view-nav .fp-btn {
+            width: 36px;
+            padding: 0;
+            font-size: var(--fp-size-lg);
+        }
+
+        /* —— 两栏：左侧足迹目录 + 右侧照片手簿，各自滚动 —— */
+        .city-view-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            align-items: stretch;
+            gap: 32px;
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 20px 24px 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .city-stage {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--fp-rule-strong) transparent;
+            scrollbar-gutter: stable;
+        }
+        .city-stage-content {
+            width: 100%;
+            max-width: 980px;
+            margin: 0 auto;
+            padding-bottom: 48px;
+            box-sizing: border-box;
+        }
+        /* 换一条足迹时标题淡入，照片逐张弹出（见 city-gallery-unified.css） */
+        .city-stage-content {
+            animation: cityStageIn var(--fp-dur) var(--fp-ease) both;
+        }
+        @keyframes cityStageIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 1020px) {
+            .city-view-body {
+                gap: 22px;
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #cityView,
+            .city-view-timeline-item,
+            .city-view-timeline-chevron {
+                transition: none;
+            }
+            .city-stage-content,
+            #cityView.show .city-view-top {
+                animation-name: cityFadeIn;
+            }
+            #cityView #cityViewCityList {
+                animation: none;
+            }
+        }

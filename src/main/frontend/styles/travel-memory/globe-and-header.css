@@ -1,0 +1,254 @@
+        /* AlexBrush：票根标题右侧“城市 + 省份”拼音使用的手写英文字体 */
+        @font-face {
+            font-family: "AlexBrush";
+            src: local("AlexBrush"), local("Alex Brush"),
+                 url("../font/AlexBrush-Regular.ttf") format("truetype");
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+        }
+
+        /* 2. 设置地球容器的样式，使其占满全屏（仅 3D 模式生效，避免污染 2D 高德页面） */
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body.mode-3d,
+        body.mode-3d #view-3d,
+        body.mode-3d #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        /* 光标反馈：地球可以拖着转（开手），按住时是「抓取中」；
+           悬停到标记上时由 JS 覆盖成 pointer（手型），提示这里能点。
+           内联样式优先级更高，所以 JS 只在标记 / 拖拽状态下覆盖这里的默认值。 */
+        body.mode-3d #cesiumContainer canvas {
+            cursor: grab;
+        }
+        body.mode-3d #cesiumContainer canvas:active {
+            cursor: grabbing;
+        }
+
+        /* 视图层级：3D 在上（交叉淡化时覆盖下方的高德页），2D 在下 */
+        #view-3d {
+            position: relative;
+            z-index: 2;
+        }
+        #view-2d {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+        /* 2D 模式：隐藏顶部导航栏，切换按钮改到高德页底部控制栏（#back3dBtn） */
+        body.mode-2d #topNav {
+            display: none;
+        }
+
+        /* ============ 底部导航坞 ============
+           居中浮在页面底部的一条玻璃胶囊，像参考站底部的地图控制条：
+           每一项是「图标在上、文字在下」，当前 / 开着的那项是一块淡紫胶囊。
+           放在底部是因为主题自己的导航一般在顶部，足迹页不再叠一条。
+           id 沿用 #topNav（各模块按它控制显隐），只是位置换到了底部。 */
+        #topNav {
+            position: fixed;
+            left: 50%;
+            bottom: 16px;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            max-width: calc(100vw - 24px);
+            padding: 6px;
+            box-sizing: border-box;
+            border-radius: 28px;
+            /* 背后可能是深色星空：玻璃比浅底页面上更实一点 */
+            background: rgba(255, 255, 255, 0.9);
+            -webkit-backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            backdrop-filter: blur(var(--fp-blur)) saturate(1.4);
+            box-shadow: var(--fp-shadow-lift);
+            font-family: var(--fp-font-text);
+            user-select: none;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translate(-50%, 16px) scale(0.96);
+            filter: blur(6px);
+            transition: opacity var(--fp-dur) var(--fp-ease), transform 0.45s var(--fp-ease),
+                        filter var(--fp-dur) var(--fp-ease), visibility var(--fp-dur);
+        }
+        #topNav.visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translate(-50%, 0);
+            filter: none;
+        }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .nav-sep {
+            width: 1px;
+            height: 28px;
+            margin: 0 4px;
+            background: var(--fp-rule-strong);
+        }
+
+        /* 一项：图标 + 文字竖排 */
+        #topNav button {
+            appearance: none;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            min-width: 58px;
+            height: 52px;
+            padding: 6px 10px 5px;
+            border: 0;
+            border-radius: 22px;
+            background: transparent;
+            font: 500 11px/1 var(--fp-font-text);
+            white-space: nowrap;
+            color: var(--fp-ink-soft);
+            cursor: pointer;
+            position: relative;
+            transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease),
+                        transform 160ms var(--fp-ease);
+        }
+        #topNav button .dock-ico {
+            width: 20px;
+            height: 20px;
+            transition: transform var(--fp-dur) var(--fp-ease);
+        }
+        #topNav button:hover:not(:disabled) {
+            color: var(--fp-ink);
+            background: var(--fp-rule);
+        }
+        #topNav button:hover:not(:disabled) .dock-ico {
+            transform: translateY(-2px);
+        }
+        #topNav button:active:not(:disabled) {
+            transform: scale(0.94);
+        }
+        /* 开着的开关：淡紫底 + 紫字，和 2D 的图层按钮同一种选中态。坞里常有两三个开关同时开着，
+           实心紫块并排会抢走主入口的注意力 */
+        #topNav button.active,
+        #topNav button[aria-pressed="true"] {
+            color: var(--fp-accent);
+            background: var(--fp-accent-soft);
+        }
+        #topNav button.active:hover:not(:disabled),
+        #topNav button[aria-pressed="true"]:hover:not(:disabled) {
+            color: var(--fp-accent);
+            background: color-mix(in srgb, var(--fp-accent) 22%, transparent);
+        }
+        #topNav button:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+        #topNav button:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        #topNav button[hidden] {
+            display: none;
+        }
+
+        /* 底图下拉：从「底图」那一项往上弹 */
+        .nav-menu {
+            position: relative;
+        }
+        #layerButtons.nav-menu-panel {
+            position: absolute;
+            bottom: calc(100% + 14px);
+            left: 50%;
+            min-width: 196px;
+            padding: 6px;
+            border-radius: var(--fp-radius-panel);
+            background: rgba(255, 255, 255, 0.94);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow-lift);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            transform: translateX(-50%);
+            transform-origin: bottom center;
+            animation: dockMenuUp var(--fp-dur) var(--fp-ease);
+        }
+        #layerButtons.nav-menu-panel[hidden] {
+            display: none;
+        }
+        #topNav #layerButtons.nav-menu-panel button {
+            flex-direction: row;
+            justify-content: space-between;
+            min-width: 0;
+            height: auto;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: var(--fp-size-sm);
+            text-align: left;
+        }
+        #topNav #layerButtons.nav-menu-panel button.active {
+            color: var(--fp-accent);
+            background: var(--fp-accent-soft);
+        }
+        #layerButtons.nav-menu-panel button.active::after {
+            content: "";
+            width: 6px;
+            height: 6px;
+            margin-left: 12px;
+            border-radius: 50%;
+            background: var(--fp-accent);
+        }
+
+        /* 往上弹的菜单：与 fpPopIn 同一手感，只是从下方起 */
+        @keyframes dockMenuUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.94); filter: blur(6px); }
+            to   { opacity: 1; transform: translateX(-50%); filter: none; }
+        }
+        @keyframes fpFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #topNav,
+            #topNav.visible {
+                transform: translate(-50%, 0);
+                filter: none;
+                transition: opacity var(--fp-dur) linear, visibility var(--fp-dur);
+            }
+            #topNav button,
+            #topNav button .dock-ico {
+                transition: none;
+            }
+            #topNav button:hover:not(:disabled) .dock-ico {
+                transform: none;
+            }
+            #layerButtons.nav-menu-panel {
+                animation: fpFadeIn var(--fp-dur) linear;
+            }
+        }
+
+        @media (max-width: 520px) {
+            #topNav {
+                bottom: max(10px, env(safe-area-inset-bottom));
+                padding: 4px;
+                border-radius: 24px;
+            }
+            #topNav button {
+                min-width: 52px;
+                height: 48px;
+                padding: 5px 6px 4px;
+                border-radius: 20px;
+                font-size: 10.5px;
+            }
+        }

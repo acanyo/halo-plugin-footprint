@@ -1,0 +1,205 @@
+/* ---------------- L2 / L3 工具条与纸张（WebGL 不可用时的 DOM 版） ---------------- */
+
+.ms-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding: 20px 30px 26px;
+}
+
+.ms-tools {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.ms-tools .ms-title { flex: 1 1 auto; min-width: 0; text-align: center; }
+
+/* 两侧占位：让中间标题真正居中 */
+.ms-tools-spacer { flex: 0 0 auto; width: 96px; }
+
+.ms-tools .ms-title h3 {
+    margin: 0;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-lg);
+    font-weight: 400;
+    line-height: 1.25;
+}
+
+/* 标题下面那一句说明（省份、照片数之类的事实） */
+.ms-tools .ms-title span {
+    display: block;
+    margin-top: 2px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 跨页：两页之间靠一条格线分开；外面是白卡 + 柔影，无描边 */
+.ms-spread,
+.ms-album-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    border: 0;
+    border-radius: var(--fp-radius-panel);
+    box-shadow: var(--fp-shadow-lift);
+    overflow: hidden;
+}
+
+.ms-spread { perspective: 1400px; }
+.ms-album-stage { perspective: 1800px; }
+
+/* 相册外框：左右各一枚翻页按钮，中间是跨页 */
+.ms-album-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ms-album-side {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass-strong);
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-ink);
+    font-size: var(--fp-size-lg);
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease),
+        box-shadow var(--fp-dur) var(--fp-ease);
+}
+
+.ms-album-side:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--fp-shadow-lift);
+}
+
+.ms-album-side:active:not(:disabled) { transform: scale(0.96); }
+
+.ms-album-side:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
+
+.ms-album-side:disabled { opacity: 0.45; cursor: default; }
+
+.ms-page,
+.ms-album-page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    color: var(--fp-ink);
+    background: var(--fp-paper-raised);
+}
+
+.ms-page { padding: 26px 28px; overflow: auto; }
+.ms-album-page { padding: 22px 24px 18px; gap: 14px; overflow: hidden; }
+
+/* 订口：左页右缘一条格线 */
+.ms-page.left,
+.ms-album-page.left { border-right: 1px solid var(--fp-rule); }
+
+/* 左页：省份封面与统计 */
+
+.ms-chapter-cover {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 170px;
+    border-radius: var(--fp-radius-photo);
+    background-color: var(--ms-shade);
+    background-size: cover;
+    background-position: center;
+    transition: background-image 0.2s ease;
+}
+
+.ms-chapter-name {
+    margin: 18px 0 0;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-2xl);
+    font-weight: 400;
+    line-height: 1.25;
+}
+
+/* 省份下面那一行事实：「4 座城市，126 张照片」 */
+.ms-chapter-label {
+    margin: 6px 0 0;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-chapter-cities {
+    margin: 12px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--fp-rule);
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+    line-height: 1.7;
+}
+
+/* 右页：城市条目（手簿式的一行一条） */
+
+.ms-chapter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ms-chapter-entry {
+    display: grid;
+    grid-template-columns: 2em minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 12px;
+    border: 0;
+    border-radius: var(--fp-radius-photo);
+    background: transparent;
+    color: inherit;
+    font-family: var(--fp-font-text);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+
+.ms-chapter-entry:hover { background: var(--fp-accent-soft); }
+.ms-chapter-entry:active { transform: scale(0.98); }
+.ms-chapter-entry:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: -2px; }
+
+.ms-chapter-no {
+    color: var(--fp-accent);
+    font-size: var(--fp-size-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-chapter-entry b {
+    display: block;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-lg);
+    font-weight: 400;
+    line-height: 1.25;
+}
+
+.ms-chapter-entry small {
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-chapter-photos {
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}

@@ -234,4 +234,33 @@ class SettingsMigrationTest {
         assertThat(group("globe3d").has("ticketGalleryInfoStyle")).isFalse();
         assertThat(group("globe3d").path("globeTitle").asText()).isEqualTo("我的旅行");
     }
+
+    @Test
+    @DisplayName("旧的 hsla 主题色换算进 accentColor，覆盖取色组件的默认值并删掉 hsla")
+    void migratesLegacyAccentColor() throws Exception {
+        configMap.getData().put("base", """
+            {"title": "足迹", "hsla": "322,68%,60%", "accentColor": "#7c7bc0"}
+            """);
+
+        migration.migrate().block();
+
+        ObjectNode base = group("base");
+        assertThat(base.path("accentColor").asText()).isEqualTo("#de54ab");
+        assertThat(base.has("hsla")).isFalse();
+        assertThat(base.path("title").asText()).isEqualTo("足迹");
+        verify(client).update(any(ConfigMap.class));
+    }
+
+    @Test
+    @DisplayName("没有 hsla 时不动主题色，也不写回")
+    void keepsAccentColorWithoutLegacyField() throws Exception {
+        configMap.getData().put("base", """
+            {"accentColor": "#1f3a8a"}
+            """);
+
+        migration.migrate().block();
+
+        assertThat(group("base").path("accentColor").asText()).isEqualTo("#1f3a8a");
+        verify(client, never()).update(any(ConfigMap.class));
+    }
 }

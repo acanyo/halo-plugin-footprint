@@ -16,13 +16,12 @@ const spec = defineModel<FootprintSpec>("spec", { required: true });
 </script>
 
 <template>
-  <div class="mt-8 md:grid md:grid-cols-4 md:gap-6">
-    <div class="md:col-span-1">
-      <div class="sticky top-0 pt-1">
-        <span class="text-sm font-semibold text-gray-700">地图设置</span>
-      </div>
-    </div>
-    <div class="divide-y divide-gray-100 md:col-span-3">
+  <section class="fp-form-section">
+    <header>
+      <h3>地图视角</h3>
+      <p>2D 地图聚焦这条足迹时的缩放；缩放到 18 以上才有 3D 俯仰与旋转。</p>
+    </header>
+    <div>
       <FormKit
         v-model="spec.zoomLevel"
         type="number"
@@ -74,5 +73,5 @@ const spec = defineModel<FootprintSpec>("spec", { required: true });
         step="1"
       />
     </div>
-  </div>
+  </section>
 </template>

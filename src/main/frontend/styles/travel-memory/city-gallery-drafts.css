@@ -1,0 +1,11 @@
+        /* ============ 城市图片墙：不再显示的旧版块 ============
+           city-view.js 仍会生成大图头（.city-fp-hero）、描述（.city-fp-desc）、
+           照片网格（.city-fp-wall）与地图环（.city-map-wall），但现在只用照片手簿（.city-journal-wall）。
+           这几块的旧样式（三版画廊稿、地图环）已删除，只留这一条隐藏规则。 */
+        #cityView .city-fp-hero,
+        #cityView .city-fp-desc,
+        #cityView .city-fp-wall,
+        #cityView .city-map-wall,
+        #cityView .city-wall-overflow-note {
+            display: none;
+        }

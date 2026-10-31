@@ -1,0 +1,202 @@
+/*
+ * 时间线抽屉的头部，与左侧那条时间轨道。
+ *
+ * 头部：快看世界体标题「旅行时间线」，下面一句说明，右边浅底圆形关闭钮。
+ * 轨道：一条浅线贯穿，每条足迹一个强调色节点，用一小段横线接到照片卡。
+ */
+.timeline-drawer .drawer-header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 22px 24px 14px;
+    background: transparent;
+    box-shadow: 0 1px 0 var(--fp-rule);
+    color: var(--fp-ink);
+    user-select: none;
+    -webkit-user-select: none;
+    caret-color: transparent;
+}
+.drawer-header-copy {
+    min-width: 0;
+}
+.timeline-drawer .drawer-eyebrow {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    line-height: 1.5;
+}
+.timeline-drawer .drawer-eyebrow:empty {
+    display: none;
+}
+.timeline-drawer .drawer-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    color: var(--fp-ink);
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-xl);
+    font-weight: 400;
+    line-height: 1.25;
+}
+/* 标题前的 Font Awesome 时钟图标：手簿不配图标，隐藏 */
+.timeline-drawer .drawer-header h2 i {
+    display: none;
+}
+.timeline-drawer .drawer-subtitle {
+    margin: 4px 0 0;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+    line-height: 1.7;
+}
+/* 关闭按钮：浅底圆钮，× 用两条线画 */
+.timeline-drawer .time-close-btn {
+    position: relative;
+    display: flex;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-rule);
+    color: var(--fp-ink-soft);
+    font-size: 0;
+    cursor: pointer;
+    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+.timeline-drawer .time-close-btn::before,
+.timeline-drawer .time-close-btn::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+}
+.timeline-drawer .time-close-btn::before { transform: rotate(45deg); }
+.timeline-drawer .time-close-btn::after { transform: rotate(-45deg); }
+.timeline-drawer .time-close-btn:hover {
+    color: var(--fp-ink);
+    background: var(--fp-rule-strong);
+}
+.timeline-drawer .time-close-btn:active {
+    transform: scale(0.96);
+}
+.timeline-drawer .time-close-btn:focus {
+    outline: none;
+}
+.timeline-drawer .time-close-btn:focus-visible {
+    outline: 2px solid var(--fp-accent);
+    outline-offset: 2px;
+}
+@media (max-width: 768px) {
+    .timeline-drawer .drawer-header {
+        padding: 18px 18px 14px;
+    }
+    .timeline-drawer .drawer-header h2 {
+        font-size: var(--fp-size-lg);
+    }
+}
+
+/* ===== 轨道 ===== */
+.timeline-drawer .timeline {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding: 10px 0 24px;
+}
+.timeline-drawer .timeline::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    bottom: 38px;
+    left: 53px;
+    width: 1px;
+    background: var(--fp-rule-strong);
+}
+/* timeline.js 会在页面加载时按序号给条目加 .visible，那时抽屉还关着；
+   入场改成每次打开抽屉时播一次：前 8 条每条晚 40ms 弹入 */
+.timeline-drawer .timeline-item {
+    position: relative;
+    margin: 0;
+    padding: 0 0 28px 78px;
+}
+.timeline-drawer.open .timeline-item {
+    animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+    animation-delay: 360ms;
+}
+.timeline-drawer.open .timeline-item:nth-child(1) { animation-delay: 80ms; }
+.timeline-drawer.open .timeline-item:nth-child(2) { animation-delay: 120ms; }
+.timeline-drawer.open .timeline-item:nth-child(3) { animation-delay: 160ms; }
+.timeline-drawer.open .timeline-item:nth-child(4) { animation-delay: 200ms; }
+.timeline-drawer.open .timeline-item:nth-child(5) { animation-delay: 240ms; }
+.timeline-drawer.open .timeline-item:nth-child(6) { animation-delay: 280ms; }
+.timeline-drawer.open .timeline-item:nth-child(7) { animation-delay: 320ms; }
+.timeline-drawer.open .timeline-item:nth-child(n + 9) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+    .timeline-drawer.open .timeline-item {
+        animation-name: timelineItemFade;
+    }
+}
+@keyframes timelineItemFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+/* 节点：强调色实心点，外面一圈白把轨道断开 */
+.timeline-drawer .timeline-item::before {
+    content: "";
+    position: absolute;
+    top: 62px;
+    left: 47px;
+    z-index: 3;
+    width: 13px;
+    height: 13px;
+    border: 3px solid var(--fp-paper-raised);
+    border-radius: 50%;
+    background: var(--marker-highlight-ring, var(--fp-accent));
+    box-shadow: 0 0 0 3px var(--fp-accent-soft);
+    transition: transform var(--fp-dur) var(--fp-ease);
+}
+/* 节点到照片卡的一小段横线 */
+.timeline-drawer .timeline-item::after {
+    content: "";
+    position: absolute;
+    top: 68px;
+    left: 54px;
+    z-index: 1;
+    width: 24px;
+    height: 1px;
+    background: var(--fp-rule-strong);
+}
+.timeline-drawer .timeline-item:has(.timeline-content-card:hover)::before {
+    transform: scale(1.25);
+}
+@media (max-width: 768px) {
+    .timeline-drawer .timeline {
+        padding-top: 8px;
+    }
+    .timeline-drawer .timeline::before {
+        left: 45px;
+    }
+    .timeline-drawer .timeline-item {
+        padding-bottom: 24px;
+        padding-left: 70px;
+        isolation: isolate;
+    }
+    .timeline-drawer .timeline-item::before {
+        left: 39px;
+    }
+    .timeline-drawer .timeline-item::after {
+        left: 46px;
+        width: 24px;
+    }
+}

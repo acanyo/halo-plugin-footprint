@@ -1,0 +1,433 @@
+        /* ============ 票根册：票夹 ============
+           票夹是全屏翻阅的界面，#ticketGallery 带 .fp-sheet（白图）；
+           进入重走时 ticket-replay.js 摘掉 .fp-sheet，换回夜图并透出地球。 */
+        body.ticket-gallery-open #topNav {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.18s ease, visibility 0.18s;
+        }
+        body.ticket-gallery-open #cesiumContainer,
+        body.ticket-gallery-open #view-2d {
+            pointer-events: none;
+        }
+        /* 重走时票根页透明，会透出左下角的地图版权信息，打开时一并隐藏 */
+        body.ticket-gallery-open #status,
+        body.ticket-gallery-open #cesiumContainer .cesium-viewer-bottom,
+        body.ticket-gallery-open #cesiumContainer .cesium-widget-credits {
+            display: none !important;
+        }
+        /* 从卡片墙 / 城市图片墙进票根页时，先把底下那层不透明浮层收起来。
+           这里只改显隐，.show 和滚动位置都保留，关掉票根页时原样放回。 */
+        body.ticket-underlay-hidden #cityWall,
+        body.ticket-underlay-hidden #cityView {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        #ticketGallery {
+            position: fixed;
+            inset: 0;
+            z-index: 11000;
+            display: none;
+            box-sizing: border-box;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: var(--fp-paper);
+            color: var(--fp-ink);
+            font-family: var(--fp-font-text);
+            /* 「时间有色」：按票根月份换一个强调色，只用在序号上。默认弱墨 */
+            --season-accent: var(--fp-ink-faint);
+            /* 票根图跟着透明区域投影（drop-shadow 只描图片实际有内容的部分） */
+            --ticket-photo-shadow: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.12));
+            --ticket-photo-shadow-lift: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.16));
+        }
+        #ticketGallery.show {
+            display: block;
+            animation: ticketGalleryFade var(--fp-dur) var(--fp-ease) both;
+        }
+        @keyframes ticketGalleryFade {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        #ticketGallery.is-replay-mode {
+            background: transparent;
+        }
+        .ticket-gallery-top {
+            position: sticky;
+            top: 12px;   /* 浮动玻璃条：滚动时也离顶边留一点空 */
+            z-index: 5;
+            display: grid;
+            grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
+            align-items: center;
+            gap: 20px;
+            min-height: 64px;
+            margin: max(12px, env(safe-area-inset-top)) 16px 0;
+            padding: 10px 14px;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow);
+        }
+        #ticketGallery.show .ticket-gallery-top {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+        }
+        /* 重走时顶栏浮在地球上：玻璃再实一点，地球亮部不会顶掉文字 */
+        #ticketGallery.is-replay-mode .ticket-gallery-top {
+            background: var(--fp-glass-strong);
+        }
+        .ticket-gallery-heading {
+            text-align: center;
+        }
+        .ticket-gallery-heading h2 {
+            margin: 0;
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-xl)/1.25 var(--fp-font-title);
+            letter-spacing: 0.02em;
+        }
+        .ticket-gallery-heading p:last-child {
+            margin: 4px 0 0;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
+        }
+        #ticketGalleryBack {
+            appearance: none;
+            display: inline-flex;
+            align-items: center;
+            justify-self: start;
+            gap: 8px;
+            min-height: 34px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            cursor: pointer;
+            transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+        }
+        #ticketGalleryBack svg { width: 16px; height: 16px; }
+        #ticketGalleryBack:hover {
+            background: var(--fp-rule-strong);
+        }
+        #ticketGalleryBack:active {
+            transform: scale(0.96);
+        }
+        #ticketGalleryBack:focus-visible {
+            outline: 2px solid var(--fp-accent);
+            outline-offset: 2px;
+        }
+        .ticket-gallery-empty {
+            grid-column: 1 / -1;
+            width: 100%;
+            padding: 18vh 20px;
+            color: var(--fp-ink-soft);
+            text-align: center;
+        }
+        .ticket-gallery-empty p {
+            margin: 0 0 8px;
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-xl)/1.25 var(--fp-font-title);
+        }
+        .ticket-gallery-empty span { font-size: var(--fp-size-sm); }
+
+        /* 票夹：当前票根完整展示，右侧是这张票根的条目 */
+        .ticket-gallery-content {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            align-items: center;
+            width: min(1500px, calc(100% - 56px));
+            min-height: calc(100vh - 120px);
+            margin: 0 auto;
+            padding: 34px 0 64px;
+        }
+        .ticket-gallery-view {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.7fr);
+            align-items: center;
+            gap: clamp(30px, 6vw, 96px);
+            width: 100%;
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+        .ticket-gallery-stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            touch-action: pan-y;   /* 横向滑动交给页面处理，用于切换票根 */
+        }
+        .ticket-wallet {
+            position: relative;
+            width: 100%;
+            margin-bottom: 40px;   /* 给露出的票根边缘留空间 */
+            cursor: pointer;
+            touch-action: pan-y;
+            -webkit-tap-highlight-color: transparent;   /* 移动端点按不出现蓝色高亮框 */
+        }
+        .ticket-wallet-item {
+            display: block;
+            width: 100%;
+            height: auto;
+            /* 不垫背景：透明票根的透明区域直接透出纸面；圆角。
+               柔影只给最上面那张（drop-shadow 跟着图形走）：后面几十张各投一层会叠成一圈脏边 */
+            border-radius: var(--fp-radius-photo);
+            transition: transform var(--fp-dur) var(--fp-ease), translate var(--fp-dur) var(--fp-ease),
+                filter var(--fp-dur) var(--fp-ease);
+            user-select: none;
+            -webkit-user-drag: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ticket-wallet-item.is-active {
+            position: relative;
+            z-index: 10;
+            cursor: pointer;
+            filter: var(--ticket-photo-shadow);
+            /* 换票：新的一张从轻微缩小、模糊里落定 */
+            animation: ticketSwapIn var(--fp-dur) var(--fp-ease) backwards;
+        }
+        /* 悬停上浮。用独立的 translate 属性：transform 由 ticket-wallet.js 写成行内样式（扇形错位） */
+        .ticket-wallet:hover .ticket-wallet-item.is-active {
+            translate: 0 -4px;
+            filter: var(--ticket-photo-shadow-lift);
+        }
+        .ticket-wallet:active .ticket-wallet-item.is-active {
+            scale: 0.98;
+        }
+        @keyframes ticketSwapIn {
+            from { opacity: 0.4; scale: 0.96; filter: blur(8px) var(--ticket-photo-shadow); }
+            to   { opacity: 1; scale: 1; filter: var(--ticket-photo-shadow); }
+        }
+        .ticket-wallet-item.is-behind {
+            position: absolute;
+            left: 0;
+            bottom: -16px;   /* 底部对齐并统一露出 16px 边缘 */
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+            filter: brightness(0.9);
+        }
+        .ticket-gallery-loading,
+        .ticket-gallery-error {
+            /* 加载/失败提示按内容紧凑显示，不留任何占位盒 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px 0;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
+        }
+        .ticket-gallery-loading[hidden],
+        .ticket-gallery-error[hidden] { display: none; }
+        .ticket-gallery-error {
+            flex-direction: column;
+            gap: 12px;
+        }
+        .ticket-gallery-error button {
+            min-height: 32px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink);
+            font: 500 var(--fp-size-sm)/1 var(--fp-font-text);
+            cursor: pointer;
+        }
+        .ticket-gallery-hint {
+            margin: 14px 0 0;
+            color: var(--fp-ink-faint);
+            font-size: var(--fp-size-xs);
+            text-align: center;
+        }
+        .ticket-gallery-hint[hidden] { display: none; }
+
+        /* 右侧条目：标题、城市 / 省份 / 日期 / 票号小表、说明、序号 */
+        /* 右侧条目是一张玻璃卡 */
+        .ticket-gallery-meta {
+            max-width: 360px;
+            box-sizing: border-box;
+            padding: 22px 24px 20px;
+            border-radius: var(--fp-radius-panel);
+            background: var(--fp-glass-strong);
+            -webkit-backdrop-filter: blur(var(--fp-blur));
+            backdrop-filter: blur(var(--fp-blur));
+            box-shadow: var(--fp-shadow);
+        }
+        #ticketGallery.show .ticket-gallery-stage,
+        #ticketGallery.show .ticket-gallery-meta {
+            animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
+        }
+        #ticketGallery.show .ticket-gallery-stage { animation-delay: 40ms; }
+        #ticketGallery.show .ticket-gallery-meta { animation-delay: 80ms; }
+        .ticket-gallery-meta h2 {
+            margin: 0 0 14px;
+            color: var(--fp-ink);
+            font: 400 var(--fp-size-2xl)/1.25 var(--fp-font-title);
+            letter-spacing: 0.02em;
+        }
+        .ticket-meta-subtitle { margin: 0 0 12px; color: var(--fp-ink-soft); font-size: var(--fp-size-sm); }
+        .ticket-gallery-meta dl { margin: 0; }
+        .ticket-gallery-meta dl > div { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 9px 0; border-top: 1px solid var(--fp-rule); }
+        .ticket-gallery-meta dt { color: var(--fp-ink-faint); font-size: var(--fp-size-xs); line-height: 1.7; }
+        .ticket-gallery-meta dd { margin: 0; color: var(--fp-ink); font-size: var(--fp-size-sm); line-height: 1.7; font-variant-numeric: tabular-nums; }
+        /* 图标仅用于横向长串（strip）字幕行；票夹表格里隐藏 */
+        .ticket-gallery-meta dl > div > svg { display: none; }
+        .ticket-meta-description {
+            margin: 18px 0 0;
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-sm);
+            line-height: 1.7;
+        }
+        .ticket-meta-description:empty { display: none; }
+        .ticket-meta-count {
+            margin: 18px 0 0;
+            color: var(--season-accent);
+            font-size: var(--fp-size-xs);
+            font-variant-numeric: tabular-nums;
+            transition: color var(--fp-dur) var(--fp-ease);
+        }
+
+        @media (max-width: 700px) {
+            .ticket-gallery-top { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px 12px; margin-right: 10px; margin-left: 10px; padding-right: 12px; padding-left: 12px; }
+            .ticket-gallery-heading { grid-column: 1; grid-row: 1; }
+            #ticketGalleryBack { grid-column: 1; grid-row: 2; justify-self: center; }
+            .ticket-gallery-content { width: min(100% - 28px, 700px); padding-top: 24px; }
+        }
+        @media (max-width: 900px) {
+            /* 移动端：整屏不滚动 —— 顶部栏固定，票根在上、信息在下，共同占满一屏 */
+            #ticketGallery.show {
+                display: flex;
+            }
+            #ticketGallery {
+                flex-direction: column;
+                overflow: hidden;
+            }
+            .ticket-gallery-top {
+                flex: none;
+                min-height: 0;
+                margin-top: max(8px, env(safe-area-inset-top));
+                padding-top: 8px;
+                padding-bottom: 8px;
+                gap: 4px 12px;
+            }
+            .ticket-gallery-heading h2 {
+                font-size: var(--fp-size-lg);
+            }
+            .ticket-gallery-heading p:last-child {
+                margin-top: 2px;
+            }
+            .ticket-gallery-content {
+                flex: 1 1 auto;
+                min-height: 0;
+                height: auto;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: flex-start;
+                gap: 0;
+                width: min(100% - 28px, 700px);
+                margin: 0 auto;
+                padding-top: 12px;
+                padding-bottom: max(14px, env(safe-area-inset-bottom));
+            }
+            .ticket-gallery-view {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                width: 100%;
+                max-width: none;
+                margin: 0;
+            }
+            .ticket-gallery-stage {
+                position: relative;
+                /* 票夹宽度由内容宽度决定；stage 若保持 flex 列布局，
+                   宽高比会被活动票根的内容高度撑破，切到高/方图时整夹会突然变高 */
+                display: block;
+                width: 100%;
+            }
+            .ticket-wallet {
+                /* 高度由宽度 + 固定宽高比决定，不随屏幕高度变化；
+                   两侧各留约 32px，后方扇形票根的左右边缘要展开在夹子外 */
+                width: min(100% - 64px, 620px);
+                aspect-ratio: 16 / 9;
+                height: auto;
+                margin: 0 auto 18px;
+            }
+            .ticket-wallet-item.is-active {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+            /* 后面的票根：保持自然比例露出折边；仅在超高时把高度收进展示区 */
+            .ticket-wallet-item.is-behind {
+                bottom: -14px;
+                height: auto;
+                max-height: calc(100% + 2px);
+                object-fit: cover;
+            }
+            /* 加载/失败提示浮在票根区中央，不参与布局，避免信息区上下跳动 */
+            .ticket-gallery-loading,
+            .ticket-gallery-error {
+                position: absolute;
+                inset: 0;
+                z-index: 20;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+            }
+            .ticket-gallery-error {
+                flex-direction: column;
+                gap: 12px;
+            }
+            /* 移动端：票根下方一行小字，提示可左右滑动切换 */
+            #ticketGalleryHint:not([hidden]) {
+                display: block;
+                margin: 4px 0 0;
+                padding: 0;
+                line-height: 1.4;
+            }
+            .ticket-gallery-meta {
+                /* 玻璃卡按内容高度，不撑满剩余空间；内容超高时卡片自己滚动 */
+                flex: 0 1 auto;
+                align-self: center;
+                min-height: 0;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                width: min(100%, 560px);
+                max-width: none;
+                margin: 0 auto;
+                padding: 14px 16px;
+            }
+            .ticket-gallery-meta h2 { margin-bottom: 10px; font-size: var(--fp-size-xl); }
+            .ticket-gallery-meta dl > div { padding: 8px 0; }
+            .ticket-meta-description {
+                margin-top: 10px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .ticket-meta-count { margin-top: 12px; }
+        }
+        @media (max-width: 520px) {
+            .ticket-gallery-content { width: min(100% - 28px, 700px); padding-top: 20px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #ticketGalleryBack,
+            .ticket-wallet-item,
+            .ticket-meta-count { transition: none; }
+            /* 只留透明度：打开与换票都不再缩放、模糊、上浮 */
+            #ticketGallery.show .ticket-gallery-top,
+            #ticketGallery.show .ticket-gallery-stage,
+            #ticketGallery.show .ticket-gallery-meta,
+            .ticket-wallet-item.is-active { animation: ticketGalleryFade var(--fp-dur) linear both; }
+            .ticket-wallet:hover .ticket-wallet-item.is-active { translate: none; }
+            .ticket-wallet:active .ticket-wallet-item.is-active { scale: none; }
+        }

@@ -1,0 +1,8 @@
+apiVersion: plugin.halo.run/v1alpha1
+kind: ExtensionDefinition
+metadata:
+  name: footprint-guestbook-comment-subject
+spec:
+  className: cc.lik.footprint.guestbook.GuestbookCommentSubject
+  extensionPointName: comment-subject
+  displayName: 足迹留言板
