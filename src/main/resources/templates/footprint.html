@@ -80,6 +80,7 @@
             <button id="cityWallBtn" type="button" title="打开城记：按最近到访排列的城市卡片墙"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span class="dock-label">城记</span></button>
             <button id="memoryShelfBtn" type="button" hidden title="打开世界这本书：按省份翻阅旅行记忆"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5Z"/></svg><span class="dock-label">这本书</span></button>
             <button id="ticketGalleryBtn" type="button" title="打开票根册：按时间收好的旅途票根"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4V8Z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg><span class="dock-label">票根册</span></button>
+            <button id="guestbookBtn" type="button" data-guestbook-open hidden title="打开留言板"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-4.1A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg><span class="dock-label">留言板</span></button>
             <button id="navBackGlobeBtn" type="button" title="回到整球视图"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M3.6 12h16.8"/><path d="M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9"/></svg><span class="dock-label">回到整球</span></button>
         </div>
         <span class="nav-sep nav-sep-tools-main" aria-hidden="true"></span>
@@ -766,7 +767,7 @@
         <button id="zoom-restore" data-tooltip="返回中国全图视图" aria-label="返回中国全图视图">中国地图</button>
         <button id="back3dBtn" data-tooltip="切换回 3D 地球" aria-label="切换回 3D 地球" type="button">3D 地球</button>
         <div id="timeline-btn" data-tooltip="查看旅行时间线">时间线</div>
-        <div id="messageBoards" class="amap-scale-text" data-tooltip="查看留言板" role="button" tabindex="0" aria-label="查看留言板">留言板</div>
+        <div id="messageBoards" class="amap-scale-text" data-guestbook-open hidden data-tooltip="打开留言板" role="button" tabindex="0" aria-label="打开留言板">留言板</div>
         <button id="map-fullscreen" data-tooltip="进入全屏地图" aria-label="进入全屏地图" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path class="fullscreen-enter-icon" d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"></path>
@@ -795,6 +796,24 @@
         <div class="timeline" id="timeline"></div>
     </div>
 </div>
+</div>
+
+<!-- 留言板：整页一个，评论挂在 FootprintGuestbook/footprints 上。
+     haloCommentEnabled 为假（站点关了评论、或没装评论组件）时不输出，两个入口按钮也保持隐藏 -->
+<div id="guestbook" class="guestbook" th:if="${haloCommentEnabled}" role="dialog" aria-modal="true"
+     aria-labelledby="guestbookTitle" aria-hidden="true" hidden>
+    <div class="guestbook-backdrop" data-guestbook-close></div>
+    <section class="guestbook-panel">
+        <header class="guestbook-head">
+            <h2 class="guestbook-title" id="guestbookTitle">留言板</h2>
+            <button class="guestbook-close" type="button" data-guestbook-close aria-label="关闭留言板">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+        </header>
+        <div class="guestbook-body">
+            <halo:comment group="footprint.lik.cc" kind="FootprintGuestbook" name="footprints"/>
+        </div>
+    </section>
 </div>
 
 </body>

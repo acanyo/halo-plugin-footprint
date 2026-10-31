@@ -1,6 +1,6 @@
 /**
  * 足迹标记点：渲染、点击飞过去并打开信息卡，
- * 以及与之共享闭包状态的全屏、返回中国地图、留言板按钮。
+ * 以及与之共享闭包状态的全屏、返回中国地图按钮。留言板按钮由 shared/guestbook.js 接管。
  */
 
 import { debounce } from './debounce.js';
@@ -350,10 +350,6 @@ export const addFootprintMarkers = async (map, footprintData) => {
         }
     });
 
-
-    document.getElementById('messageBoards').addEventListener('click', () => {
-        window.open('http://www.yunduan019.com/liu', '_blank');
-    });
 
     const fullscreenButton = document.getElementById('map-fullscreen');
     const fullscreenTarget = document.getElementById('footprint-page');

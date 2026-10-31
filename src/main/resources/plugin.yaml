@@ -18,7 +18,7 @@ spec:
   settingName: plugin-footprint-settings
   configMapName: plugin-footprint-configmap
   displayName: "足迹插件"
-  description: "基于高德地图的足迹记录插件，可以记录和展示您去过的地方"
+  description: "把去过的地方放到一颗 3D 地球上：城市相册、票根册、按省翻的书，也能切回 2D 高德地图按时间回看。带留言板"
   license:
     - name: "GPL-3.0"
       url: "https://github.com/acanyo/halo-plugin-footprint/blob/main/LICENSE"

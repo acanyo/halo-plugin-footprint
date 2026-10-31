@@ -13,7 +13,8 @@
  * 没有任何模板、脚本或 Java 代码引用这些名字，所以只显式暴露 Footprint2D。
  */
 
-import { applyAccentToDocument } from '../shared/accent.js';
+import { accentHex, applyAccentToDocument } from '../shared/accent.js';
+import { initGuestbook } from '../shared/guestbook.js';
 import { isMobile } from './modules/env.js';
 import { initializeApp } from './modules/map-app.js';
 import { state } from './modules/state.js';
@@ -32,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 主题色写到 :root（3D 地球那边也写一次，谁先跑都一样）
     applyAccentToDocument();
+    // 留言板：两个入口（3D 底部坞、2D 控制栏）共用一个面板；重复调用只绑一次
+    initGuestbook();
     const footprintPage = document.getElementById('footprint-page');
     if (footprintPage && window.FOOTPRINT_CONFIG) {
         // 设置标记点样式类
@@ -43,13 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 打印插件信息
+    // 打印插件信息（颜色跟主题色）
+    const accent = accentHex();
     console.log(
-            '%c足迹插件%c🗺️ 记录生活轨迹，分享旅途故事\n%c作者 Handsome %cwww.lik.cc',
-            'background: #42b983; color: white; padding: 2px 4px; border-radius: 3px;',
-            'color: #42b983; padding: 2px 4px;',
+            '%c足迹插件%c把去过的地方放到一颗 3D 地球上\n%c作者 Handsome & 云端 %cwww.xhhao.com',
+            `background: ${accent}; color: white; padding: 2px 4px; border-radius: 3px;`,
+            `color: ${accent}; padding: 2px 4px;`,
             'color: #666; padding: 2px 4px;',
-            'color: #42b983; text-decoration: underline; padding: 2px 4px;'
+            `color: ${accent}; text-decoration: underline; padding: 2px 4px;`
     );
 
     // 添加事件监听（注意在组件卸载时移除）

@@ -1,4 +1,4 @@
-import { definePlugin } from "@halo-dev/ui-shared";
+import { definePlugin, type CommentSubjectRefProvider } from "@halo-dev/ui-shared";
 import Footprint from "./views/Footprint.vue";
 import FootprintStatsWidget from "./components/dashboard/FootprintStatsWidget.vue";
 import RiMapPinLine from "~icons/ri/map-pin-line";
@@ -91,6 +91,19 @@ export default definePlugin({
         title: "足迹管理",
         route: { name: "Footprint" },
         permissions: ["plugin:footprint:view"],
+      },
+    ],
+    // 后台「评论」列表里，足迹页留言板的评论显示成「足迹 · 足迹留言板」，点开能跳到前台
+    "comment:subject-ref:create": (): CommentSubjectRefProvider[] => [
+      {
+        kind: "FootprintGuestbook",
+        group: "footprint.lik.cc",
+        resolve: () => ({
+          label: "足迹",
+          title: "足迹留言板",
+          externalUrl: "/footprints",
+          route: { name: "Footprint" },
+        }),
       },
     ],
   },

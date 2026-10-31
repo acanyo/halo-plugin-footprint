@@ -12,6 +12,7 @@
  */
 
 import { applyAccentToDocument } from '../shared/accent.js';
+import { initGuestbook } from '../shared/guestbook.js';
 import {
     setTileBatchHandler
 } from './modules/tianditu-usage.js';
@@ -499,6 +500,8 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
 
     // ---------- 启动顺序：全部 setup 完成后，再按依赖依次 init ----------
     initGlobeBasics();
+    // 留言板（3D 底部坞与 2D 控制栏共用一个面板，2D 入口也调一次，只有第一次生效）
+    initGuestbook();
     initAutoRotate();
     initNavigation();
     initBaseMap();
