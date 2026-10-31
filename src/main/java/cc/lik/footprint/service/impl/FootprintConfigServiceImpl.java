@@ -77,6 +77,10 @@ public class FootprintConfigServiceImpl implements FootprintConfigService {
                     .enableHoverZoom(base.path("enableHoverZoom").asBoolean(true))
                     .highlightScheme(base.path("highlightScheme").asText("glow"))
                     .highlightVisitedCities(base.path("highlightVisitedCities").asBoolean(true))
+                    .enablePhotoWall(base.path("enablePhotoWall").asBoolean(true))
+                    .photoWallPageSize(clampPhotoWallPageSize(
+                        base.path("photoWallPageSize").asInt(6)))
+                    .photoWallStyle(base.path("photoWallStyle").asText("original"))
 
                     .globeTitle(legacy.path("globeTitle").asText("旅行记忆"))
                     .globeDesc(legacy.path("globeDesc").asText(""))
@@ -130,6 +134,10 @@ public class FootprintConfigServiceImpl implements FootprintConfigService {
     private static JsonNode field(JsonNode current, JsonNode legacy, String name) {
         JsonNode value = current.path(name);
         return value.isMissingNode() || value.isNull() ? legacy.path(name) : value;
+    }
+
+    private static int clampPhotoWallPageSize(int value) {
+        return Math.max(1, Math.min(12, value));
     }
 
     /**

@@ -175,6 +175,28 @@
 /* 按下就变「抓取」：覆盖纸张、封面、背景拖动 */
 .ms-stage:active { cursor: grabbing; }
 .ms-stage.rotating { cursor: ew-resize; }
+.ms-stage.frame-hover { cursor: pointer; }
+
+.ms-wall-frame-action {
+    position: absolute;
+    z-index: 4;
+    display: block;
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+}
+
+.ms-wall-frame-action[hidden] { display: none; }
+
+.ms-wall-frame-action:focus-visible {
+    outline: 2px solid var(--ms-gold);
+    outline-offset: 4px;
+}
+
 /* 舞台是画布区域，键盘操作反馈靠 aria-live 播报；这里不画焦点圈 ——
    之前用方向键翻页时，舞台上会出现一圈描边，看着像界面破了 */
 .ms-stage:focus-visible,

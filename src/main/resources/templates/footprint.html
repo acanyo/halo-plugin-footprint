@@ -40,6 +40,9 @@
             enableHoverZoom: /*[[${settings.enableHoverZoom}]]*/ true,
             highlightScheme: /*[[${settings.highlightScheme}]]*/ 'pulse',
             highlightVisitedCities: /*[[${settings.highlightVisitedCities}]]*/ true,
+            enablePhotoWall: /*[[${settings.enablePhotoWall}]]*/ true,
+            photoWallPageSize: /*[[${settings.photoWallPageSize}]]*/ 6,
+            photoWallStyle: /*[[${settings.photoWallStyle}]]*/ 'original',
             globeTitle: /*[[${settings.globeTitle}]]*/ '旅行记忆',
             globeDesc: /*[[${settings.globeDesc}]]*/ '',
             globeLabels: /*[[${settings.globeLabels}]]*/ 'all',
@@ -681,6 +684,7 @@
 <!-- ================= 2D 高德地图视图（原页面，切 2D 时启用） ================= -->
 <div id="view-2d" class="fp-sheet" hidden>
 <canvas id="canvas"></canvas>
+<div id="photo-wall-layer" class="photo-wall-layer" aria-live="polite"></div>
 <div class="footprint-container">
     <!-- 地图容器 -->
     <div id="footprint-map" role="application" aria-label="足迹地图"></div>

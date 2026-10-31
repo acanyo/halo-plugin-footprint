@@ -282,6 +282,17 @@
 /* ---------------- 动效偏好 ---------------- */
 
 @media (prefers-reduced-motion: reduce) {
+    .ms-binding-book,
+    .ms-binding-cover,
+    .ms-binding-thread,
+    .ms-binding-dots::after {
+        animation: none;
+    }
+    .ms-binding-cover { transform: rotateY(-8deg); }
+    .ms-binding-thread {
+        opacity: 1;
+        transform: translate(1px, 22px) rotate(-52deg);
+    }
     #memoryShelf,
     .ms-stage { transition: none; }
     #memoryShelf.show { animation: none; }

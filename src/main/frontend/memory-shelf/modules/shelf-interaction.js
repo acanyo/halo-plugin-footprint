@@ -23,6 +23,12 @@ import {
     settlePageTurn,
     pickRowHit
 } from './page-turn.js';
+import {
+    frameSubject,
+    setWallFrameHover,
+    updateWallFrame,
+    wallFrameHitTest
+} from './wall-frame.js';
 
 // ---------------- L1 书架：交互 ----------------
 
@@ -64,6 +70,7 @@ export function setActive(index) {
     syncLeftRail();
     // 整间屋子跟着换色（墙、地、木架、灯、雾 + 信息板的强调色）
     if (changed) applyRoomTheme(next);
+    if (changed) updateWallFrame(state.books[next]);
     if (changed) updateInfo();
     if (shelf && shelf.rigs[next]) {
         attachCoverPhoto(shelf.rigs[next]);
@@ -72,7 +79,7 @@ export function setActive(index) {
     }
 }
 
-export function openActiveBook() {
+export function openActiveBook(targetCity) {
     var book = state.books[state.active];
     if (!book || state.opening) return;
     state.opening = true;
@@ -90,8 +97,20 @@ export function openActiveBook() {
     setTimer('open', function () {
         state.opening = false;
         if (!els.root || !els.root.classList.contains('show')) return;
-        openChapters(book);
+        if (targetCity && book.cities.some(function (city) { return city === targetCity; })) {
+            openAlbum(book, targetCity, 0);
+        } else {
+            openChapters(book);
+        }
     }, reduceMotion ? 0 : OPEN_ANIM_MS);
+}
+
+function openWallFrameAlbum() {
+    var book = state.books[state.active];
+    var subject = frameSubject(book);
+    if (!book || !subject || !subject.city) return;
+    setWallFrameHover(false);
+    openActiveBook(subject.city);
 }
 
 // 已翻开的书上点一下：命中右页某一行 → 进相册。
@@ -262,7 +281,10 @@ export function bindStage() {
         // 下面几条分支都会 setPointerCapture，而指针被舞台捕获之后，
         // 随后的 click 会派发给捕获者（舞台）而不是按钮 —— 按钮的
         // click 监听永远收不到事件。放行等于让浏览器按常规派发 click。
-        if (event.target && event.target.closest && event.target.closest('.ms-view-reset')) return;
+        if (event.target && event.target.closest && (
+            event.target.closest('.ms-view-reset') ||
+            event.target.closest('.ms-wall-frame-action')
+        )) return;
         if (state.mode === 'book') {
             if (!bookHitTest(event)) {
                 // 只有书本之外才允许移动整本书：绕它旋转（按住 Shift 改成平移）
@@ -397,7 +419,10 @@ export function bindStage() {
         }
         // 没有按下时：只做悬停抬升
         if (pointerId === null) {
-            if (shelf && !reduceMotion) shelf.hoverIndex = pickBookIndex(event);
+            var coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+            var frameHovered = !coarse && wallFrameHitTest(event);
+            setWallFrameHover(frameHovered);
+            if (shelf && !reduceMotion && !frameHovered) shelf.hoverIndex = pickBookIndex(event);
             return;
         }
         if (event.pointerId !== pointerId) return;
@@ -430,6 +455,7 @@ export function bindStage() {
     stage.addEventListener('pointercancel', finish);
     stage.addEventListener('pointerleave', function (event) {
         if (shelf) shelf.hoverIndex = -1;
+        setWallFrameHover(false);
         if (pointerId !== null && !stage.hasPointerCapture(pointerId)) finish(event);
     });
 
@@ -452,9 +478,22 @@ export function bindStage() {
         // （这里原来拦两个已经不存在的类：.ms-pager 和 .ms-book-nav —— 两者
         // 在 DOM 里都查不到了，拦空气。留一行注释说明去过哪儿。）
         if (state.mode === 'book') { onBookClick(event); return; }
+        if (wallFrameHitTest(event)) { openWallFrameAlbum(); return; }
         var index = pickBookIndex(event);
         if (index < 0) return;
         if (index !== state.active) { setActive(index); return; }
         openActiveBook();
     });
+
+    var frameAction = stage.querySelector('.ms-wall-frame-action');
+    if (frameAction) {
+        frameAction.addEventListener('pointerenter', function () { setWallFrameHover(true); });
+        frameAction.addEventListener('pointerleave', function () { setWallFrameHover(false); });
+        frameAction.addEventListener('focus', function () { setWallFrameHover(true); });
+        frameAction.addEventListener('blur', function () { setWallFrameHover(false); });
+        frameAction.addEventListener('click', function (event) {
+            event.stopPropagation();
+            openWallFrameAlbum();
+        });
+    }
 }

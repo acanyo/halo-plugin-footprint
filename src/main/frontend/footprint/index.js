@@ -97,7 +97,8 @@ window.Footprint2D = {
     },
     // 切回 3D 时调用：保留地图实例，返回 2D 时直接 resize 即可
     hide() {
-        // 地图实例保留，不做销毁
+        // 地图实例保留，但图片墙/信息卡属于 2D 的临时覆盖层，离开前要收干净。
+        state.closeActiveFootprint?.();
     },
     // 主动销毁（可选）：释放地图实例
     destroy() {

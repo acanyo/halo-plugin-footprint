@@ -9,6 +9,7 @@ import { zoomOff2, zoomOn2 } from './hover-zoom.js';
 import { moveToLocation, restoreMapOrientation } from './map-motion.js';
 import { createInfoWindow, createMarker } from './marker-content.js';
 import { clearMarkerInteractionState } from './marker-visibility.js';
+import { canOpenPhotoWall, createPhotoWallController } from './photo-wall.js';
 import { markerCache, state } from './state.js';
 import { closeTimelineDrawer } from './timeline-drawer.js';
 
@@ -27,6 +28,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
     // 用于存储当前打开的标记
     let currentMarker = null;
     let isMapMoving = false;
+    const photoWall = createPhotoWallController(map);
     const getFootprintZoomLevel = (spec) => {
         const configuredZoomLevel = Number(spec?.zoomLevel);
         return Number.isFinite(configuredZoomLevel) && configuredZoomLevel >= 3
@@ -37,6 +39,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
 
     const closeCurrentMarker = () => {
         infoWindow.close();
+        photoWall.close();
         currentMarker = null;
         if (state.isElevation || state.isElevationRestoring) {
             restoreMapOrientation(map);
@@ -234,7 +237,11 @@ export const addFootprintMarkers = async (map, footprintData) => {
                         await moveToLocation(map, position2, zoomLevel, 500);
                     }
                     currentMarker = marker;
-                    openInfoWindow(position, createInfoWindow(footprint.spec));
+                    if (!canOpenPhotoWall(footprint.spec)) {
+                        openInfoWindow(position, createInfoWindow(footprint.spec));
+                    } else {
+                        photoWall.open(marker, footprint.spec, markerContent);
+                    }
                     if (zoomLevel >= 18) {
                         map.setPitch(Number(footprint.spec.pitchAngle));
                         map.setRotation(Number(footprint.spec.rotationAngle));
@@ -325,6 +332,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
     // 清理函数
     const cleanup = () => {
         closeCurrentMarker();
+        photoWall.destroy();
         if (state.closeActiveFootprint === closeCurrentMarker) {
             state.closeActiveFootprint = null;
         }

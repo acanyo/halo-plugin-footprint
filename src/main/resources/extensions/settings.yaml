@@ -40,6 +40,36 @@ spec:
           name: highlightVisitedCities
           value: true
           help: "使用主题色显示已经去过的城市区域"
+        - $formkit: checkbox
+          label: 启用足迹图片墙
+          name: enablePhotoWall
+          value: true
+          help: "开启后，2D 地图里带图片墙图片的足迹会优先展示图片墙；关闭后使用统一的足迹信息卡"
+        - $formkit: number
+          label: 图片墙单页展示数量
+          name: photoWallPageSize
+          value: 6
+          min: 1
+          max: 12
+          step: 1
+          validation: required|number|between:1,12
+          help: "每个足迹图片墙单页最多展示的图片数量，超出后可使用左右按钮或滚轮翻页"
+        - $formkit: select
+          label: 图片墙样式
+          name: photoWallStyle
+          value: original
+          options:
+            - label: 经典照片墙
+              value: original
+            - label: 地图侧边画廊
+              value: gallery
+            - label: 胶片带
+              value: filmstrip
+            - label: 旅行手账
+              value: journal
+            - label: 聚焦照片墙
+              value: focus
+          help: "选择桌面端图片墙的展示方式；移动端固定使用底部抽屉式胶片带"
         - $formkit: secret
           label: 高德 Js Key
           name: gaoDeKeySecretName
