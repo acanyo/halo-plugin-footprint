@@ -15,6 +15,7 @@ import { footprintApiClient } from "@/api";
 import type { Footprint, Option } from "@/api/models";
 import { toDatetimeLocal, toISOString } from "@/utils/date";
 import { parseCoordinate } from "@/utils/coordinate";
+import { addressFromCity } from "@/utils/address";
 import {
   shouldShowPitchAngle,
   validateFootprintForm,
@@ -149,12 +150,16 @@ function handleMapPicked(result: {
   latitude: number;
   province?: string;
   city?: string;
+  address?: string;
   provinceAdcode?: string;
   cityAdcode?: string;
 }) {
   const spec = formState.value.spec;
   spec.longitude = result.longitude;
   spec.latitude = result.latitude;
+  if (result.address) {
+    spec.address = addressFromCity(result.address, result.city, result.province);
+  }
   if (result.province) {
     spec.province = result.province;
     spec.city = result.city;

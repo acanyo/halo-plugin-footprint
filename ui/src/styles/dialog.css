@@ -153,3 +153,12 @@
   margin-left: 12px;
   color: var(--fp-muted);
 }
+.fp-dialog .fp-picker-address {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--fp-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

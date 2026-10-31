@@ -37,6 +37,7 @@ const emit = defineEmits<{
       latitude: number;
       province?: string;
       city?: string;
+      address?: string;
       provinceAdcode?: string;
       cityAdcode?: string;
     },
@@ -51,7 +52,13 @@ const mapContainer = ref<HTMLDivElement>();
 const loading = ref(false);
 const loadError = ref("");
 const picked = ref<{ longitude: number; latitude: number } | null>(null);
-const geoInfo = ref<{ province?: string; city?: string; provinceAdcode?: string; cityAdcode?: string }>({});
+const geoInfo = ref<{
+  address?: string;
+  province?: string;
+  city?: string;
+  provinceAdcode?: string;
+  cityAdcode?: string;
+}>({});
 const resolving = ref(false);
 const searchKeyword = ref("");
 
@@ -235,6 +242,9 @@ watch(
               </template>
               <template v-else>省 / 市未解析</template>
             </span>
+            <span v-if="geoInfo.address" class="fp-picker-address">
+              {{ geoInfo.address }}
+            </span>
           </template>
           <template v-else>点击地图或拖动标记选择位置</template>
         </span>
@@ -244,7 +254,14 @@ watch(
     <template #footer>
       <VSpace class="fp-dialog">
         <VButton @click="onVisibleChange(false)">取消</VButton>
-        <VButton type="secondary" :disabled="!picked" @click="handleConfirm">使用这个位置</VButton>
+        <VButton
+          type="secondary"
+          :disabled="!picked || resolving"
+          :loading="resolving"
+          @click="handleConfirm"
+        >
+          使用这个位置
+        </VButton>
       </VSpace>
     </template>
   </VModal>

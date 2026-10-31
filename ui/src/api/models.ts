@@ -122,6 +122,7 @@ export interface StatsResult {
  * 逆地理编码结果
  */
 export interface GeoInfo {
+  address: string;
   province: string;
   city: string;
   provinceAdcode: string;
