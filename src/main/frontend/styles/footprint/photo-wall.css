@@ -219,6 +219,16 @@
     cursor: zoom-in;
 }
 
+.photo-wall-card {
+    position: relative;
+    z-index: 1;
+}
+
+.photo-wall-card:hover,
+.photo-wall-card:focus-visible {
+    z-index: 20;
+}
+
 .photo-wall-card-inner {
     position: relative;
     display: block;
@@ -254,6 +264,23 @@
 
 .photo-wall-tape-left { --photo-wall-tape-rotate: -8deg; }
 .photo-wall-tape-right { --photo-wall-tape-rotate: 7deg; }
+
+.photo-wall-card:hover .photo-wall-tape,
+.photo-wall-card:focus-visible .photo-wall-tape {
+    animation: photo-wall-tape-peel 420ms var(--fp-ease) both;
+}
+
+@keyframes photo-wall-tape-peel {
+    0% {
+        transform: translateX(-50%) translateY(0) rotate(var(--photo-wall-tape-rotate)) scale(1);
+    }
+    45% {
+        transform: translateX(-50%) translateY(-2px) rotate(calc(var(--photo-wall-tape-rotate) + 5deg)) scale(1.08);
+    }
+    100% {
+        transform: translateX(-50%) translateY(1px) rotate(calc(var(--photo-wall-tape-rotate) - 2deg)) scale(1.02);
+    }
+}
 
 .photo-wall-card:hover .photo-wall-card-inner,
 .photo-wall-card:focus-visible .photo-wall-card-inner,
@@ -302,6 +329,10 @@
     grid-template-columns: minmax(0, 1.18fr) minmax(220px, 0.98fr);
     gap: 14px;
     padding: 0 20px 8px;
+}
+
+.photo-wall-gallery-stage .photo-wall-feature {
+    border: 1px solid var(--photo-wall-line);
 }
 
 .photo-wall-feature {
@@ -424,8 +455,8 @@
 /* 聚焦照片墙 */
 
 .photo-wall-focus-stage {
-    margin: 0 22px 10px;
-    padding-top: 8px;
+    margin: 0 18px 10px;
+    padding: 10px 6px 6px;
 }
 
 .photo-wall-focus-halo {
@@ -491,7 +522,7 @@
     z-index: 1;
     left: var(--photo-x);
     top: var(--photo-y);
-    width: clamp(76px, 14%, 108px);
+    width: clamp(88px, 17%, 128px);
     aspect-ratio: 4 / 5;
     transform: rotate(var(--photo-r));
     animation: photo-wall-card-in 420ms var(--fp-ease) var(--photo-delay) backwards;

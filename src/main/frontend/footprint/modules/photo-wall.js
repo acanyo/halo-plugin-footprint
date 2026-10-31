@@ -21,10 +21,10 @@ const PHOTO_WALL_LAYOUTS = [
 ];
 
 const PHOTO_WALL_FOCUS_LAYOUTS = [
-    { x: 1, y: 10, r: -7 }, { x: 81, y: 8, r: 6 }, { x: 0, y: 48, r: 5 },
-    { x: 83, y: 46, r: -6 }, { x: 20, y: 8, r: 4 }, { x: 60, y: 8, r: -4 },
-    { x: 18, y: 55, r: -3 }, { x: 64, y: 53, r: 4 }, { x: 2, y: 30, r: 7 },
-    { x: 83, y: 30, r: -7 }, { x: 40, y: 2, r: 3 }
+    { x: 6, y: 10, r: -7 }, { x: 78, y: 8, r: 6 }, { x: 5, y: 48, r: 5 },
+    { x: 79, y: 46, r: -6 }, { x: 20, y: 8, r: 4 }, { x: 60, y: 8, r: -4 },
+    { x: 18, y: 55, r: -3 }, { x: 64, y: 53, r: 4 }, { x: 6, y: 30, r: 7 },
+    { x: 78, y: 30, r: -7 }, { x: 40, y: 8, r: 3 }
 ];
 
 export function normalizeGalleryImages(images) {
@@ -66,6 +66,8 @@ const photoUrl = (url) => {
     const raw = String(url || '').trim();
     return raw ? processFootprintImageUrl(raw, 'cityWall') : FOOTPRINT_IMAGE_PLACEHOLDER;
 };
+
+const originalPhotoUrl = (url) => String(url || '').trim() || FOOTPRINT_IMAGE_PLACEHOLDER;
 
 function photoTape(index) {
     const side = index % 2 === 0 ? ' photo-wall-tape-left' : ' photo-wall-tape-right';
@@ -221,6 +223,7 @@ export function createPhotoWallController(map) {
     let connector = null;
     let viewer = null;
     let lastWheelAt = 0;
+    let lastViewerWheelAt = 0;
     let lastTrigger = null;
     let openingZoom = 12;
 
@@ -345,7 +348,7 @@ export function createPhotoWallController(map) {
         const image = viewer.querySelector('.photo-wall-viewer-image');
         const count = viewer.querySelector('.photo-wall-viewer-count');
         if (image) {
-            image.src = photoUrl(images[safeIndex]);
+            image.src = originalPhotoUrl(images[safeIndex]);
             image.alt = `${current.spec.name || '足迹'}，第 ${safeIndex + 1} 张`;
         }
         if (count) count.textContent = `${safeIndex + 1} / ${images.length}`;
@@ -368,11 +371,26 @@ export function createPhotoWallController(map) {
                     aria-label="下一张">›</button>
             <span class="photo-wall-viewer-count"></span>`;
         viewer.addEventListener('click', event => {
+            if (event.target === viewer) {
+                closeViewer();
+                return;
+            }
             const action = event.target.closest('[data-viewer-action]')?.dataset.viewerAction;
             if (!action) return;
             if (action === 'close') closeViewer();
             else showViewerImage(Number(viewer.dataset.index || 0) + (action === 'next' ? 1 : -1));
         });
+        viewer.addEventListener('wheel', event => {
+            const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+                ? event.deltaX
+                : event.deltaY;
+            if (!delta) return;
+            event.preventDefault();
+            const now = performance.now();
+            if (now - lastViewerWheelAt < 180) return;
+            lastViewerWheelAt = now;
+            showViewerImage(Number(viewer.dataset.index || 0) + (delta > 0 ? 1 : -1));
+        }, { passive: false });
         layer.appendChild(viewer);
         showViewerImage(index);
         viewer.querySelector('.photo-wall-viewer-close')?.focus({ preventScroll: true });

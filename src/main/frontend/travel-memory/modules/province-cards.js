@@ -213,10 +213,10 @@ function collectProvinceBrightEntities(cities) {
 }
 
 // ---------- 打开 / 关闭 ----------
-// 点击入口：再点同一个省 = 重新排版（把拖拽过的卡片放回自动布局），收起交给点空白 / Esc
+// 点击入口：再点同一个省 = 收起整组卡片；点其他省则切换到新的一组。
 export function openProvinceCards(adcode) {
     if (provinceCardsActive && provinceCardsAdcode === String(adcode) && provinceCardsMode === 'province') {
-        relayoutProvinceCards();
+        closeProvinceCards();
         return true;
     }
     return activateProvinceCards(adcode);
