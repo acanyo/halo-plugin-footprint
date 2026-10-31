@@ -210,6 +210,7 @@ export function createPhotoWallMarkup(spec, page = 0, options = resolvePhotoWall
 
 export function createPhotoWallController(map) {
     const layer = document.getElementById('photo-wall-layer');
+    const logoContainer = document.querySelector('.logo-container');
     if (!layer) {
         return { open: () => false, close: () => {}, position: () => {}, destroy: () => {} };
     }
@@ -296,6 +297,7 @@ export function createPhotoWallController(map) {
         closeViewer({ restoreFocus: false });
         panel?.remove();
         connector?.remove();
+        logoContainer?.classList.remove('photo-wall-active');
         panel = null;
         connector = null;
         current = null;
@@ -351,6 +353,7 @@ export function createPhotoWallController(map) {
         connector = null;
         panel = document.createElement('div');
         panel.className = 'photo-wall-window';
+        panel.dataset.photoWallStyle = isMobile ? 'filmstrip' : current.options.style;
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-modal', 'true');
         panel.setAttribute('aria-label', `${current.spec.name || '足迹'}的图片墙`);
@@ -409,6 +412,7 @@ export function createPhotoWallController(map) {
         const images = photoWallImages(spec);
         if (!options.enabled || !images.length) return false;
         close();
+        logoContainer?.classList.add('photo-wall-active');
         current = { marker, spec, images, options, page: 0, trigger };
         render();
         panel?.querySelector('.photo-wall-close')?.focus({ preventScroll: true });

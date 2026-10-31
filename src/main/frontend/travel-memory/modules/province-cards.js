@@ -570,7 +570,12 @@ function measureProvinceCards() {
 function layoutProvinceCards() {
     provinceLayoutDirty = false;
     if (!provinceCardsActive || !provinceCardsItems.length) return;
-    arrangeProvinceCards(provinceCardsItems, cityMarkerScreenPosition, applyProvinceCardBox);   // 见 province-card-layout.js
+    arrangeProvinceCards(
+        provinceCardsItems,
+        cityMarkerScreenPosition,
+        applyProvinceCardBox,
+        provinceCardsMode
+    );   // 见 province-card-layout.js
     updateProvinceLeaderLines();
     updateProvinceLabelPosition();
 }

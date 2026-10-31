@@ -135,6 +135,8 @@ export function startProvinceCardsFly(items, layer, reduceMotion, options = {}) 
         return;
     }
     void (layer && layer.offsetWidth);
+    // 保留上游的 .show 去模糊：此时只固定 opacity 的起点，仍由 rAF 驱动位移和端点。
+    animated.forEach(entry => entry.item.el.classList.add('show'));
     const startedAt = performance.now();
     let totalMs = 0;
     animated.forEach(entry => {

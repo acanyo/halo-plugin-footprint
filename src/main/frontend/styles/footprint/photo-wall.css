@@ -17,12 +17,24 @@
 
 .photo-wall-window {
     position: absolute;
-    width: min(720px, calc(100vw - 48px));
-    height: min(540px, calc(100vh - 72px));
+    width: min(620px, calc(100vw - 40px));
+    height: min(440px, calc(100vh - 56px));
     pointer-events: auto;
     opacity: 0;
     transform: translateY(10px) scale(0.97);
     transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+
+.photo-wall-window[data-photo-wall-style="gallery"] {
+    height: min(545px, calc(100vh - 56px));
+}
+
+.photo-wall-window[data-photo-wall-style="filmstrip"] {
+    height: min(455px, calc(100vh - 56px));
+}
+
+.photo-wall-window[data-photo-wall-style="focus"] {
+    height: min(480px, calc(100vh - 56px));
 }
 
 .photo-wall-window.is-open {
