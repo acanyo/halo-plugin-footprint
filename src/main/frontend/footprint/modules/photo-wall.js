@@ -9,20 +9,20 @@ import { isMobile } from './env.js';
 import { FOOTPRINT_IMAGE_PLACEHOLDER, processFootprintImageUrl } from './footprint-data.js';
 import { escapeHtml, formatDateToYMD } from './format.js';
 
-const PHOTO_WALL_STYLES = ['original', 'gallery', 'filmstrip', 'journal', 'focus'];
-const PHOTO_WALL_ALIASES = { a: 'gallery', b: 'filmstrip', c: 'journal', d: 'focus' };
+const PHOTO_WALL_STYLES = ['original', 'gallery', 'journal', 'focus'];
+const PHOTO_WALL_ALIASES = { a: 'gallery', b: 'original', c: 'journal', d: 'focus' };
 const PHOTO_WALL_CLOSE_ZOOM = 10;
 
 const PHOTO_WALL_LAYOUTS = [
     { x: 5, y: 37, r: -8 }, { x: 22, y: 10, r: 6 }, { x: 39, y: 3, r: -4 },
-    { x: 56, y: 11, r: 8 }, { x: 73, y: 7, r: -6 }, { x: 82, y: 34, r: 5 },
+    { x: 56, y: 11, r: 8 }, { x: 73, y: 7, r: -6 }, { x: 78, y: 34, r: 5 },
     { x: 66, y: 47, r: -9 }, { x: 48, y: 51, r: 3 }, { x: 30, y: 45, r: -5 },
     { x: 12, y: 54, r: 8 }, { x: 37, y: 56, r: -3 }, { x: 64, y: 53, r: 6 }
 ];
 
 const PHOTO_WALL_FOCUS_LAYOUTS = [
-    { x: 1, y: 8, r: -7 }, { x: 81, y: 5, r: 6 }, { x: 0, y: 48, r: 5 },
-    { x: 83, y: 46, r: -6 }, { x: 20, y: 0, r: 4 }, { x: 60, y: 0, r: -4 },
+    { x: 1, y: 10, r: -7 }, { x: 81, y: 8, r: 6 }, { x: 0, y: 48, r: 5 },
+    { x: 83, y: 46, r: -6 }, { x: 20, y: 8, r: 4 }, { x: 60, y: 8, r: -4 },
     { x: 18, y: 55, r: -3 }, { x: 64, y: 53, r: 4 }, { x: 2, y: 30, r: 7 },
     { x: 83, y: 30, r: -7 }, { x: 40, y: 2, r: 3 }
 ];
@@ -88,7 +88,7 @@ function createPhotoCard(spec, url, index, absoluteIndex, extraClass = '', style
 
 export function createPhotoWallMarkup(spec, page = 0, options = resolvePhotoWallOptions(), mobile = isMobile) {
     const images = photoWallImages(spec);
-    const style = mobile ? 'filmstrip' : options.style;
+    const style = mobile ? 'gallery' : options.style;
     const pageSize = options.pageSize;
     const totalPages = Math.max(1, Math.ceil(images.length / pageSize));
     const currentPage = Math.max(0, Math.min(totalPages - 1, Number(page) || 0));

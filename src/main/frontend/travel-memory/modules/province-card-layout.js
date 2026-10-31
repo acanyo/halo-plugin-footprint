@@ -49,9 +49,9 @@ const ALL_CITY_RING_JITTER = [0, 18, 7, 29, 12, 24, 4, 34, 16, 27, 10, 31, 21];
 const ALL_CITY_RING_GAP_JITTER = [0, 22, 9, 28, 13, 24, 4, 19, 30, 11];
 const ALL_CITY_LAYOUT_FALLBACK_GAP = 4;
 const ALL_CITY_MARKER_KEEPOUT = 12;
-const ALL_CITY_SIDE_INSET_MIN = 32;
-const ALL_CITY_SIDE_INSET_RATIO = 0.035;
-const ALL_CITY_SAFE_TOP = 64;
+const ALL_CITY_SIDE_INSET_MIN = 24;
+const ALL_CITY_SIDE_INSET_RATIO = 0.025;
+const ALL_CITY_SAFE_TOP = 56;
 const ALL_CITY_SAFE_BOTTOM = 96;
 
 export function provinceSafeArea(W, H) {
@@ -113,9 +113,9 @@ function allCityRingJitter(item, depth, edgeIndex, salt, values) {
     return values[seed % values.length];
 }
 
-function allCitySignedDrift(item, depth, edgeIndex, salt) {
+function allCitySignedDrift(item, depth, edgeIndex, salt, scale = 0.62) {
     const value = allCityRingJitter(item, depth, edgeIndex, salt, ALL_CITY_RING_JITTER);
-    return (value % 2 === 0 ? -1 : 1) * value * 0.24;
+    return (value % 2 === 0 ? -1 : 1) * value * scale;
 }
 
 function allCityEdgeIndex(edge) {
@@ -576,9 +576,9 @@ function reflowAllCityRingLayout(area, items, lockedRects, gap, anchors) {
         selected.forEach(slot => {
             const edgeIndex = allCityEdgeIndex(slot.edge);
             const x = slot.x + (slot.w - item.w) / 2 +
-                allCitySignedDrift(item, slot.depth, edgeIndex, 23);
+                allCitySignedDrift(item, slot.depth, edgeIndex, 23, 0.34);
             const y = slot.y + (slot.h - item.h) / 2 +
-                allCitySignedDrift(item, slot.depth, edgeIndex, 29);
+                allCitySignedDrift(item, slot.depth, edgeIndex, 29, 0.34);
             pairs.push({
                 item,
                 slot,

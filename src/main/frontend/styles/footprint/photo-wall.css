@@ -29,12 +29,12 @@
     height: min(545px, calc(100vh - 56px));
 }
 
-.photo-wall-window[data-photo-wall-style="filmstrip"] {
-    height: min(455px, calc(100vh - 56px));
-}
-
 .photo-wall-window[data-photo-wall-style="focus"] {
     height: min(480px, calc(100vh - 56px));
+}
+
+.photo-wall-window[data-photo-wall-style="journal"] {
+    height: min(545px, calc(100vh - 56px));
 }
 
 .photo-wall-window.is-open {
@@ -275,14 +275,14 @@
     position: absolute;
     left: var(--photo-x);
     top: var(--photo-y);
-    width: 17.5%;
+    width: 17%;
     aspect-ratio: 4 / 5;
     transform: rotate(var(--photo-r));
     animation: photo-wall-card-in 420ms var(--fp-ease) var(--photo-delay) backwards;
 }
 
 .photo-wall-scatter-card:nth-child(3n) {
-    width: 19%;
+    width: 18%;
 }
 
 .photo-wall-thread {
@@ -299,7 +299,7 @@
 
 .photo-wall-gallery-stage {
     display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(160px, 0.85fr);
+    grid-template-columns: minmax(0, 1.18fr) minmax(220px, 0.98fr);
     gap: 14px;
     padding: 0 20px 8px;
 }
@@ -308,7 +308,7 @@
     position: relative;
     overflow: hidden;
     border-radius: var(--fp-radius-photo);
-    background: var(--fp-accent-soft);
+    background: transparent;
     transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
 }
 
@@ -318,7 +318,7 @@
     height: 100%;
     /* 主图完整显示：长票根和竖图不能被上下边裁掉。 */
     object-fit: contain;
-    background: var(--fp-accent-soft);
+    background: transparent;
 }
 
 .photo-wall-feature-caption {
@@ -343,6 +343,8 @@
     grid-auto-rows: minmax(0, 1fr);
     gap: 9px;
     min-height: 0;
+    padding-top: 10px;
+    box-sizing: border-box;
 }
 
 .photo-wall-gallery-thumb {
@@ -402,11 +404,11 @@
     grid-auto-rows: minmax(0, 1fr);
     gap: 14px;
     padding: 4px 22px 12px;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .photo-wall-journal-card {
-    min-height: 112px;
+    min-height: 0;
     transform: rotate(-1.2deg);
     animation: photo-wall-card-in 420ms var(--fp-ease) backwards;
 }
@@ -423,14 +425,16 @@
 
 .photo-wall-focus-stage {
     margin: 0 22px 10px;
+    padding-top: 8px;
 }
 
 .photo-wall-focus-halo {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: min(48%, 300px);
+    width: min(44%, 272px);
     aspect-ratio: 1;
+    border: 1px solid var(--photo-wall-line);
     border-radius: 50%;
     background: radial-gradient(circle, var(--fp-accent-soft), transparent 70%);
     transform: translate(-50%, -50%);
@@ -441,19 +445,20 @@
     left: 50%;
     top: 50%;
     z-index: 2;
-    width: min(42%, 280px);
-    aspect-ratio: 4 / 5;
-    overflow: hidden;
-    border-radius: var(--fp-radius-panel);
-    background: var(--fp-accent-soft);
-    box-shadow: var(--fp-shadow-lift);
-    transform: translate(-50%, -50%);
+    width: min(40%, 270px);
+    height: 82%;
+    padding: 7px 7px 29px;
+    overflow: visible;
+    border-radius: 6px;
+    background: var(--photo-wall-paper);
+    box-shadow: 5px 9px 20px rgba(0, 0, 0, 0.2);
+    transform: translate(-50%, -50%) rotate(-1deg);
     transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
 }
 
 .photo-wall-focus-core:hover,
 .photo-wall-focus-core:focus-visible {
-    transform: translate(-50%, calc(-50% - 3px));
+    transform: translate(-50%, calc(-50% - 4px)) rotate(0) scale(1.02);
 }
 
 .photo-wall-focus-core img {
@@ -461,18 +466,20 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: var(--fp-accent-soft);
+    border-radius: 3px;
+    background: transparent;
 }
 
 .photo-wall-focus-core span {
     position: absolute;
     left: 10px;
     right: 10px;
-    bottom: 10px;
-    padding: 6px 9px;
+    bottom: 7px;
+    padding: 2px 1px;
     overflow: hidden;
-    border-radius: var(--fp-radius-control);
-    background: var(--photo-wall-paper-muted);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     color: var(--fp-ink);
     font-size: var(--fp-size-xs);
     text-overflow: ellipsis;
@@ -484,7 +491,7 @@
     z-index: 1;
     left: var(--photo-x);
     top: var(--photo-y);
-    width: clamp(74px, 15%, 118px);
+    width: clamp(76px, 14%, 108px);
     aspect-ratio: 4 / 5;
     transform: rotate(var(--photo-r));
     animation: photo-wall-card-in 420ms var(--fp-ease) var(--photo-delay) backwards;

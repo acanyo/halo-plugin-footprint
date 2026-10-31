@@ -63,8 +63,6 @@ spec:
               value: original
             - label: 地图侧边画廊
               value: gallery
-            - label: 胶片带
-              value: filmstrip
             - label: 旅行手账
               value: journal
             - label: 聚焦照片墙
