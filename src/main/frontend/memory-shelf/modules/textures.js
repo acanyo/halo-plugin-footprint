@@ -164,10 +164,10 @@ export function contactShadowMaterial(THREE) {
     var ctx = canvas.getContext('2d');
     var grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
     // 淡淡的就好：0.34 的浓度在亮色板面上看着像"贴了一块"。现在 0.2 起
-    grad.addColorStop(0, 'rgba(60,44,26,0.2)');
-    grad.addColorStop(0.45, 'rgba(60,44,26,0.11)');
-    grad.addColorStop(0.78, 'rgba(60,44,26,0.03)');
-    grad.addColorStop(1, 'rgba(60,44,26,0)');
+    grad.addColorStop(0, 'rgba(40,40,48,0.2)');
+    grad.addColorStop(0.45, 'rgba(40,40,48,0.11)');
+    grad.addColorStop(0.78, 'rgba(40,40,48,0.03)');
+    grad.addColorStop(1, 'rgba(40,40,48,0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, size, size);
     var texture = new THREE.CanvasTexture(canvas);
@@ -185,6 +185,8 @@ export function contactShadowMaterial(THREE) {
 // 原来只有 256×64 的一张色图（比封面贴图低一个数量级），所以近看就是"刷了漆的板子"。
 // 现在按木头的成因画：底色随长度缓慢明暗 → 顺纹曲线 → 木节 → 顺纹高光，
 // 再由高度场推粗糙度和法线（和书脊布面那套做法一样）。
+// 颜色是浅色白蜡木（灰白、几乎不带暖色）：柔光玻璃的界面是冷灰调，
+// 之前的暖棕木纹乘上房间色以后仍然发棕，搁板和画框在一屋子浅灰里很扎眼。
 export function woodMaps(THREE) {
     if (woodCache) return woodCache;
     var w = 1024;
@@ -195,14 +197,14 @@ export function woodMaps(THREE) {
     var seed = 20260924;
     var rnd = function () { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
 
-    // 底色：暖棕色，沿长度方向做几段明暗（像不同木料拼板）
-    ctx.fillStyle = '#9c7137';
+    // 底色：灰白的白蜡木，沿长度方向做几段明暗（像不同木料拼板）
+    ctx.fillStyle = '#e2ddd6';
     ctx.fillRect(0, 0, w, h);
     for (var b = 0; b < 7; b++) {
         var bx = (b / 7) * w;
         var bw = w / 7;
-        ctx.fillStyle = 'rgba(' + (150 + Math.round(rnd() * 40)) + ',' +
-            (105 + Math.round(rnd() * 26)) + ',' + (50 + Math.round(rnd() * 22)) + ',0.35)';
+        var tone = 206 + Math.round(rnd() * 30);
+        ctx.fillStyle = 'rgba(' + tone + ',' + (tone - 4) + ',' + (tone - 10) + ',0.35)';
         ctx.fillRect(bx, 0, bw, h);
     }
 
@@ -221,8 +223,8 @@ export function woodMaps(THREE) {
         var gy = rnd() * h;
         var dark = rnd() > 0.45;
         ctx.strokeStyle = dark
-            ? 'rgba(58,38,14,' + (0.06 + rnd() * 0.16).toFixed(3) + ')'
-            : 'rgba(255,238,206,' + (0.05 + rnd() * 0.14).toFixed(3) + ')';
+            ? 'rgba(96,90,84,' + (0.05 + rnd() * 0.12).toFixed(3) + ')'
+            : 'rgba(255,253,249,' + (0.06 + rnd() * 0.14).toFixed(3) + ')';
         ctx.lineWidth = 0.6 + rnd() * 2.2;
         ctx.beginPath();
         ctx.moveTo(0, gy);
@@ -236,8 +238,8 @@ export function woodMaps(THREE) {
         var kx = rnd() * w, ky = rnd() * h;
         for (var ring2 = 5; ring2 >= 1; ring2--) {
             ctx.strokeStyle = ring2 % 2
-                ? 'rgba(62,40,16,' + (0.10 + 0.03 * ring2).toFixed(3) + ')'
-                : 'rgba(214,178,124,0.16)';
+                ? 'rgba(104,98,92,' + (0.07 + 0.02 * ring2).toFixed(3) + ')'
+                : 'rgba(236,232,226,0.18)';
             ctx.lineWidth = 1.2;
             ctx.beginPath();
             ctx.ellipse(kx, ky, ring2 * 7, ring2 * 4.2, 0.3, 0, Math.PI * 2);
@@ -247,9 +249,9 @@ export function woodMaps(THREE) {
 
     // 顺纹高光带（板面靠上一条更亮、更"油"的地方）
     var sheenBand = ctx.createLinearGradient(0, 0, 0, h);
-    sheenBand.addColorStop(0, 'rgba(255,240,212,0.14)');
-    sheenBand.addColorStop(0.42, 'rgba(255,240,212,0.03)');
-    sheenBand.addColorStop(1, 'rgba(46,28,8,0.16)');
+    sheenBand.addColorStop(0, 'rgba(255,253,249,0.16)');
+    sheenBand.addColorStop(0.42, 'rgba(255,253,249,0.03)');
+    sheenBand.addColorStop(1, 'rgba(60,58,62,0.12)');
     ctx.fillStyle = sheenBand;
     ctx.fillRect(0, 0, w, h);
 

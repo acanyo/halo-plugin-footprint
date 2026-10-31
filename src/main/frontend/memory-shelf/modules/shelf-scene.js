@@ -399,13 +399,13 @@ export function initShelf() {
     wood.map.repeat.set(5, 1);
     wood.roughness.repeat.copy(wood.map.repeat);
     wood.normal.repeat.copy(wood.map.repeat);
-    // 深一档的胡桃色：前缘压条、立柱、背挡都用它（照参考的 walnutDark）
+    // 深一档：前缘压条、立柱、背挡、画框都用它。颜色由 room-theme 的 woodDark 覆盖（灰紫随书走）
     var woodDarkMaterial = new THREE.MeshStandardMaterial({
         map: wood.map,
         roughnessMap: wood.roughness,
         normalMap: wood.normal,
         normalScale: new THREE.Vector2(0.5, 0.5),
-        color: 0x8a6a3c,
+        color: 0x9d97a8,
         roughness: 0.9,
         metalness: 0
     });
