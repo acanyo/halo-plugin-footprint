@@ -190,12 +190,16 @@ export function createPhotoWallMarkup(spec, page = 0, options = resolvePhotoWall
         .filter((value, index, list) => list.indexOf(value) === index)
         .join('，');
     const footprintType = String(spec.footprintType || '').trim();
+    const dateText = formatDateToYMD(spec.createTime) || '日期未记录';
     return `
         <div class="photo-wall-panel ${wallClass}" data-photo-page="${currentPage}"
              aria-label="${escapeHtml(spec.name || '足迹')}的图片墙">
             <div class="photo-wall-heading">
                 <div>
-                    <span class="photo-wall-kicker">${kicker}</span>
+                    <div class="photo-wall-kicker-row">
+                        <span class="photo-wall-kicker">${kicker}</span>
+                        <span class="photo-wall-date">${dateText}</span>
+                    </div>
                     <div class="photo-wall-title-row">
                         <h3>${escapeHtml(spec.name || '足迹')}</h3>
                         ${footprintType ? `<span class="photo-wall-type">${escapeHtml(footprintType)}</span>` : ''}
@@ -212,7 +216,6 @@ export function createPhotoWallMarkup(spec, page = 0, options = resolvePhotoWall
             <div class="photo-wall-footer">
                 <div class="photo-wall-footer-meta">
                     ${place ? `<span class="photo-wall-place" title="${escapeHtml(place)}">${escapeHtml(place)}</span>` : ''}
-                    <span class="photo-wall-date">${formatDateToYMD(spec.createTime) || '日期未记录'}</span>
                 </div>
                 <div class="photo-wall-navigation">
                     <button type="button" class="photo-wall-nav" data-photo-action="previous"
@@ -367,25 +370,35 @@ export function createPhotoWallController(map) {
         stage?.classList.remove('is-error');
         stage?.classList.add('is-loading');
         if (image) {
-            image.removeAttribute('src');
             image.alt = `${current.spec.name || '足迹'}，第 ${safeIndex + 1} 张`;
+            // 旧图先隐藏但保留 src，避免 removeAttribute 触发浏览器默认破图图标。
+            image.style.visibility = 'hidden';
         }
         if (count) count.textContent = `${safeIndex + 1} / ${images.length}`;
         const source = originalPhotoUrl(images[safeIndex]);
+        const showError = () => {
+            if (token !== viewerLoadToken || !stage) return;
+            stage.classList.remove('is-loading');
+            stage.classList.add('is-error');
+            if (image) image.style.visibility = 'hidden';
+        };
         const loader = new Image();
         loader.decoding = 'async';
         loader.onload = () => {
             if (token !== viewerLoadToken || !viewer || !image) return;
             image.src = source;
-            requestAnimationFrame(() => {
-                if (token === viewerLoadToken && stage) stage.classList.remove('is-loading');
-            });
+            const reveal = () => {
+                if (token !== viewerLoadToken) return;
+                stage?.classList.remove('is-loading');
+                image.style.visibility = 'visible';
+            };
+            if (typeof image.decode === 'function') {
+                image.decode().then(reveal, showError);
+            } else {
+                requestAnimationFrame(reveal);
+            }
         };
-        loader.onerror = () => {
-            if (token !== viewerLoadToken || !stage) return;
-            stage.classList.remove('is-loading');
-            stage.classList.add('is-error');
-        };
+        loader.onerror = showError;
         loader.src = source;
     };
 
