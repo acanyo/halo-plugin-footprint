@@ -118,19 +118,17 @@ body.mode-2d#footprint-page {
     pointer-events: none;
 }
 
-/* 左上角：站点名（快看世界体）+ 一句描述，放在一块玻璃面板上。内容来自后台的 logoName / describe */
+/* 左上角：站点名（快看世界体）+ 一句描述，直接写在地图上，不垫面板。内容来自后台的 logoName / describe。
+   字外描一圈柔白光，压在道路、水系或卫星图上也看得清；没有面板，这一块也不挡地图拖动 */
 .logo-container {
     position: fixed;
     top: calc(24px + var(--safe-top));
     left: calc(24px + var(--safe-left));
     z-index: 100;
     max-width: 300px;
-    padding: 14px 18px 14px;
-    border-radius: var(--fp-radius-panel);
-    background: var(--fp-glass);
-    -webkit-backdrop-filter: blur(var(--fp-blur));
-    backdrop-filter: blur(var(--fp-blur));
-    box-shadow: var(--fp-shadow);
+    --logo-halo: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.85);
+    text-shadow: var(--logo-halo);
+    pointer-events: none;
     opacity: 0;
     visibility: hidden;
     transform-origin: top left;
@@ -159,13 +157,19 @@ body.mode-2d#footprint-page {
 .footprint-slogan:empty {
     display: none;
 }
+/* 卫星图底色深：换白字 + 暗光晕（照片可读性暗影） */
+body:has(.control-btn[data-type="satellite"].active) .logo-container {
+    --logo-halo: 0 0 2px rgba(0, 0, 0, 0.7), 0 1px 10px rgba(0, 0, 0, 0.55);
+}
+body:has(.control-btn[data-type="satellite"].active) .footprint-logo,
+body:has(.control-btn[data-type="satellite"].active) .footprint-slogan {
+    color: rgba(255, 255, 255, 0.96);
+}
 @media screen and (max-width: 768px) {
     .logo-container {
-        top: calc(10px + var(--safe-top));
-        left: calc(10px + var(--safe-left));
+        top: calc(12px + var(--safe-top));
+        left: calc(14px + var(--safe-left));
         max-width: 160px;
-        padding: 6px 12px;
-        border-radius: var(--fp-radius-control);
     }
     .footprint-logo {
         font-size: var(--fp-size-md);
