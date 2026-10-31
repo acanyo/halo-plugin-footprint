@@ -11,6 +11,7 @@
  * 模块约定与契约检查见 ../README.md。
  */
 
+import { applyAccentToDocument } from '../shared/accent.js';
 import {
     setTileBatchHandler
 } from './modules/tianditu-usage.js';
@@ -200,6 +201,9 @@ setTileBatchHandler(refreshStatusText);
 setLightboxDeps({ cityWallImages, formatLightboxDate, setOverlayHidden });
 // 洞察的统计口径同样靠注入拿数据：FOOTPRINTS / cityList 是 let，要取值函数而不是快照
 setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(), cityViewItems, cityWallImages, ticketImageUrl, cityKeyOf });
+    // 后台「主题色」写到 :root，所有 --fp-accent 系列跟着变（2D 与书架的入口也各写一次，值相同）
+    applyAccentToDocument();
+
     // ================= 初始化 Viewer =================
     const viewer = new Cesium.Viewer('cesiumContainer', {
         baseLayer: false,          // 不用 Cesium 默认底图，全部换成国内服务

@@ -13,6 +13,7 @@
  * 没有任何模板、脚本或 Java 代码引用这些名字，所以只显式暴露 Footprint2D。
  */
 
+import { applyAccentToDocument } from '../shared/accent.js';
 import { isMobile } from './modules/env.js';
 import { initializeApp } from './modules/map-app.js';
 import { state } from './modules/state.js';
@@ -29,10 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // 设置全局颜色变量
+    // 主题色写到 :root（3D 地球那边也写一次，谁先跑都一样）
+    applyAccentToDocument();
     const footprintPage = document.getElementById('footprint-page');
     if (footprintPage && window.FOOTPRINT_CONFIG) {
-        footprintPage.style.setProperty('--footprint-hsla', window.FOOTPRINT_CONFIG.hsla);
         // 设置标记点样式类
         if (window.FOOTPRINT_CONFIG.markerStyle) {
             document.body.classList.add('marker-style-' + window.FOOTPRINT_CONFIG.markerStyle);

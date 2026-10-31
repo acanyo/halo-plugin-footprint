@@ -15,8 +15,12 @@
 | `--fp-ink-soft` | `#66666e` | 次要文字 |
 | `--fp-ink-faint` | `#9a9aa3` | 辅助说明 |
 | `--fp-rule` | `rgba(58,58,64,.08)` | 分隔、浅底按钮 |
-| `--fp-accent` | `#7c7bc0` | 唯一的强调色：选中、主按钮、聚合点、「去过」 |
-| `--fp-accent-soft` | `rgba(124,123,192,.14)` | 强调色的浅底 |
+| `--fp-accent` | `#7c7bc0`（默认） | 唯一的强调色：选中、主按钮、聚合点、「去过」。取后台「主题色」 |
+| `--fp-accent-soft` | `rgba(124,123,192,.14)`（默认） | 强调色的浅底，跟着主题色变 |
+| `--fp-accent-ink` | `#ffffff`（默认） | 强调色实底上的字：主题色很浅时自动换成深墨 |
+
+强调色由后台「主题色」（取色组件）决定：`shared/accent.js` 在三个前台的入口把它写到 `:root`，
+覆盖 tokens.css 里的默认淡紫。
 
 `--fp-mark` / `--fp-contour` / `--fp-water` 是上一版留下的角色名，现在都指向 `--fp-accent`。
 新写的代码直接用 `--fp-accent`。
@@ -54,7 +58,8 @@
 英文大写小标题、「·」拼接、样式里散写的色值、旧字体栈。
 允许：纯黑 rgba 的阴影（text-shadow / box-shadow）与白色半透明玻璃 `rgba(255,255,255,…)`。
 
-canvas 与 SVG 读不到 CSS 变量，下列文件写死了同一套色值，改色板时要一起改：
+canvas、SVG 与 Cesium 材质读不到 CSS 变量：强调色一律从 `shared/accent.js` 的
+`accentHex()` / `accentRgba()` 取，不要再写死 `#7c7bc0`。纸色与墨色仍是写死的，改色板时要一起改：
 `marker-icons.js`、`marker-visibility.js`、`postcard.js`、`ticket-letter.js`、
 `parabola-animation.js`、`memory-shelf/modules/constants.js`（PAGE_PAPER / PAGE_EDGE）。
 

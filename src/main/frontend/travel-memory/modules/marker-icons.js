@@ -7,6 +7,7 @@
 
 import { COARSE_POINTER } from './env.js';
 import { canvasSafeImageUrl } from './postcard.js';
+import { accentHex, accentRgba } from '../../shared/accent.js';
 
 // ================= 尺寸 =================
 // 图块是正方形；可见图形（白玻璃圆环）占图块的 MARKER_RING_RATIO，外圈留给柔阴影。
@@ -19,10 +20,11 @@ export const MARKER_SIZE_SELECTED = Math.round(MARKER_SIZE * 1.24);   // 选中�
 const MARKER_RING_RATIO = 0.82;   // 圆环直径 / 图块边长
 const MARKER_RING_PAD = 4 / 58;   // 白圈厚度占圆环直径的比例（参考：58px 圆环里放 50px 照片）
 
-// 配色与 styles/shared/tokens.css 一致。SVG / canvas 读不到 CSS 变量，所以写死同样的色值。
+// 配色与 styles/shared/tokens.css 一致。SVG / canvas 读不到 CSS 变量：
+// 玻璃白写死，强调色取后台「主题色」（shared/accent.js）。
 const GLASS = 'rgba(255, 255, 255, 0.95)';       // 比 --fp-glass-strong 更实：压在深色影像上不发灰
-const ACCENT = '#7c7bc0';                        // --fp-accent
-const ACCENT_SOFT = 'rgba(124, 123, 192, 0.16)'; // --fp-accent-soft（略加实，压在影像上）
+const ACCENT = accentHex();                      // --fp-accent
+const ACCENT_SOFT = accentRgba(0.16);            // --fp-accent-soft（略加实，压在影像上）
 const SHADOW = 'rgba(0, 0, 0, 0.32)';
 const NUMBER_FONT = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
 

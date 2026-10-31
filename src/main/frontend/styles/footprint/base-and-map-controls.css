@@ -2,8 +2,7 @@
  * 2D 地图页（高德地图）的页面骨架：局部变量、地图容器、左上角字标、按钮提示气泡。
  *
  * 配色走 --fp-*（见 ../DESIGN.md）。浮在地图上的面板一律是白玻璃（--fp-glass + 背景模糊 + 柔阴影）。
- * 后台的主题色（settings.hsla → --footprint-hsla）是站长自己的品牌色，只拿来给强调色调一点色相：
- * 高亮环、时间线节点。面板底始终是玻璃，不染色。
+ * 强调色 --fp-accent 就是后台的「主题色」（shared/accent.js 写到 :root 上）。面板底始终是玻璃，不染色。
  */
 body.mode-2d#footprint-page {
     --safe-top: env(safe-area-inset-top, 0px);
@@ -20,12 +19,6 @@ body.mode-2d#footprint-page {
     line-height: 1.7;
 }
 #view-2d {
-    /* 品牌色：后台填的是 "h,s%,l%" 三元组 */
-    --hsla-raw: var(--footprint-hsla, 1, 75%, 88%);
-    --fp2d-accent: hsl(var(--hsla-raw));
-    /* 品牌色压一点墨，用在线条和小字上，浅色主题色在白图上也看得清 */
-    --fp2d-accent-ink: color-mix(in srgb, hsl(var(--hsla-raw)) 45%, var(--fp-ink));
-    --fp2d-accent-ring: color-mix(in srgb, hsl(var(--hsla-raw)) 45%, transparent);
     /* 只给贴在地图上的小记号用的一层薄影，面板不用投影 */
     --fp2d-mark-shadow: color-mix(in srgb, var(--fp-ink) 22%, transparent);
     /* 照片上的文字：深色渐变压底 + 白字 */

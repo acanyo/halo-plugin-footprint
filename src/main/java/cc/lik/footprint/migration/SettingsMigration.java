@@ -1,5 +1,6 @@
 package cc.lik.footprint.migration;
 
+import cc.lik.footprint.dto.AccentColor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,11 @@ import java.util.Map;
  * <p>整个过程是幂等的：迁移完成后 {@code globe3d} 中不再留有可迁移字段，重复执行
  * 直接短路返回。迁移失败不会影响插件启动，也不会影响前台——
  * {@code FootprintServiceImpl} 读配置时对这些字段保留了 globe3d 兜底。</p>
+ *
+ * <p>另一项：{@code base} 分组的主题色。3.0 之前是文本框 {@code hsla}（{@code h,s%,l%}），
+ * 现在是取色组件 {@code accentColor}（{@code #rrggbb}）。Halo 会把取色组件的默认值写进
+ * {@code accentColor}，所以不能靠「新字段为空才读旧字段」——旧的 {@code hsla} 还在，就说明
+ * 站长还没在新组件里改过颜色：换算后写进 {@code accentColor}，再删掉 {@code hsla}。</p>
  */
 @Slf4j
 @Component
@@ -35,6 +41,10 @@ public class SettingsMigration {
 
     /** 拆分前所有 3D 相关配置的存放分组 */
     private static final String LEGACY_GROUP = "globe3d";
+
+    private static final String BASE_GROUP = "base";
+    private static final String LEGACY_ACCENT = "hsla";
+    private static final String ACCENT = "accentColor";
 
     /** 迁移明文天地图 Key 时创建的 Secret 名称 */
     private static final String TIANDITU_SECRET_NAME = "footprint-tianditu-key";
@@ -89,13 +99,17 @@ public class SettingsMigration {
 
     private Mono<Void> migrateConfigMap(ConfigMap configMap) {
         Map<String, String> data = configMap.getData();
-        if (data == null || !data.containsKey(LEGACY_GROUP)) {
+        if (data == null) {
             return Mono.empty();
+        }
+        boolean accentMoved = migrateAccentColor(data);
+        if (!data.containsKey(LEGACY_GROUP)) {
+            return accentMoved ? saveConfigMap(configMap, data) : Mono.empty();
         }
 
         ObjectNode legacy = readGroup(data, LEGACY_GROUP);
         if (!needsMigration(legacy)) {
-            return Mono.empty();
+            return accentMoved ? saveConfigMap(configMap, data) : Mono.empty();
         }
 
         Map<String, ObjectNode> groups = new LinkedHashMap<>();
@@ -141,6 +155,29 @@ public class SettingsMigration {
                     "足迹插件配置迁移完成：globe3d 已拆分为 globe3d / tianditu / ticket / cityWall"))
                 .then();
         }));
+    }
+
+    /**
+     * 旧的 {@code hsla} 换算成 {@code accentColor} 并删掉。返回是否改动了 data。
+     */
+    private boolean migrateAccentColor(Map<String, String> data) {
+        if (!data.containsKey(BASE_GROUP)) {
+            return false;
+        }
+        ObjectNode base = readGroup(data, BASE_GROUP);
+        if (!base.has(LEGACY_ACCENT)) {
+            return false;
+        }
+        base.put(ACCENT, AccentColor.normalize(base.path(LEGACY_ACCENT).asText(null)));
+        base.remove(LEGACY_ACCENT);
+        writeGroup(data, BASE_GROUP, base);
+        log.info("足迹插件主题色已从 hsl 文本换成取色组件的值 {}", base.path(ACCENT).asText());
+        return true;
+    }
+
+    private Mono<Void> saveConfigMap(ConfigMap configMap, Map<String, String> data) {
+        configMap.setData(data);
+        return client.update(configMap).then();
     }
 
     /**

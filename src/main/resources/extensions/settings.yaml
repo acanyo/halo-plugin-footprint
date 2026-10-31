@@ -25,12 +25,11 @@ spec:
           validation: required
           value: '每一处足迹都充满了故事，那是对人生的思考和无限的风光。'
           help: "这里是左下角的描述"
-        - $formkit: text
-          label: hsl颜色值
-          name: hsla
-          validation: required
-          value: '109,68%,60%'
-          help: "全局配色 HSL格式：322,68%,60% (色相去掉deg,数值之间不要有空格)"
+        - $formkit: color
+          label: 主题色
+          name: accentColor
+          value: '#7c7bc0'
+          help: "前台的强调色：按钮选中、城市圆点、去过的城市、省份高亮、明信片和票根都用它。默认淡紫"
         - $formkit: checkbox
           label: 启用悬停缩放
           name: enableHoverZoom

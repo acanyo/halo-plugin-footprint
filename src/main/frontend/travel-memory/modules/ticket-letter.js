@@ -19,6 +19,7 @@ import {
     ticketLetterTitle
 } from './ticket-dom.js';
 import { ticketImageUrl, ticketMeta } from './ticket-format.js';
+import { accentHex } from '../../shared/accent.js';
 import { getTicketIndex, getTicketItems, ticketFeatureOn } from './ticket-state.js';
 import { clearTicketStampTimer, startTicketStampDwell } from './ticket-passport.js';
 import { pauseTicketReplayForOverlay, resumeTicketReplayFromOverlay } from './ticket-replay.js';
@@ -69,7 +70,7 @@ function ticketLetterCanvas(fp, image) {
     const raised = '#ffffff';     // --fp-paper-raised
     const ink = '#3a3a40';        // --fp-ink
     const muted = '#9a9aa3';      // --fp-ink-faint
-    const accent = '#7c7bc0';     // --fp-accent
+    const accent = accentHex();   // --fp-accent（后台「主题色」）
     const titleFont = '"快看世界体", "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif';
     const textFont = '"MiSans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
     ctx.fillStyle = paper;

@@ -4,6 +4,7 @@
  */
 
 import { BOOK_COLORS, FOIL_COLORS } from './constants.js';
+import { accentHex } from '../../shared/accent.js';
 import { els, shelf, reduceMotion } from './state.js';
 
 // ==========================================================================
@@ -78,7 +79,7 @@ export function roomTint(index, key) {
         case 'fog': return mixHex(ROOM_BASE.paper, fabric, 0.30);
         case 'rim': return foil;
         // 信息板/纸张用的两个色：面板强调色与分隔金线，跟着书走
-        case 'accent': return mixHex('#7c7bc0', fabric, 0.45);   // --fp-accent 混一点布色
+        case 'accent': return mixHex(accentHex(), fabric, 0.45);   // --fp-accent（后台「主题色」）混一点布色
         case 'gold': return foil;
         default: return fabric;
     }

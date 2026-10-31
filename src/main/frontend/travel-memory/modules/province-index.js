@@ -9,10 +9,12 @@
  * 所以命中判定只能走几何计算（pointInRing / pointInProvince）。
  */
 
+import { accentRgba } from '../../shared/accent.js';
+
 const PROVINCE_GEOJSON_URL = '/plugins/footprint/assets/static/data/china-full.json';
-// 选中的省份用强调色淡紫（--fp-accent #7c7bc0）：设计说明里它就是「选中」色。
+// 选中的省份用强调色（--fp-accent，后台「主题色」）：设计说明里它就是「选中」色。
 // 填充压到很淡，影像仍然看得清；轮廓线稍实一些，把边界交代清楚。
-const PROVINCE_HL_FILL = 'rgba(124, 123, 192, 0.14)';
+const PROVINCE_HL_FILL = accentRgba(0.14);
 const PROVINCE_HL_STROKE = 'rgba(255, 255, 255, 0.9)';
 const PROVINCE_HL_STROKE_WIDTH = 1.4;
 

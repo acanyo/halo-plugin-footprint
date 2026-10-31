@@ -2,6 +2,8 @@
  * 地图图层：卫星 / 路网 / 路况切换，以及已去过城市的行政区高亮。
  */
 
+import { accentRgba } from '../../shared/accent.js';
+
 // 优化图层切换
 export const handleLayerChange = (btn, type, layerState, map, layers) => {
     btn.classList.add('btn-clicked');
@@ -75,38 +77,8 @@ export const updateLayers = async (layerState, layers) => {
     });
 };
 
-// 将页面主题 HSL 转换为高德行政区图层可用的 RGBA 颜色
-export const getThemeRgba = (alpha = 1) => {
-    const value = window.FOOTPRINT_CONFIG?.hsla || '';
-    const match = String(value).match(/^\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*$/);
-    if (!match) {
-        return `rgba(236, 72, 153, ${alpha})`;
-    }
-
-    const h = (Number(match[1]) % 360) / 360;
-    const s = Math.max(0, Math.min(100, Number(match[2]))) / 100;
-    const l = Math.max(0, Math.min(100, Number(match[3]))) / 100;
-    const hueToRgb = (p, q, t) => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;
-        if (t < 1 / 2) return q;
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-        return p;
-    };
-
-    if (s === 0) {
-        const gray = Math.round(l * 255);
-        return `rgba(${gray}, ${gray}, ${gray}, ${alpha})`;
-    }
-
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    const r = Math.round(hueToRgb(p, q, h + 1 / 3) * 255);
-    const g = Math.round(hueToRgb(p, q, h) * 255);
-    const b = Math.round(hueToRgb(p, q, h - 1 / 3) * 255);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
+// 高德行政区图层要 rgba 字符串：取后台「主题色」（shared/accent.js）
+export const getThemeRgba = (alpha = 1) => accentRgba(alpha);
 
 // 高亮已去过的城市，不改变地图视野和现有足迹标记
 export const addVisitedCityLayer = (map, footprintData) => {

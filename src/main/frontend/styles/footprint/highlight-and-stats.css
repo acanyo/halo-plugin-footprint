@@ -6,7 +6,7 @@
  * 缩放挂在高德的 .amap-marker-content 上（以底边中点为原点），不和各样式自己的 transform 打架。
  */
 #view-2d {
-    --marker-highlight-ring: color-mix(in srgb, var(--fp-accent) 70%, var(--fp2d-accent));
+    --marker-highlight-ring: var(--fp-accent);
     --marker-highlight-glow: color-mix(in srgb, var(--marker-highlight-ring) 38%, transparent);
 }
 .amap-marker .amap-marker-content {

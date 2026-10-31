@@ -23,7 +23,8 @@ public class BaseConfig {
     private String gaoDeKey;
     private String gaoDeWebKey;
     private String describe;
-    private String hsla;
+    /** 主题色 #rrggbb（旧版存的 h,s%,l% 已由 AccentColor 换算） */
+    private String accentColor;
     private String logoName;
     private String mapStyle;
     private String markerStyle;

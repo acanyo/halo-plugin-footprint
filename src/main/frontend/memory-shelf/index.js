@@ -23,10 +23,12 @@ import { $, enabled } from './modules/utils.js';
 import { setActive } from './modules/shelf-interaction.js';
 import { open, close, onKeydown, syncEntry, isBooksView, initDeepLink } from './modules/overlay.js';
 import { bindAudioControls } from './modules/audio.js';
+import { applyAccentToDocument } from '../shared/accent.js';
 
 function init() {
     els.root = $('memoryShelf');
     if (!els.root) return;
+    applyAccentToDocument();
     els.body = $('memoryShelfBody');
     els.title = $('memoryShelfTitle');
     els.intro = $('memoryShelfIntro');

@@ -1,5 +1,6 @@
 package cc.lik.footprint.service.impl;
 
+import cc.lik.footprint.dto.AccentColor;
 import cc.lik.footprint.dto.BaseConfig;
 import cc.lik.footprint.service.FootprintConfigService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -65,7 +66,11 @@ public class FootprintConfigServiceImpl implements FootprintConfigService {
                     .gaoDeWebKey(keys.getT2())
                     .describe(base.path("describe")
                         .asText("每一处足迹都充满了故事，那是对人生的思考和无限的风光。"))
-                    .hsla(base.path("hsla").asText("109,42%,60%"))
+                    // 主题色：旧的 hsla 文本还在时以它为准（启动迁移会把它换算进 accentColor 并删掉，
+                    // 这里是迁移跑完之前的兜底）；否则用取色组件的 accentColor
+                    .accentColor(AccentColor.normalize(base.has("hsla")
+                        ? base.path("hsla").asText(null)
+                        : base.path("accentColor").asText(null)))
                     .logoName(base.path("logoName").asText())
                     .mapStyle(base.path("mapStyle").asText())
                     .markerStyle(base.path("markerStyle").asText("pin"))

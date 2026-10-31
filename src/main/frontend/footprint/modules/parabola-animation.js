@@ -2,6 +2,7 @@
  * 时间线卡片 → 地图标记点的抛物线引导动画（Canvas 绘制）。
  */
 
+import { accentHex } from '../../shared/accent.js';
 import { debounce } from './debounce.js';
 import { getFootprintRelationNames } from './footprint-data.js';
 import { markerCache, state } from './state.js';
@@ -30,7 +31,7 @@ export const loadParabolaAnimation = (card, map) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const accent = '#7c7bc0';   // --fp-accent（淡紫），canvas 读不到 CSS 变量，这里写死同值
+    const accent = accentHex();   // --fp-accent（后台「主题色」），canvas 读不到 CSS 变量
 
     // 使用设备像素比，避免 Retina 屏幕上的轨迹发糊。
     const resizeCanvas = () => {

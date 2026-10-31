@@ -7,6 +7,7 @@
 
 import { wrapTicketLetterText } from './ticket-gallery.js';
 import { focusCityWallTop } from './city-wall.js';
+import { accentHex, accentRgba } from '../../shared/accent.js';
 
 let deps = null;
 
@@ -90,6 +91,7 @@ export function canvasSafeImageUrl(url) {
 // 城市小结：以真实照片为主角，讲"我和这座城市的关系"（第一次去 / 最近一次 / 走过的地方），
 // 不再是城市卡片墙那张卡的信息截图。
 // 配色取 tokens.css 柔光玻璃的值：canvas 读不到 CSS 变量，只能在这里抄一份，改色板时两处一起改。
+// 强调色例外：取后台「主题色」。
 const POSTCARD_INK = {
     paper: '#f2f2f4',       // --fp-paper
     raised: '#ffffff',      // --fp-paper-raised
@@ -97,8 +99,8 @@ const POSTCARD_INK = {
     soft: '#66666e',        // --fp-ink-soft
     faint: '#9a9aa3',       // --fp-ink-faint
     rule: 'rgba(58, 58, 64, 0.08)',        // --fp-rule
-    accent: '#7c7bc0',      // --fp-accent
-    accentSoft: 'rgba(124, 123, 192, 0.14)', // --fp-accent-soft
+    accent: accentHex(),             // --fp-accent
+    accentSoft: accentRgba(0.14),    // --fp-accent-soft
     shadow: 'rgba(38, 38, 48, 0.12)'       // --fp-shadow 的颜色
 };
 const POSTCARD_TITLE_FONT = '"快看世界体", "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif';
