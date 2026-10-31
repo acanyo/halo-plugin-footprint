@@ -26,7 +26,7 @@ import java.util.Map;
  * 直接短路返回。迁移失败不会影响插件启动，也不会影响前台——
  * {@code FootprintServiceImpl} 读配置时对这些字段保留了 globe3d 兜底。</p>
  *
- * <p>另一项：{@code base} 分组的主题色。3.0 之前是文本框 {@code hsla}（{@code h,s%,l%}），
+ * <p>另一项：{@code base} 分组的主题色。2.0.0 之前是文本框 {@code hsla}（{@code h,s%,l%}），
  * 现在是取色组件 {@code accentColor}（{@code #rrggbb}）。Halo 会把取色组件的默认值写进
  * {@code accentColor}，所以不能靠「新字段为空才读旧字段」——旧的 {@code hsla} 还在，就说明
  * 站长还没在新组件里改过颜色：换算后写进 {@code accentColor}，再删掉 {@code hsla}。</p>
