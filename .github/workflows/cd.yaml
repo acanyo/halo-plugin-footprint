@@ -15,6 +15,6 @@ jobs:
     with:
       app-id: app-XCtAQ
       ui-path: "ui"
-      pnpm-version: 9
+      pnpm-version: "10.33.0"
       node-version: 22
       java-version: 21
