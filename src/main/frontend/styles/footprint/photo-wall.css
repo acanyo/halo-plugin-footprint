@@ -42,6 +42,10 @@
     transform: none;
 }
 
+.photo-wall-window.is-zooming-out {
+    transform-origin: top left;
+}
+
 .photo-wall-panel {
     position: relative;
     display: flex;
@@ -271,14 +275,14 @@
     position: absolute;
     left: var(--photo-x);
     top: var(--photo-y);
-    width: 20%;
+    width: 17.5%;
     aspect-ratio: 4 / 5;
     transform: rotate(var(--photo-r));
     animation: photo-wall-card-in 420ms var(--fp-ease) var(--photo-delay) backwards;
 }
 
 .photo-wall-scatter-card:nth-child(3n) {
-    width: 23%;
+    width: 19%;
 }
 
 .photo-wall-thread {
@@ -312,7 +316,9 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* 主图完整显示：长票根和竖图不能被上下边裁掉。 */
+    object-fit: contain;
+    background: var(--fp-accent-soft);
 }
 
 .photo-wall-feature-caption {
@@ -454,7 +460,8 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: var(--fp-accent-soft);
 }
 
 .photo-wall-focus-core span {

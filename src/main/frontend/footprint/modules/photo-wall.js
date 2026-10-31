@@ -11,19 +11,20 @@ import { escapeHtml, formatDateToYMD } from './format.js';
 
 const PHOTO_WALL_STYLES = ['original', 'gallery', 'filmstrip', 'journal', 'focus'];
 const PHOTO_WALL_ALIASES = { a: 'gallery', b: 'filmstrip', c: 'journal', d: 'focus' };
+const PHOTO_WALL_CLOSE_ZOOM = 10;
 
 const PHOTO_WALL_LAYOUTS = [
-    { x: 7, y: 43, r: -8 }, { x: 23, y: 17, r: 6 }, { x: 39, y: 7, r: -4 },
-    { x: 55, y: 16, r: 8 }, { x: 72, y: 9, r: -6 }, { x: 81, y: 39, r: 5 },
-    { x: 64, y: 54, r: -9 }, { x: 46, y: 58, r: 3 }, { x: 28, y: 52, r: -5 },
-    { x: 13, y: 69, r: 8 }, { x: 39, y: 73, r: -3 }, { x: 65, y: 72, r: 6 }
+    { x: 5, y: 37, r: -8 }, { x: 22, y: 10, r: 6 }, { x: 39, y: 3, r: -4 },
+    { x: 56, y: 11, r: 8 }, { x: 73, y: 7, r: -6 }, { x: 82, y: 34, r: 5 },
+    { x: 66, y: 47, r: -9 }, { x: 48, y: 51, r: 3 }, { x: 30, y: 45, r: -5 },
+    { x: 12, y: 54, r: 8 }, { x: 37, y: 56, r: -3 }, { x: 64, y: 53, r: 6 }
 ];
 
 const PHOTO_WALL_FOCUS_LAYOUTS = [
-    { x: 2, y: 9, r: -7 }, { x: 78, y: 6, r: 6 }, { x: 0, y: 59, r: 5 },
-    { x: 80, y: 57, r: -6 }, { x: 20, y: 0, r: 4 }, { x: 59, y: 0, r: -4 },
-    { x: 18, y: 70, r: -3 }, { x: 62, y: 70, r: 4 }, { x: 2, y: 34, r: 7 },
-    { x: 80, y: 34, r: -7 }, { x: 40, y: 2, r: 3 }
+    { x: 1, y: 8, r: -7 }, { x: 81, y: 5, r: 6 }, { x: 0, y: 48, r: 5 },
+    { x: 83, y: 46, r: -6 }, { x: 20, y: 0, r: 4 }, { x: 60, y: 0, r: -4 },
+    { x: 18, y: 55, r: -3 }, { x: 64, y: 53, r: 4 }, { x: 2, y: 30, r: 7 },
+    { x: 83, y: 30, r: -7 }, { x: 40, y: 2, r: 3 }
 ];
 
 export function normalizeGalleryImages(images) {
@@ -221,6 +222,36 @@ export function createPhotoWallController(map) {
     let viewer = null;
     let lastWheelAt = 0;
     let lastTrigger = null;
+    let openingZoom = 12;
+
+    const resetZoomScale = () => {
+        if (!panel) return;
+        panel.classList.remove('is-zooming-out');
+        panel.style.removeProperty('zoom');
+        panel.style.removeProperty('opacity');
+        panel.style.removeProperty('--photo-wall-zoom-progress');
+        connector?.style.removeProperty('opacity');
+    };
+
+    const applyMapZoomScale = () => {
+        if (!current || !panel || isMobile) return;
+        const zoom = Number(map.getZoom());
+        if (!Number.isFinite(zoom)) return;
+        if (zoom >= openingZoom) {
+            resetZoomScale();
+            return;
+        }
+        const range = Math.max(0.5, openingZoom - PHOTO_WALL_CLOSE_ZOOM);
+        const progress = Math.max(0, Math.min(1, (openingZoom - zoom) / range));
+        const scale = 1 - progress * 0.28;
+        const opacity = 1 - progress * 0.12;
+        panel.classList.add('is-zooming-out');
+        panel.style.zoom = scale.toFixed(3);
+        panel.style.opacity = opacity.toFixed(3);
+        panel.style.setProperty('--photo-wall-zoom-progress', progress.toFixed(3));
+        if (connector) connector.style.opacity = opacity.toFixed(3);
+        if (zoom <= PHOTO_WALL_CLOSE_ZOOM) close({ restoreFocus: true });
+    };
 
     const position = () => {
         if (!current || !panel || isMobile) return;
@@ -295,6 +326,7 @@ export function createPhotoWallController(map) {
     const close = ({ restoreFocus = false } = {}) => {
         const focusTarget = current?.trigger;
         closeViewer({ restoreFocus: false });
+        resetZoomScale();
         panel?.remove();
         connector?.remove();
         logoContainer?.classList.remove('photo-wall-active');
@@ -346,6 +378,33 @@ export function createPhotoWallController(map) {
         viewer.querySelector('.photo-wall-viewer-close')?.focus({ preventScroll: true });
     };
 
+    const switchPage = (nextPage) => {
+        if (!current || !panel) return;
+        const totalPages = Math.max(1, Math.ceil(current.images.length / current.options.pageSize));
+        if (nextPage < 0 || nextPage >= totalPages) return;
+        current.page = nextPage;
+        const holder = document.createElement('div');
+        holder.innerHTML = createPhotoWallMarkup(current.spec, current.page, current.options);
+        const nextPanel = holder.firstElementChild;
+        const shell = panel.querySelector('.photo-wall-panel');
+        const currentCanvas = shell?.querySelector('.photo-wall-canvas');
+        const nextCanvas = nextPanel?.querySelector('.photo-wall-canvas');
+        if (!shell || !currentCanvas || !nextCanvas) return;
+        currentCanvas.replaceWith(nextCanvas);
+        shell.dataset.photoPage = String(current.page);
+        const currentCounter = shell.querySelector('.photo-wall-counter');
+        const nextCounter = nextPanel.querySelector('.photo-wall-counter');
+        if (currentCounter && nextCounter) currentCounter.textContent = nextCounter.textContent || '';
+        const currentNav = shell.querySelectorAll('.photo-wall-nav');
+        const nextNav = nextPanel.querySelectorAll('.photo-wall-nav');
+        currentNav.forEach((button, index) => {
+            if (nextNav[index] instanceof HTMLButtonElement) {
+                button.disabled = nextNav[index].disabled;
+            }
+        });
+        requestAnimationFrame(position);
+    };
+
     const render = () => {
         if (!current) return;
         panel?.remove();
@@ -376,11 +435,7 @@ export function createPhotoWallController(map) {
                 return;
             }
             const nextPage = current.page + (action === 'next' ? 1 : -1);
-            const totalPages = Math.max(1, Math.ceil(current.images.length / current.options.pageSize));
-            if (nextPage < 0 || nextPage >= totalPages) return;
-            current.page = nextPage;
-            render();
-            panel.querySelector('.photo-wall-close')?.focus({ preventScroll: true });
+            switchPage(nextPage);
         });
         panel.addEventListener('wheel', event => {
             if (current.options.style === 'filmstrip' && !isMobile) {
@@ -413,6 +468,7 @@ export function createPhotoWallController(map) {
         if (!options.enabled || !images.length) return false;
         close();
         logoContainer?.classList.add('photo-wall-active');
+        openingZoom = Math.max(3, Math.min(20, Number(spec.zoomLevel) || 12));
         current = { marker, spec, images, options, page: 0, trigger };
         render();
         panel?.querySelector('.photo-wall-close')?.focus({ preventScroll: true });
@@ -440,6 +496,8 @@ export function createPhotoWallController(map) {
     const onMapMove = () => position();
     map.on('mapmove', onMapMove);
     map.on('moveend', onMapMove);
+    map.on('zoom', applyMapZoomScale);
+    map.on('zoomchange', applyMapZoomScale);
     window.addEventListener('resize', position);
     document.addEventListener('keydown', keydown);
 
@@ -451,6 +509,8 @@ export function createPhotoWallController(map) {
             close();
             map.off?.('mapmove', onMapMove);
             map.off?.('moveend', onMapMove);
+            map.off?.('zoom', applyMapZoomScale);
+            map.off?.('zoomchange', applyMapZoomScale);
             window.removeEventListener('resize', position);
             document.removeEventListener('keydown', keydown);
         }

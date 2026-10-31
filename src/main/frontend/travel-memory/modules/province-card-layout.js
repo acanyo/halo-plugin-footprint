@@ -45,10 +45,14 @@ const PROVINCE_CORE_KEEPOUT_Y = 0.22;
 // 外圈占满后才向内补位；每个卡位带固定但不同的错落偏移，不排成规则网格。
 const ALL_CITY_RING_DEPTH_LIMIT = 4;
 const ALL_CITY_RING_DEPTH_GAP = 18;
-const ALL_CITY_RING_JITTER = [0, 13, 5, 21, 9, 17, 3, 25, 11, 19, 7, 23, 15];
-const ALL_CITY_RING_GAP_JITTER = [0, 12, 4, 17, 8, 14, 2, 10, 16, 6];
+const ALL_CITY_RING_JITTER = [0, 18, 7, 29, 12, 24, 4, 34, 16, 27, 10, 31, 21];
+const ALL_CITY_RING_GAP_JITTER = [0, 22, 9, 28, 13, 24, 4, 19, 30, 11];
 const ALL_CITY_LAYOUT_FALLBACK_GAP = 4;
 const ALL_CITY_MARKER_KEEPOUT = 12;
+const ALL_CITY_SIDE_INSET_MIN = 32;
+const ALL_CITY_SIDE_INSET_RATIO = 0.035;
+const ALL_CITY_SAFE_TOP = 64;
+const ALL_CITY_SAFE_BOTTOM = 96;
 
 export function provinceSafeArea(W, H) {
     const insetX = provinceSideInset();
@@ -57,6 +61,19 @@ export function provinceSafeArea(W, H) {
         right: Math.max(insetX + 140, W - insetX),
         top: PROVINCE_SAFE_TOP,
         bottom: Math.max(PROVINCE_SAFE_TOP + 200, H - PROVINCE_SAFE_BOTTOM)
+    };
+}
+
+function allCitySafeArea(W, H) {
+    const insetX = Math.max(
+        ALL_CITY_SIDE_INSET_MIN,
+        Math.round(W * ALL_CITY_SIDE_INSET_RATIO)
+    );
+    return {
+        left: insetX,
+        right: Math.max(insetX + 140, W - insetX),
+        top: ALL_CITY_SAFE_TOP,
+        bottom: Math.max(ALL_CITY_SAFE_TOP + 200, H - ALL_CITY_SAFE_BOTTOM)
     };
 }
 
@@ -94,6 +111,15 @@ export function provinceEdgeAffinity(item, area, spanX, spanY) {
 function allCityRingJitter(item, depth, edgeIndex, salt, values) {
     const seed = (item.layoutIndex || 0) * 7 + depth * 5 + edgeIndex * 3 + salt;
     return values[seed % values.length];
+}
+
+function allCitySignedDrift(item, depth, edgeIndex, salt) {
+    const value = allCityRingJitter(item, depth, edgeIndex, salt, ALL_CITY_RING_JITTER);
+    return (value % 2 === 0 ? -1 : 1) * value * 0.24;
+}
+
+function allCityEdgeIndex(edge) {
+    return { left: 0, right: 1, top: 2, bottom: 3 }[edge] || 0;
 }
 
 function allCityRingTrackValues(item, edge, area, placed, gap, depth, edgeIndex) {
@@ -193,6 +219,8 @@ function allCityRingCandidates(item, area, placed, gap) {
                     x = position;
                     y = area.bottom - item.h - depth * depthPitch - depthJitter;
                 }
+                x += allCitySignedDrift(item, depth, edgeIndex, 17);
+                y += allCitySignedDrift(item, depth, edgeIndex, 19);
                 if (x < area.left - 0.5 || y < area.top - 0.5 ||
                     x + item.w > area.right + 0.5 || y + item.h > area.bottom + 0.5) {
                     return;
@@ -546,8 +574,11 @@ function reflowAllCityRingLayout(area, items, lockedRects, gap, anchors) {
     const pairs = [];
     items.forEach(item => {
         selected.forEach(slot => {
-            const x = slot.x + (slot.w - item.w) / 2;
-            const y = slot.y + (slot.h - item.h) / 2;
+            const edgeIndex = allCityEdgeIndex(slot.edge);
+            const x = slot.x + (slot.w - item.w) / 2 +
+                allCitySignedDrift(item, slot.depth, edgeIndex, 23);
+            const y = slot.y + (slot.h - item.h) / 2 +
+                allCitySignedDrift(item, slot.depth, edgeIndex, 29);
             pairs.push({
                 item,
                 slot,
@@ -572,7 +603,7 @@ function reflowAllCityRingLayout(area, items, lockedRects, gap, anchors) {
 }
 
 function arrangeAllCityCards(items, anchorOf, placeCard) {
-    const area = provinceSafeArea(window.innerWidth, window.innerHeight);
+    const area = allCitySafeArea(window.innerWidth, window.innerHeight);
     const spanX = Math.max(1, area.right - area.left);
     const spanY = Math.max(1, area.bottom - area.top);
     const gap = items.length > PROVINCE_CARD_DENSE_LIMIT ? 8 : PROVINCE_CARD_GAP;
