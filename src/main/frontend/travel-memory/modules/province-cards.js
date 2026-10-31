@@ -58,7 +58,8 @@ import {
     startProvinceCardsFly,
     startProvinceMarkerPulse,
     stopProvinceMarkerPulse,
-    startProvinceLinesGrow,
+    isProvinceEntranceRunning,
+    stopProvinceEntrance,
     animateProvinceCardsExit
 } from './province-card-entrance.js';
 
@@ -283,8 +284,10 @@ function activateCityCards(config) {
     hideProvinceHint();                          // 用户已经会点了，提示可以退场
     const entranceMs = planProvinceEntrance(provinceCardsItems, provinceCardsMode === 'all', provinceCityCenterOf);
     provinceEntranceUntil = deps.reduceMotion() ? 0 : performance.now() + entranceMs;
-    startProvinceCardsFly(provinceCardsItems, layerEl, deps.reduceMotion);   // A：卡片从自己的标记飞出来
-    startProvinceLinesGrow(provinceCardsItems, deps.reduceMotion);   // B：线与卡片共用同一套错峰
+    startProvinceCardsFly(provinceCardsItems, layerEl, deps.reduceMotion, {
+        isActive: () => provinceCardsActive,
+        onFinished: updateProvinceLeaderLines
+    });
     startProvinceMarkerPulse(provinceCardsItems, {   // C：起点脉冲（仅「全部城市」）
         reduceMotion: deps.reduceMotion,
         allMode: provinceCardsMode === 'all',
@@ -363,6 +366,7 @@ export function closeProvinceCards() {
     // 收起时把入场动画的收尾状态一并清掉：脉冲停掉、被脉冲鼓起来的标记还回基准尺寸
     provinceEntranceUntil = 0;
     stopProvinceMarkerPulse();
+    stopProvinceEntrance();
     provinceCardsItems.forEach(item => {
         const ent = deps.cityMarkerEntities()[item.ci];
         if (ent && ent.billboard && deps.focusedMarker() !== ent && ent.billboard.scale !== 1) {
@@ -586,6 +590,8 @@ function cityMarkerScreenPosition(ci) {
 
 // 连线几何见 province-card-dom.js；这里只把卡片组状态交过去
 function updateProvinceLeaderLines() {
+    // 入场帧负责把线端点贴在移动中的卡片上，结束时再统一落到精确终点。
+    if (isProvinceEntranceRunning()) return;
     drawProvinceLeaderLines(provinceCardsItems, provinceCardsActive, item => {
         // 刚被转走的这张如果正被悬停/聚焦：连同"其余线压暗"的整层状态一起还原
         if (provinceFocusItem === item) setProvinceCardFocus(item, false);

@@ -6,15 +6,23 @@
  */
 
 import { snapDevicePx } from './geometry.js';
+import {
+    applyProvinceCardBox,
+    applyProvinceLeaderGeometry,
+    assignProvinceLeaderFans,
+    provinceCardBorderPoint
+} from './province-card-dom.js';
 
 // ---- 展开动画：线到、卡到 ----
-const PROVINCE_LINE_GROW_MS = 240;    // 线从标记铺到卡片的时长
-const PROVINCE_CARD_FLY_MS = 240;     // 卡片从标记飞到落点的时长（与 CSS .prop-city-card.is-flying 一致）
-const PROVINCE_CARD_LEAD_MS = 120;    // 卡片比线晚出发一点：线先探出去，卡片再沿线滑出
+const PROVINCE_LINE_GROW_MS = 500;    // 线从标记铺到卡片的时长
+const PROVINCE_CARD_FLY_MS = 500;     // 卡片与线终点共用的入场时长
+const PROVINCE_CARD_EXIT_MS = 280;    // 卡片、连线和起点圆点共用的退场时长
+const PROVINCE_CARD_START_SCALE = 0.82;
 const PROVINCE_STAGGER_STEP_MS = 40;  // 相邻两张的错峰步长
 const PROVINCE_STAGGER_MAX_MS = 600;  // 错峰总时长上限（卡片多时自动压缩步长）
 const PROVINCE_PULSE_MS = 320;        // 起点"引爆"脉冲时长（仅「全部城市」）
 let provincePulseRaf = null;        // 起点脉冲的 rAF 句柄
+let provinceEntranceRaf = null;     // 卡片与抛物线共用的入场 rAF 句柄
 
 // ---------- 展开动画 ----------
 // 错峰顺序：单省按"到城市群中心的距离"由内向外推开；全部城市按经度西→东扫过去。
@@ -42,7 +50,7 @@ export function planProvinceEntrance(items, allMode, cityCenterOf) {
     ordered.forEach((item, index) => {
         item.staggerDelay = index * step;
         item.lineDelay = item.staggerDelay;
-        item.cardDelay = item.staggerDelay + PROVINCE_CARD_LEAD_MS;
+        item.cardDelay = item.staggerDelay;
     });
     let total = 0;
     items.forEach(item => {
@@ -64,52 +72,122 @@ function provinceEntranceKey(item, centerX, centerY, allMode, cityCenterOf) {
     return Math.hypot(item.anchor.x - centerX, item.anchor.y - centerY);
 }
 
-// 卡片入场：从自己那个城市标记的位置（略缩小）滑到布局算出的落点。
-// 先把"起点态"钉在样式上再切终点态，否则浏览器会把两帧合并、变成原地淡入。
-export function startProvinceCardsFly(items, layer, reduceMotion) {
-    const flying = [];
+function provinceEntranceEase(progress) {
+    let low = 0;
+    let high = 1;
+    // 与 CSS cubic-bezier(0.16, 1, 0.3, 1) 的横轴求逆，
+    // 保证卡片位移和抛物线端点使用完全相同的视觉进度。
+    for (let i = 0; i < 8; i++) {
+        const mid = (low + high) / 2;
+        const x = 3 * (1 - mid) * (1 - mid) * mid * 0.16 +
+            3 * (1 - mid) * mid * mid * 0.3 + mid * mid * mid;
+        if (x < progress) low = mid;
+        else high = mid;
+    }
+    const t = (low + high) / 2;
+    return 3 * (1 - t) * (1 - t) * t +
+        3 * (1 - t) * t * t + t * t * t;
+}
+
+/**
+ * 卡片与抛物线共用同一个 rAF 和进度：卡片从城市标记向外散开，
+ * 线端点每帧贴着卡片朝向标记的边框交点，不再先画到终点再等卡片追上来。
+ */
+export function startProvinceCardsFly(items, layer, reduceMotion, options = {}) {
+    const isActive = options.isActive || (() => true);
+    const onFinished = options.onFinished || (() => {});
+    stopProvinceEntrance();
+    const animated = [];
+    assignProvinceLeaderFans(items);
     items.forEach(item => {
         const el = item.el;
         if (!el) return;
         el.classList.remove('is-flying');
         el.style.transitionDelay = '';
         if (reduceMotion() || !item.anchor) {
-            // 减弱动效、或卡片对应的标记在背面：直接落到最终位置（背面那批由 is-hidden 负责隐藏）
-            el.style.transform = 'translate3d(' + Math.round(item.x) + 'px,' + Math.round(item.y) + 'px,0)';
+            applyProvinceCardBox(item);
+            el.style.transition = '';
             el.style.opacity = '';
             el.classList.add('show');
             return;
         }
+        const startX = item.anchor.x - item.w / 2;
+        const startY = item.anchor.y - item.h / 2;
         el.style.transition = 'none';
-        el.style.transform = 'translate3d(' + snapDevicePx(item.anchor.x) + 'px,' +
-            snapDevicePx(item.anchor.y) + 'px,0) scale(0.82)';
+        el.style.transform = 'translate3d(' + snapDevicePx(startX) + 'px,' +
+            snapDevicePx(startY) + 'px,0) scale(' + PROVINCE_CARD_START_SCALE + ')';
         el.style.opacity = '0';
-        flying.push(item);
+        // 错峰等待期间，零长度路径仍会被 round linecap 画成线头，先整组隐藏。
+        item.group.style.visibility = 'hidden';
+        const startEnd = provinceCardBorderPoint(
+            startX, startY,
+            item.w * PROVINCE_CARD_START_SCALE,
+            item.h * PROVINCE_CARD_START_SCALE,
+            item.anchor
+        );
+        applyProvinceLeaderGeometry(
+            item, startEnd.x, startEnd.y, item.edgeFanIndex, item.edgeFanTotal
+        );
+        animated.push({ item, startX, startY });
     });
-    if (!flying.length) return;
-    void (layer && layer.offsetWidth);   // 落一次样式计算，把起点态钉住
-    flying.forEach(item => {
-        const el = item.el;
-        el.classList.add('is-flying');
-        el.style.transition = '';
-        el.style.transitionDelay = Math.round(item.cardDelay || 0) + 'ms';
-        el.style.transform = 'translate3d(' + snapDevicePx(item.x) + 'px,' +
-            snapDevicePx(item.y) + 'px,0)';
-        el.style.opacity = '';
-        el.classList.add('show');
-    });
-    // 飞完就摘掉过渡与延迟：之后相机转动带来的重排、拖拽都要立刻跟手
+    if (!animated.length) {
+        onFinished();
+        return;
+    }
+    void (layer && layer.offsetWidth);
+    const startedAt = performance.now();
     let totalMs = 0;
-    flying.forEach(item => {
-        totalMs = Math.max(totalMs, (item.cardDelay || 0) + PROVINCE_CARD_FLY_MS);
+    animated.forEach(entry => {
+        totalMs = Math.max(totalMs, (entry.item.cardDelay || 0) + PROVINCE_CARD_FLY_MS);
     });
-    window.setTimeout(() => {
-        flying.forEach(item => {
-            if (!item.el) return;
-            item.el.style.transitionDelay = '';
-            item.el.classList.remove('is-flying');
+    const tick = now => {
+        if (!isActive()) {
+            provinceEntranceRaf = null;
+            return;
+        }
+        let pending = false;
+        animated.forEach(entry => {
+            const item = entry.item;
+            const el = item.el;
+            if (!el || !item.anchor) return;
+            const elapsed = now - startedAt - (item.cardDelay || 0);
+            const raw = Math.max(0, Math.min(1, elapsed / PROVINCE_CARD_FLY_MS));
+            if (raw < 1) pending = true;
+            item.group.style.visibility = raw > 0 ? 'visible' : 'hidden';
+            const eased = provinceEntranceEase(raw);
+            const x = entry.startX + (item.x - entry.startX) * eased;
+            const y = entry.startY + (item.y - entry.startY) * eased;
+            const scale = PROVINCE_CARD_START_SCALE +
+                (1 - PROVINCE_CARD_START_SCALE) * eased;
+            el.style.transform = 'translate3d(' + snapDevicePx(x) + 'px,' +
+                snapDevicePx(y) + 'px,0) scale(' + scale + ')';
+            el.style.opacity = String(eased);
+            item.el.style.zIndex = String(10 + (item.layoutIndex || 0));
+            const end = provinceCardBorderPoint(
+                x, y, item.w * scale, item.h * scale, item.anchor
+            );
+            applyProvinceLeaderGeometry(
+                item, end.x, end.y, item.edgeFanIndex, item.edgeFanTotal
+            );
         });
-    }, totalMs + 80);
+        if (pending && now - startedAt < totalMs + 80) {
+            provinceEntranceRaf = requestAnimationFrame(tick);
+            return;
+        }
+        provinceEntranceRaf = null;
+        animated.forEach(entry => {
+            const item = entry.item;
+            if (!item.el) return;
+            applyProvinceCardBox(item);
+            item.el.style.transition = '';
+            item.el.style.opacity = '';
+            item.el.style.transitionDelay = '';
+            item.el.classList.add('show');
+            item.group.style.visibility = '';
+        });
+        onFinished();
+    };
+    provinceEntranceRaf = requestAnimationFrame(tick);
 }
 
 // 起点"引爆"：标记在一个短脉冲里鼓一下，再回到基准尺寸。
@@ -163,50 +241,27 @@ export function stopProvinceMarkerPulse() {
     }
 }
 
-// “拉出来”的生长动画：线沿自身长度铺开；动画结束后清掉 dash，
-// 否则线随地球移动、长度变化时会出现断口。
-export function startProvinceLinesGrow(items, reduceMotion) {
-    if (reduceMotion()) return;
-    items.forEach(item => {
-        // 深色底描边必须和亮线一起铺开：只给亮线做 dash 动画的话，
-        // 底层会整条先出现（就是"先看到一条纯黑的线"），亮线再慢慢盖上去。
-        const paths = [item.pathBase, item.path].filter(Boolean);
-        const path = item.path;
-        if (!path || typeof path.getTotalLength !== 'function' || !paths.length) return;
-        let length = 0;
-        try { length = path.getTotalLength(); } catch (e) { length = 0; }
-        if (!length || !Number.isFinite(length)) return;
-        const delay = Math.round(item.lineDelay || 0);
-        paths.forEach(p => {
-            p.style.transition = 'none';
-            p.style.strokeDasharray = length + 'px';
-            p.style.strokeDashoffset = length + 'px';
-        });
-        requestAnimationFrame(() => {
-            paths.forEach(p => {
-                p.style.transition = 'stroke-dashoffset ' + (PROVINCE_LINE_GROW_MS / 1000) +
-                    's var(--fp-ease) ' + delay + 'ms';
-                p.style.strokeDashoffset = '0px';
-            });
-            window.setTimeout(() => {
-                paths.forEach(p => {
-                    p.style.transition = '';
-                    p.style.strokeDasharray = '';
-                    p.style.strokeDashoffset = '';
-                });
-            }, PROVINCE_LINE_GROW_MS + delay + 120);
-        });
-    });
+export function isProvinceEntranceRunning() {
+    return provinceEntranceRaf !== null;
+}
+
+export function stopProvinceEntrance() {
+    if (!provinceEntranceRaf) return;
+    cancelAnimationFrame(provinceEntranceRaf);
+    provinceEntranceRaf = null;
 }
 
 // 收起动画：卡片缩回自己那个标记并淡出，连线向标记端收回（dash 反着走一遍）。
 // 用世代号做守卫 —— 动画没结束就点了别的省时，不能再把新的一组清掉。
 export function animateProvinceCardsExit(items, els, isCurrentToken, hasNewItems) {
+    const duration = PROVINCE_CARD_EXIT_MS + 'ms';
+    const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
     items.forEach(item => {
         const el = item.el;
         if (el) {
             el.style.pointerEvents = 'none';   // 退场途中不再响应点击
-            el.style.transition = 'transform 200ms var(--fp-ease), opacity 200ms var(--fp-ease)';
+            el.style.transition = 'transform ' + duration + ' ' + easing +
+                ', opacity ' + duration + ' ' + easing;
             el.style.transitionDelay = '0ms';
             const backX = item.anchor ? item.anchor.x : item.x;
             const backY = item.anchor ? item.anchor.y : item.y;
@@ -214,17 +269,22 @@ export function animateProvinceCardsExit(items, els, isCurrentToken, hasNewItems
                 snapDevicePx(backY) + 'px,0) scale(0.88)';
             el.style.opacity = '0';
         }
+        // 短线仅回收 dash 几乎看不出来，整组透明度兜底保证不会卡片没了还留线头。
+        if (item.group) {
+            item.group.style.transition = 'opacity ' + duration + ' ' + easing;
+            item.group.style.opacity = '0';
+        }
         [item.pathBase, item.path].forEach(p => {
             if (!p) return;
             let len = 0;
             try { len = p.getTotalLength ? p.getTotalLength() : 0; } catch (e) { len = 0; }
             if (!len || !Number.isFinite(len)) return;
-            p.style.transition = 'stroke-dashoffset 200ms var(--fp-ease)';
+            p.style.transition = 'stroke-dashoffset ' + duration + ' ' + easing;
             p.style.strokeDasharray = len + 'px';
             p.style.strokeDashoffset = len + 'px';
         });
         if (item.dot) {
-            item.dot.style.transition = 'opacity 200ms var(--fp-ease)';
+            item.dot.style.transition = 'opacity ' + duration + ' ' + easing;
             item.dot.style.opacity = '0';
         }
     });
@@ -233,5 +293,5 @@ export function animateProvinceCardsExit(items, els, isCurrentToken, hasNewItems
         if (hasNewItems()) return;     // 双保险：层里已经有新内容，绝不碰
         if (els.layer) els.layer.innerHTML = '';
         if (els.svg) els.svg.innerHTML = '';
-    }, 320);
+    }, PROVINCE_CARD_EXIT_MS + 40);
 }

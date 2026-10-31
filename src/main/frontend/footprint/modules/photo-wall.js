@@ -248,9 +248,9 @@ export function createPhotoWallController(map) {
         } : null;
 
         const candidates = [
+            { left: margin, top: margin },
             { left: viewportWidth - width - margin, top: margin },
             { left: viewportWidth - width - margin, top: (stats?.bottom || 0) + margin },
-            { left: margin, top: margin },
             { left: viewportWidth - width - margin, top: viewportHeight - height - margin }
         ];
         const fits = candidate => candidate.left >= margin && candidate.top >= margin &&

@@ -62,8 +62,8 @@ export function wrapTicketLetterText(ctx, text, maxWidth) {
 function ticketLetterCanvas(fp, image) {
     const meta = ticketMeta(fp);
     const canvas = document.createElement('canvas');
-    canvas.width = 900;
-    canvas.height = 1280;
+    canvas.width = 1280;
+    canvas.height = 1100;
     const ctx = canvas.getContext('2d');
     // 画布不能读 CSS 变量：颜色照抄 styles/shared/tokens.css（柔光玻璃）的值，改色板时两处一起改
     const paper = '#f2f2f4';      // --fp-paper
@@ -74,48 +74,47 @@ function ticketLetterCanvas(fp, image) {
     const titleFont = '"快看世界体", "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif';
     const textFont = '"MiSans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
     ctx.fillStyle = paper;
-    ctx.fillRect(0, 0, 900, 1280);
-    // 浅灰底上一张大圆角白卡（和界面里的玻璃面板同形），不再描边
+    ctx.fillRect(0, 0, 1280, 1100);
+    // 横向画布：浅灰底上一张大圆角白卡，票根在上、正文通栏在下。
     ctx.fillStyle = raised;
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(24, 24, 852, 1232, 32);
-    else ctx.rect(24, 24, 852, 1232);
+    if (ctx.roundRect) ctx.roundRect(24, 24, 1232, 1052, 32);
+    else ctx.rect(24, 24, 1232, 1052);
     ctx.fill();
 
     ctx.fillStyle = accent;
-    ctx.font = '400 44px ' + titleFont;
+    ctx.font = '400 40px ' + titleFont;
     ctx.textAlign = 'center';
-    ctx.fillText('未寄出的明信片', 450, 112);
+    ctx.fillText('未寄出的明信片', 640, 104);
 
-    // 票根图直接贴在纸面上：不垫白卡、不加粗边框，按内容宽度铺满，
-    // 高度由图片自身比例决定；下面的正文起点跟着图高浮动，长图短图都不会顶到文字。
-    const shotX = 40;
-    const shotW = 820;
-    const shotTop = 168;
-    const shotMaxH = 520;
-    let shotBottom = shotTop + 360;
+    // 票根完整放在上方固定画幅内：用 contain 取宽高比例较小的一边，
+    // 横版、竖版和长票根都不会被裁切。
+    const shotX = 120;
+    const shotW = 1040;
+    const shotTop = 144;
+    const shotH = 480;
+    const shotBottom = shotTop + shotH;
     if (image) {
-        const scale = Math.min(shotW / image.width, shotMaxH / image.height);
+        const scale = Math.min(shotW / image.width, shotH / image.height);
         const dw = image.width * scale;
         const dh = image.height * scale;
         const dx = shotX + (shotW - dw) / 2;
-        // 照片圆角（--fp-radius-photo 在 900 宽画布上的等比值）
+        const dy = shotTop + (shotH - dh) / 2;
         ctx.save();
         if (ctx.roundRect) {
             ctx.beginPath();
-            ctx.roundRect(dx, shotTop, dw, dh, 20);
+            ctx.roundRect(dx, dy, dw, dh, 18);
             ctx.clip();
         }
-        ctx.drawImage(image, dx, shotTop, dw, dh);
+        ctx.drawImage(image, dx, dy, dw, dh);
         ctx.restore();
-        shotBottom = shotTop + dh;
     } else {
         ctx.fillStyle = paper;
-        ctx.fillRect(shotX, shotTop, shotW, shotBottom - shotTop);
+        ctx.fillRect(shotX, shotTop, shotW, shotH);
         ctx.fillStyle = muted;
         ctx.font = '400 150px ' + titleFont;
         ctx.textAlign = 'center';
-        ctx.fillText((fp.city || '?').charAt(0), 450, shotTop + 260);
+        ctx.fillText((fp.city || '?').charAt(0), 640, shotTop + 300);
     }
     // 图下小字：城市，日期，票根名
     ctx.fillStyle = muted;
@@ -123,9 +122,15 @@ function ticketLetterCanvas(fp, image) {
     ctx.textAlign = 'center';
     ctx.fillText(
         [fp.city || meta.route, meta.date, fp.name || meta.title].filter(Boolean).join('，'),
-        450,
-        shotBottom + 44
+        640,
+        shotBottom + 42
     );
+    ctx.strokeStyle = 'rgba(58,58,64,0.14)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(80, 706);
+    ctx.lineTo(1200, 706);
+    ctx.stroke();
 
     // 信件正文
     const desc = String(fp.description || '').trim();
@@ -139,21 +144,21 @@ function ticketLetterCanvas(fp, image) {
         descText + '当时没有说出口的话，都留在这张纸里了。\n' +
         '—— 一张票根，代替当时的我寄出。';
     ctx.fillStyle = ink;
-    ctx.font = '400 30px ' + titleFont;
+    ctx.font = '400 25px ' + titleFont;
     ctx.textAlign = 'left';
-    const lines = wrapTicketLetterText(ctx, letter, 760);
-    const lineHeight = 46;
-    const startY = shotBottom + 106;
-    // 正文行数按剩余高度算：图高变化时不会把落款挤出去
-    const maxLines = Math.max(4, Math.floor((1224 - startY) / lineHeight));
+    const lines = wrapTicketLetterText(ctx, letter, 1120);
+    const lineHeight = 31;
+    const startY = 748;
+    // 通栏正文按剩余高度自动限行，底部署名不会被挤出画布。
+    const maxLines = Math.max(4, Math.floor((1008 - startY) / lineHeight));
     lines.slice(0, maxLines).forEach((line, i) => {
-        ctx.fillText(line, 70, startY + i * lineHeight);
+        ctx.fillText(line, 80, startY + i * lineHeight);
     });
 
     ctx.textAlign = 'right';
     ctx.fillStyle = muted;
-    ctx.font = '24px ' + textFont;
-    ctx.fillText('旅行记忆', 852, 1245);
+    ctx.font = '26px ' + textFont;
+    ctx.fillText('旅行记忆，票根收藏', 1200, 1046);
     return canvas;
 }
 
