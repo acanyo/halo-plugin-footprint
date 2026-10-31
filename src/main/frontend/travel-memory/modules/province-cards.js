@@ -231,7 +231,11 @@ export function activateProvinceCards(adcode) {
     const info = provinceInfoByAdcode(adcode, false) || currentProvinceIndex().get(String(adcode));
     if (!info) return false;
     const cities = provinceCitiesOf(info.adcode, info.name);
-    if (!cities.length) return false;   // 无足迹的省份：什么都不做（也不关闭已打开的卡片）
+    if (!cities.length) {
+        // 点击没有足迹的省份也视作“离开当前省份”：已有卡片组时收起。
+        if (provinceCardsActive) closeProvinceCards();
+        return false;
+    }
     return activateCityCards({
         mode: 'province',
         adcode: info.adcode,

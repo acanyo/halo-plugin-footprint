@@ -183,13 +183,23 @@ export function createPhotoWallMarkup(spec, page = 0, options = resolvePhotoWall
 
     const hasPrevious = currentPage > 0;
     const hasNext = currentPage < totalPages - 1;
+    const city = String(spec.city || '').trim();
+    const address = String(spec.address || '').trim();
+    const place = [city, address]
+        .filter(Boolean)
+        .filter((value, index, list) => list.indexOf(value) === index)
+        .join('，');
+    const footprintType = String(spec.footprintType || '').trim();
     return `
         <div class="photo-wall-panel ${wallClass}" data-photo-page="${currentPage}"
              aria-label="${escapeHtml(spec.name || '足迹')}的图片墙">
             <div class="photo-wall-heading">
                 <div>
                     <span class="photo-wall-kicker">${kicker}</span>
-                    <h3>${escapeHtml(spec.name || '足迹')}</h3>
+                    <div class="photo-wall-title-row">
+                        <h3>${escapeHtml(spec.name || '足迹')}</h3>
+                        ${footprintType ? `<span class="photo-wall-type">${escapeHtml(footprintType)}</span>` : ''}
+                    </div>
                     <p class="photo-wall-description">${escapeHtml(spec.description || '')}</p>
                 </div>
                 <div class="photo-wall-heading-meta">
@@ -200,7 +210,10 @@ export function createPhotoWallMarkup(spec, page = 0, options = resolvePhotoWall
             </div>
             ${canvas}
             <div class="photo-wall-footer">
-                <span>${formatDateToYMD(spec.createTime) || '日期未记录'}</span>
+                <div class="photo-wall-footer-meta">
+                    ${place ? `<span class="photo-wall-place" title="${escapeHtml(place)}">${escapeHtml(place)}</span>` : ''}
+                    <span class="photo-wall-date">${formatDateToYMD(spec.createTime) || '日期未记录'}</span>
+                </div>
                 <div class="photo-wall-navigation">
                     <button type="button" class="photo-wall-nav" data-photo-action="previous"
                             ${hasPrevious ? '' : 'disabled'} aria-label="上一页">←</button>
@@ -224,6 +237,7 @@ export function createPhotoWallController(map) {
     let viewer = null;
     let lastWheelAt = 0;
     let lastViewerWheelAt = 0;
+    let viewerLoadToken = 0;
     let lastTrigger = null;
     let openingZoom = 12;
 
@@ -320,6 +334,7 @@ export function createPhotoWallController(map) {
     const closeViewer = ({ restoreFocus = true } = {}) => {
         if (!viewer) return;
         const trigger = lastTrigger;
+        viewerLoadToken++;
         viewer.remove();
         viewer = null;
         lastTrigger = null;
@@ -344,14 +359,34 @@ export function createPhotoWallController(map) {
         if (!viewer || !current) return;
         const images = current.images;
         const safeIndex = (index + images.length) % images.length;
+        const token = ++viewerLoadToken;
         viewer.dataset.index = String(safeIndex);
+        const stage = viewer.querySelector('.photo-wall-viewer-stage');
         const image = viewer.querySelector('.photo-wall-viewer-image');
         const count = viewer.querySelector('.photo-wall-viewer-count');
+        stage?.classList.remove('is-error');
+        stage?.classList.add('is-loading');
         if (image) {
-            image.src = originalPhotoUrl(images[safeIndex]);
+            image.removeAttribute('src');
             image.alt = `${current.spec.name || '足迹'}，第 ${safeIndex + 1} 张`;
         }
         if (count) count.textContent = `${safeIndex + 1} / ${images.length}`;
+        const source = originalPhotoUrl(images[safeIndex]);
+        const loader = new Image();
+        loader.decoding = 'async';
+        loader.onload = () => {
+            if (token !== viewerLoadToken || !viewer || !image) return;
+            image.src = source;
+            requestAnimationFrame(() => {
+                if (token === viewerLoadToken && stage) stage.classList.remove('is-loading');
+            });
+        };
+        loader.onerror = () => {
+            if (token !== viewerLoadToken || !stage) return;
+            stage.classList.remove('is-loading');
+            stage.classList.add('is-error');
+        };
+        loader.src = source;
     };
 
     const openViewer = (index, trigger) => {
@@ -366,12 +401,17 @@ export function createPhotoWallController(map) {
                     aria-label="关闭图片预览">×</button>
             <button class="photo-wall-viewer-nav is-prev" type="button" data-viewer-action="previous"
                     aria-label="上一张">‹</button>
-            <img class="photo-wall-viewer-image" alt="">
+            <div class="photo-wall-viewer-stage is-loading">
+                <span class="photo-wall-viewer-loader" aria-hidden="true"></span>
+                <img class="photo-wall-viewer-image" alt="">
+                <span class="photo-wall-viewer-error">图片加载失败</span>
+            </div>
             <button class="photo-wall-viewer-nav is-next" type="button" data-viewer-action="next"
                     aria-label="下一张">›</button>
             <span class="photo-wall-viewer-count"></span>`;
         viewer.addEventListener('click', event => {
-            if (event.target === viewer) {
+            if (event.target === viewer ||
+                event.target.classList?.contains('photo-wall-viewer-stage')) {
                 closeViewer();
                 return;
             }
