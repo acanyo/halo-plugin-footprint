@@ -159,11 +159,13 @@ if (want('globeLabels')) {
     await waitFor('!!window.FootprintMemoryData && !!window.__fpScene');
     await sleep(2500);
     await ev(`(() => { const b = document.getElementById('rotateBtn'); if (b && b.classList.contains('active')) b.click(); })()`);
-    // 关闭 / 只城市：停在城市聚合层（华中一带，城市名最多）；城市 + 足迹：拉近到江浙沪，足迹点展开
-    const view = v === 'all' ? [120.2, 30.3, 150000] : [113.5, 30.5, 2700000];
+    // 关闭 / 只城市：停在城市聚合层（华中一带，城市名最多）；城市 + 足迹：拉近到江浙沪，足迹点展开。
+    // 裁一块 400×300 的原尺寸区域（不缩小）：效果图只有 400px 宽，裁大了再缩，12px 的地名会糊成看不清的小点，
+    // 「关闭」和「只城市」两张就看不出区别
+    const view = v === 'all' ? [120.2, 30.3, 150000] : [113.5, 30.5, 2000000];
     await ev(`window.__fpScene.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(${view.join(',')}) })`);
     await sleep(5000);
-    await shot(`globe-labels-${v}`, { x: 360, y: 150, width: 720, height: 540 });
+    await shot(`globe-labels-${v}`, { x: W / 2 - 200, y: H / 2 - 150, width: 400, height: 300 });
   }
 }
 if (want('ticketGalleryStyle')) {
