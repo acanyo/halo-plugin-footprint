@@ -605,13 +605,13 @@
     <div id="pageIntro">
         <h1 class="intro-title">旅行记忆</h1>
         <p class="intro-desc"></p>
-        <!-- 记录：一行一项，标签在左、数据在右；数据来自足迹，由 updateIntroStats 填写 -->
-        <dl class="intro-log">
-            <div><dt>足迹</dt><dd><span id="introTotal">0</span> 条</dd></div>
-            <div><dt>城市</dt><dd><span id="introCities">0</span> 座</dd></div>
-            <div id="introSpanRow" hidden><dt>记录</dt><dd id="introSpan"></dd></div>
-            <div id="introExtentRow" hidden><dt>最北</dt><dd id="introExtent"></dd></div>
-        </dl>
+        <!-- 两个大数字并排，下面两行小字；数据来自足迹，由 updateIntroStats 填写 -->
+        <div class="intro-figures">
+            <p><span id="introTotal">0</span>条足迹</p>
+            <p><span id="introCities">0</span>座城市</p>
+        </div>
+        <p class="intro-fact" id="introSpanRow" hidden><span id="introSpan"></span></p>
+        <p class="intro-fact" id="introExtentRow" hidden>最北到过 <span id="introExtent"></span></p>
         <p class="intro-hint">拖动地球查看，点一个城市展开</p>
     </div>
 
