@@ -9,10 +9,10 @@ spec:
   enabled: true
   requires: ">=2.27.0"
   author:
-    name: Handsome
-    website: https://www.lik.cc/
+    name: Handsome&云端
+    website: https://www.xhhao.com/
   logo: logo.svg
-  homepage: https://www.lik.cc/
+  homepage: https://www.xhhao.com/
   repo: https://github.com/acanyo/halo-plugin-footprint
   issues: https://github.com/acanyo/halo-plugin-footprint/issues
   settingName: plugin-footprint-settings

@@ -2,7 +2,12 @@
 
 > Halo 足迹插件：把去过的地方放到一颗 3D 地球上，也能切回 2D 高德地图，按时间回看。
 
-[演示站](https://www.lik.cc/footprints) · [在线文档](https://www.lik.cc/docs/halo-plugins) · [GitHub](https://github.com/acanyo/halo-plugin-footprint)
+## 演示与交流
+
+- **演示站**：[xhhao.com/footprints](https://www.xhhao.com/footprints)（Handsome）、[yunduan019.com/footprints](https://www.yunduan019.com/footprints)（云端）
+- **文档**：[docs.lik.cc](https://docs.lik.cc/)
+- **源码**：[GitHub](https://github.com/acanyo/halo-plugin-footprint)
+- **QQ 交流群**：[![QQ群](https://www.xhhao.com/upload/iShot_2025-03-03_16.03.00.png)](https://www.xhhao.com/upload/iShot_2025-03-03_16.03.00.png)
 
 ![3D 地球首页](.github/readme/globe.webp)
 
@@ -269,14 +274,17 @@ tools                        构建检查与截图脚本
 
 [GPL-3.0](./LICENSE)
 
-## 贡献者
+## 作者
+
+- **开发者**：Handsome，[xhhao.com](https://www.xhhao.com/)
+- **核心贡献者**：云端，[yunduan019.com](https://www.yunduan019.com/)
+
+3D 地球、足迹照片环、省份城市卡片与连线、仪表盘足迹统计小组件等功能来自云端
+（[@yunDuan-G](https://github.com/yunDuan-G)）的 [fork](https://github.com/yunDuan-G/halo-plugin-footprint)，已合入本仓库。
 
 <a href="https://github.com/acanyo/halo-plugin-footprint/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=acanyo/halo-plugin-footprint" alt="贡献者" />
 </a>
-
-3D 地球、足迹照片环、省份城市卡片与连线、仪表盘足迹统计小组件等功能来自
-[@yunDuan-G](https://github.com/yunDuan-G) 的 [fork](https://github.com/yunDuan-G/halo-plugin-footprint)，已合入本仓库。
 
 ## 鸣谢
 
