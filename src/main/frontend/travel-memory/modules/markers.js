@@ -6,6 +6,7 @@
  * 其余几块拆在旁边：
  *   - marker-icons.js         图标尺寸与 SVG 图块；
  *   - marker-visibility.js    背面遮挡与地名标签避让（每帧入口仍在这里）；
+ *   - marker-merge.js         整球视野下挨得太近的城市圆点合并（分组算法）；
  *   - marker-detail-card.js   足迹卡与城市聚合卡；
  *   - marker-input.js         指针拾取：悬停、点击、点空白逐级退。
  *
@@ -42,9 +43,11 @@ import {
     resetMarkerLabelLayout,
     forgetMarkerLabel,
     updateMarkerOcclusion,
+    facesCamera,
     layoutMarkerLabels,
     prewarmLabelGlyphs
 } from './marker-visibility.js';
+import { mergeNearbyPoints, summarizeGroups } from './marker-merge.js';
 
 let deps = null;
 
@@ -90,6 +93,130 @@ const markerLift = new Map();             // 下标 -> 渲染抬高米数（自�
 
 let markerEntities = [];
 let currentPositions = [];
+
+// ================= 城市圆点合并 =================
+// 两个城市圆心在屏幕上近于 CITY_MERGE_RADIUS 就并成一个点（圆点直径 40px，留一点缝）。
+// 合并只改「显示」：代表城市的圆点换成全组的数字，其余城市藏起来；
+// cityList / 实体下标都不变，城市卡、城记、省份卡片照旧按城市取数。
+const CITY_MERGE_RADIUS = CITY_MARKER_SIZE * 0.95;
+let cityMergeOwner = [];          // 城市下标 -> 代表城市下标（-1 = 此刻不可见）
+let cityMergeGroups = new Map();  // 代表下标 -> { count, members }
+const cityMergedAway = new Set(); // 被并进别处、此刻藏起来的城市实体
+const cityShownCount = new Map(); // 城市实体 -> 圆点上此刻写的数字（只在变化时换图）
+const mergeScreen = new Cesium.Cartesian2();
+
+// 按当前相机重算分组。只在聚合态、3D 视图下合并；其余情况一律拆开
+function updateCityMerge() {
+    const viewer = deps.viewer();
+    // 省份卡片开着时不合并：每张卡片都有一条引线连到自己的城市圆点，圆点不能被藏掉
+    const mergeOn = cityMode && viewer.scene.mode === Cesium.SceneMode.SCENE3D && !isProvinceCardsActive();
+    const now = Cesium.JulianDate.now();
+    const cam = viewer.camera.positionWC;
+    const points = cityMarkerEntities.map((ent, ci) => {
+        if (!mergeOn || !ent || !ent.position) return null;
+        const p = ent.position.getValue(now);
+        if (!p || !facesCamera(cam, p)) return null;
+        const sp = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, p, mergeScreen);
+        if (!sp) return null;
+        return { x: sp.x, y: sp.y, count: cityList[ci] ? cityList[ci].indices.length : 0 };
+    });
+    cityMergeOwner = mergeNearbyPoints(points, CITY_MERGE_RADIUS, cityMergeOwner.length === points.length ? cityMergeOwner : null);
+    cityMergeGroups = summarizeGroups(points, cityMergeOwner);
+    let changed = false;
+    cityMarkerEntities.forEach((ent, ci) => {
+        const lead = cityMergeOwner[ci];
+        const away = lead >= 0 && lead !== ci;
+        if (away !== cityMergedAway.has(ent)) {
+            changed = true;
+            if (away) cityMergedAway.add(ent);
+            else cityMergedAway.delete(ent);
+        }
+        // 代表写全组合计；落单的、不可见的都写自己的数
+        const group = cityMergeGroups.get(ci);
+        const count = group ? group.count : (cityList[ci] ? cityList[ci].indices.length : 0);
+        if (cityShownCount.get(ent) !== count && ent.billboard) {
+            cityShownCount.set(ent, count);
+            ent.billboard.image = cityMarkerUrl(count);
+        }
+    });
+    if (changed) markerLabelDirty = true;
+    return changed;
+}
+
+/** 城市 ci 此刻是否代表一组（并进了别的城市）；用于悬停文案和点击。 */
+export function cityMergeGroupOf(ci) {
+    const group = cityMergeGroups.get(ci);
+    return group && group.members.length > 1 ? group : null;
+}
+
+// 一组的名字取组里足迹最多、且有城市名的那座（没填城市的足迹归在「未分类」，不拿它当名字）
+function cityGroupName(group) {
+    const named = group.members
+        .filter(i => cityList[i] && cityList[i].city && cityList[i].city !== '未分类')
+        .sort((a, b) => cityList[b].indices.length - cityList[a].indices.length);
+    return named.length ? cityList[named[0]].city : '';
+}
+
+// 城市标签：代表一组时写「南京等 3 座城」
+function cityLabelText(ci) {
+    const city = cityList[ci];
+    if (!city) return '';
+    const group = cityMergeGroupOf(ci);
+    if (!group) return city.city;
+    const name = cityGroupName(group);
+    return name ? name + '等 ' + group.members.length + ' 座城' : group.members.length + ' 座城';
+}
+
+/** 悬停 / 键盘聚焦时的文案：合并的点写成「南京等 3 座城，12 条足迹」。 */
+export function cityTipText(ci) {
+    const city = cityList[ci];
+    if (!city) return '';
+    const group = cityMergeGroupOf(ci);
+    return group
+        ? cityLabelText(ci) + '，' + group.count + ' 条足迹'
+        : city.city + '，' + city.indices.length + ' 条足迹';
+}
+
+/**
+ * 点了一个合并的点：飞近到这组城市能分开的高度，不打开城市卡，返回 true。
+ * 屏幕距离大致和相机高度成反比：要让最近的两城拉开到 1.5 个合并半径，
+ * 高度就乘上「现在的距离 / 想要的距离」；每次至少降到 0.6 倍，
+ * 但不低于聚合阈值上方一点（再低就直接展开成单个足迹了）。
+ * 已经降到那个高度还分不开（两城本来就挨着）时返回 false，由调用方打开城市卡。
+ */
+const CITY_GROUP_FLOOR_HEIGHT = CITY_COLLAPSE_HEIGHT * 1.05;
+export function flyToCityGroup(ci) {
+    const group = cityMergeGroupOf(ci);
+    if (!group) return false;
+    const viewer = deps.viewer();
+    const height = viewer.camera.positionCartographic.height;
+    if (height <= CITY_GROUP_FLOOR_HEIGHT * 1.1) return false;
+    const now = Cesium.JulianDate.now();
+    const pts = group.members.map(i => {
+        const p = cityMarkerEntities[i] && cityMarkerEntities[i].position && cityMarkerEntities[i].position.getValue(now);
+        return p ? Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, p, new Cesium.Cartesian2()) : null;
+    }).filter(Boolean);
+    let minGap = Infinity;
+    for (let a = 0; a < pts.length; a++) {
+        for (let b = a + 1; b < pts.length; b++) {
+            minGap = Math.min(minGap, Math.hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y));
+        }
+    }
+    const ratio = Number.isFinite(minGap) ? Math.min(0.6, minGap / (CITY_MERGE_RADIUS * 1.5)) : 0.6;
+    const target = Math.max(CITY_GROUP_FLOOR_HEIGHT, height * ratio);
+    let lng = 0, lat = 0, n = 0;
+    group.members.forEach(i => {
+        const c = cityList[i] && cityCenter(cityList[i]);
+        if (c) { lng += c.lng; lat += c.lat; n++; }
+    });
+    if (!n) return false;
+    hideMarkerTip();
+    viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(lng / n, lat / n, target),
+        duration: deps.reduceMotion() ? 0 : 1.2
+    });
+    return true;
+}
 
 // 标记悬停气泡与键盘焦点层（提前声明：applyMarkerMode 初始化时就会用到）
 export const markerTip = document.getElementById('markerTip');
@@ -226,6 +353,10 @@ export function buildCityMarkers() {
     });
     cityMarkerEntities.forEach(ent => deps.viewer().entities.remove(ent));
     resetMarkerLabelLayout();
+    cityMergeOwner = [];
+    cityMergeGroups = new Map();
+    cityMergedAway.clear();
+    cityShownCount.clear();
     cityMarkerEntities = cityList.map(city => {
         const center = cityCenter(city);
         return deps.viewer().entities.add({
@@ -241,6 +372,7 @@ export function buildCityMarkers() {
             label: markerLabelGraphics(city.city, CITY_MARKER_SIZE)
         });
     });
+    cityMarkerEntities.forEach((ent, ci) => cityShownCount.set(ent, cityList[ci].indices.length));
 }
 
 // 切换 城市聚合 / 展开单个足迹 模式
@@ -606,7 +738,14 @@ function updateMarkerTipPosition() {
 // 相机静止又没有模式变化时整段跳过。
 function updateMarkerOverlays() {
     // 遮挡与标签布局的实现见 marker-visibility.js；遮挡重算后脏标记一律清掉（与拆分前一致）
-    const cameraMoved = updateMarkerOcclusion(markerOcclusionDirty, deps.viewer, cityMode, cityMarkerEntities, markerEntities);
+    // 合并要在遮挡判定之前算：遮挡判定按它决定哪些城市藏起来。
+    // 合并跟着相机变，相机没动时上一帧的结果仍然成立，所以和遮挡共用同一个「要不要重算」的判断
+    const provinceActive = isProvinceCardsActive();
+    if (markerOcclusionDirty || cameraChangedSinceMerge() || provinceActive !== mergeProvinceActive) {
+        mergeProvinceActive = provinceActive;
+        if (updateCityMerge()) markerOcclusionDirty = true;
+    }
+    const cameraMoved = updateMarkerOcclusion(markerOcclusionDirty, deps.viewer, cityMode, cityMarkerEntities, markerEntities, cityMergedAway);
     markerOcclusionDirty = false;
     if (!cameraMoved && !markerLabelDirty) return;
     markerLabelDirty = false;
@@ -618,7 +757,8 @@ function updateMarkerOverlays() {
         cityMode: cityMode,
         cityEntities: cityMarkerEntities,
         markerEntities: markerEntities,
-        cityList: cityList
+        cityList: cityList,
+        cityLabelOf: cityLabelText
     });
     if (pendingMarkerAudit) {
         pendingMarkerAudit = false;
@@ -626,7 +766,22 @@ function updateMarkerOverlays() {
     }
 }
 // 窗口尺寸变化后标签要重排（视口边界变了，但相机没动，光靠相机变化判定不会触发）
-window.addEventListener('resize', () => { markerLabelDirty = true; });
+window.addEventListener('resize', () => { markerLabelDirty = true; markerOcclusionDirty = true; });
+
+// 合并用的「相机动过没有」：与遮挡判定各记各的（遮挡那份在 marker-visibility.js 里，读不到）
+let mergeProvinceActive = false;
+const mergeCamPos = new Cesium.Cartesian3();
+const mergeCamDir = new Cesium.Cartesian3();
+function cameraChangedSinceMerge() {
+    const camera = deps.viewer().camera;
+    if (Cesium.Cartesian3.equalsEpsilon(camera.positionWC, mergeCamPos, Cesium.Math.EPSILON6) &&
+        Cesium.Cartesian3.equalsEpsilon(camera.directionWC, mergeCamDir, Cesium.Math.EPSILON6)) {
+        return false;
+    }
+    Cesium.Cartesian3.clone(camera.positionWC, mergeCamPos);
+    Cesium.Cartesian3.clone(camera.directionWC, mergeCamDir);
+    return true;
+}
 
 // 单个足迹的悬停文案：名称 · 城市（无城市则只显示名称）
 export function footprintTipText(fp) {
@@ -654,11 +809,10 @@ function buildMarkerFocusButtons() {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'marker-focus-btn';
-            const label = city.city + '，' + city.indices.length + ' 条足迹';
-            btn.textContent = '查看' + label;
+            btn.textContent = '查看' + city.city + '，' + city.indices.length + ' 条足迹';
             btn.addEventListener('focus', () => {
                 if (bounceFocusIntoPhotoRing()) return;
-                showMarkerTip(cityMarkerEntities[ci], label);
+                showMarkerTip(cityMarkerEntities[ci], city.city + '，' + city.indices.length + ' 条足迹');
             });
             btn.addEventListener('blur', hideMarkerTip);
             btn.addEventListener('click', (e) => {

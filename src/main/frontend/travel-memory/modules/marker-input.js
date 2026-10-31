@@ -26,11 +26,12 @@ import { MARKER_SIZE, CITY_MARKER_SIZE } from './marker-icons.js';
 import {
     markerEntityList,
     cityMarkerEntityList,
-    cityListSnapshot,
     showMarkerTip,
     hideMarkerTip,
     claimHoveredMarkerKey,
-    footprintTipText
+    footprintTipText,
+    cityTipText,
+    flyToCityGroup
 } from './markers.js';
 import {
     markerCard,
@@ -69,7 +70,7 @@ function findPickedMarker(picked) {
     return null;
 }
 
-// 悬停：足迹显示名称，城市显示「城市 · N 个足迹」
+// 悬停：足迹显示名称，城市显示「城市，N 条足迹」（几座城并成一个点时写「南京等 3 座城，12 条足迹」）
 //
 // 不用 scene.pick：它每次都要额外渲染一遍拾取帧再同步 readPixels，GPU 管线会停下来等。
 // 鼠标移动事件一秒能来上百次，拖动地球时尤其密集——实测拖拽期间主线程有 4.5 秒耗在这里，
@@ -126,8 +127,7 @@ export function initMarkersInput() {
         if (found && found.type === 'footprint') {
             showMarkerTip(markerEntityList()[found.index], footprintTipText(deps.footprints()[found.index]));
         } else if (found && found.type === 'city') {
-            const city = cityListSnapshot()[found.index];
-            showMarkerTip(cityMarkerEntityList()[found.index], city.city + '，' + city.indices.length + ' 条足迹');
+            showMarkerTip(cityMarkerEntityList()[found.index], cityTipText(found.index));
         } else {
             hideMarkerTip();
         }
@@ -158,6 +158,8 @@ export function initMarkersInput() {
         }
         if (found && found.type === 'city') {
             hidePhotoRing();
+            // 几座城并成的一个点：先飞近让它们分开，再由用户点具体哪座
+            if (flyToCityGroup(found.index)) return;
             showCityCard(found.index);
             return;
         }

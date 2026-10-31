@@ -126,15 +126,23 @@ const occNormal = new Cesium.Cartesian3();
 const occToCam = new Cesium.Cartesian3();
 const occCamPos = new Cesium.Cartesian3();
 const occCamDir = new Cesium.Cartesian3();
+
+/** 球面上的点 p 是否在相机这一侧（没越过地平线）。只在 3D 视图下有意义。 */
+export function facesCamera(cameraPositionWC, p) {
+    Cesium.Cartesian3.normalize(p, occNormal);
+    Cesium.Cartesian3.subtract(cameraPositionWC, p, occToCam);
+    return Cesium.Cartesian3.dot(occNormal, occToCam) > 0;
+}
 /**
  * @param force          标记位置 / 模式变过（markers.js 的 markerOcclusionDirty）：即使相机没动也要重算
  * @param viewer         () => Cesium.Viewer
  * @param cityMode       当前是否城市聚合态
  * @param cityEntities   城市标记实体
  * @param markerEntities 足迹标记实体
+ * @param mergedAway     被并进旁边城市、此刻要藏起来的城市实体（Set，见 markers.js 的城市圆点合并）
  * @returns 是否重算了（相机动过或被强制）；标签布局据此决定要不要重排
  */
-export function updateMarkerOcclusion(force, viewer, cityMode, cityEntities, markerEntities) {
+export function updateMarkerOcclusion(force, viewer, cityMode, cityEntities, markerEntities, mergedAway) {
     const camera = viewer().camera;
     if (!force &&
         Cesium.Cartesian3.equalsEpsilon(camera.positionWC, occCamPos, Cesium.Math.EPSILON6) &&
@@ -162,12 +170,10 @@ export function updateMarkerOcclusion(force, viewer, cityMode, cityEntities, mar
             if (ent.show !== true) ent.show = true;
             return;
         }
-        Cesium.Cartesian3.normalize(p, occNormal);
-        Cesium.Cartesian3.subtract(cam, p, occToCam);
-        const visible = Cesium.Cartesian3.dot(occNormal, occToCam) > 0;   // 越过地平线即隐藏
+        const visible = facesCamera(cam, p);   // 越过地平线即隐藏
         if (ent.show !== visible) ent.show = visible;
     }
-    cityEntities.forEach(ent => setVisible(ent, cityMode));
+    cityEntities.forEach(ent => setVisible(ent, cityMode && !(mergedAway && mergedAway.has(ent))));
     markerEntities.forEach(ent => setVisible(ent, !cityMode));
     return true;
 }
@@ -203,9 +209,10 @@ function placeEntityLabel(ent, x, y) {
  * 一次标签避让布局。
  * @param ctx.viewer / ctx.footprints / ctx.boundaryVisible / ctx.cityLabelVisible  取值函数
  * @param ctx.cityMode / ctx.cityEntities / ctx.markerEntities / ctx.cityList       当前标记状态
+ * @param ctx.cityLabelOf  (i) => string  城市标签此刻的文字（合并后代表城市写「南京等 3 座城」）
  */
 export function layoutMarkerLabels(ctx) {
-    const { viewer, footprints, boundaryVisible, cityLabelVisible, cityMode, cityEntities, markerEntities, cityList } = ctx;
+    const { viewer, footprints, boundaryVisible, cityLabelVisible, cityMode, cityEntities, markerEntities, cityList, cityLabelOf } = ctx;
     if (globeLabelMode === 'off') return;
     // 谁该有标签：城市名只在「聚合态 + 自动显示中国轮廓」的层级出现
     // （整球视图画面保持干净），足迹名只在展开态出现。
@@ -254,7 +261,7 @@ export function layoutMarkerLabels(ctx) {
     }
     if (cityLabelsOn) {
         collect(cityEntities, CITY_MARKER_SIZE,
-            i => (cityList[i] ? cityList[i].city : ''),
+            cityLabelOf || (i => (cityList[i] ? cityList[i].city : '')),
             i => (cityList[i] && cityList[i].indices ? cityList[i].indices.length : 1));
     } else if (footprintLabelsOn) {
         collect(markerEntities, MARKER_SIZE, i => (footprints()[i] ? footprints()[i].name : ''), null);
