@@ -1,9 +1,7 @@
 /**
  * 标记点与信息窗口的 HTML 内容。
  *
- * createMarker 生成高德 Marker 的 DOM；createInfoWindow 生成无图片墙足迹的信息卡。
- * createInfoRows / createArticleLink 是信息卡和图片墙共用的两段（信息行、「查看文章」），
- * 两种弹窗因此同一套标题、信息行和按钮，样式见 styles/footprint/popup-shared.css。
+ * createMarker 生成高德 Marker 的 DOM；createInfoWindow 生成点开标记后的信息卡（2D 只有这一种弹窗）。
  * SVG_ICONS 也被时间线卡片的位置图标使用。
  *
  * 标记点的四种样式（后台「标记点样式」）共用同一份 DOM，只靠 body 上的 marker-style-* 类换外形，
@@ -12,13 +10,22 @@
 
 import { getCachedImage, processFootprintImageUrl } from './footprint-data.js';
 import { escapeHtml, formatDateToYMD } from './format.js';
-import { normalizeGalleryImages } from './photo-wall.js';
 
-// 标记点用哪张图：封面，没有封面用图片墙第一张；都没有返回空串，由调用方画首字
-const getMarkerImageSource = (spec) => {
+// 图片墙图片按「显示顺序」排好，只取 URL。后台存的是 {url, order}，老数据可能是纯字符串
+const getGalleryUrls = (images) => {
+    if (!Array.isArray(images)) return [];
+    return images.map((item, index) => {
+        if (typeof item === 'string') return {url: item, order: index + 1};
+        const order = Number(item?.order);
+        return {url: item?.url || item?.src || '', order: Number.isFinite(order) ? order : index + 1};
+    }).filter(item => item.url).sort((a, b) => a.order - b.order).map(item => item.url);
+};
+
+// 足迹用哪张图：封面，没有封面用图片墙第一张；都没有返回空串（标记画首字，信息卡用占位图）
+const getFootprintImageSource = (spec) => {
     const cover = String(spec.image || '').trim();
     if (cover) return cover;
-    return normalizeGalleryImages(spec.galleryImages)[0] || '';
+    return getGalleryUrls(spec.galleryImages)[0] || '';
 };
 
 // 没有图时的占位：足迹名的第一个字
@@ -36,7 +43,7 @@ export const createMarker = (spec) => {
     markerContent.className = 'custom-marker';
 
     const name = spec.name || '';
-    const imageSource = getMarkerImageSource(spec);
+    const imageSource = getFootprintImageSource(spec);
     // 标记点图片：按后台“标记点”规则压缩，未配置时使用原 URL
     const imageHtml = imageSource
         ? `<img src="${escapeHtml(processFootprintImageUrl(imageSource, 'marker'))}" alt="${escapeHtml(name || '足迹标记')}" decoding="async">`
@@ -95,43 +102,22 @@ export const SVG_ICONS = {
     </svg>`
 };
 
-/**
- * 信息行：地址、城市、类型、日期，每行一个图标。空的项不出；地址缺省写「未知位置」。
- * 信息卡里竖排，图片墙标题下横排（排法由外层类名决定，这里只出列表）。
- */
-export const createInfoRows = (spec, className = '') => {
-    const {address = '', city = '', footprintType = '', createTime = ''} = spec;
-    const row = (icon, text) => text
-        ? `<li class="popup-meta-row">${icon}<span>${escapeHtml(String(text))}</span></li>`
-        : '';
-    return `
-        <ul class="popup-meta${className ? ' ' + className : ''}">
-            ${row(SVG_ICONS.location, address || '未知位置')}
-            ${row(SVG_ICONS.city, city)}
-            ${row(SVG_ICONS.type, footprintType)}
-            ${row(SVG_ICONS.date, formatDateToYMD(createTime))}
-        </ul>`;
-};
-
-/**
- * 「查看文章」按钮：有关联文章才出。
- * 后台既能选站内文章（存的是 /archives/xxx），也能填外链；没写协议的外链（www.xxx）补上 https://，
- * 否则浏览器会把它当成本站的相对路径。
- */
-export const createArticleLink = (article) => {
-    const raw = String(article || '').trim();
-    if (!raw) return '';
-    const href = /^(https?:)?\/\//i.test(raw) || raw.startsWith('/') ? raw : 'https://' + raw;
-    return `
-        <a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="popup-article-btn">
-            ${SVG_ICONS.article}
-            <span>查看文章</span>
-        </a>`;
-};
-
 export function createInfoWindow(spec) {
-    const {image = '', name = '', description = '', article = ''} = spec;
-    const processed = processFootprintImageUrl(image, 'timeline');
+    const {
+        name = '',
+        footprintType = '',
+        createTime = '',
+        address = '',
+        city = '',
+        description = '',
+        article = ''
+    } = spec;
+
+    const row = (icon, text) => text
+        ? `<li class="info-window-row">${icon}<span>${escapeHtml(String(text))}</span></li>`
+        : '';
+
+    const processed = processFootprintImageUrl(getFootprintImageSource(spec), 'timeline');
     const cachedImage = getCachedImage(processed);
 
     return `
@@ -142,9 +128,30 @@ export function createInfoWindow(spec) {
             <div class="image-info">
                 <h3 class="title">${escapeHtml(name)}</h3>
                 ${description ? `<p class="description">${escapeHtml(description)}</p>` : ''}
-                ${createInfoRows(spec)}
+                <ul class="info-window-rows">
+                    ${row(SVG_ICONS.location, address || '未知位置')}
+                    ${row(SVG_ICONS.city, city)}
+                    ${row(SVG_ICONS.type, footprintType)}
+                    ${row(SVG_ICONS.date, formatDateToYMD(createTime))}
+                </ul>
                 ${createArticleLink(article)}
             </div>
         </div>
     `;
 }
+
+/**
+ * 「查看文章」：有关联文章才出。
+ * 后台既能选站内文章（存的是 /archives/xxx），也能填外链；没写协议的外链（www.xxx）补上 https://，
+ * 否则浏览器会把它当成本站的相对路径。
+ */
+const createArticleLink = (article) => {
+    const raw = String(article || '').trim();
+    if (!raw) return '';
+    const href = /^(https?:)?\/\//i.test(raw) || raw.startsWith('/') ? raw : 'https://' + raw;
+    return `
+        <a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="article-btn">
+            ${SVG_ICONS.article}
+            <span>查看文章</span>
+        </a>`;
+};

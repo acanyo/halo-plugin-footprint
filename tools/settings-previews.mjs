@@ -10,7 +10,7 @@
  *
  * 用法（开发实例跑着时，在仓库根）：
  *   node tools/settings-previews.mjs [http://localhost:8092]
- * 只重做某几项：ONLY=photoWallStyle,markerStyle node tools/settings-previews.mjs
+ * 只重做某几项：ONLY=markerStyle,highlightScheme node tools/settings-previews.mjs
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -110,24 +110,6 @@ const to2D = async () => {
   await waitFor(`document.querySelectorAll('.amap-marker').length > 3`, 20000);
   await sleep(3500);
 };
-// 2D 页：点一条图片墙图片最多、且标记此刻露在屏幕中部的足迹，等图片墙铺开。
-// 全国视野下有的标记会被聚合 / 遮住（不可见），所以只在看得见的标记里挑；没打开就报错，不存一张空地图。
-const openRichest2D = async () => {
-  const t = await ev(`(() => {
-    const counts = new Map((window.FOOTPRINT_CONFIG.footprints || []).map(f => [f.spec.name, (f.spec.galleryImages || []).length]));
-    const ms = [...document.querySelectorAll('.amap-marker')].map(m => ({ m, r: m.getBoundingClientRect(), t: m.textContent.replace(/\\s+/g, '') }))
-      .filter(o => o.r.width > 8 && o.r.x > 300 && o.r.x < innerWidth - 300 && o.r.y > 200 && o.r.y < innerHeight - 150
-        && getComputedStyle(o.m).visibility !== 'hidden' && +getComputedStyle(o.m).opacity > 0.5)
-      .map(o => ({ ...o, n: Math.max(0, ...[...counts].filter(([name]) => o.t.startsWith(name)).map(([, n]) => n)) }))
-      .filter(o => o.n > 0).sort((a, b) => b.n - a.n);
-    const o = ms[0];
-    return o && { x: o.r.x + o.r.width / 2, y: o.r.y + o.r.height / 2 };
-  })()`);
-  if (!t) throw new Error('2D 页上没有露出来的带图片墙的标记');
-  await click(t.x, t.y);
-  if (!await waitFor(`!!document.querySelector('.photo-wall-window .photo-wall-window')`, 8000)) throw new Error('点了标记，图片墙没打开');
-  await sleep(1200);
-};
 const want = (k) => !ONLY.length || ONLY.includes(k);
 // 2D 页：在某个城市的标记上滚轮放大几格，让标记散开（全国视野下标记会叠成一团）
 // 效果图只要地图和标记：把 2D 页的控制栏、统计、标题收起来
@@ -140,31 +122,6 @@ async function zoomTo2D(name) {
     await sleep(260);
   }
   await sleep(2600);
-}
-// 以 box 为中心裁一块 4:3，四周至少留 pad，超出视口时贴边
-function fourByThree(box, pad) {
-  let w = Math.max(box.width + pad * 2, (box.height + pad * 2) * 4 / 3);
-  let h = w * 3 / 4;
-  if (h > H) { h = H; w = h * 4 / 3; }
-  if (w > W) { w = W; h = w * 3 / 4; }
-  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
-  return { x: Math.max(0, Math.min(W - w, cx - w / 2)), y: Math.max(0, Math.min(H - h, cy - h / 2)), width: Math.round(w), height: Math.round(h) };
-}
-
-if (want('photoWallStyle')) {
-  console.log('photoWallStyle');
-  for (const v of ['original', 'gallery', 'filmstrip', 'journal', 'focus']) {
-    await open({ photoWallStyle: v });
-    await to2D();
-    await openRichest2D();
-    // 外层负责定位、里层带各排法自己的尺寸：取两者的并集，面板不会被裁掉一截
-    const box = await ev(`(() => { const els = [...document.querySelectorAll('.photo-wall-window')]; if (!els.length) return null;
-      const rs = els.map(e => e.getBoundingClientRect()).filter(r => r.width > 0);
-      const x1 = Math.min(...rs.map(r => r.left)), y1 = Math.min(...rs.map(r => r.top)), x2 = Math.max(...rs.map(r => r.right)), y2 = Math.max(...rs.map(r => r.bottom));
-      return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 }; })()`);
-    // 五种排法的面板大小不一：统一裁成 4:3，面板居中，设置页里五张图才排得齐
-    await shot(`photo-wall-${v}`, fourByThree(box || { x: 760, y: 120, width: 560, height: 420 }, 40));
-  }
 }
 if (want('markerStyle')) {
   console.log('markerStyle');

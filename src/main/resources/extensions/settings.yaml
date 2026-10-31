@@ -41,38 +41,6 @@ spec:
           name: highlightVisitedCities
           value: true
           help: "使用主题色显示已经去过的城市区域"
-        - $formkit: number
-          label: 图片墙单页展示数量
-          name: photoWallPageSize
-          value: 6
-          min: 1
-          max: 12
-          step: 1
-          validation: required|number|between:1,12
-          help: "每个足迹图片墙单页最多展示的图片数量，超出后可使用左右箭头翻页(1-12)"
-        - $formkit: toggle
-          label: 图片墙样式
-          name: photoWallStyle
-          renderType: image
-          size: 84
-          value: original
-          options:
-            - label: 经典方案
-              value: original
-              render: /plugins/footprint/assets/static/img/settings/photo-wall-original.webp
-            - label: 地图侧边展开式画廊
-              value: gallery
-              render: /plugins/footprint/assets/static/img/settings/photo-wall-gallery.webp
-            - label: 胶片带模式
-              value: filmstrip
-              render: /plugins/footprint/assets/static/img/settings/photo-wall-filmstrip.webp
-            - label: 旅行手账模式
-              value: journal
-              render: /plugins/footprint/assets/static/img/settings/photo-wall-journal.webp
-            - label: 聚焦式照片墙
-              value: focus
-              render: /plugins/footprint/assets/static/img/settings/photo-wall-focus.webp
-          help: "2D 地图上点开一条足迹时的弹窗样式，只对填了「图片墙图片」的足迹生效；没填图片墙的足迹弹出的是一张信息卡，不受这里影响。手机上一律用胶片带，「地图侧边展开式画廊」固定每页 8 张"
         - $formkit: secret
           label: 高德 Js Key
           name: gaoDeKeySecretName

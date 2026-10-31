@@ -220,6 +220,13 @@
     display: block;
 }
 
+/* 手机上没有全屏入口（浏览器多半不支持对元素全屏） */
+@media (max-width: 768px) {
+    #map-fullscreen {
+        display: none !important;
+    }
+}
+
 /* 浏览器全屏时，地图及其覆盖层铺满视口 */
 #footprint-page:fullscreen,
 #footprint-page:fullscreen .footprint-container,

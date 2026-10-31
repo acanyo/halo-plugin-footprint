@@ -1,0 +1,103 @@
+/*
+ * 时间线抽屉的细节：日期竖排（年 / 月.日 / 星期），悬停卡片时标题移到照片上方。
+ */
+.timeline-drawer .timeline-date {
+    position: absolute;
+    top: 33px;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 58px;
+    white-space: normal;
+}
+.timeline-drawer .timeline-date-year,
+.timeline-drawer .timeline-date-weekday {
+    display: block;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.timeline-drawer .timeline-date-day {
+    display: block;
+    color: var(--fp-ink);
+    font-size: var(--fp-size-lg);
+    font-weight: 500;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.timeline-drawer .timeline-location {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    min-height: 22px;
+    overflow: visible;
+}
+.timeline-drawer .timeline-title-anchor {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+    transform-origin: left bottom;
+    transition: transform 0.24s var(--fp-ease), opacity 0.2s ease;
+}
+.timeline-drawer .timeline-title-anchor .card-header {
+    max-width: 25ch;
+    margin: 0;
+    overflow: hidden;
+    color: inherit;
+    font: inherit;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* 悬停卡片时标题移到照片上方，给描述和按钮让出位置 */
+.timeline-drawer .timeline-content-card:hover .timeline-title-anchor,
+.timeline-drawer .timeline-content-card:focus-within .timeline-title-anchor {
+    transform: translate(-24px, -72px) scale(1.2);
+}
+.timeline-drawer .location-icon {
+    position: relative;
+    z-index: 3;
+    transition: opacity 0.2s ease, transform 0.24s var(--fp-ease);
+}
+.timeline-drawer .timeline-content-card:hover .location-icon,
+.timeline-drawer .timeline-content-card:focus-within .location-icon {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.72);
+}
+.timeline-drawer .timeline-info-overlay {
+    min-height: 84px;
+}
+@media (max-width: 768px) {
+    .timeline-drawer .timeline-date {
+        top: 32px;
+        width: 52px;
+    }
+    .timeline-drawer .timeline-date-day {
+        font-size: var(--fp-size-md);
+    }
+    .timeline-drawer .timeline-content-card:hover .timeline-title-anchor,
+    .timeline-drawer .timeline-content-card:focus-within .timeline-title-anchor {
+        transform: translate(-20px, -70px) scale(1.15);
+    }
+    /* 移动端抽屉盖过统计面板与底部控制栏，关闭按钮始终可点 */
+    .timeline-drawer {
+        z-index: 1001;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .timeline-drawer .timeline-content-card:hover .timeline-title-anchor,
+    .timeline-drawer .timeline-content-card:focus-within .timeline-title-anchor {
+        transform: none;
+    }
+    .timeline-drawer .timeline-content-card:hover .location-icon,
+    .timeline-drawer .timeline-content-card:focus-within .location-icon {
+        opacity: 1;
+        transform: none;
+    }
+}

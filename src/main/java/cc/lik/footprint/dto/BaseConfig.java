@@ -30,8 +30,6 @@ public class BaseConfig {
     private Boolean enableHoverZoom;
     private String highlightScheme;
     private Boolean highlightVisitedCities;
-    private Integer photoWallPageSize;
-    private String photoWallStyle;
 
     // 3D 地球（group: globe3d）
     private String globeTitle;
