@@ -56,7 +56,7 @@ export function initGlobeBasics() {
     // 1.120 中设置 zoomFactor 不会生效（滚轮逻辑读取的是私有字段 _zoomFactor）。
     // 这里做特性检测：新版本用公开属性，1.120 用私有字段回退。
     const cameraController = deps.viewer().scene.screenSpaceCameraController;
-    const WHEEL_ZOOM_FACTOR = 3.5;   // 滚轮灵敏度系数（默认 5，越小滚一格缩放越精细）
+    const WHEEL_ZOOM_FACTOR = 1.8;   // 滚轮灵敏度系数（默认 5，越小滚一格缩放越精细）
     if ('zoomFactor' in cameraController) {
         cameraController.zoomFactor = WHEEL_ZOOM_FACTOR;
     } else {
