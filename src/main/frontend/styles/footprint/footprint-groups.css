@@ -1,0 +1,25 @@
+/* 2D 地图中的行程/集合成员强调。路线和序号由 footprint-groups.js 绘制。 */
+.amap-marker.is-group-dimmed {
+    opacity: 0.28;
+    filter: saturate(0.5);
+    transition: opacity 180ms ease, filter 180ms ease;
+}
+.amap-marker.is-group-member {
+    opacity: 1;
+    filter: none;
+    z-index: 25 !important;
+}
+.amap-marker.is-group-member .marker-image {
+    box-shadow:
+        0 0 0 3px var(--fp-accent-soft),
+        0 8px 24px var(--fp-accent-soft);
+}
+.map-controls #groupGalleryBtn2d[aria-pressed="true"] {
+    color: var(--fp-accent);
+    background: var(--fp-accent-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+    .amap-marker.is-group-dimmed {
+        transition: none;
+    }
+}

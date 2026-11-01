@@ -4,6 +4,7 @@ import cc.lik.footprint.guestbook.FootprintGuestbook;
 import cc.lik.footprint.guestbook.GuestbookInitializer;
 import cc.lik.footprint.migration.SettingsMigration;
 import cc.lik.footprint.model.Footprint;
+import cc.lik.footprint.model.FootprintGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import run.halo.app.extension.Scheme;
@@ -40,6 +41,15 @@ public class FootprintPlugin extends BasePlugin {
                 .indexFunc(footprint -> footprint.getSpec().getFootprintType())
                 .build());
         });
+        schemeManager.register(FootprintGroup.class, indexSpecs -> {
+            indexSpecs.add(IndexSpecs.<FootprintGroup, String>single("spec.title", String.class)
+                .indexFunc(group -> group.getSpec().getTitle())
+                .build());
+            indexSpecs.add(IndexSpecs.<FootprintGroup, String>single(
+                    "spec.groupType", String.class)
+                .indexFunc(group -> group.getSpec().getGroupType())
+                .build());
+        });
 
         // 异步执行：start() 是同步生命周期方法，配置迁移不应阻塞插件启动。
         // 迁移完成前读配置会命中 FootprintServiceImpl 中的 globe3d 兜底，因此这里不存在竞态问题。
@@ -55,6 +65,7 @@ public class FootprintPlugin extends BasePlugin {
     @Override
     public void stop() {
         schemeManager.unregister(Scheme.buildFromType(Footprint.class));
+        schemeManager.unregister(Scheme.buildFromType(FootprintGroup.class));
         schemeManager.unregister(Scheme.buildFromType(FootprintGuestbook.class));
     }
 }

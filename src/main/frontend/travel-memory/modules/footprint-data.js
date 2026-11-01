@@ -14,6 +14,7 @@ let dataReady = false;   // 首次加载是否已完成（含「确实为空」�
 
 /** 足迹数组（引用稳定，内容原地更新）。 */
 export const FOOTPRINTS = [];
+export const FOOTPRINT_GROUPS = [];
 
 export function isFootprintDataReady() {
     return dataReady;
@@ -42,7 +43,7 @@ function mapTestJsonEntry(entry) {
         provinceAdcode: String(s.provinceAdcode || ''),
         cityAdcode: String(s.cityAdcode || ''),
         footprintType: s.footprintType || '',
-        createTime: formatTestDate(s.createTime),
+        createTime: normalizeVisitTime(s.createTime),
         article: s.article || '',
         zoomLevel: Number(s.zoomLevel) || 12,
         image: s.image || '',
@@ -54,18 +55,37 @@ function mapTestJsonEntry(entry) {
         ticketRoute: s.ticketRoute || '',
         ticketNo: s.ticketNo || '',
         ticketType: s.ticketType || '',
-        galleryImages: (s.galleryImages || []).map(g => ({ url: g.url, caption: '' }))
+        galleryImages: normalizeGalleryImages(s.galleryImages)
     };
 }
 
-// createTime 兼容两种格式：test.json 的 "01/05/2026 01:04:00"（MM/DD/YYYY）与
-// FOOTPRINT_CONFIG 注入的 ISO 格式 "2026-01-05T01:04:00Z"，统一转成 YYYY-MM-DD
-function formatTestDate(str) {
+function normalizeGalleryImages(images) {
+    if (!Array.isArray(images)) return [];
+    return images
+        .map((image, index) => {
+            if (typeof image === 'string') return { url: image, caption: '', order: index + 1 };
+            return {
+                url: (image && image.url) || '',
+                caption: '',
+                order: Number(image && image.order) || index + 1
+            };
+        })
+        .filter(image => image.url)
+        .sort((a, b) => a.order - b.order);
+}
+
+// createTime 是访问时间。兼容旧测试数据的 MM/DD/YYYY，但必须保留完整时分秒，
+// 行程排序不能退化成只比较日期。
+export function normalizeVisitTime(str) {
     if (!str) return '';
-    const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(str);
-    if (m) return m[3] + '-' + m[1] + '-' + m[2];
-    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
-    return iso ? iso[1] + '-' + iso[2] + '-' + iso[3] : str;
+    const raw = String(str).trim();
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})(.*)$/.exec(raw);
+    if (m) {
+        const time = String(m[4] || '').trim() || '00:00:00';
+        return m[3] + '-' + m[1] + '-' + m[2] + 'T' + time;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw + 'T00:00:00';
+    return raw;
 }
 
 // 足迹数据源：只读取模板注入的 window.FOOTPRINT_CONFIG.footprints；
@@ -82,12 +102,28 @@ export async function loadFootprintsFromJson() {
     }
 }
 
+export function loadFootprintGroupsFromJson() {
+    const list = window.FOOTPRINT_CONFIG && Array.isArray(window.FOOTPRINT_CONFIG.footprintGroups)
+        ? window.FOOTPRINT_CONFIG.footprintGroups
+        : [];
+    return list.filter(group =>
+        group && group.metadata && group.metadata.name &&
+        !group.metadata.deletionTimestamp &&
+        group.spec && (!group.spec.visibility || group.spec.visibility === 'public')
+    );
+}
+
 // 用加载到的数据替换足迹数组（保持数组引用不变，各处引用自动生效）
 export function applyFootprints(loaded) {
     if (!Array.isArray(loaded)) return false;
     FOOTPRINTS.length = 0;
     FOOTPRINTS.push(...loaded);
     return true;
+}
+
+export function applyFootprintGroups(loaded) {
+    FOOTPRINT_GROUPS.length = 0;
+    FOOTPRINT_GROUPS.push(...(Array.isArray(loaded) ? loaded : []));
 }
 
 // 统计区：总足迹数 / 去过的城市数（数据驱动）
@@ -114,4 +150,4 @@ function setIntroRow(rowId, valueId, text) {
     value.textContent = text;
     row.hidden = !text;
 }
-updateIntroStats();
+if (typeof document !== 'undefined') updateIntroStats();

@@ -12,7 +12,7 @@
 ![3D 地球首页](.github/readme/globe.webp)
 
 每条足迹是一个地点、一组照片、一张可选的票根和一篇可选的关联文章。后台录入，前台 `/footprints` 展示：
-默认是 Cesium 3D 地球，底部导航可以切到 2D 高德地图、按城市翻相册、看票根、翻「世界这本书」。
+默认是 Cesium 3D 地球，底部导航可以切到 2D 高德地图、浏览行程与集合、按城市翻相册、看票根、翻「世界这本书」。
 
 ## 截图
 
@@ -42,6 +42,8 @@
 
 **城记、票根与书**
 
+- 行程与集合：从已有足迹中组合“2026 国庆川西行”这类按访问时间排序的行程，或“五岳”这类带目标完成度的主题集合；
+  支持自定义封面、公开/私密、关联游记、足迹类型筛选，并在 2D / 3D 地图中隐藏非成员、绘制行程路线。
 - 城记：城市卡片墙 → 城市相册 → 图片灯箱；可选「去年今天」「足迹洞察」「旅行明信片」。
 - 票根册：票夹 / 横向长串两种样式；可选「重走一遍」放映、「时间有色」、「命运抽票」、「未寄出的明信片」、「护照集章」。
 - 世界这本书：three.js 书架，每个省一本，屋子的配色随书变。
@@ -57,6 +59,7 @@
 **后台**
 
 - 足迹增删改查、关键字 / 类型筛选、批量删除、统计；地址自动解析经纬度，回填省市与 adcode。
+- 足迹管理页顶部可在「足迹维护 / 行程与集合」之间切换；支持从已选足迹快速创建行程或集合。
 - 主题色用 Halo 的取色组件选，前台三个页面的强调色都跟着它。
 - 带效果图的样式选项（标记点样式、悬停高亮、地名标注）。
 - 仪表盘足迹统计小组件。
@@ -219,13 +222,33 @@
 | `spec.ticketImage` | string | 票根图片 |
 | `spec.article` | string | 关联文章（站内路径）或自定义链接 |
 | `spec.metadataNames` | array | 关联足迹的 `metadata.name` |
-| `spec.createTime` | instant | 到访时间 |
+| `spec.createTime` | instant | 访问时间（必填，保留完整时分秒） |
 | `spec.province` / `spec.city` | string | 省 / 市 |
 | `spec.provinceAdcode` / `spec.cityAdcode` | string | 省 / 市行政区编码 |
 
+行程与集合使用独立模型 `FootprintGroup`，同样属于 `footprint.lik.cc/v1alpha1`：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `spec.groupType` | string | `trip` 行程 / `collection` 集合 |
+| `spec.title` | string | 标题 |
+| `spec.description` | string | 说明 |
+| `spec.visibility` | string | `public` 公开 / `private` 私密 |
+| `spec.cover` | string | 可选自定义封面 |
+| `spec.memberNames` | array | 成员足迹的 `metadata.name`，最多 500 条 |
+| `spec.targetCount` | integer | 集合目标总数，可空 |
+| `spec.article` | string | 关联文章（站内路径）或自定义链接 |
+| `spec.footprintTypes` | array | 从高级设置“足迹类型”中选择，可多选 |
+
+行程成员始终按成员足迹的 `spec.createTime` 从早到晚展示；集合允许为空。删除足迹不会级联删除集合，
+删除集合也不会删除任何足迹。
+
 ## HTTP API
 
-模型的标准 CRUD 由 Halo 提供：`/apis/footprint.lik.cc/v1alpha1/footprints[/{name}]`。
+模型的标准 CRUD 由 Halo 提供：
+
+- `/apis/footprint.lik.cc/v1alpha1/footprints[/{name}]`
+- `/apis/footprint.lik.cc/v1alpha1/footprintgroups[/{name}]`
 
 插件自己的接口：
 

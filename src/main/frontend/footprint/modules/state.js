@@ -18,6 +18,7 @@ export const state = {
     // 跟踪当前正在执行动画的卡片（与activeCard分开，避免mouseleave中断异步动画）
     animationInFlight: null,
     closeActiveFootprint: null,
+    photoWallCloseHandler: null,
     timelineHoverGeneration: 0,
     timelineActivationToken: 0,
     activeMapInstance: null,
@@ -25,6 +26,7 @@ export const state = {
     timelineScrollEndTimer: null,
 
     footprintMarkerController: null,
+    groupMapMode: false,
 
     //是否打开时间线
     isTimelineOpen: false,

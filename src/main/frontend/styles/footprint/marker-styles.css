@@ -50,6 +50,28 @@
     transform: scale(0.96);
 }
 
+/* 行程/集合序号：附着在标记右上角，不参与地图笔画或点击命中。 */
+.custom-marker > .group-order-badge {
+    position: absolute;
+    top: -14px;
+    right: -20px;
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border: 2px solid var(--fp-paper);
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent);
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-accent-ink);
+    font: 600 var(--fp-size-xs)/1 var(--fp-font-text);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
 /* 名签：悬停时浮出的一枚玻璃胶囊（photo / pin / circle 共用） */
 .custom-marker .marker-label {
     position: absolute;
@@ -105,6 +127,10 @@
     height: 50px;
     border-radius: 50%;
 }
+.marker-style-photo .custom-marker > .group-order-badge {
+    top: -16px;
+    right: -28px;
+}
 
 /* ===== 玻璃圆点（circle）：小圆点，中心一颗强调色 ===== */
 .marker-style-circle .custom-marker {
@@ -130,6 +156,14 @@
 .marker-style-circle .marker-image img,
 .marker-style-circle .marker-image .marker-initial {
     display: none;
+}
+.marker-style-circle .custom-marker > .group-order-badge {
+    top: -12px;
+    right: -16px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
+    font-size: 10px;
 }
 
 /* ===== 玻璃水滴（pin）：转 45° 的水滴，照片反向转回来 ===== */
@@ -171,6 +205,11 @@
 .marker-style-pin .custom-marker:hover .marker-label,
 .marker-style-pin .custom-marker:focus-visible .marker-label {
     transform: rotate(45deg) translate(0, 0) scale(1);
+}
+.marker-style-pin .custom-marker > .group-order-badge {
+    top: -22px;
+    right: -24px;
+    transform: rotate(45deg);
 }
 
 /* ===== 玻璃名签（card）：胶囊，左边小圆照片，右边地名 ===== */
@@ -217,6 +256,10 @@
 .marker-style-card .custom-marker:hover .marker-label,
 .marker-style-card .custom-marker:focus-visible .marker-label {
     transform: none;
+}
+.marker-style-card .custom-marker > .group-order-badge {
+    top: -11px;
+    right: -10px;
 }
 
 @media (prefers-reduced-motion: reduce) {

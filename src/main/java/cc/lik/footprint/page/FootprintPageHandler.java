@@ -1,6 +1,7 @@
 package cc.lik.footprint.page;
 
 import cc.lik.footprint.model.Footprint;
+import cc.lik.footprint.model.FootprintGroup;
 import cc.lik.footprint.service.FootprintConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import run.halo.app.theme.router.ModelConst;
 
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -32,18 +34,38 @@ public class FootprintPageHandler {
         return configService.getConfigByGroupName()
             .flatMap(settings -> {
                 // 按创建时间倒序排序
-                Comparator<Footprint> comparator =
-                    (f1, f2) -> f2.getSpec().getCreateTime()
-                        .compareTo(f1.getSpec().getCreateTime());
+                Comparator<Footprint> comparator = Comparator.comparing(
+                    footprint -> footprint.getSpec().getCreateTime(),
+                    Comparator.nullsLast(Comparator.reverseOrder())
+                );
 
                 // 不分页取全部：原先写死 0..1000，超过 1000 条时多出的足迹会悄悄不显示
-                return client.list(Footprint.class, null, comparator)
+                var publicGroups = client.list(FootprintGroup.class,
+                        group -> {
+                            String visibility = group.getSpec().getVisibility();
+                            return visibility == null || visibility.isBlank()
+                                || "public".equals(visibility);
+                        },
+                        Comparator.comparing(
+                            (FootprintGroup group) -> group.getMetadata().getCreationTimestamp(),
+                            Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                            .thenComparing(group -> group.getMetadata().getName()))
                     .collectList()
-                    .flatMap(footprints -> {
+                    .onErrorResume(e -> {
+                        log.error("读取足迹行程与集合失败，将在前台隐藏该功能", e);
+                        return Mono.just(List.of());
+                    });
+                return Mono.zip(client.list(Footprint.class, null, comparator).collectList(),
+                        publicGroups)
+                    .flatMap(result -> {
+                        List<Footprint> footprints = result.getT1();
+                        List<FootprintGroup> groups = result.getT2();
                         log.debug("渲染足迹页面: {} 条足迹", footprints.size());
                         Map<String, Object> model = new HashMap<>();
                         model.put("settings", settings);
                         model.put("footprints", footprints);
+                        model.put("footprintGroups", groups);
                         // 给 Head 处理器等渲染扩展一个稳定的页面标识（Halo 约定）：
                         // FootprintHeadProcessor 靠它判断"这是足迹页"，才注入 3D 地球那套资源。
                         model.put(ModelConst.TEMPLATE_ID, "plugin:footprint:footprints");

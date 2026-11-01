@@ -146,6 +146,7 @@ export function initMarkersInput() {
         const found = findPickedMarker(deps.viewer().scene.pick(movement.position));
         if (found && found.type === 'footprint') {
             const fp = deps.footprints()[found.index];
+            window.FootprintGroupBridge?.trackMapMember?.(fp);
             // 再点同一个标记 = 收起（照片环 + 足迹卡一起收）
             if (photoRingIsOpenFor(fp)) {
                 hidePhotoRing();

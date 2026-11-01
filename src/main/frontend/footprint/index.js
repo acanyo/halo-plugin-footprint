@@ -21,6 +21,11 @@ import { state } from './modules/state.js';
 import { renderStats } from './modules/stats-panel.js';
 import { handleResize } from './modules/timeline-drawer.js';
 import { bindTimelinePointerTracking } from './modules/timeline-scroll.js';
+import {
+    showFootprintGroupOnMap,
+    clearFootprintGroupOnMap,
+    openFootprintIn2D
+} from './modules/footprint-groups.js';
 
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', () => {
@@ -100,8 +105,37 @@ window.Footprint2D = {
         // 地图实例保留，但图片墙/信息卡属于 2D 的临时覆盖层，离开前要收干净。
         state.closeActiveFootprint?.();
     },
+    showGroup(group) {
+        const apply = () => showFootprintGroupOnMap(group);
+        if (!state.footprint2dInitialized) {
+            window.Footprint2D.show(apply);
+            return;
+        }
+        apply();
+    },
+    clearGroup() {
+        clearFootprintGroupOnMap();
+    },
+    resetView() {
+        document.getElementById('zoom-restore')?.click();
+    },
+    focusGroupMember(group, index) {
+        const map = state.activeMapInstance;
+        const member = group?.members?.[index];
+        if (!map || !member) return;
+        map.setZoomAndCenter(
+            Math.max(3, Math.min(18, Number(member.zoomLevel) || 12)),
+            [Number(member.lng), Number(member.lat)],
+            false,
+            500
+        );
+    },
+    openFootprint(footprint, options) {
+        return openFootprintIn2D(footprint, options);
+    },
     // 主动销毁（可选）：释放地图实例
     destroy() {
+        clearFootprintGroupOnMap();
         if (state.activeMapInstance && typeof state.activeMapInstance.destroy === 'function') {
             state.activeMapInstance.destroy();
         }

@@ -32,6 +32,7 @@ import { cityView, closeCityView } from './city-view.js';
 import { cityWall, closeCityWall } from './city-wall.js';
 import { isAutoRotating } from './auto-rotate.js';
 import { tdtTodayUsage } from './tianditu-usage.js';
+import { backFootprintGroups } from './footprint-groups.js';
 
 let deps = null;
 
@@ -94,7 +95,8 @@ function introOverlayElements() {
         introOverlayEls = [
             document.getElementById('cityView'),
             document.getElementById('cityWall'),
-            document.getElementById('ticketGallery')
+            document.getElementById('ticketGallery'),
+            document.getElementById('footprintGroupsView')
         ];
     }
     return introOverlayEls;
@@ -344,6 +346,7 @@ document.addEventListener('keydown', (e) => {
         closeInsight();
         return;
     }
+    if (backFootprintGroups()) return;
     if (cityView.classList.contains('show')) {
         closeCityView();
         return;

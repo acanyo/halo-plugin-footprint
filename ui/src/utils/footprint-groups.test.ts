@@ -1,0 +1,85 @@
+import { describe, expect, it } from "vitest";
+import type { Footprint, FootprintGroup } from "@/api/models";
+import {
+  groupRange,
+  sortFootprintsByVisitTime,
+  summarizeGroup,
+  uniqueMemberNames,
+  validateFootprintGroup,
+} from "./footprint-groups";
+
+function footprint(
+  name: string,
+  createTime: string,
+  overrides: Partial<Footprint["spec"]> = {},
+): Footprint {
+  return {
+    apiVersion: "footprint.lik.cc/v1alpha1",
+    kind: "Footprint",
+    metadata: { name },
+    spec: {
+      name,
+      longitude: 116.4,
+      latitude: 39.9,
+      zoomLevel: "12",
+      pitchAngle: "0",
+      rotationAngle: "0",
+      createTime,
+      ...overrides,
+    },
+  };
+}
+
+function group(overrides: Partial<FootprintGroup["spec"]> = {}): FootprintGroup {
+  return {
+    apiVersion: "footprint.lik.cc/v1alpha1",
+    kind: "FootprintGroup",
+    metadata: { name: "trip", creationTimestamp: "2024-01-01T00:00:00Z" },
+    spec: {
+      groupType: "trip",
+      title: "国庆行程",
+      visibility: "public",
+      memberNames: [],
+      ...overrides,
+    },
+  };
+}
+
+describe("footprint groups", () => {
+  it("去重成员并按完整创建时间排序", () => {
+    expect(uniqueMemberNames(["b", "a", "b", ""])).toEqual(["b", "a"]);
+    const members = sortFootprintsByVisitTime([
+      footprint("late", "2024-10-01T18:30:00"),
+      footprint("early", "2024-10-01T08:10:00"),
+    ]);
+    expect(members.map((member) => member.metadata.name)).toEqual(["early", "late"]);
+    expect(groupRange(members).days).toBe(1);
+  });
+
+  it("允许空集合，但拒绝空行程", () => {
+    const map = new Map<string, Footprint>();
+    expect(validateFootprintGroup(group({ memberNames: [] }), map).ok).toBe(false);
+    expect(
+      validateFootprintGroup(
+        group({ groupType: "collection", memberNames: [], targetCount: 5 }),
+        map,
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("统计有效成员、失效引用和城市覆盖", () => {
+    const a = footprint("a", "2024-10-01T08:00:00Z", { city: "北京", province: "北京" });
+    const b = footprint("b", "2024-10-02T08:00:00Z", { city: "上海", province: "上海" });
+    const summary = summarizeGroup(
+      group({ memberNames: ["a", "missing", "b"] }),
+      new Map([
+        ["a", a],
+        ["b", b],
+      ]),
+    );
+    expect(summary.members.map((member) => member.metadata.name)).toEqual(["a", "b"]);
+    expect(summary.missingCount).toBe(1);
+    expect(summary.cityCount).toBe(2);
+    expect(summary.provinceCount).toBe(2);
+  });
+});

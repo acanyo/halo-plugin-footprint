@@ -1,6 +1,15 @@
 import type { AxiosInstance } from "axios";
-import type {Footprint, FootprintList, Option, StatsResult, GeoInfo, MapConfig} from "./models";
-import {consoleApiClient} from "@halo-dev/api-client";
+import type {
+  Footprint,
+  FootprintGroup,
+  FootprintGroupList,
+  FootprintList,
+  Option,
+  StatsResult,
+  GeoInfo,
+  MapConfig,
+} from "./models";
+import { consoleApiClient } from "@halo-dev/api-client";
 
 export class FootprintApi {
   private axios: AxiosInstance;
@@ -21,29 +30,36 @@ export class FootprintApi {
     footprintType?: string;
     author?: string;
   }): Promise<FootprintList> {
-    const { data } = await this.axios.get(
-      "/apis/api.footprint.lik.cc/v1alpha1/footprints",
-      {
-        params: {
-          page: params?.page || 1,
-          size: params?.size || 20,
-          sort: params?.sort,
-          keyword: params?.keyword,
-          footprintType: params?.footprintType,
-          author: params?.author,
-        },
-      }
-    );
+    const { data } = await this.axios.get("/apis/api.footprint.lik.cc/v1alpha1/footprints", {
+      params: {
+        page: params?.page || 1,
+        size: params?.size || 20,
+        sort: params?.sort,
+        keyword: params?.keyword,
+        footprintType: params?.footprintType,
+        author: params?.author,
+      },
+    });
     return data;
+  }
+
+  async listAllFootprints(): Promise<Footprint[]> {
+    const pageSize = 100;
+    const first = await this.listFootprints({ page: 1, size: pageSize });
+    const items = [...(first.items || [])];
+    const pages = Math.max(1, Math.ceil(Number(first.total || 0) / pageSize));
+    for (let page = 2; page <= pages; page += 1) {
+      const next = await this.listFootprints({ page, size: pageSize });
+      items.push(...(next.items || []));
+    }
+    return items;
   }
 
   /**
    * 获取单个足迹
    */
   async getFootprint(name: string): Promise<Footprint> {
-    const { data } = await this.axios.get(
-      `/apis/footprint.lik.cc/v1alpha1/footprints/${name}`
-    );
+    const { data } = await this.axios.get(`/apis/footprint.lik.cc/v1alpha1/footprints/${name}`);
     return data;
   }
 
@@ -51,17 +67,14 @@ export class FootprintApi {
    * 创建足迹
    */
   async createFootprint(footprint: Footprint): Promise<Footprint> {
-    const { data } = await this.axios.post(
-      "/apis/footprint.lik.cc/v1alpha1/footprints",
-      footprint
-    );
+    const { data } = await this.axios.post("/apis/footprint.lik.cc/v1alpha1/footprints", footprint);
     return data;
   }
 
   async updateFootprint(name: string, footprint: Footprint): Promise<Footprint> {
     const { data } = await this.axios.put(
       `/apis/footprint.lik.cc/v1alpha1/footprints/${name}`,
-      footprint
+      footprint,
     );
     return data;
   }
@@ -81,48 +94,97 @@ export class FootprintApi {
     await Promise.all(promises);
   }
 
+  async listFootprintGroups(params?: {
+    page?: number;
+    size?: number;
+    sort?: string[];
+    groupType?: string;
+  }): Promise<FootprintGroupList> {
+    const { data } = await this.axios.get("/apis/footprint.lik.cc/v1alpha1/footprintgroups", {
+      params: {
+        page: params?.page || 1,
+        size: params?.size || 100,
+        sort: params?.sort,
+        fieldSelector: params?.groupType ? `spec.groupType=${params.groupType}` : undefined,
+      },
+    });
+    return data;
+  }
+
+  async listAllFootprintGroups(): Promise<FootprintGroup[]> {
+    const pageSize = 100;
+    const first = await this.listFootprintGroups({ page: 1, size: pageSize });
+    const items = [...(first.items || [])];
+    const pages = Math.max(1, Math.ceil(Number(first.total || 0) / pageSize));
+    for (let page = 2; page <= pages; page += 1) {
+      const next = await this.listFootprintGroups({ page, size: pageSize });
+      items.push(...(next.items || []));
+    }
+    return items.filter((group) => !group.metadata.deletionTimestamp);
+  }
+
+  async createFootprintGroup(group: FootprintGroup): Promise<FootprintGroup> {
+    const { data } = await this.axios.post(
+      "/apis/footprint.lik.cc/v1alpha1/footprintgroups",
+      group,
+    );
+    return data;
+  }
+
+  async updateFootprintGroup(name: string, group: FootprintGroup): Promise<FootprintGroup> {
+    const { data } = await this.axios.put(
+      `/apis/footprint.lik.cc/v1alpha1/footprintgroups/${name}`,
+      group,
+    );
+    return data;
+  }
+
+  async deleteFootprintGroup(name: string): Promise<void> {
+    await this.axios.delete(`/apis/footprint.lik.cc/v1alpha1/footprintgroups/${name}`);
+  }
+
   /**
    * 获取足迹类型列表
    */
   async listFootprintTypes(): Promise<Option[]> {
     try {
       const { data } = await consoleApiClient.plugin.plugin.fetchPluginJsonConfig({
-        name: 'footprint'
+        name: "footprint",
       });
       const { advanced } = (data ?? {}) as { advanced?: { footprintTypes?: unknown } };
       const footprintTypes = Array.isArray(advanced?.footprintTypes) ? advanced.footprintTypes : [];
       const result = footprintTypes
-        .filter((type): type is string => typeof type === 'string' && type.length > 0)
+        .filter((type): type is string => typeof type === "string" && type.length > 0)
         .map((type) => ({ label: type, value: type }));
       if (result.length === 0) {
         const defaultTypes = ["旅游", "美食", "购物", "住宿", "交通", "其他"];
-        return defaultTypes.map(type => ({
-        label: type,
-        value: type
-      }));
+        return defaultTypes.map((type) => ({
+          label: type,
+          value: type,
+        }));
       }
       return result;
     } catch (error) {
       console.error("错误详情:", error);
       // 返回默认的足迹类型列表作为后备方案
       const defaultTypes = ["旅游", "美食", "购物", "住宿", "交通", "其他"];
-      return defaultTypes.map(type => ({
+      return defaultTypes.map((type) => ({
         label: type,
-        value: type
+        value: type,
       }));
     }
   }
 
   async getStats(): Promise<StatsResult> {
-    const { data } = await this.axios.get(
-      "/apis/api.footprint.lik.cc/v1alpha1/footprints/stats", { params: { _t: Date.now() } }
-    );
+    const { data } = await this.axios.get("/apis/api.footprint.lik.cc/v1alpha1/footprints/stats", {
+      params: { _t: Date.now() },
+    });
     return data;
   }
 
   async geocodeFootprint(name: string): Promise<GeoInfo> {
     const { data } = await this.axios.post(
-      `/apis/api.footprint.lik.cc/v1alpha1/footprints/${name}/geocode`
+      `/apis/api.footprint.lik.cc/v1alpha1/footprints/${name}/geocode`,
     );
     return data;
   }
@@ -133,7 +195,7 @@ export class FootprintApi {
    */
   async getLocation(address: string): Promise<string> {
     const { data } = await this.axios.get(
-      `/apis/api.footprint.lik.cc/v1alpha1/footprints/location/${encodeURIComponent(address)}`
+      `/apis/api.footprint.lik.cc/v1alpha1/footprints/location/${encodeURIComponent(address)}`,
     );
     return data;
   }
@@ -145,7 +207,7 @@ export class FootprintApi {
   async reverseGeocode(longitude: number, latitude: number): Promise<GeoInfo> {
     const { data } = await this.axios.get(
       "/apis/api.footprint.lik.cc/v1alpha1/footprints/-/reverse-geocode",
-      { params: { longitude, latitude } }
+      { params: { longitude, latitude } },
     );
     return data;
   }
@@ -155,7 +217,7 @@ export class FootprintApi {
    */
   async getMapConfig(): Promise<MapConfig> {
     const { data } = await this.axios.get(
-      "/apis/api.footprint.lik.cc/v1alpha1/footprints/-/map-config"
+      "/apis/api.footprint.lik.cc/v1alpha1/footprints/-/map-config",
     );
     return data;
   }

@@ -8,6 +8,7 @@
 import { isMobile } from './env.js';
 import { FOOTPRINT_IMAGE_PLACEHOLDER, processFootprintImageUrl } from './footprint-data.js';
 import { escapeHtml, formatDateToYMD } from './format.js';
+import { state } from './state.js';
 
 const PHOTO_WALL_STYLES = ['original', 'gallery', 'journal', 'focus'];
 const PHOTO_WALL_ALIASES = { a: 'gallery', b: 'original', c: 'journal', d: 'focus' };
@@ -270,7 +271,9 @@ export function createPhotoWallController(map) {
         panel.style.opacity = opacity.toFixed(3);
         panel.style.setProperty('--photo-wall-zoom-progress', progress.toFixed(3));
         if (connector) connector.style.opacity = opacity.toFixed(3);
-        if (zoom <= PHOTO_WALL_CLOSE_ZOOM) close({ restoreFocus: true });
+        if (!state.groupMapMode && zoom <= PHOTO_WALL_CLOSE_ZOOM) {
+            close({ restoreFocus: true });
+        }
     };
 
     const position = () => {
@@ -291,7 +294,12 @@ export function createPhotoWallController(map) {
         const viewportWidth = layer.clientWidth || window.innerWidth;
         const viewportHeight = layer.clientHeight || window.innerHeight;
         const margin = Math.max(18, Math.min(32, viewportWidth * 0.02));
-        const statsRect = document.getElementById('map-stats')?.getBoundingClientRect();
+        const statsElement = document.getElementById('map-stats');
+        const statsStyle = statsElement ? getComputedStyle(statsElement) : null;
+        const statsVisible = !!statsStyle &&
+            statsStyle.visibility !== 'hidden' &&
+            Number(statsStyle.opacity) > 0;
+        const statsRect = statsVisible ? statsElement.getBoundingClientRect() : null;
         const stats = statsRect && statsRect.width > 0 ? {
             left: statsRect.left - layerRect.left,
             top: statsRect.top - layerRect.top,
@@ -346,6 +354,7 @@ export function createPhotoWallController(map) {
 
     const close = ({ restoreFocus = false } = {}) => {
         const focusTarget = current?.trigger;
+        const onClose = current?.onClose;
         closeViewer({ restoreFocus: false });
         resetZoomScale();
         panel?.remove();
@@ -355,7 +364,8 @@ export function createPhotoWallController(map) {
         connector = null;
         current = null;
         document.body.classList.remove('photo-wall-mobile-open');
-        if (restoreFocus && focusTarget?.isConnected) focusTarget.focus({ preventScroll: true });
+        if (typeof onClose === 'function') onClose();
+        else if (restoreFocus && focusTarget?.isConnected) focusTarget.focus({ preventScroll: true });
     };
 
     const showViewerImage = (index) => {
@@ -533,14 +543,14 @@ export function createPhotoWallController(map) {
         });
     };
 
-    const open = (marker, spec, trigger = null) => {
+    const open = (marker, spec, trigger = null, onClose = null) => {
         const options = resolvePhotoWallOptions();
         const images = photoWallImages(spec);
         if (!options.enabled || !images.length) return false;
         close();
         logoContainer?.classList.add('photo-wall-active');
         openingZoom = Math.max(3, Math.min(20, Number(spec.zoomLevel) || 12));
-        current = { marker, spec, images, options, page: 0, trigger };
+        current = { marker, spec, images, options, page: 0, trigger, onClose };
         render();
         panel?.querySelector('.photo-wall-close')?.focus({ preventScroll: true });
         return true;

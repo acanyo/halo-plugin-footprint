@@ -164,6 +164,7 @@ export function finishSwitchTo2D() {
     }
     morphing = false;
     pendingMode = null;
+    document.dispatchEvent(new CustomEvent('footprint:view-mode-changed', { detail: { mode: '2d' } }));
 }
 
 // 2D 落地：展开飞到中国后，让高德页在地球下方先初始化，地图就绪后再交叉淡化，
@@ -218,6 +219,7 @@ function finishSwitchTo3D(persist = true) {
     }
     morphing = false;
     pendingMode = null;
+    document.dispatchEvent(new CustomEvent('footprint:view-mode-changed', { detail: { mode: '3d' } }));
 }
 
 // 切 2D：先让地球“展开”成平面，动画结束后再显示高德页面

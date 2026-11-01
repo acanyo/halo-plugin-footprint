@@ -64,6 +64,40 @@ export interface Footprint {
 }
 
 /**
+ * 行程或集合。成员只引用 Footprint.metadata.name，时间与距离均由成员派生。
+ */
+export interface FootprintGroupSpec {
+  groupType: "trip" | "collection";
+  title: string;
+  description?: string;
+  visibility: "public" | "private";
+  cover?: string;
+  memberNames: string[];
+  targetCount?: number;
+  article?: string;
+  footprintTypes?: string[];
+}
+
+export interface FootprintGroup {
+  apiVersion: string;
+  kind: string;
+  metadata: Metadata;
+  spec: FootprintGroupSpec;
+}
+
+export interface FootprintGroupList {
+  page: number;
+  size: number;
+  total: number;
+  items: FootprintGroup[];
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  totalPages: number;
+}
+
+/**
  * 足迹列表接口
  */
 export interface FootprintList {

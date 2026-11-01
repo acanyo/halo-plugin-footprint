@@ -86,7 +86,8 @@
 .map-controls #zoom-restore,
 .map-controls #messageBoards,
 .map-controls #map-fullscreen,
-.map-controls #back3dBtn {
+.map-controls #back3dBtn,
+.map-controls #groupGalleryBtn2d {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -110,6 +111,7 @@
 .map-controls #messageBoards:active,
 .map-controls #map-fullscreen:active,
 .map-controls #back3dBtn:active,
+.map-controls #groupGalleryBtn2d:active,
 .map-controls .plane-switch:active {
     transform: scale(0.96);
 }
@@ -119,7 +121,8 @@
 .map-controls #zoom-restore:hover,
 .map-controls #messageBoards:hover,
 .map-controls #map-fullscreen:hover,
-.map-controls #back3dBtn:hover {
+.map-controls #back3dBtn:hover,
+.map-controls #groupGalleryBtn2d:hover {
     color: var(--fp-ink);
     background: var(--fp-rule);
 }
@@ -128,7 +131,8 @@
 .map-controls #zoom-restore:focus-visible,
 .map-controls #messageBoards:focus-visible,
 .map-controls #map-fullscreen:focus-visible,
-.map-controls #back3dBtn:focus-visible {
+.map-controls #back3dBtn:focus-visible,
+.map-controls #groupGalleryBtn2d:focus-visible {
     outline: 2px solid var(--fp-accent);
     outline-offset: 2px;
 }
@@ -149,7 +153,8 @@
     .map-controls #timeline-btn,
     .map-controls #zoom-restore,
     .map-controls #messageBoards,
-    .map-controls #back3dBtn {
+    .map-controls #back3dBtn,
+    .map-controls #groupGalleryBtn2d {
         padding: 0 10px;
     }
 }
@@ -158,7 +163,8 @@
     .map-controls #timeline-btn,
     .map-controls #zoom-restore,
     .map-controls #messageBoards,
-    .map-controls #back3dBtn {
+    .map-controls #back3dBtn,
+    .map-controls #groupGalleryBtn2d {
         padding: 0 8px;
     }
 }
@@ -167,7 +173,8 @@
     .map-controls.open #timeline-btn,
     .map-controls.open #zoom-restore,
     .map-controls.open #messageBoards,
-    .map-controls.open #back3dBtn {
+    .map-controls.open #back3dBtn,
+    .map-controls.open #groupGalleryBtn2d {
         padding: 0 10px;
     }
 }

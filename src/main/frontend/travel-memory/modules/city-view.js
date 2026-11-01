@@ -52,6 +52,7 @@ let cityViewTabIndex = 0;        // 当前选中的足迹 Tab
 let cityViewTriggerBtn = null;   // 键盘触发时的返回焦点按钮
 let cityViewRestoreCard = null;  // 从足迹卡进入城市图片墙时，关闭后要还原的足迹卡
 let cityViewFromWall = false;    // 当前图片墙是否从城市卡片墙展开（返回时回到卡片墙）
+let cityViewReturnHandler = null; // 从行程进入图片墙时，关闭后返回行程详情
 
 function cityViewFootprints() {
     const city = deps.cityList()[cityViewCityIndex];
@@ -713,12 +714,16 @@ function flyToCityFootprint(fp) {
     }
 }
 
-export function openCityView(ci, triggerBtn) {
+export function openCityView(ci, triggerBtn, options = {}) {
     if (!deps.cityList()[ci]) return;
     // 两级浏览：从卡片墙进入时保持卡片墙在下一层，返回按钮文案切换为“返回城市墙”
     const fromWall = !!(cityWall && cityWall.classList.contains('show'));
     cityViewFromWall = fromWall;
-    if (fromWall) {
+    cityViewReturnHandler = typeof options.onClose === 'function' ? options.onClose : null;
+    if (options.backLabel) {
+        if (cityViewBackLabel) cityViewBackLabel.textContent = options.backLabel;
+        cityViewBack.setAttribute('aria-label', options.backLabel);
+    } else if (fromWall) {
         if (cityViewBackLabel) cityViewBackLabel.textContent = '返回城记';
         cityViewBack.setAttribute('aria-label', '返回城记');
     } else {
@@ -763,7 +768,9 @@ function focusCityViewBackWhenVisible() {
 export function closeCityView(returnFocus = true) {
     cancelAnimationFrame(cityViewFocusRaf);
     const fromWall = cityViewFromWall;
+    const returnHandler = cityViewReturnHandler;
     cityViewFromWall = false;
+    cityViewReturnHandler = null;
     if (lightbox.classList.contains('show')) closeLightbox(false);
     cityView.classList.remove('show');
     deps.setOverlayHidden(cityView, true);
@@ -775,6 +782,11 @@ export function closeCityView(returnFocus = true) {
     closeCitySwitcher();
     const restore = cityViewRestoreCard;
     cityViewRestoreCard = null;
+    if (returnFocus && returnHandler) {
+        cityViewTriggerBtn = null;
+        returnHandler();
+        return;
+    }
     // 省份城市卡片：从卡片进相册前记录过，回到地球后原样重建（相机没动，不需要额外状态）
     const provinceRestore = takeProvinceRestorePending();
     if (provinceRestore && !fromWall && cityCardsEnabled()) {
@@ -817,7 +829,7 @@ export function closeCityView(returnFocus = true) {
  * 主文件原先自己写了一遍「找城市 → 找 tab → 记还原卡」，与这里的
  * openCityView + selectCityViewTab 是同一套状态，交给本模块统一处理。
  */
-export function openCityViewAtFootprint(fp, triggerEl) {
+export function openCityViewAtFootprint(fp, triggerEl, options = {}) {
     if (!fp) return;
     const fpIndex = deps.footprints().indexOf(fp);
     if (fpIndex < 0) return;
@@ -828,7 +840,7 @@ export function openCityViewAtFootprint(fp, triggerEl) {
     if (tabIndex < 0) return;
 
     cityViewRestoreCard = { fpIndex, trigger: triggerEl || null };
-    openCityView(cityIndex, null);
+    openCityView(cityIndex, null, options);
     cityViewTabIndex = tabIndex;
     selectCityViewTab(tabIndex);
 }

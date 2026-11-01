@@ -26,7 +26,8 @@ import {
     setupViewMode,
     initViewMode,
     restoreSavedViewMode,
-    forceGlobeForTickets
+    forceGlobeForTickets,
+    isAmapMode
 } from './modules/view-mode.js';
 import {
     setupCityFill,
@@ -52,7 +53,8 @@ import {
     formatLightboxDate,
     loadCardCoverImage,
     renderCardCover,
-    enqueueCardCover
+    enqueueCardCover,
+    openCityViewAtFootprint
 } from './modules/city-view.js';
 import {
     setupProvinceCards,
@@ -70,6 +72,7 @@ import {
 import {
     setupPhotoRing,
     initPhotoRing,
+    showPhotoRing,
     hidePhotoRing
 } from './modules/photo-ring.js';
 import {
@@ -85,8 +88,11 @@ import {
 } from './modules/basemap.js';
 import {
     FOOTPRINTS,
+    FOOTPRINT_GROUPS,
     loadFootprintsFromJson,
+    loadFootprintGroupsFromJson,
     applyFootprints,
+    applyFootprintGroups,
     updateIntroStats,
     isFootprintDataReady,
     markFootprintDataReady
@@ -132,6 +138,7 @@ import {
     hideMarkerTip,
     refreshMarkerColors,
     setMarkerFocus,
+    setGroupEmphasis,
     markerEntityList,
     cityMarkerEntityList,
     cityListSnapshot,
@@ -195,6 +202,20 @@ import {
 import {
     setInsightDeps
 } from './modules/footprints-insight.js';
+import {
+    setupGroupRoute,
+    showGroupRoute,
+    clearGroupRoute,
+    flyToGroup,
+    flyToGroupMember,
+    rememberGroupCamera,
+    restoreGroupCamera
+} from './modules/group-route.js';
+import {
+    setupFootprintGroups,
+    initFootprintGroups,
+    closeFootprintGroups
+} from './modules/footprint-groups.js';
 
 // 状态栏重绘来自 navigation 模块，这里可以安全地先注入
 setTileBatchHandler(refreshStatusText);
@@ -239,6 +260,12 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     const footprintCfg = window.FOOTPRINT_CONFIG || {};
     // 系统是否要求减弱动效：入场动画、2D 切换、卡片飞行等多处共用
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    setupGroupRoute({
+        viewer: () => viewer,
+        footprints: () => FOOTPRINTS,
+        positions: currentPositionList
+    });
 
     // ================= 自动旋转与画布光标 =================
     setupAutoRotate({
@@ -389,7 +416,8 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         setOverlayHidden
     });
     // ================= 加载足迹数据并重建标记 =================
-    loadFootprintsFromJson().then(loaded => {
+    Promise.resolve(loadFootprintsFromJson()).then(loaded => {
+        applyFootprintGroups(loadFootprintGroupsFromJson());
         if (applyFootprints(loaded)) {
             removeAllMarkers();
             // 按当前底图坐标系重算标记坐标，并刷新状态栏足迹数（不重载瓦片，避免闪烁）
@@ -497,6 +525,78 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         loadPostcardImage,
         postcardToBlob
     });
+    setupFootprintGroups({
+        groups: () => FOOTPRINT_GROUPS,
+        footprints: () => FOOTPRINTS,
+        dataReady: isFootprintDataReady,
+        cityWallImages,
+        cityCardImageUrl,
+        cityWall: () => cityWall,
+        closeCityWall,
+        hideMarkerCard,
+        hideCityCard,
+        hideMarkerTip,
+        setOverlayHidden,
+        setGlobeRenderLoop,
+        pauseAutoRotate,
+        resumeAutoRotate,
+        openMember: (member, options = {}) => {
+            if (isAmapMode() && window.Footprint2D?.openFootprint) {
+                window.Footprint2D.openFootprint(member, options);
+                return;
+            }
+            openCityViewAtFootprint(member, null, options);
+        },
+        applyGroupOnMap: (group) => {
+            if (isAmapMode()) {
+                window.Footprint2D?.showGroup?.(group);
+                return;
+            }
+            rememberGroupCamera();
+            setGroupEmphasis(new Set(group.names));
+            showGroupRoute(group);
+            flyToGroup(group, reduceMotion ? 0 : 1.45);
+        },
+        focusGroupMember: (group, index) => {
+            const member = group && group.members[index];
+            if (!member) return;
+            if (isAmapMode()) {
+                window.Footprint2D?.focusGroupMember?.(group, index);
+                return;
+            }
+            flyToGroupMember(member, reduceMotion ? 0 : 0.8);
+            const entityIndex = FOOTPRINTS.indexOf(member);
+            setMarkerFocus(entityIndex >= 0 ? markerEntityList()[entityIndex] : null);
+        },
+        activateGroupMember: (group, index) => {
+            const member = group && group.members[index];
+            if (!member) return;
+            if (isAmapMode()) {
+                window.Footprint2D?.openFootprint?.(member);
+                return;
+            }
+            const entityIndex = FOOTPRINTS.indexOf(member);
+            if (entityIndex < 0) return;
+            hidePhotoRing();
+            hideMarkerCard();
+            showMarkerCard(member, entityIndex);
+            showPhotoRing(member, entityIndex);
+        },
+        clearGroupOnMap: () => {
+            window.Footprint2D?.clearGroup?.();
+            window.Footprint2D?.hide?.();
+            clearGroupRoute();
+            restoreGroupCamera(reduceMotion ? 0 : 0.9);
+            setGroupEmphasis(null);
+            hidePhotoRing();
+            hideMarkerCard();
+            hideCityCard(false);
+            rebuildMarkerModeFromCamera();
+        },
+        resetGroupMapView: () => {
+            if (isAmapMode()) window.Footprint2D?.resetView?.();
+        }
+    });
 
     // ---------- 启动顺序：全部 setup 完成后，再按依赖依次 init ----------
     initGlobeBasics();
@@ -522,6 +622,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     initCityView();
     initProvinceCards();
     initTicketGallery();
+    initFootprintGroups();
     // 3D 地球品牌文案（实现见 modules/navigation.js，依赖 setupNavigation 注入的配置）
     applyGlobeBranding();
     // 省界轮廓同样挂在 globeReady 之后：它只在放大到国内范围才显示
@@ -599,6 +700,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     window.FootprintMemoryData = {
         // 数据
         footprints: () => FOOTPRINTS,
+        groups: () => FOOTPRINT_GROUPS,
         cityList: () => cityListSnapshot(),
         cityKeyOf: (fp) => cityKeyOf(fp),
         normalizeProvinceName: (value) => normalizeProvinceName(value),
@@ -610,4 +712,5 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         // 覆盖层控制：书架全屏不透明，打开时要停掉地球渲染省 GPU
         setGlobeRenderLoop: (running) => setGlobeRenderLoop(running),
         setOverlayHidden: (el, hidden) => setOverlayHidden(el, hidden),
+        closeFootprintGroups: (restoreFocus) => closeFootprintGroups(restoreFocus)
     };

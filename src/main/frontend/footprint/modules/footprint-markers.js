@@ -119,7 +119,9 @@ export const addFootprintMarkers = async (map, footprintData) => {
         if (!currentMarker) return;
         const bounds = map.getBounds?.();
         const position = currentMarker.getPosition?.();
-        if (bounds && position && !bounds.contains(position)) closeCurrentMarker();
+        if (!state.groupMapMode && bounds && position && !bounds.contains(position)) {
+            closeCurrentMarker();
+        }
     });
     // 添加全局点击事件监听器
     map.on('click', handleMapClick);
@@ -137,7 +139,12 @@ export const addFootprintMarkers = async (map, footprintData) => {
         const margin = 12;
         const visible = (r) => r && r.width > 0 && r.height > 0;
         const overlapsX = (r, left, right) => visible(r) && left < r.right && right > r.left;
-        const stats = document.getElementById('map-stats')?.getBoundingClientRect();
+        const statsElement = document.getElementById('map-stats');
+        const statsStyle = statsElement ? getComputedStyle(statsElement) : null;
+        const statsVisible = !!statsStyle &&
+            statsStyle.visibility !== 'hidden' &&
+            Number(statsStyle.opacity) > 0;
+        const stats = statsVisible ? statsElement.getBoundingClientRect() : null;
         const controls = document.getElementById('map-controls')?.getBoundingClientRect();
         const bottomLimit = overlapsX(controls, rect.left, rect.right) ? controls.top - margin : window.innerHeight - margin;
 
@@ -173,7 +180,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
     const batchSize = 1;
     let currentIndex = 0;
 
-    // 先按创建时间降序排序
+    // 先按访问时间降序排序
     const sortedFootprintData = [...footprintData].sort((a, b) => {
         const timeA = new Date(a.spec.createTime).getTime();
         const timeB = new Date(b.spec.createTime).getTime();
@@ -199,6 +206,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
             try {
                 const position = new AMap.LngLat(longitude, latitude);
                 const markerContent = createMarker(footprint.spec);
+                markerContent.dataset.footprintKey = footprint.metadata?.name || '';
                 const marker = new AMap.Marker({
                     position: position,
                     content: markerContent,
@@ -206,6 +214,25 @@ export const addFootprintMarkers = async (map, footprintData) => {
                     offset: new AMap.Pixel(0, -10),
                     extData: footprint.spec // 存储额外数据
                 });
+
+                const zoomLevel = getFootprintZoomLevel(footprint.spec);
+                const openMarkerEffect = () => {
+                    currentMarker = marker;
+                    if (!canOpenPhotoWall(footprint.spec)) {
+                        state.photoWallCloseHandler = null;
+                        openInfoWindow(position, createInfoWindow(footprint.spec));
+                    } else {
+                        const onClose = state.photoWallCloseHandler;
+                        state.photoWallCloseHandler = null;
+                        photoWall.open(marker, footprint.spec, markerContent, onClose);
+                    }
+                    if (zoomLevel >= 18) {
+                        map.setPitch(Number(footprint.spec.pitchAngle));
+                        map.setRotation(Number(footprint.spec.rotationAngle));
+                        state.isElevation = true;
+                    }
+                    return true;
+                };
 
                 // 处理点击事件
                 const handleMarkerClick = async (marker) => {
@@ -219,7 +246,6 @@ export const addFootprintMarkers = async (map, footprintData) => {
                     closeCurrentMarker();
                     await restoreMapOrientation(map);
 
-                    const zoomLevel = getFootprintZoomLevel(footprint.spec);
                     //时间线抽屉打开时设置中心点偏右
                     //
                     const position2 = new AMap.LngLat(longitude, latitude);
@@ -231,22 +257,12 @@ export const addFootprintMarkers = async (map, footprintData) => {
                     // 如果距离超过3公里或缩放级别不够，需要移动地图
                     const needsMovement = distance > 3000 || currentZoom !== zoomLevel;
 
-                    if (needsMovement) {
+                    if (needsMovement && !state.groupMapMode) {
                         zoomOff2(map);
                         zoomOn2(map, null);
                         await moveToLocation(map, position2, zoomLevel, 500);
                     }
-                    currentMarker = marker;
-                    if (!canOpenPhotoWall(footprint.spec)) {
-                        openInfoWindow(position, createInfoWindow(footprint.spec));
-                    } else {
-                        photoWall.open(marker, footprint.spec, markerContent);
-                    }
-                    if (zoomLevel >= 18) {
-                        map.setPitch(Number(footprint.spec.pitchAngle));
-                        map.setRotation(Number(footprint.spec.rotationAngle));
-                        state.isElevation = true;
-                    }
+                    openMarkerEffect();
                 };
 
 
@@ -312,7 +328,11 @@ export const addFootprintMarkers = async (map, footprintData) => {
                     markerCache.set(footprint.spec.name, imgElement);
                 }
                 map.add(marker);
-                state.footprintMarkerController?.register(marker, footprint);
+                state.footprintMarkerController?.register(
+                    marker,
+                    footprint,
+                    openMarkerEffect
+                );
             } catch (error) {
                 console.error('创建标记失败:', error, footprint);
             }
