@@ -50,7 +50,7 @@
     transform: scale(0.96);
 }
 
-/* 行程/集合序号：附着在标记右上角，不参与地图笔画或点击命中。 */
+/* 旅程/收藏序号：附着在标记右上角，不参与地图笔画或点击命中。 */
 .custom-marker > .group-order-badge {
     position: absolute;
     top: -14px;

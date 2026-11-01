@@ -52,7 +52,7 @@ let cityViewTabIndex = 0;        // 当前选中的足迹 Tab
 let cityViewTriggerBtn = null;   // 键盘触发时的返回焦点按钮
 let cityViewRestoreCard = null;  // 从足迹卡进入城市图片墙时，关闭后要还原的足迹卡
 let cityViewFromWall = false;    // 当前图片墙是否从城市卡片墙展开（返回时回到卡片墙）
-let cityViewReturnHandler = null; // 从行程进入图片墙时，关闭后返回行程详情
+let cityViewReturnHandler = null; // 从旅程进入图片墙时，关闭后返回旅程详情
 
 function cityViewFootprints() {
     const city = deps.cityList()[cityViewCityIndex];

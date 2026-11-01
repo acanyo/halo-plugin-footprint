@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 行程/集合成员选择器。
+ * 旅程/收藏成员选择器。
  *
  * 成员值始终是 Footprint.metadata.name；展示顺序只由访问时间决定，不允许拖动。
  */

@@ -53,7 +53,7 @@ public class FootprintPageHandler {
                             .thenComparing(group -> group.getMetadata().getName()))
                     .collectList()
                     .onErrorResume(e -> {
-                        log.error("读取足迹行程与集合失败，将在前台隐藏该功能", e);
+                        log.error("读取足迹旅途集失败，将在前台隐藏该功能", e);
                         return Mono.just(List.of());
                     });
                 return Mono.zip(client.list(Footprint.class, null, comparator).collectList(),

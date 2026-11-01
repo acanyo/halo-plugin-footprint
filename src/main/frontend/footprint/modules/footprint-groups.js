@@ -1,4 +1,4 @@
-/** 2D 高德地图中的行程/集合高亮与路线。 */
+/** 2D 高德地图中的旅程/收藏高亮与路线。 */
 
 import { accentHex } from '../../shared/accent.js';
 import { state } from './state.js';

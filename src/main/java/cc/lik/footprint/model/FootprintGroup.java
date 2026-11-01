@@ -13,9 +13,9 @@ import run.halo.app.extension.AbstractExtension;
 import run.halo.app.extension.GVK;
 
 /**
- * 用户自定义的行程或集合。
+ * 用户自定义的旅程或收藏。
  *
- * <p>成员只保存足迹的 metadata.name，不复制足迹内容。行程与集合的
+ * <p>成员只保存足迹的 metadata.name，不复制足迹内容。旅程与收藏的
  * 时间、距离和完成度均由前端根据成员实时派生。</p>
  */
 @Data
@@ -37,7 +37,7 @@ public class FootprintGroup extends AbstractExtension {
 
         @NotBlank
         @Pattern(regexp = "trip|collection")
-        @Schema(description = "类型：trip 行程 / collection 集合",
+        @Schema(description = "类型：trip 旅程 / collection 收藏",
             requiredMode = Schema.RequiredMode.REQUIRED)
         private String groupType;
 
@@ -66,7 +66,7 @@ public class FootprintGroup extends AbstractExtension {
         private List<String> memberNames;
 
         @Positive
-        @Schema(description = "集合目标总数")
+        @Schema(description = "收藏目标总数")
         private Integer targetCount;
 
         @Schema(description = "关联文章或外部链接")

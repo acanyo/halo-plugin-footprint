@@ -242,7 +242,7 @@ function handleOpenFrontend() {
         <h1>足迹</h1>
         <span class="fp-brand-divider" aria-hidden="true">/</span>
         <span class="fp-brand-caption">
-          {{ activeTab === "footprints" ? "去过的地方 · 照片 · 票根" : "把足迹组合成行程与收藏" }}
+          {{ activeTab === "footprints" ? "去过的地方 · 照片 · 票根" : "把足迹组合成旅程与收藏" }}
         </span>
       </div>
       <div class="fp-header-actions">
@@ -263,7 +263,7 @@ function handleOpenFrontend() {
           <RiAddLine width="15" height="15" aria-hidden="true" />新建足迹
         </button>
         <button v-else type="button" class="fp-button is-primary" @click="handleCreateGroup()">
-          <RiAddLine width="15" height="15" aria-hidden="true" />新建行程或集合
+          <RiAddLine width="15" height="15" aria-hidden="true" />新建旅程或收藏
         </button>
       </div>
     </header>
@@ -294,7 +294,7 @@ function handleOpenFrontend() {
           @keydown="handleTabKeydown"
           @click="activeTab = 'groups'"
         >
-          行程与集合
+          我的旅途集
         </button>
       </div>
     </nav>
@@ -340,7 +340,7 @@ function handleOpenFrontend() {
               <div v-if="selectedFootprints.length" class="fp-selection">
                 <span>已选 {{ selectedFootprints.length }} 项</span>
                 <VButton size="sm" @click="handleCreateGroup(selectedFootprints)">
-                  新建行程或集合
+                  新建旅程或收藏
                 </VButton>
                 <VButton size="sm" type="danger" @click="handleDeleteInBatch">删除</VButton>
                 <VButton size="sm" @click="clearSelection">取消</VButton>

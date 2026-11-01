@@ -37,7 +37,7 @@ function group(overrides: Partial<FootprintGroup["spec"]> = {}): FootprintGroup 
     metadata: { name: "trip", creationTimestamp: "2024-01-01T00:00:00Z" },
     spec: {
       groupType: "trip",
-      title: "国庆行程",
+      title: "国庆旅程",
       visibility: "public",
       memberNames: [],
       ...overrides,
@@ -56,7 +56,7 @@ describe("footprint groups", () => {
     expect(groupRange(members).days).toBe(1);
   });
 
-  it("允许空集合，但拒绝空行程", () => {
+  it("允许空收藏，但拒绝空旅程", () => {
     const map = new Map<string, Footprint>();
     expect(validateFootprintGroup(group({ memberNames: [] }), map).ok).toBe(false);
     expect(

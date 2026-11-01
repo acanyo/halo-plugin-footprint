@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * 行程/集合编辑弹窗。
+ * 旅程/收藏编辑弹窗。
  *
- * 只保存用户可编辑的集合字段；日期范围、天数、排序和封面兜底都在展示层派生。
+ * 只保存用户可编辑的组合字段；日期范围、天数、排序和封面兜底都在展示层派生。
  */
 import { computed, nextTick, ref, watch } from "vue";
 import { Dialog, Toast, VButton, VModal, VSpace } from "@halo-dev/components";
@@ -76,11 +76,11 @@ const isUpdateMode = computed(() => !!formState.value.metadata.creationTimestamp
 const modalTitle = computed(() =>
   isUpdateMode.value
     ? formState.value.spec.groupType === "trip"
-      ? "编辑行程"
-      : "编辑集合"
+      ? "编辑旅程"
+      : "编辑收藏"
     : formState.value.spec.groupType === "trip"
-      ? "新建行程"
-      : "新建集合",
+      ? "新建旅程"
+      : "新建收藏",
 );
 const validation = computed(() => validateFootprintGroup(formState.value, footprintMap.value));
 const isDirty = computed(
@@ -225,16 +225,16 @@ async function save() {
         submit.metadata.name,
         submit,
       );
-      Toast.success("行程或集合已更新");
+      Toast.success("旅程或收藏已更新");
     } else {
       savedGroup = await footprintApiClient.footprint.createFootprintGroup(submit);
-      Toast.success("行程或集合已创建");
+      Toast.success("旅程或收藏已创建");
     }
     initialSnapshot.value = JSON.stringify(formState.value);
     emit("saved", savedGroup);
     closeWithoutPrompt();
   } catch (error) {
-    console.error("保存行程或集合失败", error);
+    console.error("保存旅程或收藏失败", error);
     Toast.error("保存失败，请稍后重试");
   } finally {
     saving.value = false;
@@ -256,7 +256,7 @@ async function save() {
         <section class="fp-form-section">
           <header>
             <h3>基本信息</h3>
-            <p>选择这是一次有明确路线的行程，还是一组主题收藏。</p>
+            <p>选择这是一次有明确路线的旅程，还是一组主题收藏。</p>
           </header>
           <div>
             <FormKit
@@ -265,8 +265,8 @@ async function save() {
               name="groupType"
               label="类型"
               :options="[
-                { label: '行程', value: 'trip' },
-                { label: '集合', value: 'collection' },
+                { label: '旅程', value: 'trip' },
+                { label: '收藏', value: 'collection' },
               ]"
             />
             <FormKit
@@ -287,7 +287,7 @@ async function save() {
                 { label: '公开', value: 'public' },
                 { label: '私密', value: 'private' },
               ]"
-              help="公开后才会出现在前台底部“行程”入口中。"
+              help="公开后才会出现在前台底部“旅途”入口中。"
             />
             <FormKit
               v-model="formState.spec.description"
@@ -362,7 +362,7 @@ async function save() {
             </ul>
             <div class="fp-group-range" role="status">
               <strong>{{
-                formState.spec.groupType === "trip" ? "行程范围" : "成员时间范围"
+                formState.spec.groupType === "trip" ? "旅程范围" : "成员时间范围"
               }}</strong>
               <span>{{ dateRangeText }}</span>
             </div>

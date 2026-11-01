@@ -127,7 +127,7 @@ export function validateFootprintGroup(
   const spec = group.spec;
   if (!String(spec.title || "").trim()) return FAIL("标题不能为空");
   if (spec.groupType !== "trip" && spec.groupType !== "collection") {
-    return FAIL("请选择行程或集合类型");
+    return FAIL("请选择旅程或收藏类型");
   }
   if (spec.visibility !== "public" && spec.visibility !== "private") {
     return FAIL("请选择公开或私密");
@@ -135,10 +135,10 @@ export function validateFootprintGroup(
 
   const names = uniqueMemberNames(spec.memberNames);
   if (spec.groupType === "trip" && names.length === 0) {
-    return FAIL("行程至少需要一条足迹");
+    return FAIL("旅程至少需要一条足迹");
   }
   if (names.length > MAX_GROUP_MEMBERS) {
-    return FAIL(`单个行程或集合最多包含 ${MAX_GROUP_MEMBERS} 条足迹`);
+    return FAIL(`单段旅程或收藏最多包含 ${MAX_GROUP_MEMBERS} 条足迹`);
   }
   if (names.some((name) => !footprintMap.has(name))) {
     return FAIL("存在已失效的成员足迹，请先移除");

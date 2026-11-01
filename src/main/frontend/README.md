@@ -6,7 +6,7 @@
 
 ```
 src/main/frontend/
-├── travel-memory/        3D 地球（Cesium）：标记、省份卡片、照片环、城记、票根册、行程与集合、洞察……
+├── travel-memory/        3D 地球（Cesium）：标记、省份卡片、照片环、城记、票根册、我的旅途集、洞察……
 │   ├── index.js          装配层：建 Viewer，按顺序 setup / init 各模块
 │   └── modules/
 ├── footprint/            2D 地图（高德）：时间线、照片墙、抛物线动画
@@ -120,7 +120,7 @@ initFoo();
 | 全局量 | 提供方 | 使用方 |
 |---|---|---|
 | `window.FootprintMemoryData` | travel-memory | memory-shelf |
-| `window.Footprint2D` | footprint | travel-memory（`view-mode.js` 切到 2D 时；含行程/集合地图联动） |
+| `window.Footprint2D` | footprint | travel-memory（`view-mode.js` 切到 2D 时；含旅途集地图联动） |
 | `window.THREE`、`window.THREE_RoundedBoxGeometry` | `FootprintHeadProcessor` 的内联 module | memory-shelf |
 | `window.FOOTPRINT_CONFIG` | 模板 `footprint.html` | 三个包都读 |
 

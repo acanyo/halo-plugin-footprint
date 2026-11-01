@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** 足迹管理页的“行程与集合”面板。 */
+/** 足迹管理页的“我的旅途集”面板。 */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { Dialog, IconRefreshLine, Toast, VButton, VLoading } from "@halo-dev/components";
 import RiDeleteBinLine from "~icons/ri/delete-bin-line";
@@ -75,7 +75,7 @@ function formatRange(summary: FootprintGroupSummary) {
 }
 
 function typeLabel(summary: FootprintGroupSummary) {
-  return summary.group.spec.groupType === "trip" ? "行程" : "集合";
+  return summary.group.spec.groupType === "trip" ? "旅程" : "收藏";
 }
 
 function progressText(summary: FootprintGroupSummary) {
@@ -125,8 +125,8 @@ async function load(manual = false) {
     footprints.value = nextFootprints;
     footprintTypes.value = nextTypes;
   } catch (error) {
-    console.error("读取行程与集合失败", error);
-    errorMessage.value = "读取行程与集合失败，请稍后重试。";
+    console.error("读取旅途集失败", error);
+    errorMessage.value = "读取旅途集失败，请稍后重试。";
   } finally {
     loading.value = false;
     refreshing.value = false;
@@ -153,7 +153,7 @@ function confirmDelete(summary: FootprintGroupSummary) {
         Toast.success("已删除，可在下方撤销");
         await load(true);
       } catch (error) {
-        console.error("删除行程或集合失败", error);
+        console.error("删除旅程或收藏失败", error);
         Toast.error("删除失败");
       }
     },
@@ -180,7 +180,7 @@ async function undoDelete() {
     highlightTimer = setTimeout(() => {
       highlightedKey.value = "";
     }, 2400);
-    Toast.success("已恢复删除的行程或集合");
+    Toast.success("已恢复删除的旅程或收藏");
   } catch (error) {
     console.error("撤销删除失败", error);
     Toast.error("撤销失败，请重新创建");
@@ -223,7 +223,7 @@ defineExpose({
       <header class="fp-section-header">
         <div>
           <h2 id="fp-groups-title">
-            行程与集合
+            我的旅途集
             <span class="fp-count">{{ groups.length }}</span>
           </h2>
           <p>把已有足迹组合成一段有日期的旅程，或者一组长期收藏。</p>
@@ -240,7 +240,7 @@ defineExpose({
 
       <div class="fp-panel">
         <div class="fp-toolbar">
-          <div class="fp-groups-filters" role="group" aria-label="行程与集合筛选">
+          <div class="fp-groups-filters" role="group" aria-label="旅途集筛选">
             <button
               type="button"
               class="fp-button is-small"
@@ -255,7 +255,7 @@ defineExpose({
               :aria-pressed="filterType === 'trip'"
               @click="filterType = 'trip'"
             >
-              行程 <span class="fp-filter-count">{{ groupCounts.trip }}</span>
+              旅程 <span class="fp-filter-count">{{ groupCounts.trip }}</span>
             </button>
             <button
               type="button"
@@ -263,11 +263,11 @@ defineExpose({
               :aria-pressed="filterType === 'collection'"
               @click="filterType = 'collection'"
             >
-              集合 <span class="fp-filter-count">{{ groupCounts.collection }}</span>
+              收藏 <span class="fp-filter-count">{{ groupCounts.collection }}</span>
             </button>
           </div>
           <label class="fp-groups-search">
-            <span class="sr-only">搜索行程与集合</span>
+            <span class="sr-only">搜索旅途集</span>
             <input v-model="query" type="search" placeholder="搜索标题、说明或足迹类型" />
           </label>
         </div>
@@ -281,16 +281,16 @@ defineExpose({
         </div>
         <div v-else-if="!filteredSummaries.length" class="fp-state" role="status">
           <RiMapPinLine width="28" height="28" aria-hidden="true" />
-          <h3>{{ groups.length ? "没有符合筛选条件的记录" : "还没有行程或集合" }}</h3>
+          <h3>{{ groups.length ? "没有符合筛选条件的记录" : "还没有旅程或收藏" }}</h3>
           <p>
             {{
               groups.length
                 ? "调整类型或搜索条件后再试。"
-                : "从已有足迹中选出几个地点，创建第一段行程或主题集合。"
+                : "从已有足迹中选出几个地点，创建第一段旅程或主题收藏。"
             }}
           </p>
           <VButton v-if="!groups.length" type="primary" @click="openCreate()">
-            新建行程或集合
+            新建旅程或收藏
           </VButton>
         </div>
 

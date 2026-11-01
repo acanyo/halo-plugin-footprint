@@ -1,4 +1,4 @@
-/* 2D 地图中的行程/集合成员强调。路线和序号由 footprint-groups.js 绘制。 */
+/* 2D 地图中的旅程/收藏成员强调。路线和序号由 footprint-groups.js 绘制。 */
 .amap-marker.is-group-dimmed {
     opacity: 0.28;
     filter: saturate(0.5);

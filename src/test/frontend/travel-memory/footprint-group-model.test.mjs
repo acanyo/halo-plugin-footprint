@@ -45,7 +45,7 @@ const group = (over = {}) => ({
     },
     spec: {
         groupType: 'trip',
-        title: '国庆行程',
+        title: '国庆旅程',
         visibility: 'public',
         memberNames: ['sh', 'bj'],
         targetCount: undefined,
@@ -70,7 +70,7 @@ test('日期范围使用访问时间而非录入顺序', () => {
     assert.equal(range.days, 2);
 });
 
-test('行程路线按 createTime 排序，同城距离也计入', () => {
+test('旅程路线按 createTime 排序，同城距离也计入', () => {
     const sameCityA = bj({ key: 'bj-a', createTime: '2024-10-01T08:00:00Z', lng: 116.4074 });
     const sameCityB = bj({ key: 'bj-b', createTime: '2024-10-01T10:00:00Z', lng: 116.5000 });
     const members = sortGroupMembers([sameCityB, sh, sameCityA]);
@@ -106,7 +106,7 @@ test('缺失成员计数、公开/删除状态过滤和封面兜底', () => {
     );
 });
 
-test('空集合保留并计算目标，集合不生成路线', () => {
+test('空收藏保留并计算目标，收藏不生成路线', () => {
     const resolved = resolveFootprintGroup(
         group({
             spec: {
@@ -123,7 +123,7 @@ test('空集合保留并计算目标，集合不生成路线', () => {
     assert.deepEqual(resolved.segments, []);
 });
 
-test('列表按最近访问时间倒序，空集合回退创建时间', () => {
+test('列表按最近访问时间倒序，空收藏回退创建时间', () => {
     const list = resolveFootprintGroups(
         [
             group({ metadata: { name: 'older' }, spec: { memberNames: ['bj'] } }),

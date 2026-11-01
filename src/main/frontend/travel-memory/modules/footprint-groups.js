@@ -1,5 +1,5 @@
 /**
- * 前台“行程与集合”全屏覆盖层。
+ * 前台“我的旅途集”全屏覆盖层。
  *
  * 负责列表、详情、深链、分享和成员入口；地图高亮与路线由宿主注入。
  */
@@ -143,7 +143,7 @@ function cardRangeText(group) {
 }
 
 function typeText(group) {
-    return group.groupType === 'trip' ? '行程' : '集合';
+    return group.groupType === 'trip' ? '旅程' : '收藏';
 }
 
 function progressText(group) {
@@ -233,14 +233,14 @@ function listItemsHtml() {
         return `<div class="group-library-empty" role="alert">
             <h3>记录不存在或尚未公开</h3>
             <p>这个链接可能已被删除、改为私密，或者地址不完整。</p>
-            <button type="button" class="fp-btn" data-clear-deep-link>查看全部行程与集合</button>
+            <button type="button" class="fp-btn" data-clear-deep-link>查看全部旅途集</button>
         </div>`;
     }
     const items = filteredGroups();
     return items.length
         ? items.map(cardHtml).join('')
         : `<div class="group-library-empty">
-            <h3>${groups.length ? '没有符合筛选的记录' : '还没有行程或集合'}</h3>
+            <h3>${groups.length ? '没有符合筛选的记录' : '还没有旅程或收藏'}</h3>
             <p>${groups.length ? '切换到其他类型看看。' : '在后台从已有足迹中创建第一段旅程或主题收藏。'}</p>
         </div>`;
 }
@@ -254,7 +254,7 @@ function bindGroupCards() {
         setUrl(false, true);
         renderList();
         view.querySelector('#footprintGroupsBack')?.focus({ preventScroll: true });
-        announce('已显示全部行程与集合');
+        announce('已显示全部旅途集');
     });
 }
 
@@ -281,16 +281,16 @@ function renderList(options = {}) {
             </button>
             <div class="group-library-title">
                 <p>旅行组合</p>
-                <h2>行程与集合</h2>
+                <h2>我的旅途集</h2>
                 <span>${groups.length} 个记录</span>
             </div>
         </header>
         <div class="group-library-filterbar">
-            <nav class="group-library-filters" aria-label="筛选行程与集合">
+            <nav class="group-library-filters" aria-label="筛选旅途集">
                 ${[
                     ['all', '全部'],
-                    ['trip', '行程'],
-                    ['collection', '集合']
+                    ['trip', '旅程'],
+                    ['collection', '收藏']
                 ].map(([key, label]) => `
                     <button type="button" data-group-filter="${key}"
                         aria-pressed="${activeFilter === key}">
@@ -299,7 +299,7 @@ function renderList(options = {}) {
                 `).join('')}
             </nav>
             <label class="group-library-search">
-                <span class="sr-only">搜索行程与集合</span>
+                <span class="sr-only">搜索旅途集</span>
                 <input type="search" value="${escapeHtml(searchQuery)}"
                     placeholder="搜索标题、地点或足迹类型" autocomplete="off">
             </label>
@@ -502,7 +502,7 @@ function openMemberFromDetail(member) {
     detailFocusKey = member.key;
     closeOverlay(false);
     deps.openMember(member, {
-        backLabel: '返回行程',
+        backLabel: '返回旅程',
         onClose: () => {
             activeGroup = group;
             activeFromMap = false;
@@ -533,16 +533,16 @@ function renderDetail() {
             </${group.groupType === 'trip' ? 'ol' : 'div'}>
             ${memberMoreHtml(group)}`
         : `<div class="group-library-empty">
-            <h3>${allMembersMissing ? '成员足迹已全部失效' : '这个集合还没有成员'}</h3>
+            <h3>${allMembersMissing ? '成员足迹已全部失效' : '这个收藏还没有成员'}</h3>
             <p>${allMembersMissing
-                ? '请在后台编辑这个集合，移除失效引用或补充新的足迹。'
-                : '在后台编辑集合，从已有足迹中挑选地点。'}</p>
+                ? '请在后台编辑这个收藏，移除失效引用或补充新的足迹。'
+                : '在后台编辑收藏，从已有足迹中挑选地点。'}</p>
         </div>`;
 
     view.innerHTML = `
         <header class="group-library-top">
-            <button id="footprintGroupsBack" class="fp-btn" type="button" aria-label="返回行程与集合列表">
-                <span aria-hidden="true">←</span><span>${activeFromMap ? '返回地图' : '全部记录'}</span>
+            <button id="footprintGroupsBack" class="fp-btn" type="button" aria-label="返回旅途集列表">
+                <span aria-hidden="true">←</span><span>${activeFromMap ? '返回地图' : '全部旅途集'}</span>
             </button>
             <div id="groupDetailCompactTitle" class="group-detail-compact-title" hidden>
                 <span>${escapeHtml(typeText(group))}</span>
@@ -550,7 +550,7 @@ function renderDetail() {
             </div>
             <div class="group-library-actions">
                 ${activeFromMap
-                    ? '<button id="footprintGroupsAll" class="fp-btn" type="button">全部记录</button>'
+                    ? '<button id="footprintGroupsAll" class="fp-btn" type="button">全部旅途集</button>'
                     : ''}
                 <button id="groupCopyLink" class="fp-btn" type="button">${copied ? '已复制' : '复制链接'}</button>
                 ${article ? `<a class="fp-btn" href="${escapeHtml(article)}" target="_blank" rel="noopener noreferrer">阅读游记</a>` : ''}
@@ -692,7 +692,7 @@ function returnToList() {
     detailScrollTop = 0;
     setUrl(false, true);
     renderList({ restore: true });
-    announce('已返回行程与集合列表');
+    announce('已返回旅途集列表');
 }
 
 function clearMapGroup() {
@@ -716,7 +716,7 @@ function exitGroupMap() {
     if (params.get('view') === 'groups' && window.location.pathname.endsWith('/footprints')) {
         history.replaceState({}, '', window.location.pathname);
     }
-    announce('已退出行程地图查看');
+    announce('已退出旅程地图查看');
 }
 
 function showOverlay() {
@@ -925,7 +925,7 @@ export function initFootprintGroups() {
             else {
                 activeGroup = null;
                 renderList({ restore: true });
-                announce('已返回行程与集合列表');
+                announce('已返回旅途集列表');
             }
         } else if (view.classList.contains('show')) {
             closeFootprintGroups(false);

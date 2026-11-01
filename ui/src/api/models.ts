@@ -64,7 +64,7 @@ export interface Footprint {
 }
 
 /**
- * 行程或集合。成员只引用 Footprint.metadata.name，时间与距离均由成员派生。
+ * 旅程或收藏。成员只引用 Footprint.metadata.name，时间与距离均由成员派生。
  */
 export interface FootprintGroupSpec {
   groupType: "trip" | "collection";

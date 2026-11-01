@@ -82,7 +82,7 @@
         <div class="nav-group nav-group-primary">
             <button id="sceneModeBtn" type="button" title="切换到 2D 平面地图"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z"/></svg><span class="dock-label">2D 地图</span></button>
             <button id="cityWallBtn" type="button" title="打开城记：按最近到访排列的城市卡片墙"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span class="dock-label">城记</span></button>
-            <button id="footprintGroupsBtn" type="button" aria-pressed="false" title="打开行程与集合"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M6.7 16.7C10 12.8 11 10.4 14.2 8.2"/><path d="M10 18h10M4 6h8"/></svg><span class="dock-label">行程</span></button>
+            <button id="footprintGroupsBtn" type="button" aria-pressed="false" title="打开我的旅途集"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M6.7 16.7C10 12.8 11 10.4 14.2 8.2"/><path d="M10 18h10M4 6h8"/></svg><span class="dock-label">旅途</span></button>
             <button id="memoryShelfBtn" type="button" hidden title="打开世界这本书：按省份翻阅旅行记忆"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5Z"/></svg><span class="dock-label">这本书</span></button>
             <button id="ticketGalleryBtn" type="button" title="打开票根册：按时间收好的旅途票根"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4V8Z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg><span class="dock-label">票根册</span></button>
             <button id="guestbookBtn" type="button" data-guestbook-open hidden title="打开留言板"><svg class="dock-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-4.1A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg><span class="dock-label">留言板</span></button>
@@ -771,7 +771,7 @@
             </label>
         </div>
         <button id="zoom-restore" data-tooltip="返回中国全图视图" aria-label="返回中国全图视图">中国地图</button>
-        <button id="groupGalleryBtn2d" data-tooltip="打开行程与集合" aria-label="打开行程与集合" aria-pressed="false" type="button">行程</button>
+        <button id="groupGalleryBtn2d" data-tooltip="打开我的旅途集" aria-label="打开我的旅途集" aria-pressed="false" type="button">旅途</button>
         <button id="back3dBtn" data-tooltip="切换回 3D 地球" aria-label="切换回 3D 地球" type="button">3D 地球</button>
         <div id="timeline-btn" data-tooltip="查看旅行时间线">时间线</div>
         <div id="messageBoards" class="amap-scale-text" data-guestbook-open hidden data-tooltip="打开留言板" role="button" tabindex="0" aria-label="打开留言板">留言板</div>
@@ -805,12 +805,12 @@
 </div>
 </div>
 
-<!-- 行程与集合：2D / 3D 共用，必须放在两个视图容器之外 -->
-<div id="footprintGroupsView" class="fp-sheet group-library-sheet" role="dialog" aria-modal="true" aria-label="行程与集合" aria-hidden="true"></div>
-<div id="footprintGroupMapDock" class="group-map-dock" role="region" aria-label="当前行程地图信息" hidden>
+<!-- 旅途集：2D / 3D 共用，必须放在两个视图容器之外 -->
+<div id="footprintGroupsView" class="fp-sheet group-library-sheet" role="dialog" aria-modal="true" aria-label="我的旅途集" aria-hidden="true"></div>
+<div id="footprintGroupMapDock" class="group-map-dock" role="region" aria-label="当前旅程地图信息" hidden>
     <div class="group-map-summary">
         <div class="group-map-heading">
-            <span id="footprintGroupMapType" class="group-map-type">行程</span>
+            <span id="footprintGroupMapType" class="group-map-type">旅程</span>
             <strong id="footprintGroupMapTitle"></strong>
         </div>
         <div class="group-map-progress-row">
@@ -818,7 +818,7 @@
             <span id="footprintGroupMapProgress"></span>
         </div>
         <div id="footprintGroupMapMeter" class="group-map-meter" role="progressbar"
-             aria-label="行程站点进度" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+             aria-label="旅程站点进度" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
             <i></i>
         </div>
         <span id="footprintGroupMapMeta" class="group-map-meta"></span>
@@ -827,7 +827,7 @@
         <button id="footprintGroupMapPrev" class="fp-btn" type="button">上一站</button>
         <button id="footprintGroupMapNext" class="fp-btn" type="button">下一站</button>
         <button id="footprintGroupMapExit" class="fp-btn" type="button">退出查看</button>
-        <button id="footprintGroupReturn" class="fp-btn is-primary" type="button">返回行程</button>
+        <button id="footprintGroupReturn" class="fp-btn is-primary" type="button">返回旅程</button>
     </div>
 </div>
 <div id="footprintGroupsLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>

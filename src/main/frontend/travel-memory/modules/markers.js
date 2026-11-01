@@ -86,7 +86,7 @@ let cityFlightTimer = null;
 let cityMoveEndHandler = null;
 let cityRevealRaf = null;
 let focusedMarker = null;        // 当前聚焦（悬停/键盘选中）的标记，null 表示无
-let groupEmphasisKeys = null;    // 当前行程/集合成员；null 表示未启用组合高亮
+let groupEmphasisKeys = null;    // 当前旅程/收藏成员；null 表示未启用组合高亮
 let markerOcclusionDirty = true; // 标记遮挡需要重算（相机或标记位置变化时置位）
 let markerLabelDirty = true;     // 地名标签需要重排（标记或标签显隐变化时置位）
 let pendingMarkerAudit = false;  // 需要在真实渲染结果上体检一次标记（展开/重建后）
@@ -711,7 +711,7 @@ export function setMarkerFocus(entity) {
 }
 
 /**
- * 设置当前行程/集合的成员高亮。传 null 恢复普通标记颜色。
+ * 设置当前旅程/收藏的成员高亮。传 null 恢复普通标记颜色。
  * groupEmphasisKeys 使用 Footprint.key（metadata.name），避免同名地点误匹配。
  */
 export function setGroupEmphasis(keys) {
