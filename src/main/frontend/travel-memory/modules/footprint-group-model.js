@@ -8,6 +8,8 @@
 import { haversineKm } from './footprints-insight.js';
 
 export const MAX_GROUP_MEMBERS = 500;
+const GROUP_PINNED_ANNOTATION = 'footprint.lik.cc/pinned';
+const GROUP_SORT_ORDER_ANNOTATION = 'footprint.lik.cc/sort-order';
 
 export function uniqueGroupMemberNames(names) {
     if (!Array.isArray(names)) return [];
@@ -101,6 +103,12 @@ export function groupTripDistance(members) {
 function groupCover(group, members, imageUrlOf) {
     const custom = String((group && group.spec && group.spec.cover) || '').trim();
     if (custom) return custom;
+    const preferred = String((group && group.spec && group.spec.coverMemberName) || '').trim();
+    if (preferred) {
+        const member = members.find(item => item.key === preferred);
+        const url = member && typeof imageUrlOf === 'function' ? imageUrlOf(member) : '';
+        if (url) return url;
+    }
     for (const member of members) {
         const url = typeof imageUrlOf === 'function' ? imageUrlOf(member) : '';
         if (url) return url;
@@ -114,14 +122,19 @@ export function resolveFootprintGroup(group, footprintMap, options = {}) {
     if (options.publicOnly !== false && group.spec.visibility && group.spec.visibility !== 'public') return null;
     const names = uniqueGroupMemberNames(group.spec.memberNames).slice(0, MAX_GROUP_MEMBERS);
     const resolved = names.map(name => footprintMap.get(name)).filter(Boolean);
-    const members = sortGroupMembers(resolved);
+    const groupType = group.spec.groupType === 'collection' ? 'collection' : 'trip';
+    const memberOrderMode = groupType === 'collection' && group.spec.memberOrderMode === 'manual'
+        ? 'manual'
+        : 'time';
+    const members = memberOrderMode === 'manual' ? resolved : sortGroupMembers(resolved);
     const range = groupRange(members);
-    const segments = group.spec.groupType === 'trip' ? groupTripSegments(members) : [];
+    const segments = groupType === 'trip' ? groupTripSegments(members) : [];
     const distanceKm = segments.reduce((sum, segment) => sum + (segment.km || 0), 0);
     return {
         key: group.metadata.name,
         metadata: group.metadata,
-        groupType: group.spec.groupType === 'collection' ? 'collection' : 'trip',
+        groupType,
+        memberOrderMode,
         title: String(group.spec.title || '').trim() || '未命名',
         description: String(group.spec.description || '').trim(),
         visibility: group.spec.visibility === 'private' ? 'private' : 'public',
@@ -132,6 +145,14 @@ export function resolveFootprintGroup(group, footprintMap, options = {}) {
         targetCount: Number.isInteger(Number(group.spec.targetCount)) && Number(group.spec.targetCount) > 0
             ? Number(group.spec.targetCount)
             : 0,
+        sortOrder: Number.isInteger(Number(
+            group.metadata.annotations?.[GROUP_SORT_ORDER_ANNOTATION] ?? group.spec.sortOrder
+        ))
+            ? Number(group.metadata.annotations?.[GROUP_SORT_ORDER_ANNOTATION] ?? group.spec.sortOrder)
+            : null,
+        pinned: group.metadata.annotations?.[GROUP_PINNED_ANNOTATION] !== undefined
+            ? String(group.metadata.annotations[GROUP_PINNED_ANNOTATION]) === 'true'
+            : group.spec.pinned === true,
         names,
         members,
         missingCount: Math.max(0, names.length - resolved.length),
@@ -142,7 +163,10 @@ export function resolveFootprintGroup(group, footprintMap, options = {}) {
         unlocatableCount: members.filter(member => !validCoordinate(member)).length,
         segments,
         distanceKm,
-        cover: groupCover(group, members, options.imageUrlOf)
+        cover: groupCover(group, members, options.imageUrlOf),
+        coverFocus: ['top', 'bottom', 'left', 'right'].includes(group.spec.coverFocus)
+            ? group.spec.coverFocus
+            : 'center'
     };
 }
 
@@ -152,6 +176,10 @@ export function resolveFootprintGroups(groups, footprints, options = {}) {
         .map(group => resolveFootprintGroup(group, footprintMap, options))
         .filter(Boolean)
         .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            const orderA = a.sortOrder == null ? Number.MAX_SAFE_INTEGER : a.sortOrder;
+            const orderB = b.sortOrder == null ? Number.MAX_SAFE_INTEGER : b.sortOrder;
+            if (orderA !== orderB) return orderA - orderB;
             const byEnd = String(b.range.end || b.metadata.creationTimestamp || '').localeCompare(
                 String(a.range.end || a.metadata.creationTimestamp || '')
             );

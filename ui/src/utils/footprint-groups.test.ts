@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Footprint, FootprintGroup } from "@/api/models";
 import {
+  GROUP_PINNED_ANNOTATION,
+  GROUP_SORT_ORDER_ANNOTATION,
   groupRange,
+  sortFootprintsForGroup,
   sortFootprintsByVisitTime,
+  sortGroupSummaries,
   summarizeGroup,
   uniqueMemberNames,
   validateFootprintGroup,
@@ -81,5 +85,42 @@ describe("footprint groups", () => {
     expect(summary.missingCount).toBe(1);
     expect(summary.cityCount).toBe(2);
     expect(summary.provinceCount).toBe(2);
+  });
+
+  it("收藏支持手动顺序", () => {
+    const earlier = footprint("a", "2024-10-01T08:00:00Z");
+    const later = footprint("b", "2024-10-02T08:00:00Z");
+    const collection = group({
+      groupType: "collection",
+      memberOrderMode: "manual",
+      memberNames: ["b", "a"],
+    });
+    expect(sortFootprintsForGroup(collection, [earlier, later]).map((item) => item.metadata.name))
+      .toEqual(["b", "a"]);
+    expect(groupRange([earlier, later]).days).toBe(2);
+  });
+
+  it("置顶记录优先，其次按手动排序值排列", () => {
+    const map = new Map<string, Footprint>();
+    const summaries = [
+      summarizeGroup(group({ memberNames: [], sortOrder: 2 }), map),
+      summarizeGroup(group({ memberNames: [], pinned: true, sortOrder: 9 }), map),
+      summarizeGroup(group({ memberNames: [], sortOrder: 1 }), map),
+    ];
+    expect(sortGroupSummaries(summaries).map((summary) => summary.group.spec.sortOrder))
+      .toEqual([9, 1, 2]);
+  });
+
+  it("兼容 metadata.annotations 中的置顶与排序值", () => {
+    const pinned = group({ memberNames: [] });
+    pinned.metadata.annotations = {
+      [GROUP_PINNED_ANNOTATION]: "true",
+      [GROUP_SORT_ORDER_ANNOTATION]: "7",
+    };
+    const normal = group({ memberNames: [], sortOrder: 1 });
+    expect(sortGroupSummaries([
+      summarizeGroup(normal, new Map()),
+      summarizeGroup(pinned, new Map()),
+    ])[0].group).toBe(pinned);
   });
 });

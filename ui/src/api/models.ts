@@ -72,7 +72,12 @@ export interface FootprintGroupSpec {
   description?: string;
   visibility: "public" | "private";
   cover?: string;
+  coverMemberName?: string;
+  coverFocus?: "center" | "top" | "bottom" | "left" | "right";
   memberNames: string[];
+  memberOrderMode?: "time" | "manual";
+  sortOrder?: number;
+  pinned?: boolean;
   targetCount?: number;
   article?: string;
   footprintTypes?: string[];
@@ -95,6 +100,19 @@ export interface FootprintGroupList {
   hasNext: boolean;
   hasPrevious: boolean;
   totalPages: number;
+}
+
+export interface FootprintGroupApiSummary {
+  group: FootprintGroup;
+  memberCount: number;
+  missingCount: number;
+  cityCount: number;
+  provinceCount: number;
+  searchTerms?: string[];
+  days: number;
+  rangeStart?: string;
+  rangeEnd?: string;
+  cover?: string;
 }
 
 /**

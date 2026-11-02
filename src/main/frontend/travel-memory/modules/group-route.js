@@ -9,6 +9,9 @@ import { accentHex } from '../../shared/accent.js';
 let deps = null;
 let routeEntities = [];
 let savedCameraView = null;
+const GROUP_VIEW_PITCH = Cesium.Math.toRadians(-55);
+const GROUP_VIEW_MIN_RANGE = 160000;
+const GROUP_VIEW_MAX_RANGE = 30000000;
 
 export function setupGroupRoute(d) {
     deps = d;
@@ -68,6 +71,133 @@ function hasCoordinate(member) {
         !(lng === 0 && lat === 0);
 }
 
+function groupViewportFrame() {
+    const canvas = deps.viewer().scene.canvas;
+    const width = canvas.clientWidth || window.innerWidth;
+    const height = canvas.clientHeight || window.innerHeight;
+    const horizontalInset = Math.max(28, Math.round(width * 0.035));
+    const top = Math.max(64, Math.round(height * 0.065));
+    const dock = document.getElementById('footprintGroupMapDock');
+    const dockTop = dock && !dock.hidden
+        ? dock.getBoundingClientRect().top
+        : height;
+    const bottom = Math.max(
+        top + 120,
+        Math.min(
+            height - Math.max(36, Math.round(height * 0.04)),
+            dockTop - Math.max(36, Math.round(height * 0.04))
+        )
+    );
+    return {
+        width,
+        height,
+        left: horizontalInset,
+        right: width - horizontalInset,
+        top,
+        bottom,
+        verticalFov: deps.viewer().camera.frustum.fovy ||
+            deps.viewer().camera.frustum.fov ||
+            Cesium.Math.toRadians(45)
+    };
+}
+
+function groupCameraGeometry(points, sphere, range, aim, frame) {
+    const cosPitch = Math.cos(GROUP_VIEW_PITCH);
+    const enu = Cesium.Transforms.eastNorthUpToFixedFrame(sphere.center);
+    const destination = Cesium.Matrix4.multiplyByPoint(
+        enu,
+        new Cesium.Cartesian3(
+            0,
+            -range * cosPitch,
+            -range * Math.sin(GROUP_VIEW_PITCH)
+        ),
+        new Cesium.Cartesian3()
+    );
+    let direction = Cesium.Cartesian3.normalize(
+        Cesium.Cartesian3.subtract(sphere.center, destination, new Cesium.Cartesian3()),
+        new Cesium.Cartesian3()
+    );
+    const worldUp = Cesium.Cartesian3.normalize(destination, new Cesium.Cartesian3());
+    const right = Cesium.Cartesian3.normalize(
+        Cesium.Cartesian3.cross(direction, worldUp, new Cesium.Cartesian3()),
+        new Cesium.Cartesian3()
+    );
+    if (aim) {
+        const rotation = Cesium.Quaternion.fromAxisAngle(right, aim, new Cesium.Quaternion());
+        const matrix = Cesium.Matrix3.fromQuaternion(rotation, new Cesium.Matrix3());
+        direction = Cesium.Cartesian3.normalize(
+            Cesium.Matrix3.multiplyByVector(matrix, direction, new Cesium.Cartesian3()),
+            new Cesium.Cartesian3()
+        );
+    }
+    const up = Cesium.Cartesian3.normalize(
+        Cesium.Cartesian3.cross(right, direction, new Cesium.Cartesian3()),
+        new Cesium.Cartesian3()
+    );
+    const tanHalfY = Math.tan(frame.verticalFov / 2);
+    const aspect = frame.width / frame.height;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const point of points) {
+        const relative = Cesium.Cartesian3.subtract(point, destination, new Cesium.Cartesian3());
+        const depth = Cesium.Cartesian3.dot(relative, direction);
+        if (!(depth > 0)) return null;
+        const nx = Cesium.Cartesian3.dot(relative, right) / depth / (tanHalfY * aspect);
+        const ny = Cesium.Cartesian3.dot(relative, up) / depth / tanHalfY;
+        const x = (0.5 + nx / 2) * frame.width;
+        const y = (0.5 - ny / 2) * frame.height;
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+    }
+    return { destination, direction, up, minX, maxX, minY, maxY };
+}
+
+function fitGroupCamera(points, sphere) {
+    const frame = groupViewportFrame();
+    const targetCenterY = (frame.top + frame.bottom) / 2;
+    const fitAtRange = (range) => {
+        let lowAim = -frame.verticalFov;
+        let highAim = frame.verticalFov;
+        let geometry = null;
+        for (let i = 0; i < 26; i += 1) {
+            const aim = (lowAim + highAim) / 2;
+            geometry = groupCameraGeometry(points, sphere, range, aim, frame);
+            if (!geometry) {
+                lowAim = aim;
+                continue;
+            }
+            const centerY = (geometry.minY + geometry.maxY) / 2;
+            if (centerY > targetCenterY) highAim = aim;
+            else lowAim = aim;
+        }
+        return geometry;
+    };
+
+    let lowRange = Math.max(GROUP_VIEW_MIN_RANGE, sphere.radius * 0.8);
+    let highRange = Math.max(GROUP_VIEW_MAX_RANGE, sphere.radius * 12);
+    let best = null;
+    for (let i = 0; i < 32; i += 1) {
+        const range = (lowRange + highRange) / 2;
+        const geometry = fitAtRange(range);
+        const fits = geometry &&
+            geometry.minX >= frame.left &&
+            geometry.maxX <= frame.right &&
+            geometry.minY >= frame.top &&
+            geometry.maxY <= frame.bottom;
+        if (fits) {
+            best = geometry;
+            highRange = range;
+        } else {
+            lowRange = range;
+        }
+    }
+    return best || fitAtRange(highRange);
+}
+
 export function showGroupRoute(group) {
     clearGroupRoute();
     if (!deps || !group) return;
@@ -123,13 +253,11 @@ export function flyToGroup(group, duration = 1.5) {
     });
     const sphere = Cesium.BoundingSphere.fromPoints(positions);
     sphere.radius = Math.max(sphere.radius, 80000);
-    deps.viewer().camera.flyToBoundingSphere(sphere, {
-        duration,
-        offset: new Cesium.HeadingPitchRange(
-            0,
-            Cesium.Math.toRadians(-55),
-            Math.max(420000, sphere.radius * 2.35)
-        )
+    const cameraFit = fitGroupCamera(positions, sphere);
+    deps.viewer().camera.flyTo({
+        destination: cameraFit.destination,
+        orientation: { direction: cameraFit.direction, up: cameraFit.up },
+        duration
     });
 }
 

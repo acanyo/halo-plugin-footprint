@@ -111,6 +111,7 @@ export function showFootprintGroupOnMap(group) {
     map.add(groupOverlays);
     if (groupOverlays.length) {
         const stats = document.getElementById('map-stats');
+        const groupDock = document.getElementById('footprintGroupMapDock');
         const statsStyle = stats ? getComputedStyle(stats) : null;
         const statsVisible = !!statsStyle &&
             statsStyle.display !== 'none' &&
@@ -119,7 +120,13 @@ export function showFootprintGroupOnMap(group) {
         const rightPadding = statsVisible && window.innerWidth > 900
             ? Math.max(80, Math.ceil(window.innerWidth - stats.getBoundingClientRect().left + 18))
             : 60;
-        map.setFitView(groupOverlays, false, [80, rightPadding, 110, 80], 16);
+        const dockHeight = groupDock && !groupDock.hidden
+            ? groupDock.getBoundingClientRect().height
+            : 0;
+        // AMap 的 avoid 顺序是上、下、左、右。底部额外留出旅程信息坞
+        // 及它与地图内容之间的呼吸区，避免南侧标记被信息坞压住。
+        const bottomPadding = Math.max(220, Math.ceil(dockHeight + 120));
+        map.setFitView(groupOverlays, false, [96, bottomPadding, 96, rightPadding], 16);
     }
 }
 

@@ -1,9 +1,11 @@
 package cc.lik.footprint;
 
 import cc.lik.footprint.dto.GeoInfo;
+import cc.lik.footprint.dto.FootprintGroupSummaryDto;
 import cc.lik.footprint.dto.MapConfig;
 import cc.lik.footprint.dto.StatsResult;
 import cc.lik.footprint.model.Footprint;
+import cc.lik.footprint.model.FootprintGroup;
 import cc.lik.footprint.service.FootprintConfigService;
 import cc.lik.footprint.service.FootprintStatsService;
 import cc.lik.footprint.service.GaodeGeocodingService;
@@ -24,7 +26,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.time.temporal.ChronoUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
@@ -94,7 +102,159 @@ public class FootprintEndpoint implements CustomEndpoint {
                     .response(responseBuilder()
                         .implementation(MapConfig.class));
             })
+            .GET("/footprints/-/group-summaries", this::listGroupSummaries, builder -> {
+                builder.operationId("ListFootprintGroupSummaries")
+                    .tag(footprintTag)
+                    .description("列出旅途集摘要，供后台列表使用")
+                    .response(responseBuilder()
+                        .implementation(FootprintGroupSummaryDto.class));
+            })
             .build();
+    }
+
+    private Mono<ServerResponse> listGroupSummaries(ServerRequest request) {
+        Comparator<Footprint> byVisitTime = Comparator.comparing(
+            footprint -> footprint.getSpec().getCreateTime(),
+            Comparator.nullsLast(Comparator.naturalOrder())
+        );
+        Comparator<FootprintGroup> byCreation = Comparator.comparing(
+            group -> group.getMetadata().getCreationTimestamp(),
+            Comparator.nullsLast(Comparator.reverseOrder())
+        );
+        return Mono.zip(
+                client.list(FootprintGroup.class, null, byCreation).collectList(),
+                client.list(Footprint.class, null, byVisitTime).collectList()
+            )
+            .map(tuple -> {
+                Map<String, Footprint> footprints = tuple.getT2().stream()
+                    .collect(Collectors.toMap(
+                        footprint -> footprint.getMetadata().getName(),
+                        footprint -> footprint,
+                        (left, right) -> left
+                    ));
+                return tuple.getT1().stream()
+                    .map(group -> summarizeGroup(group, footprints))
+                    .toList();
+            })
+            .flatMap(summaries -> ServerResponse.ok().bodyValue(summaries));
+    }
+
+    private FootprintGroupSummaryDto summarizeGroup(
+        FootprintGroup group,
+        Map<String, Footprint> footprintMap
+    ) {
+        List<String> names = group.getSpec().getMemberNames() == null
+            ? List.of()
+            : group.getSpec().getMemberNames().stream()
+                .map(String::trim)
+                .filter(name -> !name.isEmpty())
+                .distinct()
+                .toList();
+        List<Footprint> members = names.stream()
+            .map(footprintMap::get)
+            .filter(java.util.Objects::nonNull)
+            .collect(Collectors.toCollection(java.util.ArrayList::new));
+        boolean manualCollection =
+            "collection".equals(group.getSpec().getGroupType())
+                && "manual".equals(group.getSpec().getMemberOrderMode());
+        if (!manualCollection) {
+            members.sort(Comparator.comparing(
+                member -> member.getSpec().getCreateTime(),
+                Comparator.nullsLast(Comparator.naturalOrder())
+            ));
+        }
+        FootprintGroupSummaryDto summary = new FootprintGroupSummaryDto();
+        summary.setGroup(group);
+        summary.setMemberCount(members.size());
+        summary.setSearchTerms(members.stream()
+            .flatMap(member -> java.util.stream.Stream.of(
+                member.getSpec().getName(),
+                member.getSpec().getCity(),
+                member.getSpec().getProvince(),
+                member.getSpec().getAddress()
+            ))
+            .filter(value -> value != null && !value.isBlank())
+            .distinct()
+            .toList());
+        summary.setMissingCount(Math.max(0, names.size() - members.size()));
+        Set<String> cities = new HashSet<>();
+        Set<String> provinces = new HashSet<>();
+        for (Footprint member : members) {
+            if (member.getSpec().getCityAdcode() != null
+                && !member.getSpec().getCityAdcode().isBlank()) {
+                cities.add(member.getSpec().getCityAdcode());
+            } else if (member.getSpec().getCity() != null
+                && !member.getSpec().getCity().isBlank()) {
+                cities.add(member.getSpec().getCity());
+            }
+            if (member.getSpec().getProvinceAdcode() != null
+                && !member.getSpec().getProvinceAdcode().isBlank()) {
+                provinces.add(member.getSpec().getProvinceAdcode());
+            } else if (member.getSpec().getProvince() != null
+                && !member.getSpec().getProvince().isBlank()) {
+                provinces.add(member.getSpec().getProvince());
+            }
+        }
+        summary.setCityCount(cities.size());
+        summary.setProvinceCount(provinces.size());
+        applyRange(summary, members);
+        summary.setCover(groupCover(group, members, footprintMap));
+        return summary;
+    }
+
+    private void applyRange(
+        FootprintGroupSummaryDto summary,
+        List<Footprint> members
+    ) {
+        Footprint first = members.stream()
+            .filter(member -> member.getSpec().getCreateTime() != null)
+            .min(Comparator.comparing(member -> member.getSpec().getCreateTime()))
+            .orElse(null);
+        Footprint last = members.stream()
+            .filter(member -> member.getSpec().getCreateTime() != null)
+            .max(Comparator.comparing(member -> member.getSpec().getCreateTime()))
+            .orElse(null);
+        if (first == null || last == null) return;
+        summary.setRangeStart(first.getSpec().getCreateTime().toString());
+        summary.setRangeEnd(last.getSpec().getCreateTime().toString());
+        summary.setDays((int) Math.max(
+            1,
+            ChronoUnit.DAYS.between(
+                first.getSpec().getCreateTime().atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
+                last.getSpec().getCreateTime().atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+            ) + 1
+        ));
+    }
+
+    private String groupCover(
+        FootprintGroup group,
+        List<Footprint> members,
+        Map<String, Footprint> footprintMap
+    ) {
+        if (group.getSpec().getCover() != null && !group.getSpec().getCover().isBlank()) {
+            return group.getSpec().getCover();
+        }
+        if (group.getSpec().getCoverMemberName() != null) {
+            String image = firstImage(footprintMap.get(group.getSpec().getCoverMemberName()));
+            if (!image.isBlank()) return image;
+        }
+        for (Footprint member : members) {
+            String image = firstImage(member);
+            if (!image.isBlank()) return image;
+        }
+        return "";
+    }
+
+    private String firstImage(Footprint footprint) {
+        if (footprint == null) return "";
+        if (footprint.getSpec().getGalleryImages() != null) {
+            for (Footprint.GalleryImage image : footprint.getSpec().getGalleryImages()) {
+                if (image != null && image.getUrl() != null && !image.getUrl().isBlank()) {
+                    return image.getUrl();
+                }
+            }
+        }
+        return footprint.getSpec().getImage() == null ? "" : footprint.getSpec().getImage();
     }
 
     private Mono<ServerResponse> listFootprints(ServerRequest request) {

@@ -3,12 +3,16 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { Dialog, IconRefreshLine, Toast, VButton, VLoading } from "@halo-dev/components";
 import RiDeleteBinLine from "~icons/ri/delete-bin-line";
+import RiDragMoveLine from "~icons/ri/drag-move-line";
 import RiExternalLinkLine from "~icons/ri/external-link-line";
 import RiMapPinLine from "~icons/ri/map-pin-line";
 import RiPencilLine from "~icons/ri/pencil-line";
 import type { Footprint, FootprintGroup, Option } from "@/api/models";
 import { footprintApiClient } from "@/api";
 import {
+  GROUP_PINNED_ANNOTATION,
+  GROUP_SORT_ORDER_ANNOTATION,
+  isGroupPinned,
   sortGroupSummaries,
   summarizeGroup,
   type FootprintGroupSummary,
@@ -28,8 +32,10 @@ const editorVisible = ref(false);
 const editingGroup = ref<FootprintGroup>();
 const draftMemberNames = ref<string[]>([]);
 const highlightedKey = ref("");
-const pendingUndo = ref<{ group: FootprintGroup; title: string }>();
-let undoTimer: ReturnType<typeof setTimeout> | undefined;
+const selectedNames = ref<string[]>([]);
+const reordering = ref(false);
+const draggedName = ref("");
+const dragOverName = ref("");
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 let editorWasCreate = false;
 let editorStartScroll = 0;
@@ -51,6 +57,7 @@ const filteredSummaries = computed(() => {
       summary.group.spec.title,
       summary.group.spec.description,
       ...(summary.group.spec.footprintTypes || []),
+      ...summary.searchTerms,
     ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(keyword));
@@ -62,8 +69,17 @@ const groupCounts = computed(() => ({
   collection: summaries.value.filter((summary) => summary.group.spec.groupType === "collection")
     .length,
 }));
+const selectedSummaries = computed(() =>
+  summaries.value.filter((summary) => selectedNames.value.includes(summary.group.metadata.name)),
+);
 
 function formatRange(summary: FootprintGroupSummary) {
+  if (summary.group.spec.groupType === "collection") {
+    const latest = summary.range.end || summary.group.metadata.creationTimestamp;
+    return latest
+      ? `最近收录 ${String(latest).slice(0, 10).replace(/-/g, ".")}`
+      : "尚无收录时间";
+  }
   if (!summary.range.start || !summary.range.end) return "尚无访问时间";
   const start = summary.range.start.slice(0, 10).replace(/-/g, ".");
   const end = summary.range.end.slice(0, 10).replace(/-/g, ".");
@@ -79,7 +95,7 @@ function typeLabel(summary: FootprintGroupSummary) {
 }
 
 function progressText(summary: FootprintGroupSummary) {
-  const count = summary.members.length;
+  const count = summary.memberCount;
   const target = Number(summary.group.spec.targetCount);
   return Number.isFinite(target) && target > 0 ? `${count} / ${target}` : `${count} 条`;
 }
@@ -92,9 +108,29 @@ function openFrontend(summary: FootprintGroupSummary) {
   );
 }
 
+function coverStyle(summary: FootprintGroupSummary) {
+  const focus = ["top", "bottom", "left", "right"].includes(
+    String(summary.group.spec.coverFocus || ""),
+  )
+    ? summary.group.spec.coverFocus
+    : "center";
+  return { objectPosition: focus };
+}
+
+function toggleSelected(name: string, checked: boolean) {
+  const next = new Set(selectedNames.value);
+  if (checked) next.add(name);
+  else next.delete(name);
+  selectedNames.value = [...next];
+}
+
+function clearSelection() {
+  selectedNames.value = [];
+}
+
 async function openCreate(memberNames: string[] = []) {
   while (loading.value) await new Promise((resolve) => setTimeout(resolve, 30));
-  if (!footprints.value.length) await load();
+  await ensureFootprints();
   editingGroup.value = undefined;
   draftMemberNames.value = [...new Set(memberNames)];
   editorWasCreate = true;
@@ -102,12 +138,18 @@ async function openCreate(memberNames: string[] = []) {
   editorVisible.value = true;
 }
 
-function openEdit(summary: FootprintGroupSummary) {
+async function openEdit(summary: FootprintGroupSummary) {
+  await ensureFootprints();
   editingGroup.value = summary.group;
   draftMemberNames.value = [];
   editorWasCreate = false;
   editorStartScroll = window.scrollY;
   editorVisible.value = true;
+}
+
+async function ensureFootprints() {
+  if (footprints.value.length) return;
+  footprints.value = await footprintApiClient.footprint.listAllFootprints();
 }
 
 async function load(manual = false) {
@@ -124,6 +166,9 @@ async function load(manual = false) {
     groups.value = nextGroups;
     footprints.value = nextFootprints;
     footprintTypes.value = nextTypes;
+    selectedNames.value = selectedNames.value.filter((name) =>
+      nextGroups.some((group) => group.metadata.name === name),
+    );
   } catch (error) {
     console.error("读取旅途集失败", error);
     errorMessage.value = "读取旅途集失败，请稍后重试。";
@@ -136,21 +181,14 @@ async function load(manual = false) {
 function confirmDelete(summary: FootprintGroupSummary) {
   Dialog.warning({
     title: `删除${typeLabel(summary)}`,
-    description: `确认删除“${summary.group.spec.title}”吗？成员足迹不会被删除，删除后可在 10 秒内撤销。`,
+    description: `确认删除“${summary.group.spec.title}”吗？成员足迹不会被删除，旅途集删除后无法撤销。`,
     confirmText: "删除",
     cancelText: "取消",
     async onConfirm() {
       try {
         await footprintApiClient.footprint.deleteFootprintGroup(summary.group.metadata.name);
-        pendingUndo.value = {
-          group: JSON.parse(JSON.stringify(summary.group)) as FootprintGroup,
-          title: summary.group.spec.title,
-        };
-        clearTimeout(undoTimer);
-        undoTimer = setTimeout(() => {
-          pendingUndo.value = undefined;
-        }, 10000);
-        Toast.success("已删除，可在下方撤销");
+        toggleSelected(summary.group.metadata.name, false);
+        Toast.success("已删除");
         await load(true);
       } catch (error) {
         console.error("删除旅程或收藏失败", error);
@@ -160,31 +198,179 @@ function confirmDelete(summary: FootprintGroupSummary) {
   });
 }
 
-async function undoDelete() {
-  const pending = pendingUndo.value;
-  if (!pending) return;
-  clearTimeout(undoTimer);
+async function updateGroupSpec(group: FootprintGroup, patch: Partial<FootprintGroup["spec"]>) {
+  return footprintApiClient.footprint.updateFootprintGroup(group.metadata.name, {
+    ...group,
+    spec: { ...group.spec, ...patch },
+  });
+}
+
+async function updateGroupAnnotations(
+  group: FootprintGroup,
+  patch: { pinned?: boolean; sortOrder?: number },
+) {
+  const annotations = { ...(group.metadata.annotations || {}) };
+  if (patch.pinned !== undefined) {
+    annotations[GROUP_PINNED_ANNOTATION] = String(patch.pinned);
+  }
+  if (patch.sortOrder !== undefined) {
+    annotations[GROUP_SORT_ORDER_ANNOTATION] = String(patch.sortOrder);
+  }
+  return footprintApiClient.footprint.updateFootprintGroup(group.metadata.name, {
+    ...group,
+    metadata: { ...group.metadata, annotations },
+  });
+}
+
+async function togglePinned(summary: FootprintGroupSummary) {
   try {
-    const restore = JSON.parse(JSON.stringify(pending.group)) as FootprintGroup;
-    restore.metadata = {
-      name: "",
-      generateName: "footprint-group-",
-      labels: restore.metadata.labels,
-      annotations: restore.metadata.annotations,
-    };
-    const restored = await footprintApiClient.footprint.createFootprintGroup(restore);
-    pendingUndo.value = undefined;
+    const nextPinned = !isGroupPinned(summary.group);
+    await updateGroupAnnotations(summary.group, { pinned: nextPinned });
     await load(true);
-    highlightedKey.value = restored.metadata.name;
+    highlightedKey.value = summary.group.metadata.name;
     clearTimeout(highlightTimer);
     highlightTimer = setTimeout(() => {
       highlightedKey.value = "";
     }, 2400);
-    Toast.success("已恢复删除的旅程或收藏");
+    Toast.success(nextPinned ? "已置顶" : "已取消置顶");
   } catch (error) {
-    console.error("撤销删除失败", error);
-    Toast.error("撤销失败，请重新创建");
+    console.error("更新置顶状态失败", error);
+    Toast.error("更新置顶状态失败");
   }
+}
+
+async function moveGroup(summary: FootprintGroupSummary, delta: number) {
+  if (reordering.value) return;
+  const ordered = summaries.value;
+  const index = ordered.findIndex(
+    (item) => item.group.metadata.name === summary.group.metadata.name,
+  );
+  const target = index + delta;
+  if (index < 0 || target < 0 || target >= ordered.length) return;
+  if (
+    (ordered[index].group.spec.pinned === true) !==
+    (ordered[target].group.spec.pinned === true)
+  ) {
+    return;
+  }
+  reordering.value = true;
+  try {
+    const next = ordered.slice();
+    [next[index], next[target]] = [next[target], next[index]];
+    await Promise.all(
+      next.map((item, order) => updateGroupAnnotations(item.group, { sortOrder: order + 1 })),
+    );
+    await load(true);
+    Toast.success("顺序已更新");
+  } catch (error) {
+    console.error("更新旅途集顺序失败", error);
+    Toast.error("更新顺序失败");
+  } finally {
+    reordering.value = false;
+  }
+}
+
+function startGroupDrag(event: DragEvent, summary: FootprintGroupSummary) {
+  if (reordering.value) {
+    event.preventDefault();
+    return;
+  }
+  draggedName.value = summary.group.metadata.name;
+  dragOverName.value = "";
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", summary.group.metadata.name);
+  }
+}
+
+function dragOverGroup(event: DragEvent, summary: FootprintGroupSummary) {
+  if (!draggedName.value || draggedName.value === summary.group.metadata.name) return;
+  const source = summaries.value.find((item) => item.group.metadata.name === draggedName.value);
+  if (!source || isGroupPinned(source.group) !== isGroupPinned(summary.group)) {
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "none";
+    return;
+  }
+  event.preventDefault();
+  dragOverName.value = summary.group.metadata.name;
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+}
+
+async function dropGroup(event: DragEvent, target: FootprintGroupSummary) {
+  event.preventDefault();
+  const sourceName = draggedName.value || event.dataTransfer?.getData("text/plain") || "";
+  dragOverName.value = "";
+  draggedName.value = "";
+  if (!sourceName || sourceName === target.group.metadata.name || reordering.value) return;
+  const ordered = summaries.value;
+  const sourceIndex = ordered.findIndex((item) => item.group.metadata.name === sourceName);
+  const targetIndex = ordered.findIndex(
+    (item) => item.group.metadata.name === target.group.metadata.name,
+  );
+  if (sourceIndex < 0 || targetIndex < 0) return;
+  if (isGroupPinned(ordered[sourceIndex].group) !== isGroupPinned(ordered[targetIndex].group)) return;
+  const next = ordered.slice();
+  const [moved] = next.splice(sourceIndex, 1);
+  next.splice(targetIndex, 0, moved);
+  reordering.value = true;
+  try {
+    await Promise.all(
+      next.map((item, order) => updateGroupAnnotations(item.group, { sortOrder: order + 1 })),
+    );
+    await load(true);
+    Toast.success("顺序已更新");
+  } catch (error) {
+    console.error("拖拽更新旅途集顺序失败", error);
+    Toast.error("更新顺序失败");
+  } finally {
+    reordering.value = false;
+  }
+}
+
+function endGroupDrag() {
+  draggedName.value = "";
+  dragOverName.value = "";
+}
+
+async function batchSetVisibility(visibility: "public" | "private") {
+  if (!selectedSummaries.value.length) return;
+  try {
+    await Promise.all(
+      selectedSummaries.value.map((summary) =>
+        updateGroupSpec(summary.group, { visibility }),
+      ),
+    );
+    Toast.success(visibility === "public" ? "已批量公开" : "已批量转为私密");
+    clearSelection();
+    await load(true);
+  } catch (error) {
+    console.error("批量更新可见性失败", error);
+    Toast.error("批量更新失败");
+  }
+}
+
+function batchDelete() {
+  if (!selectedSummaries.value.length) return;
+  Dialog.warning({
+    title: "批量删除",
+    description: `确认删除选中的 ${selectedSummaries.value.length} 个旅途集吗？此操作无法撤销。`,
+    confirmText: "删除",
+    cancelText: "取消",
+    async onConfirm() {
+      try {
+        await Promise.all(
+          selectedSummaries.value.map((summary) =>
+            footprintApiClient.footprint.deleteFootprintGroup(summary.group.metadata.name),
+          ),
+        );
+        Toast.success("已批量删除");
+        clearSelection();
+        await load(true);
+      } catch (error) {
+        console.error("批量删除旅途集失败", error);
+        Toast.error("批量删除失败");
+      }
+    },
+  });
 }
 
 async function handleSaved(savedGroup: FootprintGroup) {
@@ -207,7 +393,6 @@ async function handleSaved(savedGroup: FootprintGroup) {
 
 onMounted(() => load());
 onBeforeUnmount(() => {
-  clearTimeout(undoTimer);
   clearTimeout(highlightTimer);
 });
 
@@ -268,8 +453,21 @@ defineExpose({
           </div>
           <label class="fp-groups-search">
             <span class="sr-only">搜索旅途集</span>
-            <input v-model="query" type="search" placeholder="搜索标题、说明或足迹类型" />
+            <input v-model="query" type="search" placeholder="搜索标题、成员、地点或类型" />
           </label>
+        </div>
+        <div v-if="selectedSummaries.length" class="fp-group-batch-bar" role="region" aria-label="批量操作">
+          <span>已选 {{ selectedSummaries.length }} 项</span>
+          <button type="button" class="fp-button is-small" @click="batchSetVisibility('public')">
+            公开
+          </button>
+          <button type="button" class="fp-button is-small" @click="batchSetVisibility('private')">
+            转私密
+          </button>
+          <button type="button" class="fp-button is-small is-danger" @click="batchDelete">
+            删除
+          </button>
+          <button type="button" class="fp-button is-small" @click="clearSelection">取消</button>
         </div>
 
         <VLoading v-if="loading" />
@@ -299,23 +497,63 @@ defineExpose({
             v-for="summary in filteredSummaries"
             :key="summary.group.metadata.name"
             class="fp-group-card"
-            :class="{ 'is-highlighted': highlightedKey === summary.group.metadata.name }"
+            :class="{
+              'is-highlighted': highlightedKey === summary.group.metadata.name,
+              'is-dragging': draggedName === summary.group.metadata.name,
+              'is-drag-over': dragOverName === summary.group.metadata.name,
+            }"
             :data-group-key="summary.group.metadata.name"
+            @dragover="dragOverGroup($event, summary)"
+            @drop="dropGroup($event, summary)"
           >
             <div class="fp-group-card-cover">
-              <img v-if="summary.cover" :src="summary.cover" alt="" loading="lazy" />
+              <img
+                v-if="summary.cover"
+                :src="summary.cover"
+                alt=""
+                loading="lazy"
+                :style="coverStyle(summary)"
+              />
               <span v-else>{{ (summary.group.spec.title || "行").slice(0, 1) }}</span>
               <b>{{ typeLabel(summary) }}</b>
             </div>
             <div class="fp-group-card-body">
               <div class="fp-group-card-title">
-                <h3>{{ summary.group.spec.title }}</h3>
-                <span
-                  class="fp-tag"
-                  :class="{ 'is-private': summary.group.spec.visibility === 'private' }"
+                <input
+                  type="checkbox"
+                  :checked="selectedNames.includes(summary.group.metadata.name)"
+                  :aria-label="`选择${summary.group.spec.title}`"
+                  @change="
+                    toggleSelected(
+                      summary.group.metadata.name,
+                      ($event.target as HTMLInputElement).checked,
+                    )
+                  "
+                />
+                <button
+                  type="button"
+                  class="fp-group-drag-handle"
+                  draggable="true"
+                  title="拖动排序，聚焦后可用上下方向键"
+                  :aria-label="`拖动排序 ${summary.group.spec.title}`"
+                  :disabled="reordering"
+                  @dragstart="startGroupDrag($event, summary)"
+                  @dragend="endGroupDrag"
+                  @keydown.up.prevent.stop="moveGroup(summary, -1)"
+                  @keydown.down.prevent.stop="moveGroup(summary, 1)"
                 >
-                  {{ summary.group.spec.visibility === "private" ? "私密" : "公开" }}
-                </span>
+                  <RiDragMoveLine width="16" height="16" aria-hidden="true" />
+                </button>
+                <h3>{{ summary.group.spec.title }}</h3>
+                <div class="fp-group-card-status">
+                  <span v-if="isGroupPinned(summary.group)" class="fp-tag">置顶</span>
+                  <span
+                    class="fp-tag"
+                    :class="{ 'is-private': summary.group.spec.visibility === 'private' }"
+                  >
+                    {{ summary.group.spec.visibility === "private" ? "私密" : "公开" }}
+                  </span>
+                </div>
               </div>
               <p v-if="summary.group.spec.description" class="fp-group-card-desc">
                 {{ summary.group.spec.description }}
@@ -329,53 +567,51 @@ defineExpose({
                   {{ type }}
                 </span>
               </div>
-              <dl class="fp-group-card-meta">
-                <div>
-                  <dt>时间</dt>
-                  <dd>{{ formatRange(summary) }}</dd>
-                </div>
-                <div>
-                  <dt>成员</dt>
-                  <dd>{{ progressText(summary) }}</dd>
-                </div>
-                <div>
-                  <dt>覆盖</dt>
-                  <dd>{{ summary.cityCount }} 座城市，{{ summary.provinceCount }} 个省份</dd>
-                </div>
-              </dl>
+              <div class="fp-group-card-meta">
+                <span>{{ formatRange(summary) }}</span>
+                <span>{{ progressText(summary) }}</span>
+                <span>{{ summary.cityCount }} 座城市</span>
+              </div>
               <p v-if="summary.missingCount" class="fp-group-missing" role="status">
                 有 {{ summary.missingCount }} 个成员足迹已失效，请编辑后移除。
               </p>
             </div>
             <footer class="fp-group-card-actions">
-              <button type="button" class="fp-button is-small" @click="openEdit(summary)">
-                <RiPencilLine width="14" height="14" aria-hidden="true" />
-                编辑
-              </button>
-              <button
-                v-if="summary.group.spec.visibility !== 'private'"
-                type="button"
-                class="fp-button is-small"
-                @click="openFrontend(summary)"
-              >
-                <RiExternalLinkLine width="14" height="14" aria-hidden="true" />
-                前台
-              </button>
-              <button
-                type="button"
-                class="fp-button is-small is-danger"
-                @click="confirmDelete(summary)"
-              >
-                <RiDeleteBinLine width="14" height="14" aria-hidden="true" />
-                删除
-              </button>
+              <div class="fp-group-card-order-actions">
+                <button
+                  type="button"
+                  class="fp-button is-small"
+                  @click="togglePinned(summary)"
+                >
+                  {{ isGroupPinned(summary.group) ? "取消置顶" : "置顶" }}
+                </button>
+              </div>
+              <div class="fp-group-card-record-actions">
+                <button type="button" class="fp-button is-small" @click="openEdit(summary)">
+                  <RiPencilLine width="14" height="14" aria-hidden="true" />
+                  编辑
+                </button>
+                <button
+                  v-if="summary.group.spec.visibility !== 'private'"
+                  type="button"
+                  class="fp-button is-small"
+                  @click="openFrontend(summary)"
+                >
+                  <RiExternalLinkLine width="14" height="14" aria-hidden="true" />
+                  前台
+                </button>
+                <button
+                  type="button"
+                  class="fp-button is-small is-danger"
+                  @click="confirmDelete(summary)"
+                >
+                  <RiDeleteBinLine width="14" height="14" aria-hidden="true" />
+                  删除
+                </button>
+              </div>
             </footer>
           </article>
         </div>
-      </div>
-      <div v-if="pendingUndo" class="fp-groups-undo" role="status" aria-live="polite">
-        <span>已删除“{{ pendingUndo.title }}”</span>
-        <button type="button" class="fp-button is-small" @click="undoDelete">撤销</button>
       </div>
     </section>
 

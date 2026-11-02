@@ -31,6 +31,7 @@ const BACKGROUND_INERT_IDS = ['topNav', 'view-3d', 'view-2d', 'backGlobeBtn', 'c
 let deps = null;
 let groups = [];
 let activeFilter = 'all';
+let listSort = 'ordered';
 let searchQuery = '';
 let activeGroup = null;
 let activeFromMap = false;
@@ -116,12 +117,19 @@ async function copyText(text) {
 }
 
 function formatDate(value, withTime = false) {
-    const match = String(value || '').match(
-        /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/
-    );
-    if (!match) return '时间未知';
-    const date = match[1] + '.' + match[2] + '.' + match[3];
-    return withTime && match[4] ? date + ' ' + match[4] + ':' + match[5] : date;
+    const dateOnly = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnly) return `${dateOnly[1]}.${dateOnly[2]}.${dateOnly[3]}`;
+    const date = new Date(value);
+    if (!value || !Number.isFinite(date.getTime())) return '时间未知';
+    const parts = new Intl.DateTimeFormat('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        ...(withTime ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } : {})
+    }).formatToParts(date);
+    const pick = type => parts.find(part => part.type === type)?.value || '';
+    const dateText = [pick('year'), pick('month'), pick('day')].join('.');
+    return withTime ? `${dateText} ${pick('hour')}:${pick('minute')}` : dateText;
 }
 
 function rangeText(group) {
@@ -140,6 +148,10 @@ function cardRangeText(group) {
         return `${start.slice(5)} - ${end.slice(5)}，${group.range.days} 天`;
     }
     return `${start} - ${end}，${group.range.days} 天`;
+}
+
+function collectionRecentText(group) {
+    return group.range.end ? `最近收录 ${formatDate(group.range.end)}` : '尚无收录时间';
 }
 
 function typeText(group) {
@@ -175,7 +187,7 @@ function refreshResolvedGroups() {
 
 function filteredGroups() {
     const keyword = searchQuery.trim().toLowerCase();
-    return groups.filter(group => {
+  const filtered = groups.filter(group => {
         if (activeFilter !== 'all' && group.groupType !== activeFilter) return false;
         if (!keyword) return true;
         return [
@@ -187,6 +199,21 @@ function filteredGroups() {
             .filter(Boolean)
             .some(value => String(value).toLowerCase().includes(keyword));
     });
+  if (listSort === 'title') {
+    return filtered.slice().sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return a.title.localeCompare(b.title, 'zh-Hans-CN');
+    });
+  }
+  if (listSort === 'recent') {
+    return filtered.slice().sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return String(b.range.end || b.metadata.creationTimestamp || '').localeCompare(
+        String(a.range.end || a.metadata.creationTimestamp || '')
+      );
+    });
+  }
+  return filtered;
 }
 
 function filterCounts() {
@@ -198,33 +225,117 @@ function filterCounts() {
 }
 
 function cardHtml(group) {
+    return group.groupType === 'trip' ? tripCardHtml(group) : collectionCardHtml(group);
+}
+
+function groupChipsHtml(group) {
     const types = group.footprintTypes
         .map(type => `<span class="group-chip">${escapeHtml(type)}</span>`)
         .join('');
+    return types ? `<div class="group-library-types">${types}</div>` : '';
+}
+
+function groupInitial(group, member) {
+    return (member?.city || member?.name || group.title || '旅').slice(0, 1);
+}
+
+function groupPreviewImageUrls(group, limit = 3) {
+    const urls = [];
+    const seen = new Set();
+    for (const member of group.members) {
+        for (const image of deps.cityWallImages(member)) {
+            const url = image?.url;
+            if (!url || seen.has(url)) continue;
+            seen.add(url);
+            urls.push(url);
+            if (urls.length >= limit) return urls;
+        }
+    }
+    return urls;
+}
+
+function groupMemberPreviewImageUrls(group, limit = 4) {
+    const urls = [];
+    const seen = new Set();
+    for (const member of group.members) {
+        const image = deps.cityWallImages(member).find(item => item?.url && !seen.has(item.url));
+        if (!image) continue;
+        seen.add(image.url);
+        urls.push(image.url);
+        if (urls.length >= limit) break;
+    }
+    return urls;
+}
+
+function collectionPreviewHtml(group) {
+    const cover = groupPreviewImageUrls(group, 1)
+        .map(url => deps.cityCardImageUrl(url))[0];
     return `
-        <article class="group-library-card">
+        <div class="group-card-cover group-card-cover--collection">
+            ${cover
+                ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" style="--group-cover-focus: ${escapeHtml(group.coverFocus)}">`
+                : `<span aria-hidden="true">${escapeHtml(groupInitial(group, group.members[0]))}</span>`}
+        </div>`;
+}
+
+function tripCardHtml(group) {
+    const first = group.members[0];
+    const last = group.members[group.members.length - 1];
+    return `
+        <article class="group-library-card group-library-card--trip">
             <button type="button" class="group-library-card-hit" data-group-key="${escapeHtml(group.key)}"
-                aria-label="打开${escapeHtml(typeText(group))}：${escapeHtml(group.title)}"></button>
-            <div class="group-library-cover">
+                aria-label="打开旅程路线：${escapeHtml(group.title)}"></button>
+            <div class="group-card-cover group-card-cover--trip">
                 ${group.cover
-                    ? `<img src="${escapeHtml(group.cover)}" alt="" loading="lazy">`
-                    : `<span aria-hidden="true">${escapeHtml(group.title.slice(0, 1))}</span>`}
-                <b>${escapeHtml(typeText(group))}</b>
+                    ? `<img src="${escapeHtml(group.cover)}" alt="" loading="lazy" style="--group-cover-focus: ${escapeHtml(group.coverFocus)}">`
+                    : `<span aria-hidden="true">${escapeHtml(groupInitial(group, first))}</span>`}
             </div>
-            <div class="group-library-card-body">
-                <div class="group-library-card-heading">
-                    <h3>${escapeHtml(group.title)}</h3>
-                    <span>${escapeHtml(progressText(group))}</span>
+            <div class="group-card-body">
+                <span class="group-card-label">旅程</span>
+                <h3>${escapeHtml(group.title)}</h3>
+                ${group.description ? `<p>${escapeHtml(group.description)}</p>` : ''}
+                <div class="group-trip-summary" aria-hidden="true">
+                    <span><small>起点</small><b>${escapeHtml(first?.name || '待定')}</b></span>
+                    <i></i>
+                    <span><small>终点</small><b>${escapeHtml(last?.name || '待定')}</b></span>
+                    <em>${group.members.length} 站</em>
                 </div>
-                <p>${escapeHtml(group.description || rangeText(group))}</p>
-                ${types ? `<div class="group-library-types">${types}</div>` : ''}
-                <dl>
-                    <div><dt>时间</dt><dd>${escapeHtml(cardRangeText(group))}</dd></div>
-                    <div><dt>覆盖</dt><dd>${group.cityCount} 座城市 · ${group.provinceCount} 个省份</dd></div>
-                </dl>
-                ${group.missingCount ? `<small>${group.missingCount} 个成员足迹已失效</small>` : ''}
             </div>
-            <span class="group-library-card-open" aria-hidden="true">查看 <i>→</i></span>
+            <footer class="group-card-footer">
+                <span>${escapeHtml(cardRangeText(group))}</span>
+                <span>${group.cityCount} 座城市，直线约 ${Math.round(group.distanceKm).toLocaleString('zh-CN')} 公里</span>
+                <span class="group-library-card-open">打开路线 <i aria-hidden="true">→</i></span>
+            </footer>
+        </article>`;
+}
+
+function collectionCardHtml(group) {
+    const target = Math.max(group.targetCount || group.members.length, group.members.length, 1);
+    const progress = Math.min(100, Math.round(group.members.length / target * 100));
+    return `
+        <article class="group-library-card group-library-card--collection">
+            <button type="button" class="group-library-card-hit" data-group-key="${escapeHtml(group.key)}"
+                aria-label="打开主题收藏：${escapeHtml(group.title)}"></button>
+            ${collectionPreviewHtml(group)}
+            <div class="group-card-body">
+                <div class="group-collection-card-heading">
+                    <span class="group-card-label">主题收藏</span>
+                    <b>${group.members.length} 份</b>
+                </div>
+                <h3>${escapeHtml(group.title)}</h3>
+                ${group.description ? `<p>${escapeHtml(group.description)}</p>` : ''}
+                <div class="group-collection-progress"
+                    role="progressbar" aria-label="收藏完成度"
+                    aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${group.members.length}">
+                    <span><b>${escapeHtml(progressText(group))}</b><i>${progress}%</i></span>
+                    <em style="--group-collection-progress: ${progress}%"></em>
+                </div>
+            </div>
+            <footer class="group-card-footer">
+                <span>${escapeHtml(collectionRecentText(group))}</span>
+                <span>${group.cityCount} 座城市</span>
+                <span class="group-library-card-open">翻看收藏 <i aria-hidden="true">→</i></span>
+            </footer>
         </article>`;
 }
 
@@ -237,12 +348,40 @@ function listItemsHtml() {
         </div>`;
     }
     const items = filteredGroups();
-    return items.length
-        ? items.map(cardHtml).join('')
-        : `<div class="group-library-empty">
+    if (!items.length) {
+        return `<div class="group-library-empty">
             <h3>${groups.length ? '没有符合筛选的记录' : '还没有旅程或收藏'}</h3>
             <p>${groups.length ? '切换到其他类型看看。' : '在后台从已有足迹中创建第一段旅程或主题收藏。'}</p>
         </div>`;
+    }
+    if (activeFilter === 'all') {
+        return `<div class="group-card-grid group-card-grid--all">
+            ${items.map(cardHtml).join('')}
+        </div>`;
+    }
+    const section = (type, title, description) => {
+        const sectionItems = items.filter(group => group.groupType === type);
+        if (!sectionItems.length) return '';
+        const id = type === 'trip' ? 'groupTripSectionTitle' : 'groupCollectionSectionTitle';
+        const countText = type === 'trip'
+            ? `${sectionItems.length} 段旅程`
+            : `${sectionItems.length} 个收藏`;
+        return `<section class="group-library-section group-library-section--${type}" aria-labelledby="${id}">
+            <header class="group-library-section-head">
+                <div>
+                    <h3 id="${id}">${title}</h3>
+                    <p>${description}</p>
+                </div>
+                <span>${countText}</span>
+            </header>
+            <div class="group-card-grid group-card-grid--${type}">
+                ${sectionItems.map(cardHtml).join('')}
+            </div>
+        </section>`;
+    };
+    return activeFilter === 'trip'
+        ? section('trip', '旅程', '按时间排好的完整路线')
+        : section('collection', '收藏', '把同一主题的地点收在一起');
 }
 
 function bindGroupCards() {
@@ -298,11 +437,21 @@ function renderList(options = {}) {
                     </button>
                 `).join('')}
             </nav>
-            <label class="group-library-search">
-                <span class="sr-only">搜索旅途集</span>
-                <input type="search" value="${escapeHtml(searchQuery)}"
-                    placeholder="搜索标题、地点或足迹类型" autocomplete="off">
-            </label>
+            <div class="group-library-tools">
+                <label class="group-library-sort">
+                    <span class="sr-only">排序旅途集</span>
+                    <select aria-label="排序旅途集">
+                        <option value="ordered"${listSort === 'ordered' ? ' selected' : ''}>推荐顺序</option>
+                        <option value="recent"${listSort === 'recent' ? ' selected' : ''}>最近更新</option>
+                        <option value="title"${listSort === 'title' ? ' selected' : ''}>名称</option>
+                    </select>
+                </label>
+                <label class="group-library-search">
+                    <span class="sr-only">搜索旅途集</span>
+                    <input type="search" value="${escapeHtml(searchQuery)}"
+                        placeholder="搜索标题、成员或地点" autocomplete="off">
+                </label>
+            </div>
         </div>
         <div class="group-library-list"></div>`;
     renderListItems();
@@ -326,6 +475,14 @@ function renderList(options = {}) {
         if (list) list.scrollTop = 0;
         announce(`筛选结果 ${filteredGroups().length} 条`);
     });
+    const sort = view.querySelector('.group-library-sort select');
+    sort?.addEventListener('change', () => {
+        listSort = sort.value;
+        renderListItems();
+        const list = view.querySelector('.group-library-list');
+        if (list) list.scrollTop = 0;
+        announce(`已按${sort.options[sort.selectedIndex]?.text || '推荐顺序'}排序`);
+    });
     if (options.restore) {
         requestAnimationFrame(() => {
             const list = view.querySelector('.group-library-list');
@@ -342,10 +499,10 @@ function memberCardHtml(member, index, segment) {
     const image = memberThumbnail(member);
     return `
         <li class="group-member-row">
-            <span class="group-member-index" aria-hidden="true">${index + 1}</span>
             <button type="button" class="group-member-main" data-member-key="${escapeHtml(member.key)}"
                 aria-label="查看第 ${index + 1} 站：${escapeHtml(member.name)}">
                 <span class="group-member-photo">
+                    <span class="group-member-index" aria-hidden="true">${index + 1}</span>
                     ${image
                         ? `<img src="${escapeHtml(image)}" alt="" loading="lazy">`
                         : `<span aria-hidden="true">${escapeHtml((member.city || member.name).slice(0, 1))}</span>`}
@@ -353,7 +510,7 @@ function memberCardHtml(member, index, segment) {
                 <span class="group-member-copy">
                     <strong>${escapeHtml(member.name)}</strong>
                     <span>${escapeHtml([member.city, member.province].filter(Boolean).join(' / ') || '未解析地区')}</span>
-                    <time datetime="${escapeHtml(member.createTime)}">${escapeHtml(formatDate(member.createTime, true))}</time>
+                    <time datetime="${escapeHtml(member.createTime)}">${escapeHtml(formatDate(member.createTime))}</time>
                 </span>
             </button>
             ${segment ? `<span class="group-member-distance is-${segment.km == null ? 'missing' : 'ready'}">
@@ -365,16 +522,19 @@ function memberCardHtml(member, index, segment) {
 function collectionMemberHtml(member, index) {
     const image = memberThumbnail(member);
     return `
-        <button type="button" class="group-collection-card" data-member-key="${escapeHtml(member.key)}"
+        <button type="button" class="group-collection-item" data-member-key="${escapeHtml(member.key)}"
             aria-label="查看第 ${index + 1} 个收藏：${escapeHtml(member.name)}">
             <span class="group-collection-photo">
                 ${image
                     ? `<img src="${escapeHtml(image)}" alt="" loading="lazy">`
                     : `<span aria-hidden="true">${escapeHtml((member.city || member.name).slice(0, 1))}</span>`}
             </span>
-            <span><b>${escapeHtml(member.name)}</b>
-            <small>${escapeHtml([member.city, member.province].filter(Boolean).join(' / ') || '未解析地区')}</small></span>
-            <i>${index + 1}</i>
+            <span class="group-collection-item-copy">
+                <b>${escapeHtml(member.name)}</b>
+                <small>${escapeHtml([member.city, member.province].filter(Boolean).join(' / ') || '未解析地区')}</small>
+                <time datetime="${escapeHtml(member.createTime)}">${escapeHtml(formatDate(member.createTime, true))}</time>
+            </span>
+            <i aria-hidden="true">${index + 1}</i>
         </button>`;
 }
 
@@ -502,7 +662,7 @@ function openMemberFromDetail(member) {
     detailFocusKey = member.key;
     closeOverlay(false);
     deps.openMember(member, {
-        backLabel: '返回旅程',
+        backLabel: group.groupType === 'trip' ? '返回旅程' : '返回收藏',
         onClose: () => {
             activeGroup = group;
             activeFromMap = false;
@@ -513,6 +673,105 @@ function openMemberFromDetail(member) {
     });
 }
 
+function detailStatsHtml(group) {
+    return `
+        <dl class="group-detail-stats">
+            <div><dt>${group.groupType === 'trip' ? '日期' : '完成度'}</dt>
+                <dd>${escapeHtml(group.groupType === 'trip' ? rangeText(group) : progressText(group))}</dd></div>
+            <div><dt>${group.groupType === 'trip' ? '站点' : '收录'}</dt>
+                <dd>${group.members.length} 条足迹</dd></div>
+            <div><dt>覆盖</dt><dd>${group.cityCount} 座城市，${group.provinceCount} 个省份</dd></div>
+            <div><dt>${group.groupType === 'trip' ? '直线距离' : '照片'}</dt>
+                <dd>${group.groupType === 'trip'
+                    ? `${Math.round(group.distanceKm).toLocaleString('zh-CN')} 公里`
+                    : `${group.photoCount} 张`}</dd></div>
+        </dl>`;
+}
+
+function detailWarningsHtml(group) {
+    return [
+        group.missingCount
+            ? `<p class="group-detail-warning">${group.missingCount} 个成员足迹已失效，统计中已跳过。</p>`
+            : '',
+        group.unlocatableCount
+            ? `<p class="group-detail-warning">${group.unlocatableCount} 个成员缺少有效坐标，地图和距离统计中已跳过。</p>`
+            : ''
+    ].join('');
+}
+
+function tripDetailHeroHtml(group) {
+    const routeMembers = group.members.slice(0, 7);
+    const routePreview = routeMembers.map((member, index) => `
+        <li class="${index === 0 ? 'is-start' : ''}${index === routeMembers.length - 1 ? ' is-end' : ''}">
+            <i aria-hidden="true"></i>
+            <span>${escapeHtml(member.name)}</span>
+        </li>`).join('');
+    return `
+        <section class="group-detail-panel group-detail-panel--trip" aria-labelledby="groupDetailTitle">
+            <div class="group-trip-detail-visual">
+                <div class="group-detail-cover group-trip-detail-cover">
+                    ${group.cover
+                        ? `<img src="${escapeHtml(group.cover)}" alt="" loading="lazy" style="--group-cover-focus: ${escapeHtml(group.coverFocus)}">`
+                        : `<span aria-hidden="true">${escapeHtml(groupInitial(group, group.members[0]))}</span>`}
+                </div>
+                <span class="group-trip-detail-date">${escapeHtml(cardRangeText(group))}</span>
+            </div>
+            <div class="group-detail-heading group-trip-detail-copy">
+                <div class="group-detail-kicker">
+                    <span>旅程路线</span>
+                    ${group.visibility === 'private' ? '<b>私密</b>' : ''}
+                </div>
+                <h2 id="groupDetailTitle">${escapeHtml(group.title)}</h2>
+                <p class="group-detail-description">${escapeHtml(group.description || '这段旅行还没有补上说明。')}</p>
+                <div class="group-trip-detail-route">
+                    <ol>${routePreview}</ol>
+                    ${group.members.length > routeMembers.length
+                        ? `<span>还有 ${group.members.length - routeMembers.length} 站</span>`
+                        : ''}
+                </div>
+                ${groupChipsHtml(group)}
+                ${detailStatsHtml(group)}
+                ${detailWarningsHtml(group)}
+            </div>
+        </section>`;
+}
+
+function collectionDetailHeroHtml(group) {
+    const urls = groupMemberPreviewImageUrls(group, 4).map(url => deps.cityCardImageUrl(url));
+    const tiles = urls.length
+        ? urls.map((url, index) => `
+            <span class="group-collection-detail-tile${index === 0 ? ' is-hero' : ''}">
+                <img src="${escapeHtml(url)}" alt="" loading="lazy">
+            </span>`).join('')
+        : `<span class="group-collection-detail-tile is-hero">
+            <span aria-hidden="true">${escapeHtml(groupInitial(group, group.members[0]))}</span>
+        </span>`;
+    const target = Math.max(group.targetCount || group.members.length, group.members.length, 1);
+    const progress = Math.min(100, Math.round(group.members.length / target * 100));
+    const tileCount = urls.length || 1;
+    return `
+        <section class="group-detail-panel group-detail-panel--collection" aria-labelledby="groupDetailTitle">
+            <div class="group-collection-detail-mosaic tile-count-${tileCount}" aria-hidden="true">${tiles}</div>
+            <div class="group-detail-heading group-collection-detail-copy">
+                <div class="group-detail-kicker">
+                    <span>主题收藏</span>
+                    ${group.visibility === 'private' ? '<b>私密</b>' : ''}
+                </div>
+                <h2 id="groupDetailTitle">${escapeHtml(group.title)}</h2>
+                <p class="group-detail-description">${escapeHtml(group.description || '把同一主题的足迹收在一起，慢慢翻看。')}</p>
+                ${groupChipsHtml(group)}
+                <div class="group-collection-detail-progress"
+                    role="progressbar" aria-label="收藏完成度"
+                    aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${group.members.length}">
+                    <span><b>${escapeHtml(progressText(group))}</b><i>${progress}%</i></span>
+                    <em style="--group-collection-progress: ${progress}%"></em>
+                </div>
+                ${detailStatsHtml(group)}
+                ${detailWarningsHtml(group)}
+            </div>
+        </section>`;
+}
+
 function renderDetail() {
     if (!view || !activeGroup) return;
     const group = activeGroup;
@@ -521,22 +780,24 @@ function renderDetail() {
         group.members.length
     );
     const article = safeLink(group.article);
-    const types = group.footprintTypes
-        .map(type => `<span class="group-chip">${escapeHtml(type)}</span>`)
-        .join('');
+    const isTrip = group.groupType === 'trip';
     const allMembersMissing = group.names.length > 0 && group.members.length === 0;
     const body = group.members.length
-        ? `<${group.groupType === 'trip' ? 'ol' : 'div'}
+        ? `<${isTrip ? 'ol' : 'div'}
                 id="groupMemberList"
-                class="${group.groupType === 'trip' ? 'group-trip-list' : 'group-collection-grid'}">
+                class="${isTrip ? 'group-trip-list' : 'group-collection-grid'}">
                 ${memberBatchHtml(group, 0, visibleMemberCount)}
-            </${group.groupType === 'trip' ? 'ol' : 'div'}>
+            </${isTrip ? 'ol' : 'div'}>
             ${memberMoreHtml(group)}`
         : `<div class="group-library-empty">
-            <h3>${allMembersMissing ? '成员足迹已全部失效' : '这个收藏还没有成员'}</h3>
+            <h3>${allMembersMissing
+                ? '成员足迹已全部失效'
+                : (isTrip ? '这段旅程还没有站点' : '这个收藏还没有内容')}</h3>
             <p>${allMembersMissing
-                ? '请在后台编辑这个收藏，移除失效引用或补充新的足迹。'
-                : '在后台编辑收藏，从已有足迹中挑选地点。'}</p>
+                ? `请在后台编辑这个${typeText(group)}，移除失效引用或补充新的足迹。`
+                : (isTrip
+                    ? '在后台编辑旅程，从已有足迹中安排第一站。'
+                    : '在后台编辑收藏，从已有足迹中挑选地点。')}</p>
         </div>`;
 
     view.innerHTML = `
@@ -561,32 +822,9 @@ function renderDetail() {
                     : ''}
             </div>
         </header>
-        <article class="group-detail" tabindex="-1">
-            <div class="group-detail-hero">
-                <div class="group-detail-cover">
-                    ${group.cover
-                        ? `<img src="${escapeHtml(group.cover)}" alt="" loading="lazy">`
-                        : `<span aria-hidden="true">${escapeHtml(group.title.slice(0, 1))}</span>`}
-                </div>
-                <div class="group-detail-heading">
-                    <p>${escapeHtml(typeText(group))}${group.visibility === 'private' ? ' · 私密' : ''}</p>
-                    <h2>${escapeHtml(group.title)}</h2>
-                    ${types ? `<div class="group-library-types">${types}</div>` : ''}
-                    <p class="group-detail-description">${escapeHtml(group.description || '这段旅行还没有补上说明。')}</p>
-                    <dl class="group-detail-stats">
-                        <div><dt>${group.groupType === 'trip' ? '日期' : '完成度'}</dt>
-                            <dd>${escapeHtml(group.groupType === 'trip' ? rangeText(group) : progressText(group))}</dd></div>
-                        <div><dt>成员</dt><dd>${group.members.length} 条</dd></div>
-                        <div><dt>覆盖</dt><dd>${group.cityCount} 座城市，${group.provinceCount} 个省份</dd></div>
-                        ${group.groupType === 'trip'
-                            ? `<div><dt>直线距离</dt><dd>${Math.round(group.distanceKm).toLocaleString('zh-CN')} 公里</dd></div>`
-                            : ''}
-                    </dl>
-                    ${group.missingCount ? `<p class="group-detail-warning">${group.missingCount} 个成员足迹已失效，统计中已跳过。</p>` : ''}
-                    ${group.unlocatableCount ? `<p class="group-detail-warning">${group.unlocatableCount} 个成员缺少有效坐标，地图和距离统计中已跳过。</p>` : ''}
-                </div>
-            </div>
-            <section class="group-detail-body" aria-label="${escapeHtml(typeText(group))}成员">
+        <article class="group-detail ${isTrip ? 'is-trip-detail' : 'is-collection-detail'}" tabindex="-1">
+            ${isTrip ? tripDetailHeroHtml(group) : collectionDetailHeroHtml(group)}
+            <section class="group-detail-body" aria-label="${escapeHtml(isTrip ? '旅程站点' : '收藏内容')}">
                 ${body}
             </section>
         </article>`;
@@ -669,14 +907,16 @@ function applyMapView(group) {
     activeGroup = group;
     activeFromMap = true;
     closeOverlay(false);
+    deps.pauseAutoRotate('group-map');
     document.body.classList.add('footprint-group-map-mode');
-    deps.applyGroupOnMap(group);
     globeButton?.setAttribute('aria-pressed', 'true');
     mapButton?.setAttribute('aria-pressed', 'true');
     mapMemberIndex = 0;
     mapMemberActivated = false;
     updateMapDock();
     if (mapDock) mapDock.hidden = false;
+    // 先让信息坞进入布局，2D setFitView 才能量到真实高度并为底部留白。
+    deps.applyGroupOnMap(group);
     announce(`正在查看${group.title}的${typeText(group)}地图`);
 }
 
@@ -697,6 +937,7 @@ function returnToList() {
 
 function clearMapGroup() {
     clearTimeout(mapFocusTimer);
+    deps.resumeAutoRotate('group-map');
     deps.clearGroupOnMap();
     activeFromMap = false;
     mapMemberActivated = false;

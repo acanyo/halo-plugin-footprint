@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios";
 import type {
   Footprint,
   FootprintGroup,
+  FootprintGroupApiSummary,
   FootprintGroupList,
   FootprintList,
   Option,
@@ -121,6 +122,13 @@ export class FootprintApi {
       items.push(...(next.items || []));
     }
     return items.filter((group) => !group.metadata.deletionTimestamp);
+  }
+
+  async listFootprintGroupSummaries(): Promise<FootprintGroupApiSummary[]> {
+    const { data } = await this.axios.get(
+      "/apis/api.footprint.lik.cc/v1alpha1/footprints/-/group-summaries",
+    );
+    return Array.isArray(data) ? data : [];
   }
 
   async createFootprintGroup(group: FootprintGroup): Promise<FootprintGroup> {

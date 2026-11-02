@@ -123,6 +123,56 @@ test('空收藏保留并计算目标，收藏不生成路线', () => {
     assert.deepEqual(resolved.segments, []);
 });
 
+test('收藏可保留手动顺序，并支持指定封面成员', () => {
+    const resolved = resolveFootprintGroup(
+        group({
+            spec: {
+                groupType: 'collection',
+                memberOrderMode: 'manual',
+                memberNames: ['sh', 'bj'],
+                coverMemberName: 'sh'
+            }
+        }),
+        new Map([['bj', bj()], ['sh', sh]]),
+        { imageUrlOf: member => '/' + member.key + '.jpg' }
+    );
+    assert.deepEqual(resolved.members.map(item => item.key), ['sh', 'bj']);
+    assert.equal(resolved.range.days, 2);
+    assert.equal(resolved.cover, '/sh.jpg');
+});
+
+test('置顶优先，其次按作者排序值排列', () => {
+    const list = resolveFootprintGroups(
+        [
+            group({ metadata: { name: 'normal' }, spec: { memberNames: ['bj'], sortOrder: 1 } }),
+            group({ metadata: { name: 'pinned' }, spec: { memberNames: ['sh'], pinned: true, sortOrder: 9 } }),
+            group({ metadata: { name: 'second' }, spec: { memberNames: ['bj'], sortOrder: 2 } })
+        ],
+        [bj(), sh],
+        { imageUrlOf: () => '' }
+    );
+    assert.deepEqual(list.map(item => item.key), ['pinned', 'normal', 'second']);
+});
+
+test('置顶和排序值兼容 metadata.annotations', () => {
+    const annotated = group({
+        metadata: {
+            name: 'annotated',
+            annotations: {
+                'footprint.lik.cc/pinned': 'true',
+                'footprint.lik.cc/sort-order': '8'
+            }
+        },
+        spec: { memberNames: ['bj'] }
+    });
+    const normal = group({
+        metadata: { name: 'normal' },
+        spec: { memberNames: ['sh'], sortOrder: 1 }
+    });
+    const list = resolveFootprintGroups([normal, annotated], [bj(), sh], { imageUrlOf: () => '' });
+    assert.deepEqual(list.map(item => item.key), ['annotated', 'normal']);
+});
+
 test('列表按最近访问时间倒序，空收藏回退创建时间', () => {
     const list = resolveFootprintGroups(
         [

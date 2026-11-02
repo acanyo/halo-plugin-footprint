@@ -35,6 +35,17 @@ export const addFootprintMarkers = async (map, footprintData) => {
                 ? Math.min(20, Math.max(3, configuredZoomLevel))
                 : 12;
     };
+    const lockMapOrientation = () => {
+        map.setStatus({animateEnable: false});
+        map.setPitch(0, true);
+        map.setRotation(0, true);
+        map.setStatus({
+            animateEnable: true,
+            pitchEnable: false,
+            rotateEnable: false
+        });
+        state.isElevation = false;
+    };
 
 
     const closeCurrentMarker = () => {
@@ -226,7 +237,10 @@ export const addFootprintMarkers = async (map, footprintData) => {
                         state.photoWallCloseHandler = null;
                         photoWall.open(marker, footprint.spec, markerContent, onClose);
                     }
-                    if (zoomLevel >= 18) {
+                    if (state.groupMapMode) {
+                        // 旅途集地图查看保持平面、正北；普通足迹点仍使用配置视角。
+                        lockMapOrientation();
+                    } else if (zoomLevel >= 18) {
                         map.setPitch(Number(footprint.spec.pitchAngle));
                         map.setRotation(Number(footprint.spec.rotationAngle));
                         state.isElevation = true;
@@ -348,6 +362,7 @@ export const addFootprintMarkers = async (map, footprintData) => {
     };
 
     renderBatch();
+    lockMapOrientation();
 
     // 清理函数
     const cleanup = () => {
