@@ -302,7 +302,18 @@ const MARKER_IMAGE_SETTLE_MS = 1000;
 const markerImageSwapAt = new Map();   // 下标 -> 换图时刻（performance.now）
 function markerCoverUrl(fp) {
     const first = fp && cityWallImages(fp)[0];
-    return first ? first.url : '';
+    const raw = first ? String(first.url || '').trim() : '';
+    if (!raw) return '';
+    // 与 2D createMarker / 时间线保持一致：3D 照片标记也必须使用后台
+    // “标记点图片”的 from → to → suffix 规则。规则全空时保持原 URL。
+    const config = deps.footprintCfg() || {};
+    const from = String(config.markerImageFrom || '');
+    const to = String(config.markerImageTo || '');
+    const suffix = String(config.markerImageSuffix || '');
+    let url = raw;
+    if (from) url = url.split(from).join(to);
+    if (suffix && !url.endsWith(suffix)) url += suffix;
+    return url;
 }
 function markerImageOf(fp) {
     return cachedMarkerPhoto(markerCoverUrl(fp)) || MARKER_URL;
