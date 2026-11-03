@@ -1081,3 +1081,121 @@
     display: none;
   }
 }
+
+/* 未来足迹：纯文字信息卡，不设置封面图片。 */
+.fp-wish-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+}
+.fp-wish-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--fp-border);
+  border-radius: 14px;
+  background: var(--fp-bg);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 5%);
+  transition:
+    border-color 180ms,
+    box-shadow 180ms,
+    background-color 180ms;
+}
+.fp-wish-card.is-highlighted {
+  border-color: var(--fp-text);
+  background: var(--fp-sidebar);
+  box-shadow: 0 0 0 2px var(--fp-subtle);
+}
+.fp-wish-card-head,
+.fp-wish-card-head > div,
+.fp-wish-order-actions,
+.fp-wish-card-actions,
+.fp-wish-card-actions > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fp-wish-card-head {
+  justify-content: space-between;
+}
+.fp-wish-card h3 {
+  margin: 10px 0 0;
+  color: var(--fp-text);
+  font-size: 18px;
+  line-height: 1.35;
+}
+.fp-wish-status {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--fp-subtle);
+  color: var(--fp-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.fp-wish-status[data-status="planning"] {
+  background: var(--fp-accent-bg);
+  color: var(--fp-accent);
+}
+.fp-wish-status[data-status="booked"] {
+  background: var(--fp-accent);
+  color: white;
+}
+.fp-wish-status[data-status="visited"] {
+  background: var(--fp-success-bg, var(--fp-subtle));
+  color: var(--fp-success, var(--fp-text));
+}
+.fp-wish-region {
+  margin: 5px 0 0;
+  color: var(--fp-muted);
+  font-size: 12px;
+}
+.fp-wish-description {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 9px 0 0;
+  color: var(--fp-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.fp-wish-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 11px;
+  color: var(--fp-muted);
+  font-size: 12px;
+}
+.fp-wish-card-actions {
+  justify-content: space-between;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid var(--fp-border);
+}
+.fp-wish-card-actions .fp-button {
+  min-height: 28px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.fp-wish-order-actions .fp-icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.fp-wish-time-preview {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--fp-sidebar);
+  color: var(--fp-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 860px) {
+  .fp-wish-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

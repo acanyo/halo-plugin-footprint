@@ -10,6 +10,7 @@ import { haversineKm } from './footprints-insight.js';
 export const MAX_GROUP_MEMBERS = 500;
 const GROUP_PINNED_ANNOTATION = 'footprint.lik.cc/pinned';
 const GROUP_SORT_ORDER_ANNOTATION = 'footprint.lik.cc/sort-order';
+const GROUP_UPDATED_AT_ANNOTATION = 'footprint.lik.cc/updated-at';
 
 export function uniqueGroupMemberNames(names) {
     if (!Array.isArray(names)) return [];
@@ -180,9 +181,11 @@ export function resolveFootprintGroups(groups, footprints, options = {}) {
             const orderA = a.sortOrder == null ? Number.MAX_SAFE_INTEGER : a.sortOrder;
             const orderB = b.sortOrder == null ? Number.MAX_SAFE_INTEGER : b.sortOrder;
             if (orderA !== orderB) return orderA - orderB;
-            const byEnd = String(b.range.end || b.metadata.creationTimestamp || '').localeCompare(
-                String(a.range.end || a.metadata.creationTimestamp || '')
-            );
+            const aUpdated = a.metadata.annotations?.[GROUP_UPDATED_AT_ANNOTATION] ||
+                a.range.end || a.metadata.creationTimestamp || '';
+            const bUpdated = b.metadata.annotations?.[GROUP_UPDATED_AT_ANNOTATION] ||
+                b.range.end || b.metadata.creationTimestamp || '';
+            const byEnd = String(bUpdated).localeCompare(String(aUpdated));
             return byEnd || a.key.localeCompare(b.key);
         });
 }

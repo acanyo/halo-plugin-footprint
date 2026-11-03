@@ -23,6 +23,8 @@ import { normalizeAttachmentImageUrl } from "@/utils/attachment";
 import { formatDatetime } from "@/utils/date";
 import FootprintGroupMemberPicker from "./FootprintGroupMemberPicker.vue";
 
+const UPDATED_AT_ANNOTATION = "footprint.lik.cc/updated-at";
+
 const props = defineProps<{
   visible: boolean;
   group?: FootprintGroup;
@@ -313,6 +315,10 @@ async function save() {
     } else {
       submit.spec.sortOrder = Number(submit.spec.sortOrder);
     }
+    submit.metadata.annotations = {
+      ...(submit.metadata.annotations || {}),
+      [UPDATED_AT_ANNOTATION]: new Date().toISOString(),
+    };
 
     let savedGroup: FootprintGroup;
     if (isUpdateMode.value) {

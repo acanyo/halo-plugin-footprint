@@ -5,6 +5,7 @@ export interface Metadata {
   name: string;
   generateName?: string;
   creationTimestamp?: string;
+  updateTimestamp?: string;
   deletionTimestamp?: string;
   labels?: Record<string, string>;
   annotations?: Record<string, string>;
@@ -113,6 +114,53 @@ export interface FootprintGroupApiSummary {
   rangeStart?: string;
   rangeEnd?: string;
   cover?: string;
+}
+
+export type FootprintWishStatus = "wish" | "planning" | "booked" | "visited";
+
+/**
+ * 未来足迹地点。一个地点一条记录，不使用足迹成员关系。
+ */
+export interface FootprintWishSpec {
+  title: string;
+  description?: string;
+  longitude: number;
+  latitude: number;
+  address?: string;
+  province?: string;
+  city?: string;
+  provinceAdcode?: string;
+  cityAdcode?: string;
+  status: FootprintWishStatus;
+  plannedYear?: number;
+  plannedMonth?: number;
+  plannedTimeNote?: string;
+  tags?: string[];
+  article?: string;
+  visibility: "public" | "private";
+  pinned?: boolean;
+  sortOrder?: number;
+  realizedFootprintName?: string;
+  realizedGroupName?: string;
+}
+
+export interface FootprintWish {
+  apiVersion: string;
+  kind: string;
+  metadata: Metadata;
+  spec: FootprintWishSpec;
+}
+
+export interface FootprintWishList {
+  page: number;
+  size: number;
+  total: number;
+  items: FootprintWish[];
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  totalPages: number;
 }
 
 /**

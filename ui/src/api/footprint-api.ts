@@ -5,6 +5,8 @@ import type {
   FootprintGroupApiSummary,
   FootprintGroupList,
   FootprintList,
+  FootprintWish,
+  FootprintWishList,
   Option,
   StatsResult,
   GeoInfo,
@@ -149,6 +151,56 @@ export class FootprintApi {
 
   async deleteFootprintGroup(name: string): Promise<void> {
     await this.axios.delete(`/apis/footprint.lik.cc/v1alpha1/footprintgroups/${name}`);
+  }
+
+  async listFootprintWishes(params?: {
+    page?: number;
+    size?: number;
+    sort?: string[];
+  }): Promise<FootprintWishList> {
+    const { data } = await this.axios.get(
+      "/apis/footprint.lik.cc/v1alpha1/footprintwishes",
+      {
+        params: {
+          page: params?.page || 1,
+          size: params?.size || 100,
+          sort: params?.sort,
+        },
+      },
+    );
+    return data;
+  }
+
+  async listAllFootprintWishes(): Promise<FootprintWish[]> {
+    const pageSize = 100;
+    const first = await this.listFootprintWishes({ page: 1, size: pageSize });
+    const items = [...(first.items || [])];
+    const pages = Math.max(1, Math.ceil(Number(first.total || 0) / pageSize));
+    for (let page = 2; page <= pages; page += 1) {
+      const next = await this.listFootprintWishes({ page, size: pageSize });
+      items.push(...(next.items || []));
+    }
+    return items.filter((wish) => !wish.metadata.deletionTimestamp);
+  }
+
+  async createFootprintWish(wish: FootprintWish): Promise<FootprintWish> {
+    const { data } = await this.axios.post(
+      "/apis/footprint.lik.cc/v1alpha1/footprintwishes",
+      wish,
+    );
+    return data;
+  }
+
+  async updateFootprintWish(name: string, wish: FootprintWish): Promise<FootprintWish> {
+    const { data } = await this.axios.put(
+      `/apis/footprint.lik.cc/v1alpha1/footprintwishes/${name}`,
+      wish,
+    );
+    return data;
+  }
+
+  async deleteFootprintWish(name: string): Promise<void> {
+    await this.axios.delete(`/apis/footprint.lik.cc/v1alpha1/footprintwishes/${name}`);
   }
 
   /**

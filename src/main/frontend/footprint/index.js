@@ -26,6 +26,11 @@ import {
     clearFootprintGroupOnMap,
     openFootprintIn2D
 } from './modules/footprint-groups.js';
+import {
+    showFootprintWishLayer,
+    clearFootprintWishLayer,
+    showFootprintWishOnMap
+} from './modules/wishes.js';
 
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', () => {
@@ -116,6 +121,40 @@ window.Footprint2D = {
     clearGroup() {
         clearFootprintGroupOnMap();
     },
+    showWishLayer(wishes) {
+        return showFootprintWishLayer(wishes);
+    },
+    clearWishLayer() {
+        clearFootprintWishLayer();
+    },
+    showWish(wish) {
+        const apply = () => showFootprintWishOnMap(wish);
+        if (!state.footprint2dInitialized) {
+            window.Footprint2D.show(apply);
+            return;
+        }
+        apply();
+    },
+    setFootprintEmphasis(names) {
+        state.footprintMarkerController?.setGroupEmphasis(
+            names && names.length ? new Set(names) : null
+        );
+    },
+    focusFootprint(footprint) {
+        const map = state.activeMapInstance;
+        const marker = state.footprintMarkerController?.find(footprint);
+        if (!map || !footprint || !marker) return false;
+        state.footprintMarkerController?.setGroupEmphasis(
+            new Set([footprint.metadata?.name].filter(Boolean))
+        );
+        map.setZoomAndCenter(
+            Math.max(3, Math.min(20, Number(footprint.spec?.zoomLevel) || 12)),
+            [Number(footprint.spec?.longitude), Number(footprint.spec?.latitude)],
+            false,
+            500
+        );
+        return true;
+    },
     resetView() {
         document.getElementById('zoom-restore')?.click();
     },
@@ -136,6 +175,7 @@ window.Footprint2D = {
     // 主动销毁（可选）：释放地图实例
     destroy() {
         clearFootprintGroupOnMap();
+        clearFootprintWishLayer();
         if (state.activeMapInstance && typeof state.activeMapInstance.destroy === 'function') {
             state.activeMapInstance.destroy();
         }

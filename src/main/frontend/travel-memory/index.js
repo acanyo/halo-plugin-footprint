@@ -89,10 +89,13 @@ import {
 import {
     FOOTPRINTS,
     FOOTPRINT_GROUPS,
+    FOOTPRINT_WISHES,
     loadFootprintsFromJson,
     loadFootprintGroupsFromJson,
+    loadFootprintWishesFromJson,
     applyFootprints,
     applyFootprintGroups,
+    applyFootprintWishes,
     updateIntroStats,
     isFootprintDataReady,
     markFootprintDataReady
@@ -216,6 +219,12 @@ import {
     initFootprintGroups,
     closeFootprintGroups
 } from './modules/footprint-groups.js';
+import {
+    setupWishLayer,
+    showWishLayer,
+    clearWishLayer,
+    showWishOnMap
+} from './modules/wish-layer.js';
 
 // 状态栏重绘来自 navigation 模块，这里可以安全地先注入
 setTileBatchHandler(refreshStatusText);
@@ -260,6 +269,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     const footprintCfg = window.FOOTPRINT_CONFIG || {};
     // 系统是否要求减弱动效：入场动画、2D 切换、卡片飞行等多处共用
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const WISH_ONLY_FOOTPRINT_KEY = '__wish_layer_only__';
 
     setupGroupRoute({
         viewer: () => viewer,
@@ -418,6 +428,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
     // ================= 加载足迹数据并重建标记 =================
     Promise.resolve(loadFootprintsFromJson()).then(loaded => {
         applyFootprintGroups(loadFootprintGroupsFromJson());
+        applyFootprintWishes(loadFootprintWishesFromJson());
         if (applyFootprints(loaded)) {
             removeAllMarkers();
             // 按当前底图坐标系重算标记坐标，并刷新状态栏足迹数（不重载瓦片，避免闪烁）
@@ -525,8 +536,13 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         loadPostcardImage,
         postcardToBlob
     });
+    setupWishLayer({
+        viewer: () => viewer,
+        reduceMotion: () => reduceMotion
+    });
     setupFootprintGroups({
         groups: () => FOOTPRINT_GROUPS,
+        wishes: () => FOOTPRINT_WISHES,
         footprints: () => FOOTPRINTS,
         dataReady: isFootprintDataReady,
         cityWallImages,
@@ -592,6 +608,62 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
             hideMarkerCard();
             hideCityCard(false);
             rebuildMarkerModeFromCamera();
+        },
+        setWishLayerVisible: (visible, list) => {
+            if (!visible) {
+                if (isAmapMode()) {
+                    window.Footprint2D?.clearWishLayer?.();
+                    window.Footprint2D?.setFootprintEmphasis?.([]);
+                } else {
+                    clearWishLayer();
+                    setGroupEmphasis(null);
+                    rebuildMarkerModeFromCamera();
+                }
+                return 0;
+            }
+            if (isAmapMode()) {
+                window.Footprint2D?.show?.(() => {
+                    window.Footprint2D?.setFootprintEmphasis?.([WISH_ONLY_FOOTPRINT_KEY]);
+                    window.Footprint2D?.showWishLayer?.(list);
+                });
+                return (list || []).filter(wish => wish?.spec?.status !== 'visited').length;
+            }
+            setGroupEmphasis(new Set([WISH_ONLY_FOOTPRINT_KEY]));
+            return showWishLayer(list);
+        },
+        showWishOnMap: (wish) => {
+            const realized = FOOTPRINTS.find(
+                footprint => footprint.key === wish?.spec?.realizedFootprintName
+            );
+            if (isAmapMode()) {
+                window.Footprint2D?.show?.(() => {
+                    if (realized) window.Footprint2D?.focusFootprint?.(realized);
+                    else {
+                        window.Footprint2D?.setFootprintEmphasis?.([WISH_ONLY_FOOTPRINT_KEY]);
+                        window.Footprint2D?.showWish?.(wish);
+                    }
+                });
+                return;
+            }
+            if (realized) {
+                setGroupEmphasis(new Set([realized.key]));
+                flyToGroupMember(realized, reduceMotion ? 0 : 0.9);
+                const index = FOOTPRINTS.indexOf(realized);
+                setMarkerFocus(index >= 0 ? markerEntityList()[index] : null);
+                return;
+            }
+            setGroupEmphasis(new Set([WISH_ONLY_FOOTPRINT_KEY]));
+            showWishOnMap(wish, reduceMotion ? 0 : 0.9);
+        },
+        clearWishOnMap: () => {
+            if (isAmapMode()) {
+                window.Footprint2D?.clearWishLayer?.();
+                window.Footprint2D?.setFootprintEmphasis?.([]);
+            } else {
+                clearWishLayer();
+                setGroupEmphasis(null);
+                rebuildMarkerModeFromCamera();
+            }
         },
         resetGroupMapView: () => {
             if (isAmapMode()) window.Footprint2D?.resetView?.();
@@ -701,6 +773,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         // 数据
         footprints: () => FOOTPRINTS,
         groups: () => FOOTPRINT_GROUPS,
+        wishes: () => FOOTPRINT_WISHES,
         cityList: () => cityListSnapshot(),
         cityKeyOf: (fp) => cityKeyOf(fp),
         normalizeProvinceName: (value) => normalizeProvinceName(value),

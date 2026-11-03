@@ -33,6 +33,7 @@ import FootprintOverview from "../components/FootprintOverview.vue";
 import ManualLocationModal from "../components/ManualLocationModal.vue";
 import ProvinceCityDistribution from "../components/ProvinceCityDistribution.vue";
 import FootprintGroupsPanel from "../components/FootprintGroupsPanel.vue";
+import FootprintWishesPanel from "../components/FootprintWishesPanel.vue";
 import { footprintApiClient } from "@/api";
 import type { Footprint, Option } from "@/api/models";
 import "@/styles/index.css";
@@ -41,19 +42,25 @@ defineOptions({
   name: "FootprintManagement",
 });
 
-type ManagementTab = "footprints" | "groups";
+type ManagementTab = "footprints" | "groups" | "wishes";
+const initialTabParam = new URLSearchParams(window.location.search).get("tab");
 const initialTab: ManagementTab =
-  new URLSearchParams(window.location.search).get("tab") === "groups" ? "groups" : "footprints";
+  initialTabParam === "groups" || initialTabParam === "wishes"
+    ? initialTabParam
+    : "footprints";
 const activeTab = ref<ManagementTab>(initialTab);
 const groupsPanel = ref<InstanceType<typeof FootprintGroupsPanel>>();
+const wishesPanel = ref<InstanceType<typeof FootprintWishesPanel>>();
 
 watch(activeTab, (tab) => {
   const url = new URL(window.location.href);
-  if (tab === "groups") url.searchParams.set("tab", "groups");
-  else url.searchParams.delete("tab");
+  if (tab === "footprints") url.searchParams.delete("tab");
+  else url.searchParams.set("tab", tab);
   history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
   if (tab === "groups") {
     nextTick(() => groupsPanel.value?.refresh());
+  } else if (tab === "wishes") {
+    nextTick(() => wishesPanel.value?.refresh());
   }
 });
 
@@ -242,7 +249,13 @@ function handleOpenFrontend() {
         <h1>足迹</h1>
         <span class="fp-brand-divider" aria-hidden="true">/</span>
         <span class="fp-brand-caption">
-          {{ activeTab === "footprints" ? "去过的地方 · 照片 · 票根" : "把足迹组合成旅程与收藏" }}
+          {{
+            activeTab === "footprints"
+              ? "去过的地方 · 照片 · 票根"
+              : activeTab === "groups"
+                ? "把足迹组合成旅程与收藏"
+                : "记录尚未到访的未来足迹与计划"
+          }}
         </span>
       </div>
       <div class="fp-header-actions">
@@ -262,8 +275,21 @@ function handleOpenFrontend() {
         >
           <RiAddLine width="15" height="15" aria-hidden="true" />新建足迹
         </button>
-        <button v-else type="button" class="fp-button is-primary" @click="handleCreateGroup()">
+        <button
+          v-else-if="activeTab === 'groups'"
+          type="button"
+          class="fp-button is-primary"
+          @click="handleCreateGroup()"
+        >
           <RiAddLine width="15" height="15" aria-hidden="true" />新建旅程或收藏
+        </button>
+        <button
+          v-else
+          type="button"
+          class="fp-button is-primary"
+          @click="wishesPanel?.openCreate()"
+        >
+          <RiAddLine width="15" height="15" aria-hidden="true" />新建未来足迹
         </button>
       </div>
     </header>
@@ -295,6 +321,19 @@ function handleOpenFrontend() {
           @click="activeTab = 'groups'"
         >
           我的旅途集
+        </button>
+        <button
+          id="fp-tab-wishes"
+          type="button"
+          role="tab"
+          aria-controls="fp-wishes-panel"
+          :aria-selected="activeTab === 'wishes'"
+          :tabindex="activeTab === 'wishes' ? 0 : -1"
+          :class="{ 'is-active': activeTab === 'wishes' }"
+          @keydown="handleTabKeydown"
+          @click="activeTab = 'wishes'"
+        >
+          未来足迹
         </button>
       </div>
     </nav>
@@ -434,6 +473,7 @@ function handleOpenFrontend() {
     </main>
 
     <FootprintGroupsPanel v-if="activeTab === 'groups'" id="fp-groups-panel" ref="groupsPanel" />
+    <FootprintWishesPanel v-if="activeTab === 'wishes'" id="fp-wishes-panel" ref="wishesPanel" />
   </div>
 
   <ManualLocationModal

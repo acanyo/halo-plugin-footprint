@@ -15,6 +15,7 @@ let dataReady = false;   // 首次加载是否已完成（含「确实为空」�
 /** 足迹数组（引用稳定，内容原地更新）。 */
 export const FOOTPRINTS = [];
 export const FOOTPRINT_GROUPS = [];
+export const FOOTPRINT_WISHES = [];
 
 export function isFootprintDataReady() {
     return dataReady;
@@ -113,6 +114,17 @@ export function loadFootprintGroupsFromJson() {
     );
 }
 
+export function loadFootprintWishesFromJson() {
+    const list = window.FOOTPRINT_CONFIG && Array.isArray(window.FOOTPRINT_CONFIG.footprintWishes)
+        ? window.FOOTPRINT_CONFIG.footprintWishes
+        : [];
+    return list.filter(wish =>
+        wish && wish.metadata && wish.metadata.name &&
+        !wish.metadata.deletionTimestamp &&
+        wish.spec && (!wish.spec.visibility || wish.spec.visibility === 'public')
+    );
+}
+
 // 用加载到的数据替换足迹数组（保持数组引用不变，各处引用自动生效）
 export function applyFootprints(loaded) {
     if (!Array.isArray(loaded)) return false;
@@ -124,6 +136,11 @@ export function applyFootprints(loaded) {
 export function applyFootprintGroups(loaded) {
     FOOTPRINT_GROUPS.length = 0;
     FOOTPRINT_GROUPS.push(...(Array.isArray(loaded) ? loaded : []));
+}
+
+export function applyFootprintWishes(loaded) {
+    FOOTPRINT_WISHES.length = 0;
+    FOOTPRINT_WISHES.push(...(Array.isArray(loaded) ? loaded : []));
 }
 
 // 统计区：总足迹数 / 去过的城市数（数据驱动）

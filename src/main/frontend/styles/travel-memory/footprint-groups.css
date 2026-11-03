@@ -56,6 +56,9 @@ body.footprint-groups-open #pageIntro {
 #footprintGroupsView.show .group-library-top {
     animation: fpPopIn var(--fp-dur) var(--fp-ease) both;
 }
+#footprintGroupsView.no-top-entry-animation .group-library-top {
+    animation: none;
+}
 #footprintGroupsBack {
     justify-self: start;
 }
@@ -1585,6 +1588,227 @@ body.footprint-group-map-mode #map-stats {
     background: var(--fp-accent-soft);
 }
 
+.group-card-grid--wish {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+.group-library-card--wish {
+    display: block;
+    max-width: none;
+    min-height: 190px;
+    background:
+        linear-gradient(135deg, var(--fp-accent-soft), transparent 55%),
+        var(--fp-glass-strong);
+}
+.group-wish-card-body {
+    padding: 18px;
+}
+.group-wish-card-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.group-wish-status,
+.group-wish-detail-kicker b {
+    padding: 3px 9px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
+    font-size: var(--fp-size-xs);
+    font-weight: 600;
+}
+.group-library-card--wish[data-wish-status="booked"] .group-wish-status {
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
+}
+.group-library-card--wish[data-wish-status="visited"] .group-wish-status {
+    border: 1px solid var(--fp-rule-strong);
+    background: var(--fp-paper-raised);
+    color: var(--fp-ink);
+}
+.group-wish-card-body h3 {
+    margin-top: 10px;
+    font-size: var(--fp-size-xl);
+}
+.group-wish-region {
+    margin: 4px 0 0;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+}
+.group-wish-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px 12px;
+    margin-top: auto;
+    padding-top: 13px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+}
+.group-wish-meta strong {
+    margin-left: auto;
+    color: var(--fp-accent);
+    font-weight: 500;
+}
+.group-wish-meta strong i {
+    margin-left: 3px;
+    font-style: normal;
+}
+.group-wish-layer-toggle {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--fp-rule);
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass);
+    color: var(--fp-ink-soft);
+    font: inherit;
+    font-size: var(--fp-size-xs);
+    cursor: pointer;
+}
+.group-wish-layer-toggle[aria-pressed="true"] {
+    border-color: var(--fp-accent);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
+}
+.group-wish-status-filters {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    width: min(100% - 48px, 1392px);
+    margin: 7px auto 0;
+    flex: none;
+}
+.group-wish-status-filters button {
+    min-height: 30px;
+    padding: 0 11px;
+    border: 1px solid var(--fp-rule);
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass);
+    color: var(--fp-ink-soft);
+    font: inherit;
+    font-size: var(--fp-size-xs);
+    cursor: pointer;
+}
+.group-wish-status-filters button[aria-pressed="true"] {
+    border-color: var(--fp-accent);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
+}
+.group-wish-detail {
+    max-width: 980px;
+}
+.group-wish-detail-panel {
+    padding: clamp(22px, 4vw, 48px);
+    border-radius: var(--fp-radius-panel);
+    background:
+        linear-gradient(135deg, var(--fp-accent-soft), transparent 48%),
+        var(--fp-glass-strong);
+    box-shadow: var(--fp-shadow);
+}
+.group-wish-detail-kicker {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+}
+.group-wish-detail-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+}
+.group-wish-detail-top .group-wish-detail-actions {
+    grid-column: 2;
+    margin-top: 0;
+}
+.group-wish-detail-panel h1 {
+    margin: 14px 0 6px;
+    font-family: var(--fp-font-title);
+    font-size: clamp(34px, 5vw, 58px);
+    font-weight: 400;
+    line-height: 1.16;
+}
+.group-wish-detail-region {
+    margin: 0;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+}
+.group-wish-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 28px 0 0;
+    padding: 18px 0;
+    border-block: 1px solid var(--fp-rule);
+}
+.group-wish-detail-meta div {
+    min-width: 0;
+}
+.group-wish-detail-meta dt {
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+}
+.group-wish-detail-meta dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+    color: var(--fp-ink);
+    font-size: var(--fp-size-sm);
+}
+.group-wish-story,
+.group-wish-realized {
+    margin-top: 28px;
+}
+.group-wish-story h2,
+.group-wish-realized h2 {
+    margin: 0 0 8px;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-lg);
+    font-weight: 400;
+}
+.group-wish-story p,
+.group-wish-realized p {
+    margin: 0;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-sm);
+    line-height: 1.75;
+    white-space: pre-line;
+}
+.group-wish-realized > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.fp-wish-map-marker {
+    display: grid;
+    min-width: 78px;
+    justify-items: center;
+    gap: 4px;
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.fp-wish-map-marker i {
+    width: 15px;
+    height: 15px;
+    border: 3px solid var(--fp-paper-raised);
+    border-radius: 50%;
+    background: var(--fp-accent);
+    box-shadow: 0 0 0 2px var(--fp-accent-soft);
+}
+.fp-wish-map-marker[data-status="booked"] i {
+    border-radius: 4px;
+}
+.fp-wish-map-marker span {
+    padding: 3px 7px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass-strong);
+    box-shadow: var(--fp-shadow);
+}
+
 @media (max-width: 1100px) {
     .group-trip-list {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1904,5 +2128,33 @@ body.footprint-group-map-mode #map-stats {
     }
     .group-map-dock {
         animation: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .group-wish-card-body {
+        padding: 14px;
+    }
+    .group-wish-detail-panel {
+        padding: 20px 16px;
+    }
+    .group-wish-detail-meta {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+    .group-wish-detail-actions {
+        justify-content: stretch;
+    }
+    .group-wish-detail-actions > * {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+    .group-wish-layer-toggle {
+        min-height: 36px;
+    }
+    .group-wish-status-filters {
+        width: calc(100% - 28px);
+        justify-content: flex-start;
+        overflow-x: auto;
     }
 }

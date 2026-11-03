@@ -8,6 +8,7 @@ import {
     groupDistanceText,
     resolveFootprintGroups
 } from './footprint-group-model.js';
+import { formatLatitude, formatLongitude } from './survey-format.js';
 
 const view = document.getElementById('footprintGroupsView');
 const mapDock = document.getElementById('footprintGroupMapDock');
@@ -28,13 +29,18 @@ const mapButton = document.getElementById('groupGalleryBtn2d');
 const MEMBER_PAGE_SIZE = 24;
 const BACKGROUND_INERT_IDS = ['topNav', 'view-3d', 'view-2d', 'backGlobeBtn', 'cityFillFloatBtn'];
 const BACKGROUND_CLICK_SLOP = 6;
+const UPDATED_AT_ANNOTATION = 'footprint.lik.cc/updated-at';
 
 let deps = null;
 let groups = [];
+let wishes = [];
 let activeFilter = 'all';
+let wishStatusFilter = 'all';
 let listSort = 'ordered';
 let searchQuery = '';
 let activeGroup = null;
+let activeWish = null;
+let relatedWishReturn = null;
 let activeFromMap = false;
 let triggerElement = null;
 let copied = false;
@@ -50,6 +56,8 @@ let deepLinkError = '';
 let announceTimer = 0;
 let inertSnapshot = [];
 let backgroundPointerStart = null;
+let wishLayerVisible = false;
+let wishLayerMapMode = false;
 
 function announce(message) {
     if (!liveRegion) return;
@@ -191,6 +199,76 @@ function refreshResolvedGroups() {
             imagesOf: member => deps.cityWallImages(member)
         }
     );
+    wishes = (deps.wishes?.() || []).filter(wish =>
+        wish && wish.metadata && wish.spec &&
+        !wish.metadata.deletionTimestamp &&
+        (!wish.spec.visibility || wish.spec.visibility === 'public')
+    );
+}
+
+const WISH_STATUS_LABELS = {
+    wish: '心愿',
+    planning: '计划中',
+    booked: '已订票',
+    visited: '已实现'
+};
+
+function wishStatusText(wish) {
+    return WISH_STATUS_LABELS[wish?.spec?.status] || '心愿';
+}
+
+function wishPlanText(wish) {
+    const year = Number(wish?.spec?.plannedYear);
+    const month = Number(wish?.spec?.plannedMonth);
+    const note = String(wish?.spec?.plannedTimeNote || '').trim();
+    const date = Number.isFinite(year) && year > 0
+        ? `${year} 年${Number.isFinite(month) && month > 0 ? ` ${month} 月` : ''}`
+        : '';
+    return [date, note].filter(Boolean).join('，') || '计划时间待定';
+}
+
+function wishRegionText(wish) {
+    return [wish?.spec?.province, wish?.spec?.city].filter(Boolean).join(' / ') ||
+        wish?.spec?.address || '位置已记录';
+}
+
+function wishCoordinateText(wish) {
+    const lng = Number(wish?.spec?.longitude);
+    const lat = Number(wish?.spec?.latitude);
+    return Number.isFinite(lng) && Number.isFinite(lat)
+        ? `${formatLatitude(lat)}，${formatLongitude(lng)}`
+        : '坐标未知';
+}
+
+function wishUpdatedAt(wish) {
+    return String(
+        wish?.metadata?.annotations?.[UPDATED_AT_ANNOTATION] ||
+        wish?.metadata?.updateTimestamp ||
+        wish?.metadata?.creationTimestamp ||
+        ''
+    );
+}
+
+function groupUpdatedAt(group) {
+    return String(
+        group.metadata?.annotations?.[UPDATED_AT_ANNOTATION] ||
+        group.metadata?.updateTimestamp ||
+        group.range.end ||
+        group.metadata.creationTimestamp || '');
+}
+
+function wishMatchesSearch(wish, keyword) {
+    if (!keyword) return true;
+    return [
+        wish.spec.title,
+        wish.spec.description,
+        wish.spec.address,
+        wish.spec.province,
+        wish.spec.city,
+        ...(Array.isArray(wish.spec.tags) ? wish.spec.tags : [])
+    ]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(keyword));
 }
 
 function filteredGroups() {
@@ -226,10 +304,89 @@ function filteredGroups() {
 
 function filterCounts() {
     return {
-        all: groups.length,
+        all: groups.length + wishes.length,
         trip: groups.filter(group => group.groupType === 'trip').length,
-        collection: groups.filter(group => group.groupType === 'collection').length
+        collection: groups.filter(group => group.groupType === 'collection').length,
+        wish: wishes.length
     };
+}
+
+function filteredWishes() {
+    const keyword = searchQuery.trim().toLowerCase();
+    const filtered = wishes.filter(wish =>
+        (wishStatusFilter === 'all' || wish.spec.status === wishStatusFilter) &&
+        wishMatchesSearch(wish, keyword)
+    );
+    return filtered.slice().sort((a, b) => {
+        if (!!a.spec.pinned !== !!b.spec.pinned) return a.spec.pinned ? -1 : 1;
+        if (listSort === 'title') {
+            return a.spec.title.localeCompare(b.spec.title, 'zh-Hans-CN');
+        }
+        if (listSort === 'recent') {
+            return wishUpdatedAt(b).localeCompare(wishUpdatedAt(a));
+        }
+        const orderA = a.spec.sortOrder == null ? Number.MAX_SAFE_INTEGER : Number(a.spec.sortOrder);
+        const orderB = b.spec.sortOrder == null ? Number.MAX_SAFE_INTEGER : Number(b.spec.sortOrder);
+        if (orderA !== orderB) return orderA - orderB;
+        const planA = a.spec.plannedYear
+            ? Number(a.spec.plannedYear) * 100 + (Number(a.spec.plannedMonth) || 0)
+            : Number.MAX_SAFE_INTEGER;
+        const planB = b.spec.plannedYear
+            ? Number(b.spec.plannedYear) * 100 + (Number(b.spec.plannedMonth) || 0)
+            : Number.MAX_SAFE_INTEGER;
+        return planA - planB || wishUpdatedAt(b).localeCompare(wishUpdatedAt(a));
+    });
+}
+
+function allListEntries() {
+    const keyword = searchQuery.trim().toLowerCase();
+    const entries = [
+        ...groups
+            .filter(group => {
+                if (!keyword) return true;
+                return [
+                    group.title,
+                    group.description,
+                    ...group.footprintTypes,
+                    ...group.members.flatMap(member => [member.name, member.city, member.province])
+                ]
+                    .filter(Boolean)
+                    .some(value => String(value).toLowerCase().includes(keyword));
+            })
+            .map(group => ({
+                kind: 'group',
+                key: group.key,
+                title: group.title,
+                pinned: group.pinned,
+                sortOrder: group.sortOrder,
+                updatedAt: groupUpdatedAt(group),
+                data: group
+            })),
+        ...wishes
+            .filter(wish => wishMatchesSearch(wish, keyword))
+            .map(wish => ({
+                kind: 'wish',
+                key: wish.metadata.name,
+                title: wish.spec.title,
+                pinned: wish.spec.pinned === true,
+                sortOrder: wish.spec.sortOrder,
+                updatedAt: wishUpdatedAt(wish),
+                data: wish
+            }))
+    ];
+    return entries.sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        if (listSort === 'title') {
+            return a.title.localeCompare(b.title, 'zh-Hans-CN');
+        }
+        if (listSort !== 'recent') {
+            const orderA = a.sortOrder == null ? Number.MAX_SAFE_INTEGER : Number(a.sortOrder);
+            const orderB = b.sortOrder == null ? Number.MAX_SAFE_INTEGER : Number(b.sortOrder);
+            if (orderA !== orderB) return orderA - orderB;
+        }
+        return b.updatedAt.localeCompare(a.updatedAt) ||
+            a.title.localeCompare(b.title, 'zh-Hans-CN');
+    });
 }
 
 function cardHtml(group) {
@@ -347,6 +504,42 @@ function collectionCardHtml(group) {
         </article>`;
 }
 
+function wishCardHtml(wish) {
+    const realized = wish.spec.status === 'visited';
+    const tags = Array.isArray(wish.spec.tags) ? wish.spec.tags : [];
+    return `
+        <article class="group-library-card group-library-card--wish"
+            data-wish-status="${escapeHtml(wish.spec.status || 'wish')}">
+            <button type="button" class="group-library-card-hit" data-wish-key="${escapeHtml(wish.metadata.name)}"
+                aria-label="打开未来足迹：${escapeHtml(wish.spec.title)}"></button>
+            <div class="group-card-body group-wish-card-body">
+                <div class="group-wish-card-head">
+                    <span class="group-wish-status">${escapeHtml(wishStatusText(wish))}</span>
+                    ${wish.spec.pinned ? '<span class="group-chip">置顶</span>' : ''}
+                </div>
+                <h3>${escapeHtml(wish.spec.title)}</h3>
+                <p class="group-wish-region">${escapeHtml(wishRegionText(wish))}</p>
+                ${wish.spec.description
+                    ? `<p>${escapeHtml(wish.spec.description)}</p>`
+                    : ''}
+                ${tags.length
+                    ? `<div class="group-library-types">${tags
+                        .map(tag => `<span class="group-chip">${escapeHtml(tag)}</span>`)
+                        .join('')}</div>`
+                    : ''}
+                <div class="group-wish-meta">
+                    <span>${escapeHtml(wishPlanText(wish))}</span>
+                    ${realized
+                        ? `<span>${wish.spec.realizedFootprintName || wish.spec.realizedGroupName
+                            ? '已关联实现记录'
+                            : '等待关联足迹'}</span>`
+                        : ''}
+                    <strong>查看地点 <i aria-hidden="true">→</i></strong>
+                </div>
+            </div>
+        </article>`;
+}
+
 function listItemsHtml() {
     if (deepLinkError === 'unavailable') {
         return `<div class="group-library-empty" role="alert">
@@ -355,16 +548,27 @@ function listItemsHtml() {
             <button type="button" class="fp-btn" data-clear-deep-link>查看全部旅途集</button>
         </div>`;
     }
-    const items = filteredGroups();
-    if (!items.length) {
+    const items = activeFilter === 'all' ? allListEntries() : filteredGroups();
+    const wishItems = filteredWishes();
+    const total = activeFilter === 'wish' ? wishItems.length : items.length;
+    if (!total) {
         return `<div class="group-library-empty">
-            <h3>${groups.length ? '没有符合筛选的记录' : '还没有旅程或收藏'}</h3>
-            <p>${groups.length ? '切换到其他类型看看。' : '在后台从已有足迹中创建第一段旅程或主题收藏。'}</p>
+            <h3>${groups.length || wishes.length ? '没有符合筛选的记录' : '还没有旅程、收藏或未来足迹'}</h3>
+            <p>${groups.length || wishes.length
+                ? '切换到其他类型看看。'
+                : '在后台创建第一段旅程、主题收藏或未来足迹。'}</p>
         </div>`;
     }
     if (activeFilter === 'all') {
         return `<div class="group-card-grid group-card-grid--all">
-            ${items.map(cardHtml).join('')}
+            ${items.map(item => item.kind === 'wish'
+                ? wishCardHtml(item.data)
+                : cardHtml(item.data)).join('')}
+        </div>`;
+    }
+    if (activeFilter === 'wish') {
+        return `<div class="group-card-grid group-card-grid--wish">
+            ${wishItems.map(wishCardHtml).join('')}
         </div>`;
     }
     const section = (type, title, description) => {
@@ -396,6 +600,9 @@ function bindGroupCards() {
     view.querySelectorAll('[data-group-key]').forEach(button => {
         button.addEventListener('click', () => openDetail(button.dataset.groupKey, true));
     });
+    view.querySelectorAll('[data-wish-key]').forEach(button => {
+        button.addEventListener('click', () => openWishDetail(button.dataset.wishKey, true));
+    });
     view.querySelector('[data-clear-deep-link]')?.addEventListener('click', () => {
         deepLinkError = '';
         setUrl(false, true);
@@ -412,14 +619,18 @@ function renderListItems() {
     bindGroupCards();
 }
 
-function syncFilterButtons() {
-    view?.querySelectorAll('[data-group-filter]').forEach(button => {
-        button.setAttribute('aria-pressed', String(button.dataset.groupFilter === activeFilter));
+function syncWishStatusButtons() {
+    view?.querySelectorAll('[data-wish-status-filter]').forEach(button => {
+        button.setAttribute(
+            'aria-pressed',
+            String((button.dataset.wishStatusFilter || 'all') === wishStatusFilter)
+        );
     });
 }
 
 function renderList(options = {}) {
     if (!view) return;
+    view.classList.toggle('no-top-entry-animation', options.animateTop === false);
     const counts = filterCounts();
     view.innerHTML = `
         <header class="group-library-top">
@@ -429,7 +640,7 @@ function renderList(options = {}) {
             <div class="group-library-title">
                 <p>旅行组合</p>
                 <h2>我的旅途集</h2>
-                <span>${groups.length} 个记录</span>
+                <span>${groups.length + wishes.length} 个记录</span>
             </div>
         </header>
         <div class="group-library-filterbar">
@@ -437,7 +648,8 @@ function renderList(options = {}) {
                 ${[
                     ['all', '全部'],
                     ['trip', '旅程'],
-                    ['collection', '收藏']
+                    ['collection', '收藏'],
+                    ['wish', '未来足迹']
                 ].map(([key, label]) => `
                     <button type="button" data-group-filter="${key}"
                         aria-pressed="${activeFilter === key}">
@@ -446,6 +658,12 @@ function renderList(options = {}) {
                 `).join('')}
             </nav>
             <div class="group-library-tools">
+                ${activeFilter === 'wish' &&
+                wishes.some(wish => wish.spec.status !== 'visited') ? `
+                    <button type="button" class="group-wish-layer-toggle"
+                        aria-pressed="${wishLayerVisible}">
+                        地图显示
+                    </button>` : ''}
                 <label class="group-library-sort">
                     <span class="sr-only">排序旅途集</span>
                     <select aria-label="排序旅途集">
@@ -465,18 +683,34 @@ function renderList(options = {}) {
                 </label>
             </div>
         </div>
+        ${activeFilter === 'wish' ? `
+            <div class="group-wish-status-filters" role="group" aria-label="筛选未来足迹状态">
+                ${[
+                    ['all', '全部状态'],
+                    ['wish', '心愿'],
+                    ['planning', '计划中'],
+                    ['booked', '已订票'],
+                    ['visited', '已实现']
+                ].map(([key, label]) => `
+                    <button type="button" data-wish-status-filter="${key}"
+                        aria-pressed="${wishStatusFilter === key}">${label}</button>
+                `).join('')}
+            </div>` : ''}
         <div class="group-library-list"></div>`;
     renderListItems();
     view.querySelector('#footprintGroupsBack')?.addEventListener('click', () => closeFootprintGroups());
     view.querySelectorAll('[data-group-filter]').forEach(button => {
         button.addEventListener('click', () => {
-            activeFilter = button.dataset.groupFilter || 'all';
-            syncFilterButtons();
-            renderListItems();
+            const nextFilter = button.dataset.groupFilter || 'all';
+            activeFilter = nextFilter;
             const list = view.querySelector('.group-library-list');
-            if (list) list.scrollTop = 0;
-            button.focus({ preventScroll: true });
-            announce(`已切换到${button.querySelector('span')?.textContent || '全部'}，共 ${filteredGroups().length} 条`);
+            if (list) listScrollTop = 0;
+            renderList({ animateTop: false });
+            const nextButton = view.querySelector(
+                `[data-group-filter="${CSS.escape(nextFilter)}"]`
+            );
+            nextButton?.focus({ preventScroll: true });
+            announce(`已切换到${button.querySelector('span')?.textContent || '全部'}，共 ${filteredGroups().length + (activeFilter === 'wish' ? wishes.length : 0)} 条`);
         });
     });
     const search = view.querySelector('.group-library-search input');
@@ -494,6 +728,24 @@ function renderList(options = {}) {
         const list = view.querySelector('.group-library-list');
         if (list) list.scrollTop = 0;
         announce(`已按${sort.options[sort.selectedIndex]?.text || '推荐顺序'}排序`);
+    });
+    const wishLayerToggle = view.querySelector('.group-wish-layer-toggle');
+    wishLayerToggle?.addEventListener('click', () => {
+        wishLayerVisible = !wishLayerVisible;
+        wishLayerToggle.setAttribute('aria-pressed', String(wishLayerVisible));
+        const count = deps.setWishLayerVisible?.(wishLayerVisible, wishes) || 0;
+        announce(wishLayerVisible
+            ? `已在地图中显示 ${count} 个未来足迹`
+            : '已关闭未来足迹图层');
+        if (wishLayerVisible) closeFootprintGroups(false);
+        if (wishLayerVisible) requestAnimationFrame(applyWishLayerMapMode);
+    });
+    view.querySelectorAll('[data-wish-status-filter]').forEach(button => {
+        button.addEventListener('click', () => {
+            wishStatusFilter = button.dataset.wishStatusFilter || 'all';
+            syncWishStatusButtons();
+            renderListItems();
+        });
     });
     if (options.restore) {
         requestAnimationFrame(() => {
@@ -569,6 +821,7 @@ function memberMoreHtml(group) {
 
 function updateMapDock() {
     if (!mapDock || !activeGroup) return;
+    if (returnButton) returnButton.textContent = '返回旅程';
     const member = activeGroup.members[mapMemberIndex] || activeGroup.members[0];
     const total = activeGroup.members.length;
     const activeMember = mapMemberActivated ? member : null;
@@ -681,6 +934,24 @@ function openMemberFromDetail(member) {
             showOverlay();
             renderDetail();
             announce(`已返回${typeText(group)}：${group.title}`);
+        }
+    });
+}
+
+function openWishRealizedMember(member) {
+    if (!member || !activeWish) return;
+    const wish = activeWish;
+    detailScrollTop = view.querySelector('.group-detail')?.scrollTop || detailScrollTop;
+    closeOverlay(false);
+    deps.openMember(member, {
+        backLabel: '返回未来足迹',
+        onClose: () => {
+            activeWish = wish;
+            activeGroup = null;
+            activeFromMap = false;
+            showOverlay();
+            renderWishDetail();
+            announce(`已返回未来足迹：${wish.spec.title}`);
         }
     });
 }
@@ -814,7 +1085,9 @@ function renderDetail() {
     view.innerHTML = `
         <header class="group-library-top">
             <button id="footprintGroupsBack" class="fp-btn" type="button" aria-label="返回旅途集列表">
-                <span aria-hidden="true">←</span><span>${activeFromMap ? '返回地图' : '全部旅途集'}</span>
+                <span aria-hidden="true">←</span><span>${relatedWishReturn
+                    ? '返回未来足迹'
+                    : (activeFromMap ? '返回地图' : '全部旅途集')}</span>
             </button>
             <div id="groupDetailCompactTitle" class="group-detail-compact-title" hidden>
                 <span>${escapeHtml(typeText(group))}</span>
@@ -841,6 +1114,15 @@ function renderDetail() {
         </article>`;
 
     view.querySelector('#footprintGroupsBack')?.addEventListener('click', () => {
+        if (relatedWishReturn) {
+            const wish = relatedWishReturn;
+            relatedWishReturn = null;
+            activeGroup = null;
+            activeWish = wish;
+            setUrl(true);
+            renderWishDetail();
+            return;
+        }
         if (activeFromMap && activeGroup) applyMapView(activeGroup);
         else returnToList();
     });
@@ -905,16 +1187,119 @@ function renderDetail() {
     });
 }
 
+function renderWishDetail() {
+    if (!view || !activeWish) return;
+    const wish = activeWish;
+    const article = safeLink(wish.spec.article);
+    const realizedFootprint = deps.footprints().find(
+        item => item.key === wish.spec.realizedFootprintName
+    );
+    const realizedGroup = groups.find(
+        item => item.key === wish.spec.realizedGroupName
+    );
+    const tags = Array.isArray(wish.spec.tags) ? wish.spec.tags : [];
+    view.innerHTML = `
+        <header class="group-library-top group-wish-detail-top">
+            <button id="footprintGroupsBack" class="fp-btn" type="button" aria-label="返回未来足迹列表">
+                <span aria-hidden="true">←</span><span>${activeFromMap ? '返回地图' : '全部旅途集'}</span>
+            </button>
+            <div class="group-wish-detail-actions">
+                ${activeFromMap
+                    ? '<button id="wishAllGroups" class="fp-btn" type="button">全部旅途集</button>'
+                    : ''}
+                <button id="wishCopyLink" class="fp-btn" type="button">复制链接</button>
+                ${article
+                    ? `<a class="fp-btn" href="${escapeHtml(article)}" target="_blank" rel="noopener noreferrer">参考资料</a>`
+                    : ''}
+                <button id="wishViewMap" class="fp-btn" type="button">在地图中查看</button>
+            </div>
+        </header>
+        <article class="group-detail is-wish-detail" tabindex="-1">
+            <section class="group-wish-detail-panel">
+                <div class="group-wish-detail-kicker">
+                    <span>未来足迹</span>
+                    <b>${escapeHtml(wishStatusText(wish))}</b>
+                </div>
+                <h1>${escapeHtml(wish.spec.title)}</h1>
+                <p class="group-wish-detail-region">${escapeHtml(wishRegionText(wish))}</p>
+                <dl class="group-wish-detail-meta">
+                    <div><dt>计划时间</dt><dd>${escapeHtml(wishPlanText(wish))}</dd></div>
+                    <div><dt>坐标</dt><dd>${escapeHtml(wishCoordinateText(wish))}</dd></div>
+                    <div><dt>地址</dt><dd>${escapeHtml(wish.spec.address || '未补充详细地址')}</dd></div>
+                </dl>
+                ${tags.length
+                    ? `<div class="group-library-types">${tags
+                        .map(tag => `<span class="group-chip">${escapeHtml(tag)}</span>`)
+                        .join('')}</div>`
+                    : ''}
+                <section class="group-wish-story">
+                    <h2>为什么想去</h2>
+                    <p>${escapeHtml(wish.spec.description || '还没有写下想去这里的理由。')}</p>
+                </section>
+                ${wish.spec.status === 'visited'
+                    ? `<section class="group-wish-realized">
+                        <h2>已实现</h2>
+                        <p>${realizedFootprint || realizedGroup
+                            ? '这条心愿已经关联到真实旅行记录。'
+                            : '这条心愿已标记为实现，但还没有关联足迹或旅程。'}</p>
+                        <div>
+                            ${realizedFootprint
+                                ? `<button id="wishOpenFootprint" class="fp-btn" type="button">打开关联足迹</button>`
+                                : ''}
+                            ${realizedGroup
+                                ? `<button id="wishOpenGroup" class="fp-btn" type="button">打开关联旅程</button>`
+                                : ''}
+                        </div>
+                    </section>`
+                    : ''}
+            </section>
+        </article>`;
+
+    view.querySelector('#footprintGroupsBack')?.addEventListener('click', () => {
+        if (activeFromMap && activeWish) applyWishMapView(activeWish);
+        else returnToList();
+    });
+    view.querySelector('#wishViewMap')?.addEventListener('click', () => {
+        if (activeWish) applyWishMapView(activeWish);
+    });
+    view.querySelector('#wishAllGroups')?.addEventListener('click', returnToList);
+    view.querySelector('#wishCopyLink')?.addEventListener('click', async () => {
+        try {
+            await copyText(window.location.href);
+            const node = view.querySelector('#wishCopyLink');
+            if (node) node.textContent = '已复制';
+            announce('未来足迹链接已复制');
+        } catch {
+            announce('复制链接失败，请从地址栏复制');
+        }
+    });
+    view.querySelector('#wishOpenFootprint')?.addEventListener('click', () => {
+        if (realizedFootprint) openWishRealizedMember(realizedFootprint);
+    });
+    view.querySelector('#wishOpenGroup')?.addEventListener('click', () => {
+        if (realizedGroup && activeWish) {
+            openDetail(realizedGroup.key, false, false, false, activeWish);
+        }
+    });
+    requestAnimationFrame(() => {
+        const detail = view.querySelector('.group-detail');
+        if (detail) detail.scrollTop = detailScrollTop;
+        view.querySelector('#footprintGroupsBack')?.focus({ preventScroll: true });
+    });
+}
+
 function setUrl(detail, replace = false) {
     if (!window.location.pathname.endsWith('/footprints')) return;
     const params = new URLSearchParams();
     params.set('view', 'groups');
     if (detail && activeGroup) params.set('group', activeGroup.key);
+    if (detail && activeWish) params.set('wish', activeWish.metadata.name);
     const method = replace ? 'replaceState' : 'pushState';
     history[method]({ footprintGroups: true }, '', window.location.pathname + '?' + params.toString());
 }
 
 function applyMapView(group) {
+    activeWish = null;
     activeGroup = group;
     activeFromMap = true;
     closeOverlay(false);
@@ -931,7 +1316,81 @@ function applyMapView(group) {
     announce(`正在查看${group.title}的${typeText(group)}地图`);
 }
 
+function applyWishMapView(wish) {
+    activeGroup = null;
+    activeWish = wish;
+    activeFromMap = true;
+    closeOverlay(false);
+    deps.pauseAutoRotate('wish-map');
+    document.body.classList.add('footprint-group-map-mode');
+    globeButton?.setAttribute('aria-pressed', 'true');
+    mapButton?.setAttribute('aria-pressed', 'true');
+    if (mapDockType) mapDockType.textContent = '未来足迹';
+    if (mapDockTitle) mapDockTitle.textContent = wish.spec.title;
+    if (mapDockStation) mapDockStation.textContent = wishStatusText(wish);
+    if (mapDockProgress) mapDockProgress.textContent = wishPlanText(wish);
+    if (mapDockMeta) {
+        mapDockMeta.textContent = [...new Set(
+            [wishRegionText(wish), wish.spec.address].filter(Boolean)
+        )].join('，');
+    }
+    if (mapDockMeter) mapDockMeter.hidden = true;
+    if (mapDockPrev) mapDockPrev.hidden = true;
+    if (mapDockNext) mapDockNext.hidden = true;
+    if (mapDockExit) mapDockExit.textContent = '退出查看';
+    if (returnButton) returnButton.textContent = '返回未来足迹';
+    if (mapDock) mapDock.hidden = false;
+    deps.showWishOnMap?.(wish);
+    announce(`正在地图中查看未来足迹：${wish.spec.title}`);
+}
+
+function applyWishLayerMapMode() {
+    if (!wishLayerVisible || !wishes.some(wish => wish.spec.status !== 'visited')) return;
+    wishLayerMapMode = true;
+    activeGroup = null;
+    activeWish = null;
+    activeFromMap = false;
+    deps.pauseAutoRotate('wish-layer-map');
+    document.body.classList.add('footprint-group-map-mode');
+    globeButton?.setAttribute('aria-pressed', 'true');
+    mapButton?.setAttribute('aria-pressed', 'true');
+    const visible = wishes.filter(wish => wish.spec.status !== 'visited');
+    if (mapDockType) mapDockType.textContent = '未来足迹';
+    if (mapDockTitle) mapDockTitle.textContent = '未来足迹';
+    if (mapDockStation) mapDockStation.textContent = `共 ${visible.length} 个地点`;
+    if (mapDockProgress) mapDockProgress.textContent = '只显示未实现的心愿地点';
+    if (mapDockMeta) {
+        mapDockMeta.textContent = '心愿、计划中与已订票地点，不包含已实现地点';
+    }
+    if (mapDockMeter) mapDockMeter.hidden = true;
+    if (mapDockPrev) mapDockPrev.hidden = true;
+    if (mapDockNext) mapDockNext.hidden = true;
+    if (mapDockExit) mapDockExit.textContent = '退出地图显示';
+    if (returnButton) returnButton.textContent = '返回未来足迹';
+    if (mapDock) mapDock.hidden = false;
+    deps.setWishLayerVisible?.(true, wishes);
+    announce(`已进入未来足迹地图显示，共 ${visible.length} 个地点`);
+}
+
+function exitWishLayerMap() {
+    wishLayerMapMode = false;
+    wishLayerVisible = false;
+    deps.setWishLayerVisible?.(false, wishes);
+    deps.resumeAutoRotate('wish-layer-map');
+    document.body.classList.remove('footprint-group-map-mode');
+    if (mapDock) mapDock.hidden = true;
+    globeButton?.setAttribute('aria-pressed', 'false');
+    mapButton?.setAttribute('aria-pressed', 'false');
+    if (mapDockMeter) mapDockMeter.hidden = false;
+    announce('已退出未来足迹地图显示');
+}
+
 function viewOnMap() {
+    if (activeWish) {
+        detailScrollTop = view.querySelector('.group-detail')?.scrollTop || detailScrollTop;
+        applyWishMapView(activeWish);
+        return;
+    }
     if (!activeGroup) return;
     detailScrollTop = view.querySelector('.group-detail')?.scrollTop || detailScrollTop;
     applyMapView(activeGroup);
@@ -939,6 +1398,8 @@ function viewOnMap() {
 
 function returnToList() {
     activeGroup = null;
+    activeWish = null;
+    relatedWishReturn = null;
     activeFromMap = false;
     detailScrollTop = 0;
     setUrl(false, true);
@@ -959,6 +1420,19 @@ function clearMapGroup() {
     if (!view.classList.contains('show')) activeGroup = null;
 }
 
+function clearWishMap() {
+    wishLayerMapMode = false;
+    deps.clearWishOnMap?.();
+    deps.resumeAutoRotate('wish-map');
+    activeFromMap = false;
+    document.body.classList.remove('footprint-group-map-mode');
+    if (mapDock) mapDock.hidden = true;
+    globeButton?.setAttribute('aria-pressed', 'false');
+    mapButton?.setAttribute('aria-pressed', 'false');
+    if (mapDockMeter) mapDockMeter.hidden = false;
+    if (wishLayerVisible) deps.setWishLayerVisible?.(true, wishes);
+}
+
 function exitGroupMap() {
     if (!activeGroup || !activeFromMap) return;
     clearMapGroup();
@@ -969,6 +1443,17 @@ function exitGroupMap() {
         history.replaceState({}, '', window.location.pathname);
     }
     announce('已退出旅程地图查看');
+}
+
+function exitWishMap() {
+    if (!activeWish || !activeFromMap) return;
+    clearWishMap();
+    activeWish = null;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'groups' && window.location.pathname.endsWith('/footprints')) {
+        history.replaceState({}, '', window.location.pathname);
+    }
+    announce('已退出未来足迹地图查看');
 }
 
 function showOverlay() {
@@ -1013,10 +1498,20 @@ export function openFootprintGroups(trigger, options = {}) {
     refreshResolvedGroups();
     activeFromMap = false;
     activeGroup = null;
+    activeWish = null;
     copied = false;
     deepLinkError = '';
     showOverlay();
-    if (options.groupKey) {
+    if (options.wishKey) {
+        const wish = wishes.find(item => item.metadata.name === options.wishKey);
+        if (wish) {
+            openWishDetail(wish.metadata.name, false, false, false);
+        } else {
+            deepLinkError = 'unavailable';
+            renderList();
+            announce('记录不存在或尚未公开');
+        }
+    } else if (options.groupKey) {
         const group = groups.find(item => item.key === options.groupKey);
         if (group) {
             openDetail(group.key, false, false, false);
@@ -1033,7 +1528,13 @@ export function openFootprintGroups(trigger, options = {}) {
     requestAnimationFrame(() => view.querySelector('button, a')?.focus({ preventScroll: true }));
 }
 
-function openDetail(key, updateUrl = true, fromRoute = false, restoreDetail = false) {
+function openDetail(
+    key,
+    updateUrl = true,
+    fromRoute = false,
+    restoreDetail = false,
+    returnWish = null
+) {
     const group = groups.find(item => item.key === key);
     if (!group) {
         deepLinkError = 'unavailable';
@@ -1052,6 +1553,8 @@ function openDetail(key, updateUrl = true, fromRoute = false, restoreDetail = fa
         }
     }
     activeGroup = group;
+    activeWish = null;
+    relatedWishReturn = returnWish;
     activeFromMap = fromRoute;
     copied = false;
     deepLinkError = '';
@@ -1061,10 +1564,40 @@ function openDetail(key, updateUrl = true, fromRoute = false, restoreDetail = fa
     announce(`已打开${typeText(group)}：${group.title}`);
 }
 
+function openWishDetail(key, updateUrl = true, fromRoute = false, restoreDetail = false) {
+    const wish = wishes.find(item => item.metadata.name === key);
+    if (!wish) {
+        deepLinkError = 'unavailable';
+        activeWish = null;
+        renderList();
+        announce('记录不存在或尚未公开');
+        return;
+    }
+    if (!restoreDetail) {
+        const list = view.querySelector('.group-library-list');
+        if (list) listScrollTop = list.scrollTop;
+        listFocusKey = document.activeElement?.closest?.('[data-wish-key]')?.dataset?.wishKey || '';
+        detailScrollTop = 0;
+    }
+    activeGroup = null;
+    activeWish = wish;
+    relatedWishReturn = null;
+    activeFromMap = fromRoute;
+    copied = false;
+    deepLinkError = '';
+    if (updateUrl) setUrl(true);
+    if (mapDock) mapDock.hidden = true;
+    renderWishDetail();
+    announce(`已打开未来足迹：${wish.spec.title}`);
+}
+
 export function closeFootprintGroups(restoreFocus = true) {
     if ((!view || !view.classList.contains('show')) && !activeFromMap) return false;
     clearMapGroup();
+    clearWishMap();
     activeGroup = null;
+    activeWish = null;
+    relatedWishReturn = null;
     activeFromMap = false;
     if (view?.classList.contains('show')) closeOverlay(restoreFocus);
     const params = new URLSearchParams(window.location.search);
@@ -1076,6 +1609,11 @@ export function closeFootprintGroups(restoreFocus = true) {
 
 export function backFootprintGroups() {
     if (!view || !view.classList.contains('show')) return false;
+    if (activeWish) {
+        if (activeFromMap) applyWishMapView(activeWish);
+        else returnToList();
+        return true;
+    }
     if (activeGroup) {
         if (activeFromMap) applyMapView(activeGroup);
         else returnToList();
@@ -1088,6 +1626,19 @@ export function setupFootprintGroups(d) {
     deps = d;
     if (returnButton) {
         returnButton.addEventListener('click', () => {
+            if (wishLayerMapMode) {
+                exitWishLayerMap();
+                activeFilter = 'wish';
+                showOverlay();
+                renderList();
+                return;
+            }
+            if (activeWish) {
+                deps.clearWishOnMap?.();
+                showOverlay();
+                openWishDetail(activeWish.metadata.name, false, true, true);
+                return;
+            }
             if (!activeGroup) return;
             deps.clearGroupOnMap();
             showOverlay();
@@ -1096,7 +1647,11 @@ export function setupFootprintGroups(d) {
     }
     mapDockPrev?.addEventListener('click', () => stepMapMember(-1));
     mapDockNext?.addEventListener('click', () => stepMapMember(1));
-    mapDockExit?.addEventListener('click', exitGroupMap);
+    mapDockExit?.addEventListener('click', () => {
+        if (wishLayerMapMode) exitWishLayerMap();
+        else if (activeWish) exitWishMap();
+        else exitGroupMap();
+    });
     if (view) {
         view.addEventListener('pointerdown', event => {
             if (event.button !== 0 || event.target !== view) return;
@@ -1158,14 +1713,20 @@ export function initFootprintGroups() {
 
     document.addEventListener('footprints:loaded', () => {
         refreshResolvedGroups();
+        if (wishLayerVisible) deps.setWishLayerVisible?.(true, wishes);
         if (view && view.classList.contains('show')) {
-            if (activeGroup) renderDetail();
+            if (activeWish) renderWishDetail();
+            else if (activeGroup) renderDetail();
             else renderList();
         }
     });
     document.addEventListener('footprint:view-mode-changed', () => {
-        if (activeGroup && activeFromMap && !view.classList.contains('show')) {
+        if (activeWish && activeFromMap && !view.classList.contains('show')) {
+            deps.showWishOnMap?.(activeWish);
+        } else if (activeGroup && activeFromMap && !view.classList.contains('show')) {
             deps.applyGroupOnMap(activeGroup);
+        } else if (wishLayerVisible) {
+            deps.setWishLayerVisible?.(true, wishes);
         }
     });
 
@@ -1178,6 +1739,7 @@ export function initFootprintGroups() {
             }
             openFootprintGroups(null, {
                 groupKey: params.get('group') || '',
+                wishKey: params.get('wish') || '',
                 syncUrl: false
             });
         };
@@ -1188,12 +1750,15 @@ export function initFootprintGroups() {
         const current = new URLSearchParams(window.location.search);
         if (current.get('view') === 'groups') {
             const key = current.get('group') || '';
+            const wishKey = current.get('wish') || '';
             if (!view.classList.contains('show')) {
-                openFootprintGroups(null, { groupKey: key, syncUrl: false });
+                openFootprintGroups(null, { groupKey: key, wishKey, syncUrl: false });
             }
+            else if (wishKey) openWishDetail(wishKey, false, false, false);
             else if (key) openDetail(key, false);
             else {
                 activeGroup = null;
+                activeWish = null;
                 renderList({ restore: true });
                 announce('已返回旅途集列表');
             }

@@ -3,6 +3,7 @@ import type { Footprint, FootprintGroup } from "@/api/models";
 export const MAX_GROUP_MEMBERS = 500;
 export const GROUP_PINNED_ANNOTATION = "footprint.lik.cc/pinned";
 export const GROUP_SORT_ORDER_ANNOTATION = "footprint.lik.cc/sort-order";
+export const GROUP_UPDATED_AT_ANNOTATION = "footprint.lik.cc/updated-at";
 
 export interface GroupRange {
   start?: string;
@@ -241,8 +242,14 @@ export function sortGroupSummaries(summaries: FootprintGroupSummary[]): Footprin
     const hasOrderB = orderB !== null;
     if (hasOrderA !== hasOrderB) return hasOrderA ? -1 : 1;
     if (hasOrderA && hasOrderB && orderA !== orderB) return orderA - orderB;
-    const aTime = a.range.end || String(a.group.metadata.creationTimestamp || "");
-    const bTime = b.range.end || String(b.group.metadata.creationTimestamp || "");
+    const aTime =
+      a.group.metadata.annotations?.[GROUP_UPDATED_AT_ANNOTATION] ||
+      a.range.end ||
+      String(a.group.metadata.creationTimestamp || "");
+    const bTime =
+      b.group.metadata.annotations?.[GROUP_UPDATED_AT_ANNOTATION] ||
+      b.range.end ||
+      String(b.group.metadata.creationTimestamp || "");
     const byTime = bTime.localeCompare(aTime);
     if (byTime) return byTime;
     return a.group.metadata.name.localeCompare(b.group.metadata.name);
