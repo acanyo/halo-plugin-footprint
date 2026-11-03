@@ -714,6 +714,17 @@ body.footprint-groups-open #pageIntro {
     max-width: none;
     min-height: 178px;
 }
+.group-library-card--collection {
+    grid-template-columns: minmax(0, 1fr) 156px;
+}
+.group-library-card--collection > .group-card-cover {
+    grid-column: 2;
+    grid-row: 1;
+}
+.group-library-card--collection > .group-card-body {
+    grid-column: 1;
+    grid-row: 1;
+}
 .group-card-cover {
     display: grid;
     min-width: 0;
@@ -1701,6 +1712,9 @@ body.footprint-group-map-mode #map-stats {
         grid-template-columns: 112px minmax(0, 1fr);
         grid-template-rows: 140px 34px;
         min-height: 174px;
+    }
+    .group-library-card--collection {
+        grid-template-columns: minmax(0, 1fr) 112px;
     }
     .group-card-cover {
         min-height: 142px;
