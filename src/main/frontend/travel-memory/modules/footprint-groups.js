@@ -27,6 +27,7 @@ const mapButton = document.getElementById('groupGalleryBtn2d');
 
 const MEMBER_PAGE_SIZE = 24;
 const BACKGROUND_INERT_IDS = ['topNav', 'view-3d', 'view-2d', 'backGlobeBtn', 'cityFillFloatBtn'];
+const BACKGROUND_CLICK_SLOP = 6;
 
 let deps = null;
 let groups = [];
@@ -48,6 +49,7 @@ let mapFocusTimer = 0;
 let deepLinkError = '';
 let announceTimer = 0;
 let inertSnapshot = [];
+let backgroundPointerStart = null;
 
 function announce(message) {
     if (!liveRegion) return;
@@ -81,6 +83,12 @@ function focusableElements(root) {
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
         'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     )].filter(element => !element.hidden && element.getClientRects().length > 0);
+}
+
+function hasTextSelection() {
+    const selection = window.getSelection();
+    return !!selection && selection.rangeCount > 0 &&
+        !selection.isCollapsed && selection.toString().trim().length > 0;
 }
 
 function escapeHtml(value) {
@@ -1090,8 +1098,26 @@ export function setupFootprintGroups(d) {
     mapDockNext?.addEventListener('click', () => stepMapMember(1));
     mapDockExit?.addEventListener('click', exitGroupMap);
     if (view) {
+        view.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || event.target !== view) return;
+            backgroundPointerStart = {
+                pointerId: event.pointerId,
+                x: event.clientX,
+                y: event.clientY
+            };
+        });
+        view.addEventListener('pointerup', event => {
+            const start = backgroundPointerStart;
+            backgroundPointerStart = null;
+            if (!start || start.pointerId !== event.pointerId || event.target !== view) return;
+            const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+            if (moved > BACKGROUND_CLICK_SLOP || hasTextSelection()) return;
+            closeFootprintGroups();
+        });
+        view.addEventListener('pointercancel', () => {
+            backgroundPointerStart = null;
+        });
         view.addEventListener('click', event => {
-            if (event.target === view) closeFootprintGroups();
             const memberButton = event.target.closest?.('[data-member-key]');
             if (!memberButton || !activeGroup) return;
             const index = activeGroup.members.findIndex(
