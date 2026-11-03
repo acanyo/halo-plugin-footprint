@@ -9,9 +9,10 @@ import { accentHex } from '../../shared/accent.js';
 let deps = null;
 let routeEntities = [];
 let savedCameraView = null;
-const GROUP_VIEW_PITCH = Cesium.Math.toRadians(-55);
 const GROUP_VIEW_MIN_RANGE = 160000;
 const GROUP_VIEW_MAX_RANGE = 30000000;
+const GROUP_MARKER_TOP_INSET = 34;
+const GROUP_MARKER_BOTTOM_INSET = 44;
 
 export function setupGroupRoute(d) {
     deps = d;
@@ -101,37 +102,26 @@ function groupViewportFrame() {
     };
 }
 
-function groupCameraGeometry(points, sphere, range, aim, frame) {
-    const cosPitch = Math.cos(GROUP_VIEW_PITCH);
-    const enu = Cesium.Transforms.eastNorthUpToFixedFrame(sphere.center);
+function groupCameraGeometry(points, sphere, range, northShift, frame) {
+    const centerFrame = Cesium.Transforms.eastNorthUpToFixedFrame(sphere.center);
     const destination = Cesium.Matrix4.multiplyByPoint(
-        enu,
-        new Cesium.Cartesian3(
-            0,
-            -range * cosPitch,
-            -range * Math.sin(GROUP_VIEW_PITCH)
-        ),
+        centerFrame,
+        new Cesium.Cartesian3(0, northShift, range),
         new Cesium.Cartesian3()
     );
-    let direction = Cesium.Cartesian3.normalize(
-        Cesium.Cartesian3.subtract(sphere.center, destination, new Cesium.Cartesian3()),
+    const cameraFrame = Cesium.Transforms.eastNorthUpToFixedFrame(destination);
+    const direction = Cesium.Cartesian3.normalize(
+        Cesium.Cartesian3.negate(destination, new Cesium.Cartesian3()),
         new Cesium.Cartesian3()
     );
-    const worldUp = Cesium.Cartesian3.normalize(destination, new Cesium.Cartesian3());
-    const right = Cesium.Cartesian3.normalize(
-        Cesium.Cartesian3.cross(direction, worldUp, new Cesium.Cartesian3()),
+    const right = Cesium.Matrix4.multiplyByPointAsVector(
+        cameraFrame,
+        Cesium.Cartesian3.UNIT_X,
         new Cesium.Cartesian3()
     );
-    if (aim) {
-        const rotation = Cesium.Quaternion.fromAxisAngle(right, aim, new Cesium.Quaternion());
-        const matrix = Cesium.Matrix3.fromQuaternion(rotation, new Cesium.Matrix3());
-        direction = Cesium.Cartesian3.normalize(
-            Cesium.Matrix3.multiplyByVector(matrix, direction, new Cesium.Cartesian3()),
-            new Cesium.Cartesian3()
-        );
-    }
-    const up = Cesium.Cartesian3.normalize(
-        Cesium.Cartesian3.cross(right, direction, new Cesium.Cartesian3()),
+    const up = Cesium.Matrix4.multiplyByPointAsVector(
+        cameraFrame,
+        Cesium.Cartesian3.UNIT_Y,
         new Cesium.Cartesian3()
     );
     const tanHalfY = Math.tan(frame.verticalFov / 2);
@@ -148,10 +138,11 @@ function groupCameraGeometry(points, sphere, range, aim, frame) {
         const ny = Cesium.Cartesian3.dot(relative, up) / depth / tanHalfY;
         const x = (0.5 + nx / 2) * frame.width;
         const y = (0.5 - ny / 2) * frame.height;
+        // 路线装框要包含地标圆点和下方名称，不能只按经纬度投影中心计算。
         minX = Math.min(minX, x);
         maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
+        minY = Math.min(minY, y - GROUP_MARKER_TOP_INSET);
+        maxY = Math.max(maxY, y + GROUP_MARKER_BOTTOM_INSET);
     }
     return { destination, direction, up, minX, maxX, minY, maxY };
 }
@@ -160,19 +151,20 @@ function fitGroupCamera(points, sphere) {
     const frame = groupViewportFrame();
     const targetCenterY = (frame.top + frame.bottom) / 2;
     const fitAtRange = (range) => {
-        let lowAim = -frame.verticalFov;
-        let highAim = frame.verticalFov;
+        const maxNorthShift = range * Math.tan(frame.verticalFov / 2) * 1.5;
+        let lowShift = -maxNorthShift;
+        let highShift = maxNorthShift;
         let geometry = null;
         for (let i = 0; i < 26; i += 1) {
-            const aim = (lowAim + highAim) / 2;
-            geometry = groupCameraGeometry(points, sphere, range, aim, frame);
+            const northShift = (lowShift + highShift) / 2;
+            geometry = groupCameraGeometry(points, sphere, range, northShift, frame);
             if (!geometry) {
-                lowAim = aim;
+                lowShift = northShift;
                 continue;
             }
             const centerY = (geometry.minY + geometry.maxY) / 2;
-            if (centerY > targetCenterY) highAim = aim;
-            else lowAim = aim;
+            if (centerY > targetCenterY) highShift = northShift;
+            else lowShift = northShift;
         }
         return geometry;
     };

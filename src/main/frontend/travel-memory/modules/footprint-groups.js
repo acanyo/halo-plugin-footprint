@@ -445,6 +445,10 @@ function renderList(options = {}) {
                         <option value="recent"${listSort === 'recent' ? ' selected' : ''}>最近更新</option>
                         <option value="title"${listSort === 'title' ? ' selected' : ''}>名称</option>
                     </select>
+                    <svg class="group-library-sort-chevron" viewBox="0 0 12 12"
+                        aria-hidden="true">
+                        <path d="m3 4.5 3 3 3-3"></path>
+                    </svg>
                 </label>
                 <label class="group-library-search">
                     <span class="sr-only">搜索旅途集</span>
@@ -714,7 +718,6 @@ function tripDetailHeroHtml(group) {
                         ? `<img src="${escapeHtml(group.cover)}" alt="" loading="lazy" style="--group-cover-focus: ${escapeHtml(group.coverFocus)}">`
                         : `<span aria-hidden="true">${escapeHtml(groupInitial(group, group.members[0]))}</span>`}
                 </div>
-                <span class="group-trip-detail-date">${escapeHtml(cardRangeText(group))}</span>
             </div>
             <div class="group-detail-heading group-trip-detail-copy">
                 <div class="group-detail-kicker">

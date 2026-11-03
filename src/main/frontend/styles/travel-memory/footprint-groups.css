@@ -114,11 +114,30 @@ body.footprint-groups-open #pageIntro {
     min-width: 0;
 }
 .group-library-sort {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
     flex: none;
 }
+.group-library-sort-chevron {
+    position: absolute;
+    top: calc(50% + 0.5px);
+    right: 6px;
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: var(--fp-ink-soft);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
 .group-library-sort select {
+    appearance: none;
+    -webkit-appearance: none;
     height: 32px;
-    padding: 0 28px 0 10px;
+    padding: 0 30px 0 10px;
     border: 1px solid var(--fp-rule);
     border-radius: var(--fp-radius-control);
     outline: none;
@@ -126,6 +145,7 @@ body.footprint-groups-open #pageIntro {
     color: var(--fp-ink);
     font: inherit;
     font-size: var(--fp-size-sm);
+    cursor: pointer;
 }
 .group-library-sort select:focus-visible {
     border-color: var(--fp-accent);
@@ -899,12 +919,6 @@ body.footprint-groups-open #pageIntro {
     flex: 1;
     border-radius: var(--fp-radius-panel);
     box-shadow: none;
-}
-.group-trip-detail-date {
-    padding: 8px 6px 1px;
-    color: var(--fp-ink-soft);
-    font-size: var(--fp-size-sm);
-    font-variant-numeric: tabular-nums;
 }
 .group-trip-detail-copy,
 .group-collection-detail-copy {
