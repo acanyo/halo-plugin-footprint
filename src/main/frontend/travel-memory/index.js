@@ -27,7 +27,8 @@ import {
     initViewMode,
     restoreSavedViewMode,
     forceGlobeForTickets,
-    isAmapMode
+    isAmapMode,
+    toggleViewMode
 } from './modules/view-mode.js';
 import {
     setupCityFill,
@@ -584,6 +585,8 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
             const entityIndex = FOOTPRINTS.indexOf(member);
             setMarkerFocus(entityIndex >= 0 ? markerEntityList()[entityIndex] : null);
         },
+        toggleViewMode,
+        isAmapMode,
         activateGroupMember: (group, index) => {
             const member = group && group.members[index];
             if (!member) return;
@@ -611,6 +614,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
         },
         setWishLayerVisible: (visible, list) => {
             if (!visible) {
+                hideMarkerCard();
                 if (isAmapMode()) {
                     window.Footprint2D?.clearWishLayer?.();
                     window.Footprint2D?.setFootprintEmphasis?.([]);
@@ -656,6 +660,7 @@ setInsightDeps({ footprints: () => FOOTPRINTS, cityList: () => cityListSnapshot(
             showWishOnMap(wish, reduceMotion ? 0 : 0.9);
         },
         clearWishOnMap: () => {
+            hideMarkerCard();
             if (isAmapMode()) {
                 window.Footprint2D?.clearWishLayer?.();
                 window.Footprint2D?.setFootprintEmphasis?.([]);

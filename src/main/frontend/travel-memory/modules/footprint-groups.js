@@ -6,7 +6,8 @@
 
 import {
     groupDistanceText,
-    resolveFootprintGroups
+    resolveFootprintGroups,
+    wishStatusRank
 } from './footprint-group-model.js';
 import { formatLatitude, formatLongitude } from './survey-format.js';
 
@@ -22,6 +23,7 @@ const mapDockMeter = document.getElementById('footprintGroupMapMeter');
 const mapDockPrev = document.getElementById('footprintGroupMapPrev');
 const mapDockNext = document.getElementById('footprintGroupMapNext');
 const mapDockExit = document.getElementById('footprintGroupMapExit');
+const mapSceneModeButton = document.getElementById('footprintGroupMapSceneMode');
 const liveRegion = document.getElementById('footprintGroupsLive');
 const globeButton = document.getElementById('footprintGroupsBtn');
 const mapButton = document.getElementById('groupGalleryBtn2d');
@@ -318,6 +320,9 @@ function filteredWishes() {
         wishMatchesSearch(wish, keyword)
     );
     return filtered.slice().sort((a, b) => {
+        const statusA = wishStatusRank(a.spec.status);
+        const statusB = wishStatusRank(b.spec.status);
+        if (statusA !== statusB) return statusA - statusB;
         if (!!a.spec.pinned !== !!b.spec.pinned) return a.spec.pinned ? -1 : 1;
         if (listSort === 'title') {
             return a.spec.title.localeCompare(b.spec.title, 'zh-Hans-CN');
@@ -886,6 +891,15 @@ function updateMapDock() {
     }
 }
 
+function syncWishSceneModeControl() {
+    if (!mapSceneModeButton) return;
+    const visible = wishLayerMapMode || !!(activeWish && activeFromMap);
+    mapSceneModeButton.hidden = !visible;
+    const to3D = !!deps.isAmapMode?.();
+    mapSceneModeButton.textContent = to3D ? '3D 地球' : '2D 地图';
+    mapSceneModeButton.title = to3D ? '切换到 3D 地球' : '切换到 2D 平面地图';
+}
+
 function focusMapMember(index) {
     if (!activeGroup || index < 0 || index >= activeGroup.members.length) return;
     const group = activeGroup;
@@ -1310,6 +1324,7 @@ function applyMapView(group) {
     mapMemberIndex = 0;
     mapMemberActivated = false;
     updateMapDock();
+    syncWishSceneModeControl();
     if (mapDock) mapDock.hidden = false;
     // 先让信息坞进入布局，2D setFitView 才能量到真实高度并为底部留白。
     deps.applyGroupOnMap(group);
@@ -1340,6 +1355,7 @@ function applyWishMapView(wish) {
     if (mapDockExit) mapDockExit.textContent = '退出查看';
     if (returnButton) returnButton.textContent = '返回未来足迹';
     if (mapDock) mapDock.hidden = false;
+    syncWishSceneModeControl();
     deps.showWishOnMap?.(wish);
     announce(`正在地图中查看未来足迹：${wish.spec.title}`);
 }
@@ -1368,6 +1384,7 @@ function applyWishLayerMapMode() {
     if (mapDockExit) mapDockExit.textContent = '退出地图显示';
     if (returnButton) returnButton.textContent = '返回未来足迹';
     if (mapDock) mapDock.hidden = false;
+    syncWishSceneModeControl();
     deps.setWishLayerVisible?.(true, wishes);
     announce(`已进入未来足迹地图显示，共 ${visible.length} 个地点`);
 }
@@ -1379,6 +1396,7 @@ function exitWishLayerMap() {
     deps.resumeAutoRotate('wish-layer-map');
     document.body.classList.remove('footprint-group-map-mode');
     if (mapDock) mapDock.hidden = true;
+    syncWishSceneModeControl();
     globeButton?.setAttribute('aria-pressed', 'false');
     mapButton?.setAttribute('aria-pressed', 'false');
     if (mapDockMeter) mapDockMeter.hidden = false;
@@ -1402,6 +1420,7 @@ function returnToList() {
     relatedWishReturn = null;
     activeFromMap = false;
     detailScrollTop = 0;
+    syncWishSceneModeControl();
     setUrl(false, true);
     renderList({ restore: true });
     announce('已返回旅途集列表');
@@ -1415,6 +1434,7 @@ function clearMapGroup() {
     mapMemberActivated = false;
     document.body.classList.remove('footprint-group-map-mode');
     if (mapDock) mapDock.hidden = true;
+    syncWishSceneModeControl();
     globeButton?.setAttribute('aria-pressed', 'false');
     mapButton?.setAttribute('aria-pressed', 'false');
     if (!view.classList.contains('show')) activeGroup = null;
@@ -1427,6 +1447,7 @@ function clearWishMap() {
     activeFromMap = false;
     document.body.classList.remove('footprint-group-map-mode');
     if (mapDock) mapDock.hidden = true;
+    syncWishSceneModeControl();
     globeButton?.setAttribute('aria-pressed', 'false');
     mapButton?.setAttribute('aria-pressed', 'false');
     if (mapDockMeter) mapDockMeter.hidden = false;
@@ -1647,6 +1668,7 @@ export function setupFootprintGroups(d) {
     }
     mapDockPrev?.addEventListener('click', () => stepMapMember(-1));
     mapDockNext?.addEventListener('click', () => stepMapMember(1));
+    mapSceneModeButton?.addEventListener('click', () => deps.toggleViewMode?.());
     mapDockExit?.addEventListener('click', () => {
         if (wishLayerMapMode) exitWishLayerMap();
         else if (activeWish) exitWishMap();
@@ -1721,6 +1743,7 @@ export function initFootprintGroups() {
         }
     });
     document.addEventListener('footprint:view-mode-changed', () => {
+        syncWishSceneModeControl();
         if (activeWish && activeFromMap && !view.classList.contains('show')) {
             deps.showWishOnMap?.(activeWish);
         } else if (activeGroup && activeFromMap && !view.classList.contains('show')) {

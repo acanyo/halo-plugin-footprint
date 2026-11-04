@@ -220,6 +220,11 @@ function finishSwitchTo3D(persist = true) {
     morphing = false;
     pendingMode = null;
     document.dispatchEvent(new CustomEvent('footprint:view-mode-changed', { detail: { mode: '3d' } }));
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            document.body.classList.remove('footprint-view-switch-pending');
+        });
+    });
 }
 
 // 切 2D：先让地球“展开”成平面，动画结束后再显示高德页面
@@ -240,6 +245,7 @@ function switchTo2D() {
 // 切 3D：先显示仍处于平面状态的地球，再“合并”回球体
 function switchTo3D() {
     if (!amapMode || morphing) return;
+    document.body.classList.add('footprint-view-switch-pending');
     if (window.Footprint2D && typeof window.Footprint2D.hide === 'function') {
         window.Footprint2D.hide();
     }
@@ -263,6 +269,11 @@ function switchTo3D() {
     pendingMode = '3d';
     armMorphTimeout();
     deps.viewer().scene.morphTo3D(MORPH_DURATION);
+}
+
+export function toggleViewMode() {
+    if (amapMode) switchTo3D();
+    else switchTo2D();
 }
 
 // 票根页只属于 3D 地球（挂载在 #view-3d 里，2D 下整个容器是隐藏的），
@@ -371,19 +382,13 @@ export function initViewMode() {
         }
     });
 
-    sceneModeBtn.addEventListener('click', () => {
-        if (amapMode) {
-            switchTo3D();
-        } else {
-            switchTo2D();
-        }
-    });
+    sceneModeBtn.addEventListener('click', toggleViewMode);
 
     // 2D 视图：顶部导航栏隐藏，由高德页底部控制栏的“3D 地球”按钮切回 3D
     const back3dBtn = document.getElementById('back3dBtn');
     if (back3dBtn) {
         back3dBtn.addEventListener('click', () => {
-            if (amapMode) switchTo3D();
+            toggleViewMode();
         });
     }
 

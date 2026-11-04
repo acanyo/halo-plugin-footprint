@@ -1,8 +1,19 @@
 /** 未来足迹在 2D 高德地图中的独立图层。 */
 
 import { state } from './state.js';
+import { isMobile } from './env.js';
+import { createWishInfoWindow } from './marker-content.js';
 
 let wishMarkers = [];
+let wishInfoWindow = null;
+let wishMap = null;
+let wishMapClickHandler = null;
+
+const STATUS_TEXT = {
+    wish: '心愿',
+    planning: '计划中',
+    booked: '已订票'
+};
 
 function validCoordinate(wish) {
     const lng = Number(wish?.spec?.longitude);
@@ -19,17 +30,59 @@ function markerContent(wish) {
     const dot = document.createElement('i');
     dot.setAttribute('aria-hidden', 'true');
     const label = document.createElement('span');
-    label.textContent = wish.spec.title || '未来足迹';
+    const status = STATUS_TEXT[wish.spec.status] || '心愿';
+    label.textContent = `${wish.spec.title || '未来足迹'} · ${status}`;
     root.append(dot, label);
     return root;
 }
 
 export function clearFootprintWishLayer() {
     const map = state.activeMapInstance;
+    wishInfoWindow?.close?.();
+    wishInfoWindow = null;
+    if (wishMap && wishMapClickHandler && typeof wishMap.off === 'function') {
+        wishMap.off('click', wishMapClickHandler);
+    }
+    wishMap = null;
+    wishMapClickHandler = null;
     if (map && typeof map.remove === 'function') {
         wishMarkers.forEach(marker => map.remove(marker));
     }
     wishMarkers = [];
+}
+
+function openWishInfoWindow(wish, position) {
+    const map = state.activeMapInstance;
+    if (!map || typeof AMap === 'undefined') return;
+    wishInfoWindow?.close?.();
+    wishInfoWindow = new AMap.InfoWindow({
+        isCustom: true,
+        autoMove: false,
+        anchor: isMobile ? 'bottom-center' : 'middle-left',
+        offset: isMobile ? new AMap.Pixel(0, -96) : new AMap.Pixel(40, -40)
+    });
+    wishInfoWindow.setContent(createWishInfoWindow(wish));
+    wishInfoWindow.open(map, position);
+    requestAnimationFrame(() => {
+        document.querySelector('.info-window--wish')?.addEventListener(
+            'click',
+            event => event.stopPropagation()
+        );
+    });
+}
+
+function createWishMarker(wish) {
+    const position = [Number(wish.spec.longitude), Number(wish.spec.latitude)];
+    const marker = new AMap.Marker({
+        position,
+        content: markerContent(wish),
+        // 未来足迹直接落在坐标点，不再套用普通足迹的上移偏置。
+        anchor: 'top-center',
+        offset: new AMap.Pixel(0, 0),
+        zIndex: 120
+    });
+    marker.on('click', () => openWishInfoWindow(wish, position));
+    return marker;
 }
 
 export function showFootprintWishLayer(wishes) {
@@ -39,13 +92,14 @@ export function showFootprintWishLayer(wishes) {
     const visible = (Array.isArray(wishes) ? wishes : []).filter(wish =>
         wish && wish.spec && wish.spec.status !== 'visited' && validCoordinate(wish)
     );
-    wishMarkers = visible.map(wish => new AMap.Marker({
-        position: [Number(wish.spec.longitude), Number(wish.spec.latitude)],
-        content: markerContent(wish),
-        anchor: 'bottom-center',
-        zIndex: 120
-    }));
+    wishMarkers = visible.map(createWishMarker);
     wishMarkers.forEach(marker => map.add(marker));
+    wishMap = map;
+    wishMapClickHandler = () => {
+        wishInfoWindow?.close?.();
+        wishInfoWindow = null;
+    };
+    map.on('click', wishMapClickHandler);
     return wishMarkers.length;
 }
 
@@ -53,17 +107,16 @@ export function showFootprintWishOnMap(wish) {
     clearFootprintWishLayer();
     const map = state.activeMapInstance;
     if (!map || !wish || !validCoordinate(wish)) return false;
-    const marker = new AMap.Marker({
-        position: [Number(wish.spec.longitude), Number(wish.spec.latitude)],
-        content: markerContent(wish),
-        anchor: 'bottom-center',
-        zIndex: 120
-    });
+    const position = [Number(wish.spec.longitude), Number(wish.spec.latitude)];
+    const marker = createWishMarker(wish);
     map.add(marker);
     wishMarkers = [marker];
-    map.setZoomAndCenter(10, [
-        Number(wish.spec.longitude),
-        Number(wish.spec.latitude)
-    ], false, 500);
+    wishMap = map;
+    wishMapClickHandler = () => {
+        wishInfoWindow?.close?.();
+        wishInfoWindow = null;
+    };
+    map.on('click', wishMapClickHandler);
+    map.setZoomAndCenter(10, position, false, 500);
     return true;
 }

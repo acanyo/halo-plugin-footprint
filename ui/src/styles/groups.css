@@ -1085,13 +1085,16 @@
 /* 未来足迹：纯文字信息卡，不设置封面图片。 */
 .fp-wish-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
   padding: 12px;
 }
 .fp-wish-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-width: 0;
-  padding: 15px;
+  padding: 13px;
   border: 1px solid var(--fp-border);
   border-radius: 14px;
   background: var(--fp-bg);
@@ -1106,6 +1109,13 @@
   background: var(--fp-sidebar);
   box-shadow: 0 0 0 2px var(--fp-subtle);
 }
+.fp-wish-card.is-dragging {
+  opacity: 0.58;
+}
+.fp-wish-card.is-drag-over {
+  border-color: var(--fp-accent);
+  box-shadow: 0 0 0 2px var(--fp-accent-bg);
+}
 .fp-wish-card-head,
 .fp-wish-card-head > div,
 .fp-wish-order-actions,
@@ -1119,9 +1129,9 @@
   justify-content: space-between;
 }
 .fp-wish-card h3 {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   color: var(--fp-text);
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.35;
 }
 .fp-wish-status {
@@ -1152,10 +1162,10 @@
 .fp-wish-description {
   display: -webkit-box;
   overflow: hidden;
-  margin: 9px 0 0;
+  margin: 8px 0 0;
   color: var(--fp-muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -1168,10 +1178,15 @@
   font-size: 12px;
 }
 .fp-wish-card-actions {
+  flex-wrap: wrap;
   justify-content: space-between;
-  margin-top: 13px;
+  margin-top: auto;
   padding-top: 11px;
   border-top: 1px solid var(--fp-border);
+}
+.fp-wish-card-actions > div {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .fp-wish-card-actions .fp-button {
   min-height: 28px;
@@ -1184,6 +1199,21 @@
   padding: 0;
   border: 0;
   background: transparent;
+}
+.fp-wish-order-actions .fp-wish-drag-handle {
+  cursor: grab;
+  color: var(--fp-faint);
+}
+.fp-wish-order-actions .fp-wish-drag-handle:active {
+  cursor: grabbing;
+}
+.fp-wish-order-actions .fp-wish-drag-handle:hover {
+  background: var(--fp-subtle);
+  color: var(--fp-text);
+}
+.fp-wish-order-actions .fp-wish-drag-handle:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 .fp-wish-time-preview {
   margin: 0;

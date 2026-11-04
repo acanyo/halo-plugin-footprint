@@ -1457,7 +1457,8 @@ body.footprint-groups-open #pageIntro {
     padding: 14px 16px;
     box-sizing: border-box;
     border-radius: var(--fp-radius-panel);
-    background: var(--fp-glass-strong);
+    border: 1px solid var(--fp-rule-strong);
+    background: var(--fp-paper-raised);
     -webkit-backdrop-filter: blur(var(--fp-blur));
     backdrop-filter: blur(var(--fp-blur));
     box-shadow: var(--fp-shadow);
@@ -1465,6 +1466,14 @@ body.footprint-groups-open #pageIntro {
     animation: groupMapDockIn var(--fp-dur) var(--fp-ease) both;
 }
 .group-map-dock[hidden] {
+    display: none;
+}
+body.footprint-view-switch-pending #footprintGroupMapDock {
+    animation: none;
+    opacity: 0;
+    visibility: hidden;
+}
+body.footprint-view-switch-pending #map-controls {
     display: none;
 }
 /* 从地图详情进入票根册或图片墙时，信息坞要让位给全屏内容；
@@ -1492,8 +1501,8 @@ body.city-view-open #footprintGroupMapDock {
     flex: none;
     padding: 2px 8px;
     border-radius: var(--fp-radius-control);
-    background: var(--fp-accent-soft);
-    color: var(--fp-accent);
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
     font-size: 11px;
     font-weight: 600;
 }
@@ -1523,8 +1532,9 @@ body.city-view-open #footprintGroupMapDock {
 }
 .group-map-progress-row span {
     flex: none;
-    color: var(--fp-accent);
+    color: var(--fp-ink-soft);
     font-size: var(--fp-size-xs);
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
 .group-map-meter {
@@ -1790,6 +1800,7 @@ body.footprint-group-map-mode #map-stats {
     font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
+    cursor: pointer;
 }
 .fp-wish-map-marker i {
     width: 15px;
@@ -1798,6 +1809,7 @@ body.footprint-group-map-mode #map-stats {
     border-radius: 50%;
     background: var(--fp-accent);
     box-shadow: 0 0 0 2px var(--fp-accent-soft);
+    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
 }
 .fp-wish-map-marker[data-status="booked"] i {
     border-radius: 4px;
@@ -1807,6 +1819,15 @@ body.footprint-group-map-mode #map-stats {
     border-radius: var(--fp-radius-control);
     background: var(--fp-glass-strong);
     box-shadow: var(--fp-shadow);
+    transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease);
+}
+.fp-wish-map-marker:hover i {
+    transform: scale(1.28);
+    box-shadow: 0 0 0 5px var(--fp-accent-soft), var(--fp-shadow-lift);
+}
+.fp-wish-map-marker:hover span {
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
 }
 
 @media (max-width: 1100px) {

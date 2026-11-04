@@ -7,7 +7,8 @@ import {
     resolveFootprintGroup,
     resolveFootprintGroups,
     sortGroupMembers,
-    uniqueGroupMemberNames
+    uniqueGroupMemberNames,
+    wishStatusRank
 } from '../../../main/frontend/travel-memory/modules/footprint-group-model.js';
 
 const bj = (over = {}) => ({
@@ -61,6 +62,15 @@ test('成员去重、空值清理与完整时间排序', () => {
         bj({ key: 'early', createTime: '2024-10-01T08:30:00Z' })
     ]);
     assert.deepEqual(members.map(item => item.key), ['early', 'late']);
+});
+
+test('未来足迹状态排序为已订票、计划中、心愿、已实现', () => {
+    assert.deepEqual(
+        ['visited', 'wish', 'booked', 'planning'].sort(
+            (a, b) => wishStatusRank(a) - wishStatusRank(b)
+        ),
+        ['booked', 'planning', 'wish', 'visited']
+    );
 });
 
 test('日期范围使用访问时间而非录入顺序', () => {

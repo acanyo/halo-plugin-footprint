@@ -12,6 +12,17 @@ const GROUP_PINNED_ANNOTATION = 'footprint.lik.cc/pinned';
 const GROUP_SORT_ORDER_ANNOTATION = 'footprint.lik.cc/sort-order';
 const GROUP_UPDATED_AT_ANNOTATION = 'footprint.lik.cc/updated-at';
 
+const WISH_STATUS_PRIORITY = {
+    booked: 0,
+    planning: 1,
+    wish: 2,
+    visited: 3
+};
+
+export function wishStatusRank(status) {
+    return WISH_STATUS_PRIORITY[status] ?? WISH_STATUS_PRIORITY.wish;
+}
+
 export function uniqueGroupMemberNames(names) {
     if (!Array.isArray(names)) return [];
     return [...new Set(names.map(name => String(name || '').trim()).filter(Boolean))];

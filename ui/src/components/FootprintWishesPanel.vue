@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { Dialog, IconRefreshLine, Toast, VButton, VLoading } from "@halo-dev/components";
 import RiArrowDownLine from "~icons/ri/arrow-down-line";
 import RiArrowUpLine from "~icons/ri/arrow-up-line";
 import RiDeleteBinLine from "~icons/ri/delete-bin-line";
+import RiDragMoveLine from "~icons/ri/drag-move-line";
 import RiExternalLinkLine from "~icons/ri/external-link-line";
 import RiMapPinLine from "~icons/ri/map-pin-line";
 import RiPencilLine from "~icons/ri/pencil-line";
@@ -24,6 +25,12 @@ const STATUS_LABELS: Record<FootprintWishStatus, string> = {
   booked: "已订票",
   visited: "已实现",
 };
+const STATUS_PRIORITY: Record<FootprintWishStatus, number> = {
+  booked: 0,
+  planning: 1,
+  wish: 2,
+  visited: 3,
+};
 const UPDATED_AT_ANNOTATION = "footprint.lik.cc/updated-at";
 
 const wishes = ref<FootprintWish[]>([]);
@@ -38,6 +45,8 @@ const editorVisible = ref(false);
 const editingWish = ref<FootprintWish>();
 const highlightedKey = ref("");
 const reordering = ref(false);
+const draggedName = ref("");
+const dragOverName = ref("");
 let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 let editorStartScroll = 0;
 
@@ -50,6 +59,9 @@ function pluralUpdateTime(wish: FootprintWish) {
 
 function sortedWishes(items: FootprintWish[]) {
   return items.slice().sort((a, b) => {
+    const statusA = STATUS_PRIORITY[a.spec.status] ?? STATUS_PRIORITY.wish;
+    const statusB = STATUS_PRIORITY[b.spec.status] ?? STATUS_PRIORITY.wish;
+    if (statusA !== statusB) return statusA - statusB;
     if (!!a.spec.pinned !== !!b.spec.pinned) return a.spec.pinned ? -1 : 1;
     const orderA = a.spec.sortOrder == null ? Number.MAX_SAFE_INTEGER : a.spec.sortOrder;
     const orderB = b.spec.sortOrder == null ? Number.MAX_SAFE_INTEGER : b.spec.sortOrder;
@@ -171,6 +183,7 @@ async function moveWish(wish: FootprintWish, delta: number) {
   const index = ordered.findIndex((item) => item.metadata.name === wish.metadata.name);
   const target = index + delta;
   if (index < 0 || target < 0 || target >= ordered.length) return;
+  if (ordered[index].spec.status !== ordered[target].spec.status) return;
   if (!!ordered[index].spec.pinned !== !!ordered[target].spec.pinned) return;
   reordering.value = true;
   try {
@@ -187,6 +200,69 @@ async function moveWish(wish: FootprintWish, delta: number) {
   } finally {
     reordering.value = false;
   }
+}
+
+function sameWishOrderGroup(a: FootprintWish, b: FootprintWish) {
+  return a.spec.status === b.spec.status && !!a.spec.pinned === !!b.spec.pinned;
+}
+
+function startWishDrag(event: DragEvent, wish: FootprintWish) {
+  if (reordering.value) {
+    event.preventDefault();
+    return;
+  }
+  draggedName.value = wish.metadata.name;
+  dragOverName.value = "";
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", wish.metadata.name);
+  }
+}
+
+function dragOverWish(event: DragEvent, wish: FootprintWish) {
+  if (!draggedName.value || draggedName.value === wish.metadata.name) return;
+  const source = wishes.value.find((item) => item.metadata.name === draggedName.value);
+  if (!source || !sameWishOrderGroup(source, wish)) {
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "none";
+    return;
+  }
+  event.preventDefault();
+  dragOverName.value = wish.metadata.name;
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+}
+
+async function dropWish(event: DragEvent, target: FootprintWish) {
+  event.preventDefault();
+  const sourceName = draggedName.value || event.dataTransfer?.getData("text/plain") || "";
+  dragOverName.value = "";
+  draggedName.value = "";
+  if (!sourceName || sourceName === target.metadata.name || reordering.value) return;
+  const ordered = sortedWishes(wishes.value);
+  const sourceIndex = ordered.findIndex((item) => item.metadata.name === sourceName);
+  const targetIndex = ordered.findIndex((item) => item.metadata.name === target.metadata.name);
+  if (sourceIndex < 0 || targetIndex < 0) return;
+  if (!sameWishOrderGroup(ordered[sourceIndex], ordered[targetIndex])) return;
+  const next = ordered.slice();
+  const [moved] = next.splice(sourceIndex, 1);
+  next.splice(targetIndex, 0, moved);
+  reordering.value = true;
+  try {
+    await Promise.all(
+      next.map((item, order) => updateWish(item, { sortOrder: order + 1 })),
+    );
+    Toast.success("顺序已更新");
+    await load(true);
+  } catch (error) {
+    console.error("拖拽更新未来足迹顺序失败", error);
+    Toast.error("更新顺序失败");
+  } finally {
+    reordering.value = false;
+  }
+}
+
+function endWishDrag() {
+  draggedName.value = "";
+  dragOverName.value = "";
 }
 
 function confirmDelete(wish: FootprintWish) {
@@ -220,6 +296,9 @@ async function handleSaved(saved: FootprintWish) {
 }
 
 onMounted(() => load());
+onBeforeUnmount(() => {
+  clearTimeout(highlightTimer);
+});
 
 defineExpose({
   openCreate,
@@ -299,8 +378,14 @@ defineExpose({
             v-for="wish in filteredWishes"
             :key="wish.metadata.name"
             class="fp-wish-card"
-            :class="{ 'is-highlighted': highlightedKey === wish.metadata.name }"
+            :class="{
+              'is-highlighted': highlightedKey === wish.metadata.name,
+              'is-dragging': draggedName === wish.metadata.name,
+              'is-drag-over': dragOverName === wish.metadata.name,
+            }"
             :data-wish-key="wish.metadata.name"
+            @dragover="dragOverWish($event, wish)"
+            @drop="dropWish($event, wish)"
           >
             <header class="fp-wish-card-head">
               <div>
@@ -313,6 +398,20 @@ defineExpose({
                 </span>
               </div>
               <div class="fp-wish-order-actions">
+                <button
+                  type="button"
+                  class="fp-icon-button fp-wish-drag-handle"
+                  draggable="true"
+                  title="拖动排序，聚焦后可用上下方向键"
+                  :aria-label="`拖动排序 ${wish.spec.title}`"
+                  :disabled="reordering"
+                  @dragstart="startWishDrag($event, wish)"
+                  @dragend="endWishDrag"
+                  @keydown.up.prevent.stop="moveWish(wish, -1)"
+                  @keydown.down.prevent.stop="moveWish(wish, 1)"
+                >
+                  <RiDragMoveLine width="15" height="15" />
+                </button>
                 <button
                   type="button"
                   class="fp-icon-button"

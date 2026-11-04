@@ -10,6 +10,8 @@ import { accentHex } from '../../shared/accent.js';
 let deps = null;
 let wishEntities = [];
 let activeWishes = [];
+let selectedWishEntity = null;
+let hoveredWishEntity = null;
 
 const STATUS_TEXT = {
     wish: '心愿',
@@ -73,6 +75,8 @@ function addWishEntity(wish) {
 
 export function clearWishLayer() {
     if (!deps) return;
+    selectedWishEntity = null;
+    hoveredWishEntity = null;
     wishEntities.forEach(entity => deps.viewer().entities.remove(entity));
     wishEntities = [];
     activeWishes = [];
@@ -110,4 +114,91 @@ export function showWishOnMap(wish, duration = 1) {
 
 export function currentWishLayerItems() {
     return activeWishes.slice();
+}
+
+export function findWishEntity(entityOrId) {
+    return wishEntities.find(entity =>
+        entity === entityOrId ||
+        (entityOrId && entity.id === entityOrId.id) ||
+        (entityOrId && entity.id === entityOrId)
+    ) || null;
+}
+
+export function wishEntityAtScreen(screenPos) {
+    if (!deps || !screenPos) return null;
+    const viewer = deps.viewer();
+    const scene = viewer.scene;
+    const now = Cesium.JulianDate.now();
+    let nearest = null;
+    let nearestDistance = Infinity;
+    for (const entity of wishEntities) {
+        if (!entity || entity.show === false || !entity.point || entity.point.show === false) {
+            continue;
+        }
+        const world = entity.position && entity.position.getValue(now);
+        if (!world) continue;
+        const normal = Cesium.Cartesian3.normalize(world, new Cesium.Cartesian3());
+        const toCamera = Cesium.Cartesian3.subtract(
+            viewer.camera.positionWC,
+            world,
+            new Cesium.Cartesian3()
+        );
+        if (Cesium.Cartesian3.dot(normal, toCamera) < 0) continue;
+        const projected = Cesium.SceneTransforms.worldToWindowCoordinates(scene, world);
+        if (!projected) continue;
+        const dx = screenPos.x - projected.x;
+        const dy = screenPos.y - projected.y;
+        const distance = dx * dx + dy * dy;
+        const hitRadius = entity === selectedWishEntity ? 18 : 13;
+        if (distance <= hitRadius * hitRadius && distance < nearestDistance) {
+            nearest = entity;
+            nearestDistance = distance;
+        }
+    }
+    return nearest;
+}
+
+export function wishForEntity(entityOrId) {
+    const entity = findWishEntity(entityOrId);
+    if (!entity) return null;
+    return activeWishes.find(
+        wish => `wish:${wish.metadata?.name}` === entity.id
+    ) || null;
+}
+
+function refreshWishEntityStyle(entity) {
+    if (!entity?.point) return;
+    entity.point.pixelSize = entity === selectedWishEntity
+        ? 19
+        : entity === hoveredWishEntity
+            ? 17
+            : 13;
+    entity.point.outlineWidth = entity === selectedWishEntity ? 4 : 3;
+}
+
+export function setWishEntitySelected(entity) {
+    const previous = selectedWishEntity;
+    selectedWishEntity = entity || null;
+    refreshWishEntityStyle(previous);
+    refreshWishEntityStyle(selectedWishEntity);
+}
+
+export function setWishEntityHovered(entity) {
+    if (hoveredWishEntity === entity) return;
+    const previous = hoveredWishEntity;
+    hoveredWishEntity = entity || null;
+    refreshWishEntityStyle(previous);
+    refreshWishEntityStyle(hoveredWishEntity);
+}
+
+export function clearWishEntitySelection() {
+    const previous = selectedWishEntity;
+    selectedWishEntity = null;
+    refreshWishEntityStyle(previous);
+}
+
+export function clearWishEntityHover() {
+    const previous = hoveredWishEntity;
+    hoveredWishEntity = null;
+    refreshWishEntityStyle(previous);
 }
