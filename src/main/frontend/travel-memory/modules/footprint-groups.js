@@ -375,11 +375,16 @@ function allListEntries() {
                 title: wish.spec.title,
                 pinned: wish.spec.pinned === true,
                 sortOrder: wish.spec.sortOrder,
+                statusRank: wishStatusRank(wish.spec.status),
                 updatedAt: wishUpdatedAt(wish),
                 data: wish
             }))
     ];
     return entries.sort((a, b) => {
+        if (a.kind !== b.kind) return a.kind === 'group' ? -1 : 1;
+        if (a.kind === 'wish' && a.statusRank !== b.statusRank) {
+            return a.statusRank - b.statusRank;
+        }
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         if (listSort === 'title') {
             return a.title.localeCompare(b.title, 'zh-Hans-CN');
