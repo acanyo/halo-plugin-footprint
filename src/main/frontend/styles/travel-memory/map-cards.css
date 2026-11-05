@@ -268,6 +268,23 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        .marker-card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .marker-card-tags[hidden] {
+            display: none;
+        }
+        .marker-card-tags span {
+            padding: 2px 7px;
+            border-radius: var(--fp-radius-control);
+            background: var(--fp-rule);
+            color: var(--fp-ink-soft);
+            font-size: var(--fp-size-xs);
+            line-height: 1.5;
+        }
         .marker-card-desc:empty { display: none; }
         .marker-card-actions {
             display: flex;

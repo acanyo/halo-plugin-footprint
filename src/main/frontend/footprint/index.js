@@ -21,6 +21,16 @@ import { state } from './modules/state.js';
 import { renderStats } from './modules/stats-panel.js';
 import { handleResize } from './modules/timeline-drawer.js';
 import { bindTimelinePointerTracking } from './modules/timeline-scroll.js';
+import {
+    showFootprintGroupOnMap,
+    clearFootprintGroupOnMap,
+    openFootprintIn2D
+} from './modules/footprint-groups.js';
+import {
+    showFootprintWishLayer,
+    clearFootprintWishLayer,
+    showFootprintWishOnMap
+} from './modules/wishes.js';
 
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', () => {
@@ -97,10 +107,75 @@ window.Footprint2D = {
     },
     // 切回 3D 时调用：保留地图实例，返回 2D 时直接 resize 即可
     hide() {
-        // 地图实例保留，不做销毁
+        // 地图实例保留，但图片墙/信息卡属于 2D 的临时覆盖层，离开前要收干净。
+        state.closeActiveFootprint?.();
+    },
+    showGroup(group) {
+        const apply = () => showFootprintGroupOnMap(group);
+        if (!state.footprint2dInitialized) {
+            window.Footprint2D.show(apply);
+            return;
+        }
+        apply();
+    },
+    clearGroup() {
+        clearFootprintGroupOnMap();
+    },
+    showWishLayer(wishes) {
+        return showFootprintWishLayer(wishes);
+    },
+    clearWishLayer() {
+        clearFootprintWishLayer();
+    },
+    showWish(wish) {
+        const apply = () => showFootprintWishOnMap(wish);
+        if (!state.footprint2dInitialized) {
+            window.Footprint2D.show(apply);
+            return;
+        }
+        apply();
+    },
+    setFootprintEmphasis(names) {
+        state.footprintMarkerController?.setGroupEmphasis(
+            names && names.length ? new Set(names) : null
+        );
+    },
+    focusFootprint(footprint) {
+        const map = state.activeMapInstance;
+        const marker = state.footprintMarkerController?.find(footprint);
+        if (!map || !footprint || !marker) return false;
+        state.footprintMarkerController?.setGroupEmphasis(
+            new Set([footprint.metadata?.name].filter(Boolean))
+        );
+        map.setZoomAndCenter(
+            Math.max(3, Math.min(20, Number(footprint.spec?.zoomLevel) || 12)),
+            [Number(footprint.spec?.longitude), Number(footprint.spec?.latitude)],
+            false,
+            500
+        );
+        return true;
+    },
+    resetView() {
+        document.getElementById('zoom-restore')?.click();
+    },
+    focusGroupMember(group, index) {
+        const map = state.activeMapInstance;
+        const member = group?.members?.[index];
+        if (!map || !member) return;
+        map.setZoomAndCenter(
+            Math.max(3, Math.min(18, Number(member.zoomLevel) || 12)),
+            [Number(member.lng), Number(member.lat)],
+            false,
+            500
+        );
+    },
+    openFootprint(footprint, options) {
+        return openFootprintIn2D(footprint, options);
     },
     // 主动销毁（可选）：释放地图实例
     destroy() {
+        clearFootprintGroupOnMap();
+        clearFootprintWishLayer();
         if (state.activeMapInstance && typeof state.activeMapInstance.destroy === 'function') {
             state.activeMapInstance.destroy();
         }

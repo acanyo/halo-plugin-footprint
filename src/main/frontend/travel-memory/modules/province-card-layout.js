@@ -41,6 +41,19 @@ const PROVINCE_CLUSTER_PAD = 26;        // 标记簇包围盒的外扩，卡片�
 const PROVINCE_CORE_KEEPOUT_X = 0.26;
 const PROVINCE_CORE_KEEPOUT_Y = 0.22;
 
+// 「全部城市」沿用未合并上游之前的环带定位：卡片只在四边由外向内分层，
+// 外圈占满后才向内补位；每个卡位带固定但不同的错落偏移，不排成规则网格。
+const ALL_CITY_RING_DEPTH_LIMIT = 4;
+const ALL_CITY_RING_DEPTH_GAP = 18;
+const ALL_CITY_RING_JITTER = [0, 18, 7, 29, 12, 24, 4, 34, 16, 27, 10, 31, 21];
+const ALL_CITY_RING_GAP_JITTER = [0, 22, 9, 28, 13, 24, 4, 19, 30, 11];
+const ALL_CITY_LAYOUT_FALLBACK_GAP = 4;
+const ALL_CITY_MARKER_KEEPOUT = 12;
+const ALL_CITY_SIDE_INSET_MIN = 24;
+const ALL_CITY_SIDE_INSET_RATIO = 0.025;
+const ALL_CITY_SAFE_TOP = 56;
+const ALL_CITY_SAFE_BOTTOM = 96;
+
 export function provinceSafeArea(W, H) {
     const insetX = provinceSideInset();
     return {
@@ -48,6 +61,19 @@ export function provinceSafeArea(W, H) {
         right: Math.max(insetX + 140, W - insetX),
         top: PROVINCE_SAFE_TOP,
         bottom: Math.max(PROVINCE_SAFE_TOP + 200, H - PROVINCE_SAFE_BOTTOM)
+    };
+}
+
+function allCitySafeArea(W, H) {
+    const insetX = Math.max(
+        ALL_CITY_SIDE_INSET_MIN,
+        Math.round(W * ALL_CITY_SIDE_INSET_RATIO)
+    );
+    return {
+        left: insetX,
+        right: Math.max(insetX + 140, W - insetX),
+        top: ALL_CITY_SAFE_TOP,
+        bottom: Math.max(ALL_CITY_SAFE_TOP + 200, H - ALL_CITY_SAFE_BOTTOM)
     };
 }
 
@@ -80,6 +106,231 @@ export function provinceEdgeAffinity(item, area, spanX, spanY) {
         (a.y - area.top) / spanY,
         (area.bottom - a.y) / spanY
     );
+}
+
+function allCityRingJitter(item, depth, edgeIndex, salt, values) {
+    const seed = (item.layoutIndex || 0) * 7 + depth * 5 + edgeIndex * 3 + salt;
+    return values[seed % values.length];
+}
+
+function allCitySignedDrift(item, depth, edgeIndex, salt, scale = 0.62) {
+    const value = allCityRingJitter(item, depth, edgeIndex, salt, ALL_CITY_RING_JITTER);
+    return (value % 2 === 0 ? -1 : 1) * value * scale;
+}
+
+function allCityEdgeIndex(edge) {
+    return { left: 0, right: 1, top: 2, bottom: 3 }[edge] || 0;
+}
+
+function allCityRingTrackValues(item, edge, area, placed, gap, depth, edgeIndex) {
+    const vertical = edge === 'left' || edge === 'right';
+    const start = vertical ? area.top : area.left;
+    const end = vertical ? area.bottom : area.right;
+    const size = vertical ? item.h : item.w;
+    const anchorCoord = vertical ? item.anchor.y : item.anchor.x;
+    const maxStart = end - size;
+    const values = [];
+    const add = value => {
+        if (Number.isFinite(value) && value >= start - 0.5 && value <= maxStart + 0.5) {
+            values.push(value);
+        }
+    };
+    const edgeJitter = allCityRingJitter(
+        item, depth, edgeIndex, 1, ALL_CITY_RING_JITTER
+    ) * 0.62;
+    add(start + edgeJitter);
+    add(maxStart - edgeJitter);
+    add(clampNumber(anchorCoord - size / 2, start, maxStart));
+
+    let cursor = start + edgeJitter;
+    for (let step = 0; cursor <= maxStart + 0.5 && step < 16; step++) {
+        add(cursor);
+        const breath = allCityRingJitter(
+            item, depth, edgeIndex, step + 3, ALL_CITY_RING_GAP_JITTER
+        );
+        cursor += size + gap + breath;
+    }
+
+    cursor = maxStart - edgeJitter;
+    for (let step = 0; cursor >= start - 0.5 && step < 16; step++) {
+        add(cursor);
+        const breath = allCityRingJitter(
+            item, depth, edgeIndex, step + 7, ALL_CITY_RING_GAP_JITTER
+        );
+        cursor -= size + gap + breath;
+    }
+
+    placed.forEach((rect, index) => {
+        const cardStart = vertical ? rect.y : rect.x;
+        const cardSize = vertical ? rect.h : rect.w;
+        const localJitter = allCityRingJitter(
+            item, depth, edgeIndex, index + 11, ALL_CITY_RING_JITTER
+        ) * 0.28;
+        add(cardStart + cardSize + gap + localJitter);
+        add(cardStart - size - gap - localJitter);
+    });
+
+    values.sort((a, b) => a - b);
+    const unique = [];
+    values.forEach(value => {
+        if (!unique.length || Math.abs(unique[unique.length - 1] - value) > 1) {
+            unique.push(value);
+        }
+    });
+    return unique;
+}
+
+function allCityRingCandidates(item, area, placed, gap) {
+    const candidates = [];
+    const edges = [
+        { name: 'left', vertical: true },
+        { name: 'right', vertical: true },
+        { name: 'top', vertical: false },
+        { name: 'bottom', vertical: false }
+    ];
+    edges.forEach((edge, edgeIndex) => {
+        const depthPitch = (edge.vertical ? item.w : item.h) +
+            gap + ALL_CITY_RING_DEPTH_GAP;
+        const along = allCityRingTrackValues(
+            item, edge.name, area, placed, gap, 0, edgeIndex
+        );
+        for (let depth = 0; depth <= ALL_CITY_RING_DEPTH_LIMIT; depth++) {
+            const values = depth === 0
+                ? along
+                : allCityRingTrackValues(
+                    item, edge.name, area, placed, gap, depth, edgeIndex
+                );
+            const depthJitter = allCityRingJitter(
+                item, depth, edgeIndex, 2, ALL_CITY_RING_JITTER
+            ) * 0.38;
+            values.forEach(position => {
+                let x;
+                let y;
+                if (edge.name === 'left') {
+                    x = area.left + depth * depthPitch + depthJitter;
+                    y = position;
+                } else if (edge.name === 'right') {
+                    x = area.right - item.w - depth * depthPitch - depthJitter;
+                    y = position;
+                } else if (edge.name === 'top') {
+                    x = position;
+                    y = area.top + depth * depthPitch + depthJitter;
+                } else {
+                    x = position;
+                    y = area.bottom - item.h - depth * depthPitch - depthJitter;
+                }
+                x += allCitySignedDrift(item, depth, edgeIndex, 17);
+                y += allCitySignedDrift(item, depth, edgeIndex, 19);
+                if (x < area.left - 0.5 || y < area.top - 0.5 ||
+                    x + item.w > area.right + 0.5 || y + item.h > area.bottom + 0.5) {
+                    return;
+                }
+                candidates.push({ x, y, depth, edge: edge.name });
+            });
+        }
+    });
+    return candidates;
+}
+
+function allCityNearestEdge(rect, area) {
+    let edge = 'left';
+    let distance = rect.x - area.left;
+    [
+        ['right', area.right - (rect.x + rect.w)],
+        ['top', rect.y - area.top],
+        ['bottom', area.bottom - (rect.y + rect.h)]
+    ].forEach(([name, value]) => {
+        if (value < distance) {
+            edge = name;
+            distance = value;
+        }
+    });
+    return { edge, distance: Math.max(0, distance) };
+}
+
+function allCityRectContainsMarker(rect, anchors) {
+    return anchors.some(anchor =>
+        anchor.x >= rect.x - ALL_CITY_MARKER_KEEPOUT &&
+        anchor.x <= rect.x + rect.w + ALL_CITY_MARKER_KEEPOUT &&
+        anchor.y >= rect.y - ALL_CITY_MARKER_KEEPOUT &&
+        anchor.y <= rect.y + rect.h + ALL_CITY_MARKER_KEEPOUT
+    );
+}
+
+function allCitySpotCost(rect, item, area, cluster, core, candidate) {
+    const edge = allCityNearestEdge(rect, area);
+    const markerDistance = Math.hypot(
+        rect.x + rect.w / 2 - item.anchor.x,
+        rect.y + rect.h / 2 - item.anchor.y
+    );
+    const areaSize = rect.w * rect.h;
+    const clusterRatio = cluster ? overlapArea(rect, cluster) / areaSize : 0;
+    const coreRatio = overlapArea(rect, core) / areaSize;
+    return candidate.depth * 2600 +
+        edge.distance * 1.4 +
+        markerDistance * 0.32 +
+        clusterRatio * 300 +
+        coreRatio * 360;
+}
+
+function pickAllCityCardSpot(item, area, spanX, spanY, cluster, placed, gap, anchors) {
+    const w = item.w;
+    const h = item.h;
+    const core = {
+        x: area.left + spanX * PROVINCE_CORE_KEEPOUT_X,
+        y: area.top + spanY * PROVINCE_CORE_KEEPOUT_Y,
+        w: spanX * (1 - PROVINCE_CORE_KEEPOUT_X * 2),
+        h: spanY * (1 - PROVINCE_CORE_KEEPOUT_Y * 2)
+    };
+    const candidates = allCityRingCandidates(item, area, placed, gap);
+    const emptyAt = (candidate, gapUsed, avoidMarkers) => {
+        const rect = { x: candidate.x, y: candidate.y, w, h };
+        if (avoidMarkers && allCityRectContainsMarker(rect, anchors)) return null;
+        const padded = {
+            x: rect.x - gapUsed,
+            y: rect.y - gapUsed,
+            w: rect.w + gapUsed * 2,
+            h: rect.h + gapUsed * 2
+        };
+        return placed.some(other => rectsOverlap(padded, other)) ? null : rect;
+    };
+    const attempts = [
+        { gapUsed: gap, avoidMarkers: true },
+        { gapUsed: Math.min(gap, ALL_CITY_LAYOUT_FALLBACK_GAP), avoidMarkers: true },
+        { gapUsed: 0, avoidMarkers: true },
+        { gapUsed: 0, avoidMarkers: false }
+    ];
+    for (const mode of attempts) {
+        let best = null;
+        candidates.forEach(candidate => {
+            const rect = emptyAt(candidate, mode.gapUsed, mode.avoidMarkers);
+            if (!rect) return;
+            const edge = allCityNearestEdge(rect, area);
+            const cost = allCitySpotCost(rect, item, area, cluster, core, candidate);
+            if (!best || cost < best.cost) {
+                best = { x: rect.x, y: rect.y, edge: edge.edge, cost };
+            }
+        });
+        if (best) return best;
+    }
+
+    let leastOverlap = null;
+    let leastOverlapArea = Infinity;
+    candidates.forEach(candidate => {
+        const rect = { x: candidate.x, y: candidate.y, w, h };
+        const overlapSum = placed.reduce((sum, other) => sum + overlapArea(rect, other), 0);
+        if (overlapSum < leastOverlapArea) {
+            leastOverlapArea = overlapSum;
+            const edge = allCityNearestEdge(rect, area);
+            leastOverlap = { x: rect.x, y: rect.y, edge: edge.edge, cost: Infinity };
+        }
+    });
+    return leastOverlap || {
+        x: area.left,
+        y: area.top,
+        edge: 'left',
+        cost: Infinity
+    };
 }
 
 // 一次布局：为一张卡片挑位置。按「就近边 → 沿边逐步外扩」搜索，
@@ -183,7 +434,232 @@ export function pickProvinceCardSpot(item, area, spanX, spanY, cluster, placed, 
  * @param anchorOf  (ci) => 标记屏幕坐标 | null
  * @param placeCard (item) => void，把卡片放到 item.x / item.y
  */
-export function arrangeProvinceCards(items, anchorOf, placeCard) {
+function allCityRingSlotTrack(start, end, size, gap, seed) {
+    const length = end - start;
+    const count = Math.max(1, Math.floor((length + gap) / (size + gap)));
+    if (count === 1) return [start];
+    const minSpan = count * size + (count - 1) * gap;
+    const slack = Math.max(0, length - minSpan);
+    const startOffset = Math.min(
+        slack * 0.35,
+        ALL_CITY_RING_JITTER[seed % ALL_CITY_RING_JITTER.length] * 0.65
+    );
+    let remaining = Math.max(0, slack - startOffset);
+    const weights = [];
+    for (let i = 0; i < count - 1; i++) {
+        weights.push(1 + ALL_CITY_RING_GAP_JITTER[
+            (seed + i * 3) % ALL_CITY_RING_GAP_JITTER.length
+        ]);
+    }
+    const weightSum = weights.reduce((sum, value) => sum + value, 0);
+    const extras = weights.map(value => Math.floor(remaining * value / weightSum));
+    let extraLeft = remaining - extras.reduce((sum, value) => sum + value, 0);
+    for (let i = 0; extraLeft > 0; i = (i + 1) % extras.length) {
+        extras[i] += 1;
+        extraLeft -= 1;
+    }
+
+    const values = [];
+    let cursor = start + startOffset;
+    for (let step = 0; step < count; step++) {
+        values.push(cursor);
+        cursor += size + gap + (extras[step] || 0);
+    }
+    return values;
+}
+
+function reflowAllCityRingLayout(area, items, lockedRects, gap, anchors) {
+    if (!items.length) return null;
+    const maxW = Math.max(...items.map(item => item.w));
+    const maxH = Math.max(...items.map(item => item.h));
+    const edges = [
+        { name: 'left', vertical: true },
+        { name: 'right', vertical: true },
+        { name: 'top', vertical: false },
+        { name: 'bottom', vertical: false }
+    ];
+    const slots = [];
+    edges.forEach((edge, edgeIndex) => {
+        const size = edge.vertical ? maxH : maxW;
+        const start = edge.vertical ? area.top : area.left;
+        const end = edge.vertical ? area.bottom : area.right;
+        const depthPitch = (edge.vertical ? maxW : maxH) +
+            gap + ALL_CITY_RING_DEPTH_GAP;
+        for (let depth = 0; depth <= ALL_CITY_RING_DEPTH_LIMIT; depth++) {
+            const track = allCityRingSlotTrack(
+                start, end, size, gap, edgeIndex * 17 + depth * 7
+            );
+            track.forEach((position, trackIndex) => {
+                const depthJitter = ALL_CITY_RING_JITTER[
+                    (edgeIndex * 5 + depth * 3 + trackIndex) % ALL_CITY_RING_JITTER.length
+                ] * 0.2;
+                let x;
+                let y;
+                if (edge.name === 'left') {
+                    x = area.left + depth * depthPitch + depthJitter;
+                    y = position;
+                } else if (edge.name === 'right') {
+                    x = area.right - maxW - depth * depthPitch - depthJitter;
+                    y = position;
+                } else if (edge.name === 'top') {
+                    x = position;
+                    y = area.top + depth * depthPitch + depthJitter;
+                } else {
+                    x = position;
+                    y = area.bottom - maxH - depth * depthPitch - depthJitter;
+                }
+                if (x < area.left - 0.5 || y < area.top - 0.5 ||
+                    x + maxW > area.right + 0.5 || y + maxH > area.bottom + 0.5) {
+                    return;
+                }
+                slots.push({ x, y, w: maxW, h: maxH, depth, edge: edge.name });
+            });
+        }
+    });
+
+    const attempts = [
+        { gapUsed: gap, avoidMarkers: true },
+        { gapUsed: Math.min(gap, ALL_CITY_LAYOUT_FALLBACK_GAP), avoidMarkers: true },
+        { gapUsed: 0, avoidMarkers: true },
+        { gapUsed: 0, avoidMarkers: false }
+    ];
+    const centerX = (area.left + area.right) / 2;
+    const centerY = (area.top + area.bottom) / 2;
+    slots.forEach(slot => {
+        slot.angle = Math.atan2(
+            slot.y + slot.h / 2 - centerY,
+            slot.x + slot.w / 2 - centerX
+        );
+    });
+
+    let selected = null;
+    for (const mode of attempts) {
+        const usable = slots.filter(slot => {
+            const cell = {
+                x: slot.x - mode.gapUsed,
+                y: slot.y - mode.gapUsed,
+                w: slot.w + mode.gapUsed * 2,
+                h: slot.h + mode.gapUsed * 2
+            };
+            return !lockedRects.some(rect => rectsOverlap(cell, rect)) &&
+                !(mode.avoidMarkers && allCityRectContainsMarker(slot, anchors));
+        });
+        const orders = [
+            (a, b) => a.depth - b.depth || a.angle - b.angle,
+            (a, b) => a.depth - b.depth || b.angle - a.angle,
+            (a, b) => a.depth - b.depth || a.x - b.x || a.y - b.y,
+            (a, b) => a.depth - b.depth || a.y - b.y || a.x - b.x
+        ];
+        for (const order of orders) {
+            const picked = [];
+            for (const slot of usable.slice().sort(order)) {
+                if (picked.length >= items.length) break;
+                const cell = {
+                    x: slot.x - mode.gapUsed,
+                    y: slot.y - mode.gapUsed,
+                    w: slot.w + mode.gapUsed * 2,
+                    h: slot.h + mode.gapUsed * 2
+                };
+                if (!picked.some(other => rectsOverlap(cell, other))) picked.push(slot);
+            }
+            if (picked.length >= items.length) {
+                selected = picked;
+                break;
+            }
+        }
+        if (selected) break;
+    }
+    if (!selected) return null;
+
+    const pairs = [];
+    items.forEach(item => {
+        selected.forEach(slot => {
+            const edgeIndex = allCityEdgeIndex(slot.edge);
+            const x = slot.x + (slot.w - item.w) / 2 +
+                allCitySignedDrift(item, slot.depth, edgeIndex, 23, 0.34);
+            const y = slot.y + (slot.h - item.h) / 2 +
+                allCitySignedDrift(item, slot.depth, edgeIndex, 29, 0.34);
+            pairs.push({
+                item,
+                slot,
+                x,
+                y,
+                distance: Math.hypot(
+                    x + item.w / 2 - item.anchor.x,
+                    y + item.h / 2 - item.anchor.y
+                )
+            });
+        });
+    });
+    pairs.sort((a, b) => a.distance - b.distance);
+    const assigned = new Map();
+    const usedSlots = new Set();
+    pairs.forEach(pair => {
+        if (assigned.has(pair.item) || usedSlots.has(pair.slot)) return;
+        assigned.set(pair.item, { x: pair.x, y: pair.y, edge: pair.slot.edge });
+        usedSlots.add(pair.slot);
+    });
+    return assigned.size === items.length ? assigned : null;
+}
+
+function arrangeAllCityCards(items, anchorOf, placeCard) {
+    const area = allCitySafeArea(window.innerWidth, window.innerHeight);
+    const spanX = Math.max(1, area.right - area.left);
+    const spanY = Math.max(1, area.bottom - area.top);
+    const gap = items.length > PROVINCE_CARD_DENSE_LIMIT ? 8 : PROVINCE_CARD_GAP;
+    const active = [];
+    items.forEach((item, index) => {
+        item.layoutIndex = index;
+        item.anchor = anchorOf(item.ci);
+        if (item.anchor) active.push(item);
+    });
+    const cluster = active.length ? markerClusterRect(active) : null;
+    const lockedItems = active.filter(item => item.locked);
+    const lockedRects = lockedItems.map(item => ({
+        x: item.x, y: item.y, w: item.w, h: item.h
+    }));
+    const placed = lockedRects.slice();
+    const unlockedActive = active.filter(item => !item.locked);
+    const anchors = active.map(item => item.anchor);
+    let needsRingReflow = false;
+    unlockedActive
+        .slice()
+        .sort((a, b) => provinceEdgeAffinity(a, area, spanX, spanY) -
+            provinceEdgeAffinity(b, area, spanX, spanY))
+        .forEach(item => {
+            const spot = pickAllCityCardSpot(
+                item, area, spanX, spanY, cluster, placed, gap, anchors
+            );
+            if (!Number.isFinite(spot.cost)) needsRingReflow = true;
+            item.x = spot.x;
+            item.y = spot.y;
+            item.edge = spot.edge;
+            placed.push({ x: spot.x, y: spot.y, w: item.w, h: item.h });
+        });
+
+    if (needsRingReflow) {
+        const reflowed = reflowAllCityRingLayout(
+            area, unlockedActive, lockedRects, gap, anchors
+        );
+        if (reflowed) {
+            reflowed.forEach((spot, item) => {
+                item.x = spot.x;
+                item.y = spot.y;
+                item.edge = spot.edge;
+            });
+        }
+    }
+    unlockedActive.forEach(placeCard);
+    items.forEach(item => {
+        if (!item.anchor) placeCard(item);
+    });
+}
+
+export function arrangeProvinceCards(items, anchorOf, placeCard, mode = 'province') {
+    if (mode === 'all') {
+        arrangeAllCityCards(items, anchorOf, placeCard);
+        return;
+    }
     const W = window.innerWidth;
     const H = window.innerHeight;
     const area = provinceSafeArea(W, H);

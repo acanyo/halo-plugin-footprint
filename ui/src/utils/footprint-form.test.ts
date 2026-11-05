@@ -56,7 +56,7 @@ describe("validateFootprintForm", () => {
     expect(validateFootprintForm(form({ address: "" }), "2026-01-01T00:00").message).toBe(
       "地址不能为空",
     );
-    expect(validateFootprintForm(form(), undefined).message).toBe("请选择创建时间");
+    expect(validateFootprintForm(form(), undefined).message).toBe("请选择访问时间");
   });
 
   it("缩放级别超出范围被拦住", () => {

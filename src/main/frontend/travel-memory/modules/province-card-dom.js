@@ -122,18 +122,77 @@ export function applyProvinceCardBox(item) {
 
 // ---------- 连线与省名标注 ----------
 
-// 连线落点：卡片中心朝自己的标记方向，与卡片边框的交点。
-// 这样卡片无论放在上下左右哪条边，线都钉在朝向标记的那一边上（拐角处也能自然落在角上）。
-function provinceCardAnchorPoint(item) {
-    const cx = item.x + item.w / 2;
-    const cy = item.y + item.h / 2;
-    const dx = item.anchor.x - cx;
-    const dy = item.anchor.y - cy;
+// 任意位置、任意缩放下，卡片中心朝标记方向与卡片边框的交点。
+// 入场时每帧传入当前动画位置，抛物线终点才能真正贴着移动中的卡片。
+export function provinceCardBorderPoint(x, y, w, h, anchor) {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const dx = anchor.x - cx;
+    const dy = anchor.y - cy;
     if (!dx && !dy) return { x: cx, y: cy };
-    const scaleX = dx === 0 ? Infinity : (item.w / 2) / Math.abs(dx);
-    const scaleY = dy === 0 ? Infinity : (item.h / 2) / Math.abs(dy);
+    const scaleX = dx === 0 ? Infinity : (w / 2) / Math.abs(dx);
+    const scaleY = dy === 0 ? Infinity : (h / 2) / Math.abs(dy);
     const k = Math.min(scaleX, scaleY);
     return { x: cx + dx * k, y: cy + dy * k };
+}
+
+function provinceCardAnchorPoint(item) {
+    return provinceCardBorderPoint(item.x, item.y, item.w, item.h, item.anchor);
+}
+
+// 固定每张卡片在当前布局里的扇面序号，入场帧和最终静态线共用同一套弧度。
+export function assignProvinceLeaderFans(items) {
+    const totals = { left: 0, right: 0, top: 0, bottom: 0 };
+    const seen = { left: 0, right: 0, top: 0, bottom: 0 };
+    items.forEach(item => {
+        const edge = item.edge || 'right';
+        totals[edge] = (totals[edge] || 0) + 1;
+    });
+    items.forEach(item => {
+        const edge = item.edge || 'right';
+        item.edgeFanIndex = seen[edge] || 0;
+        item.edgeFanTotal = totals[edge] || 1;
+        seen[edge] = (seen[edge] || 0) + 1;
+    });
+}
+
+export function applyProvinceLeaderGeometry(item, endX, endY, fanIndex, edgeTotal) {
+    const anchor = item.anchor;
+    const dx = endX - anchor.x;
+    const dy = endY - anchor.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const startX = anchor.x;
+    const startY = anchor.y;
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    let px = -uy;
+    let py = ux;
+    const outX = midX + px * 120 - window.innerWidth / 2;
+    const outY = midY + py * 120 - window.innerHeight / 2;
+    const inX = midX - px * 120 - window.innerWidth / 2;
+    const inY = midY - py * 120 - window.innerHeight / 2;
+    if (outX * outX + outY * outY < inX * inX + inY * inY) {
+        px = -px;
+        py = -py;
+    }
+    const fan = PROVINCE_LINE_FAN[0] +
+        (PROVINCE_LINE_FAN[1] - PROVINCE_LINE_FAN[0]) *
+        ((fanIndex || 0) / Math.max(1, (edgeTotal || 1) - 1));
+    const ctrlX = midX + px * len * fan;
+    const ctrlY = midY + py * len * fan;
+    const d = 'M' + round1(startX) + ' ' + round1(startY) +
+        ' Q' + round1(ctrlX) + ' ' + round1(ctrlY) +
+        ' ' + round1(endX) + ' ' + round1(endY);
+    item.pathBase.setAttribute('d', d);
+    item.path.setAttribute('d', d);
+    item.dot.setAttribute('cx', round1(startX));
+    item.dot.setAttribute('cy', round1(startY));
+    item.grad.setAttribute('x1', round1(startX));
+    item.grad.setAttribute('y1', round1(startY));
+    item.grad.setAttribute('x2', round1(endX));
+    item.grad.setAttribute('y2', round1(endY));
 }
 
 /**
@@ -144,16 +203,7 @@ function provinceCardAnchorPoint(item) {
  */
 export function drawProvinceLeaderLines(items, active, onHidden) {
     if (!items.length) return;
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    const viewCenterX = W / 2;
-    const viewCenterY = H / 2;
-    // 同一条边上的线按顺序递增弧度，形成扇面（每条边各自扇开）
-    const edgeTotals = { left: 0, right: 0, top: 0, bottom: 0 };
-    const edgeSeen = { left: 0, right: 0, top: 0, bottom: 0 };
-    items.forEach(item => {
-        edgeTotals[item.edge || 'right'] = (edgeTotals[item.edge || 'right'] || 0) + 1;
-    });
+    assignProvinceLeaderFans(items);
 
     items.forEach(item => {
         const anchor = item.anchor;
@@ -176,51 +226,11 @@ export function drawProvinceLeaderLines(items, active, onHidden) {
             return;
         }
 
-        const edge = item.edge || 'right';
-        const fanIndex = edgeSeen[edge]++;
         // 终点：卡片朝向自己标记的那条边上的交点
         const end = provinceCardAnchorPoint(item);
-        const endX = end.x;
-        const endY = end.y;
-        const dx = endX - anchor.x;
-        const dy = endY - anchor.y;
-        const len = Math.hypot(dx, dy) || 1;
-        const ux = dx / len;
-        const uy = dy / len;
-        // 起点：直接从城市标记圆点的中心出发
-        const startX = anchor.x;
-        const startY = anchor.y;
-
-        // 控制点 = 弦中点沿垂直方向偏移；方向统一取「远离视口中心」的那一侧，
-        // 保证同一侧的线朝同一个方向鼓出，不会互相穿插成结。
-        const midX = (startX + endX) / 2;
-        const midY = (startY + endY) / 2;
-        let px = -uy;
-        let py = ux;
-        const outX = midX + px * 120 - viewCenterX;
-        const outY = midY + py * 120 - viewCenterY;
-        const inX = midX - px * 120 - viewCenterX;
-        const inY = midY - py * 120 - viewCenterY;
-        if (outX * outX + outY * outY < inX * inX + inY * inY) {
-            px = -px;
-            py = -py;
-        }
-        const fan = PROVINCE_LINE_FAN[0] + (PROVINCE_LINE_FAN[1] - PROVINCE_LINE_FAN[0]) *
-            (fanIndex / Math.max(1, edgeTotals[edge] - 1));
-        const ctrlX = midX + px * len * fan;
-        const ctrlY = midY + py * len * fan;
-
-        const d = 'M' + round1(startX) + ' ' + round1(startY) +
-            ' Q' + round1(ctrlX) + ' ' + round1(ctrlY) +
-            ' ' + round1(endX) + ' ' + round1(endY);
-        item.pathBase.setAttribute('d', d);   // 深色底与亮线共用同一条路径
-        item.path.setAttribute('d', d);
-        item.dot.setAttribute('cx', round1(startX));
-        item.dot.setAttribute('cy', round1(startY));
-        item.grad.setAttribute('x1', round1(startX));
-        item.grad.setAttribute('y1', round1(startY));
-        item.grad.setAttribute('x2', round1(endX));
-        item.grad.setAttribute('y2', round1(endY));
+        applyProvinceLeaderGeometry(
+            item, end.x, end.y, item.edgeFanIndex, item.edgeFanTotal
+        );
     });
 }
 

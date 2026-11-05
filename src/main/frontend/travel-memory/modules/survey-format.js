@@ -40,7 +40,7 @@ export function formatDateSpan(dates, today = new Date()) {
     const last = sorted[sorted.length - 1];
     if (first.slice(0, 7) === last.slice(0, 7)) return ym(first);
     // 最近一次在 90 天内，就写「至今」：手簿上的记录还在继续
-    const lastTime = new Date(last + 'T00:00:00').getTime();
+    const lastTime = new Date(last.slice(0, 10) + 'T00:00:00').getTime();
     if (Number.isFinite(lastTime) && today.getTime() - lastTime < 90 * 86400000) return ym(first) + '至今';
     return ym(first) + ' 到 ' + ym(last);
 }

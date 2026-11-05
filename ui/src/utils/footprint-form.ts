@@ -52,7 +52,7 @@ function checkNumberInRange(
  * 校验表单主体。
  *
  * @param state      表单数据
- * @param createTime 创建时间（独立于 spec 的 datetime-local 输入）
+ * @param createTime 访问时间（独立于 spec 的 datetime-local 输入）
  * @returns 第一条不通过的规则；全部通过时 `ok` 为 true
  */
 export function validateFootprintForm(
@@ -65,7 +65,7 @@ export function validateFootprintForm(
   if (isBlank(spec.description)) return fail("足迹描述不能为空");
   if (isBlank(spec.address)) return fail("地址不能为空");
   if (isBlank(spec.zoomLevel)) return fail("缩放级别不能为空");
-  if (!createTime) return fail("请选择创建时间");
+  if (!createTime) return fail("请选择访问时间");
 
   const zoom = checkNumberInRange(spec.zoomLevel, ZOOM_RANGE, "缩放级别");
   if (!zoom.ok) return zoom;

@@ -129,14 +129,42 @@ tasks.register('minifyFrontend', com.github.gradle.node.npm.task.NpmTask) {
     outputs.dir(layout.buildDirectory.dir('resources/main/static/css'))
 }
 
+/*
+ * DevTools 以 exploded 目录运行时，会从 build/resources/main/META-INF
+ * 读取组件索引；Halo 生成的新索引在 build/tmp/META-INF。若不显式同步，
+ * 新增 @Component 后热重载仍会拿到上一次构建的旧索引，表现为
+ * “类已打进 JAR，但插件容器找不到对应 Bean”。
+ */
+tasks.register('syncPluginComponentsIdx', Copy) {
+    dependsOn tasks.named('generatePluginComponentsIdx')
+    dependsOn tasks.named('processResources')
+    from layout.buildDirectory.file('tmp/META-INF/plugin-components.idx')
+    into layout.buildDirectory.dir('resources/main/META-INF')
+}
+
 tasks.named('classes') {
     dependsOn tasks.named('processUiResources')
     dependsOn tasks.named('minifyFrontend')
+    dependsOn tasks.named('syncPluginComponentsIdx')
 }
+
+def haloAdminUsername = providers.gradleProperty('haloAdminUsername')
+    .orElse(providers.environmentVariable('HALO_ADMIN_USERNAME'))
+def haloAdminPassword = providers.gradleProperty('haloAdminPassword')
+    .orElse(providers.environmentVariable('HALO_ADMIN_PASSWORD'))
 
 halo {
     version = '2.27'
     debug = true
     // 本机 8090 被别的 Halo 占用时：./gradlew haloServer -PhaloPort=8092
     port = (findProperty('haloPort') ?: '8090') as Integer
+
+    // DevTools 默认用 admin/admin 做 Basic Auth；已有开发数据通常改过管理员，
+    // 未显式配置时轻量命令会全部返回 401。凭据只从本地参数或环境变量读取。
+    if (haloAdminUsername.isPresent()) {
+        superAdminUsername = haloAdminUsername.get()
+    }
+    if (haloAdminPassword.isPresent()) {
+        superAdminPassword = haloAdminPassword.get()
+    }
 }

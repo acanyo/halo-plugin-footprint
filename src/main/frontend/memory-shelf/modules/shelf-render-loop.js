@@ -29,6 +29,7 @@ import {
     setBook
 } from './book-rig.js';
 import { updateBookTurn, updateClosing } from './page-turn.js';
+import { disposeWallFrame, syncWallFrameAction, updateWallFrameFade } from './wall-frame.js';
 
 export function startAnimation() {
     if (!shelf) return;
@@ -50,6 +51,7 @@ export function startAnimation() {
         var delta = Math.min(0.05, shelf.clock.getDelta());
         var now = performance.now();
         updateDust(shelf.dust, (now - shelf.startedAt) / 1000);
+        updateWallFrameFade(delta);
         // 屋子配色也跟着帧走：换省份时墙、地、木架、灯一起过渡到新一套
         updateRoomTheme(delta);
 
@@ -221,6 +223,7 @@ export function startAnimation() {
         // 会让"最后一帧还在动"，也就没有确定的首末帧）
         shelf.camera.position.set(camPlan.pos.x, camPlan.pos.y, camPlan.pos.z);
         shelf.camera.lookAt(camPlan.target.x, camPlan.target.y, camPlan.target.z);
+        syncWallFrameAction();
 
         renderer3d.render(shelf.scene, shelf.camera);
         // 记一帧"已经画到画布上"。注意计数器放在 render 之后：
@@ -241,6 +244,7 @@ export function disposeShelf() {
     if (shelf.frame) cancelAnimationFrame(shelf.frame);
     if (shelf.resizeObserver) shelf.resizeObserver.disconnect();
     shelf.rigs.forEach(disposeRig);
+    disposeWallFrame();
     if (renderer3d) {
         renderer3d.dispose();
         if (renderer3d.domElement && renderer3d.domElement.parentNode) {

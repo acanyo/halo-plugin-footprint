@@ -140,6 +140,69 @@ export function createInfoWindow(spec) {
     `;
 }
 
+const WISH_STATUS_TEXT = {
+    wish: '心愿',
+    planning: '计划中',
+    booked: '已订票',
+    visited: '已实现'
+};
+
+function wishPlanText(spec) {
+    const year = Number(spec?.plannedYear);
+    const month = Number(spec?.plannedMonth);
+    const note = String(spec?.plannedTimeNote || '').trim();
+    const date = Number.isFinite(year) && year > 0
+        ? `${year} 年${Number.isFinite(month) && month > 0 ? ` ${month} 月` : ''}`
+        : '';
+    return [date, note].filter(Boolean).join('，') || '计划时间待定';
+}
+
+function wishCoordinateText(spec) {
+    const longitude = Number(spec?.longitude);
+    const latitude = Number(spec?.latitude);
+    return Number.isFinite(longitude) && Number.isFinite(latitude)
+        ? `${latitude.toFixed(4)}°N，${longitude.toFixed(4)}°E`
+        : '坐标未知';
+}
+
+export function createWishInfoWindow(wish) {
+    const spec = wish?.spec || {};
+    const title = String(spec.title || '未来足迹');
+    const status = WISH_STATUS_TEXT[spec.status] || WISH_STATUS_TEXT.wish;
+    const region = [spec.province, spec.city].filter(Boolean).join(' / ');
+    const tags = [...new Set(
+        (Array.isArray(spec.tags) ? spec.tags : [])
+            .map(tag => String(tag || '').trim())
+            .filter(Boolean)
+    )];
+    const row = (icon, text) => text
+        ? `<li class="info-window-row">${icon}<span>${escapeHtml(String(text))}</span></li>`
+        : '';
+    return `
+        <div class="info-window info-window--wish">
+            <div class="wish-info-hero">
+                <span class="wish-info-status">${escapeHtml(status)}</span>
+                <span class="wish-info-initial">${escapeHtml(Array.from(title)[0] || '愿')}</span>
+            </div>
+            <div class="image-info">
+                <h3 class="title">${escapeHtml(title)}</h3>
+                ${spec.description ? `<p class="description">${escapeHtml(spec.description)}</p>` : ''}
+                ${tags.length
+                    ? `<div class="wish-info-tags">${tags
+                        .map(tag => `<span>${escapeHtml(tag)}</span>`)
+                        .join('')}</div>`
+                    : ''}
+                <ul class="info-window-rows">
+                    ${row(SVG_ICONS.location, spec.address || region || '位置已记录')}
+                    ${row(SVG_ICONS.city, region && region !== spec.address ? region : '')}
+                    ${row(SVG_ICONS.date, wishPlanText(spec))}
+                    ${row(SVG_ICONS.view, wishCoordinateText(spec))}
+                </ul>
+            </div>
+        </div>
+    `;
+}
+
 /**
  * 「查看文章」：有关联文章才出。
  * 后台既能选站内文章（存的是 /archives/xxx），也能填外链；没写协议的外链（www.xxx）补上 https://，

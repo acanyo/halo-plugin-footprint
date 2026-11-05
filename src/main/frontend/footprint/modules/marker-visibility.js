@@ -27,12 +27,19 @@ export const saveMarkerVisibilityPreference = (visible) => {
 
 export const createFootprintMarkerController = (map) => {
     const markers = new Map();
+    const footprints = new Map();
+    const clickHandlers = new Map();
     let visible = readMarkerVisibilityPreference();
+    let groupNames = null;
+    let groupOrder = null;
     let onVisibilityChange = () => {
     };
 
-    const applyVisibility = (marker) => {
-        if (visible) {
+    const applyVisibility = (marker, footprint) => {
+        const inGroup = !!(groupNames && footprint?.metadata?.name &&
+            groupNames.has(footprint.metadata.name));
+        const shouldShow = groupNames ? inGroup : visible;
+        if (shouldShow) {
             if (typeof marker.show === 'function') marker.show();
             else marker.setMap(map);
         } else {
@@ -41,11 +48,41 @@ export const createFootprintMarkerController = (map) => {
         }
     };
 
+    const applyGroupClass = (marker, footprint) => {
+        const element = marker?.getContent?.()?.closest?.('.amap-marker');
+        if (!element) return;
+        element.classList.toggle('is-group-member',
+            !!(groupNames && groupNames.has(footprint?.metadata?.name)));
+        element.classList.toggle('is-group-dimmed',
+            !!(groupNames && !groupNames.has(footprint?.metadata?.name)));
+    };
+
+    const applyGroupOrderBadge = (marker, footprint) => {
+        const content = marker?.getContent?.();
+        if (!content || typeof content.querySelector !== 'function') return;
+        content.querySelector('.group-order-badge')?.remove();
+        const name = footprint?.metadata?.name;
+        if (!groupOrder || !groupOrder.has(name)) return;
+        const badge = document.createElement('span');
+        badge.className = 'group-order-badge';
+        badge.textContent = String(groupOrder.get(name));
+        badge.setAttribute('aria-hidden', 'true');
+        content.appendChild(badge);
+    };
+
     return {
-        register(marker, footprint) {
+        register(marker, footprint, onClick) {
             const markerName = footprint?.metadata?.name;
-            if (markerName) markers.set(markerName, marker);
-            applyVisibility(marker);
+            if (markerName) {
+                markers.set(markerName, marker);
+                footprints.set(markerName, footprint);
+                if (typeof onClick === 'function') clickHandlers.set(markerName, onClick);
+            }
+            applyVisibility(marker, footprint);
+            setTimeout(() => {
+                applyGroupClass(marker, footprint);
+                applyGroupOrderBadge(marker, footprint);
+            }, 0);
         },
         find(footprint) {
             const markerName = footprint?.metadata?.name;
@@ -58,11 +95,30 @@ export const createFootprintMarkerController = (map) => {
                 return position && position.lng === longitude && position.lat === latitude;
             });
         },
+        activate(footprint) {
+            const markerName = footprint?.metadata?.name;
+            const handler = markerName ? clickHandlers.get(markerName) : null;
+            if (typeof handler !== 'function') return false;
+            handler();
+            return true;
+        },
         setVisible(nextVisible) {
             visible = Boolean(nextVisible);
-            markers.forEach(applyVisibility);
+            markers.forEach((marker, name) => applyVisibility(marker, footprints.get(name)));
             saveMarkerVisibilityPreference(visible);
             onVisibilityChange(visible);
+        },
+        setGroupEmphasis(names, orderedNames) {
+            groupNames = names && names.size ? new Set(names) : null;
+            groupOrder = groupNames && Array.isArray(orderedNames)
+                ? new Map(orderedNames.map((name, index) => [name, index + 1]))
+                : null;
+            markers.forEach((marker, name) => {
+                const footprint = footprints.get(name);
+                applyVisibility(marker, footprint);
+                applyGroupClass(marker, footprint);
+                applyGroupOrderBadge(marker, footprint);
+            });
         },
         isVisible() {
             return visible;

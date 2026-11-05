@@ -1,0 +1,821 @@
+/* 2D 足迹图片墙：恢复旧版的五种照片墙样式，并沿用 2.0.0 的柔光玻璃材质。 */
+
+.photo-wall-layer {
+    --photo-wall-scrim: rgba(24, 24, 30, 0.7);
+    --photo-wall-paper: rgba(255, 255, 255, 0.94);
+    --photo-wall-paper-muted: rgba(255, 255, 255, 0.72);
+    --photo-wall-line: rgba(58, 58, 64, 0.12);
+    --photo-wall-tape: rgba(255, 255, 255, 0.64);
+
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    pointer-events: none;
+    color: var(--fp-ink);
+    font-family: var(--fp-font-text);
+}
+
+.photo-wall-window {
+    position: absolute;
+    width: min(620px, calc(100vw - 40px));
+    height: min(440px, calc(100vh - 56px));
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+    transition: opacity var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+
+.photo-wall-window[data-photo-wall-style="gallery"] {
+    height: min(545px, calc(100vh - 56px));
+}
+
+.photo-wall-window[data-photo-wall-style="focus"] {
+    height: min(480px, calc(100vh - 56px));
+}
+
+.photo-wall-window[data-photo-wall-style="journal"] {
+    height: min(545px, calc(100vh - 56px));
+}
+
+.photo-wall-window.is-open {
+    opacity: 1;
+    transform: none;
+}
+
+.photo-wall-window.is-zooming-out {
+    transform-origin: top left;
+}
+
+.photo-wall-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+    border-radius: var(--fp-radius-panel);
+    background: var(--fp-glass-strong);
+    -webkit-backdrop-filter: blur(var(--fp-blur));
+    backdrop-filter: blur(var(--fp-blur));
+    box-shadow: var(--fp-shadow-lift);
+}
+
+.photo-wall-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 88% 10%, var(--fp-accent-soft), transparent 34%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 38%);
+}
+
+.photo-wall-heading {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 20px 22px 14px;
+}
+
+.photo-wall-heading > div:first-child {
+    min-width: 0;
+}
+
+.photo-wall-kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--fp-accent);
+    font-size: var(--fp-size-xs);
+    font-weight: 500;
+}
+
+.photo-wall-kicker-row {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin-bottom: 3px;
+}
+
+.photo-wall-kicker-row .photo-wall-kicker {
+    margin-bottom: 0;
+}
+
+.photo-wall-kicker-row .photo-wall-date {
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.photo-wall-heading h3 {
+    margin: 0;
+    overflow: hidden;
+    font-family: var(--fp-font-title);
+    font-size: var(--fp-size-2xl);
+    font-weight: 400;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.photo-wall-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.photo-wall-title-row h3 {
+    min-width: 0;
+}
+
+.photo-wall-type {
+    flex: 0 0 auto;
+    padding: 3px 8px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
+    font-size: var(--fp-size-xs);
+    line-height: 1.2;
+}
+
+.photo-wall-description {
+    margin: 5px 0 0;
+    overflow: hidden;
+    color: var(--fp-ink-soft);
+    font-size: var(--fp-size-xs);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.photo-wall-heading-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.photo-wall-counter {
+    min-width: 48px;
+    padding: 5px 9px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-accent-soft);
+    color: var(--fp-accent);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.photo-wall-close,
+.photo-wall-nav,
+.photo-wall-viewer-close,
+.photo-wall-viewer-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass);
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-ink);
+    font: 400 20px/1 var(--fp-font-text);
+    cursor: pointer;
+    transition: background-color var(--fp-dur) var(--fp-ease), transform var(--fp-dur) var(--fp-ease);
+}
+
+.photo-wall-close:hover,
+.photo-wall-nav:hover:not(:disabled),
+.photo-wall-viewer-close:hover,
+.photo-wall-viewer-nav:hover {
+    background: var(--fp-glass-strong);
+}
+
+.photo-wall-close:active,
+.photo-wall-nav:active:not(:disabled),
+.photo-wall-viewer-close:active,
+.photo-wall-viewer-nav:active {
+    transform: scale(0.94);
+}
+
+.photo-wall-close:focus-visible,
+.photo-wall-nav:focus-visible,
+.photo-wall-card:focus-visible,
+.photo-wall-feature:focus-visible,
+.photo-wall-focus-core:focus-visible,
+.photo-wall-viewer-close:focus-visible,
+.photo-wall-viewer-nav:focus-visible {
+    outline: 2px solid var(--fp-accent);
+    outline-offset: 3px;
+}
+
+.photo-wall-nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.photo-wall-canvas {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.photo-wall-footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 54px;
+    padding: 6px 18px 12px;
+    color: var(--fp-ink-faint);
+    font-size: var(--fp-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.photo-wall-footer-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.photo-wall-place {
+    overflow: hidden;
+    color: var(--fp-ink-soft);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.photo-wall-date {
+    flex: 0 0 auto;
+    color: var(--fp-ink-faint);
+}
+
+.photo-wall-navigation {
+    display: flex;
+    gap: 8px;
+}
+
+.photo-wall-card,
+.photo-wall-feature,
+.photo-wall-focus-core {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    cursor: zoom-in;
+}
+
+.photo-wall-card {
+    position: relative;
+    z-index: 1;
+}
+
+.photo-wall-card:hover,
+.photo-wall-card:focus-visible {
+    z-index: 20;
+}
+
+.photo-wall-card-inner {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 6px 6px 17px;
+    border-radius: 8px;
+    background: var(--photo-wall-paper);
+    box-shadow: var(--fp-shadow-lift);
+    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+}
+
+.photo-wall-card-inner img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.photo-wall-tape {
+    --photo-wall-tape-rotate: -8deg;
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    width: 42px;
+    height: 16px;
+    background: var(--photo-wall-tape);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12);
+    transform: translateX(-50%) rotate(var(--photo-wall-tape-rotate));
+}
+
+.photo-wall-tape-left { --photo-wall-tape-rotate: -8deg; }
+.photo-wall-tape-right { --photo-wall-tape-rotate: 7deg; }
+
+.photo-wall-card:hover .photo-wall-tape,
+.photo-wall-card:focus-visible .photo-wall-tape {
+    animation: photo-wall-tape-peel 420ms var(--fp-ease) both;
+}
+
+@keyframes photo-wall-tape-peel {
+    0% {
+        transform: translateX(-50%) translateY(0) rotate(var(--photo-wall-tape-rotate)) scale(1);
+    }
+    45% {
+        transform: translateX(-50%) translateY(-2px) rotate(calc(var(--photo-wall-tape-rotate) + 5deg)) scale(1.08);
+    }
+    100% {
+        transform: translateX(-50%) translateY(1px) rotate(calc(var(--photo-wall-tape-rotate) - 2deg)) scale(1.02);
+    }
+}
+
+.photo-wall-card:hover .photo-wall-card-inner,
+.photo-wall-card:focus-visible .photo-wall-card-inner,
+.photo-wall-feature:hover,
+.photo-wall-feature:focus-visible,
+.photo-wall-focus-core:hover,
+.photo-wall-focus-core:focus-visible {
+    transform: translateY(-3px) rotate(0deg);
+    box-shadow: var(--fp-shadow-lift);
+}
+
+/* 经典散落照片墙 */
+
+.photo-wall-scatter-stage {
+    margin: 0 18px;
+}
+
+.photo-wall-scatter-card {
+    position: absolute;
+    left: var(--photo-x);
+    top: var(--photo-y);
+    width: 17%;
+    aspect-ratio: 4 / 5;
+    transform: rotate(var(--photo-r));
+    animation: photo-wall-card-in 420ms var(--fp-ease) var(--photo-delay) backwards;
+}
+
+.photo-wall-scatter-card:nth-child(3n) {
+    width: 18%;
+}
+
+.photo-wall-thread {
+    position: absolute;
+    left: 7%;
+    right: 7%;
+    top: 48%;
+    height: 1px;
+    background: var(--photo-wall-line);
+    transform: rotate(-4deg);
+}
+
+/* 地图侧边画廊 */
+
+.photo-wall-gallery-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(220px, 0.98fr);
+    gap: 14px;
+    padding: 0 20px 8px;
+}
+
+.photo-wall-gallery-stage .photo-wall-feature {
+    border: 1px solid var(--photo-wall-line);
+}
+
+.photo-wall-feature {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--fp-radius-photo);
+    background: transparent;
+    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+}
+
+.photo-wall-feature img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* 主图完整显示：长票根和竖图不能被上下边裁掉。 */
+    object-fit: contain;
+    background: transparent;
+}
+
+.photo-wall-feature-caption {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    max-width: calc(100% - 24px);
+    padding: 6px 10px;
+    overflow: hidden;
+    border-radius: var(--fp-radius-control);
+    background: var(--photo-wall-paper-muted);
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-ink);
+    font-size: var(--fp-size-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.photo-wall-thumb-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 9px;
+    min-height: 0;
+    padding-top: 10px;
+    box-sizing: border-box;
+}
+
+.photo-wall-gallery-thumb {
+    min-width: 0;
+    min-height: 0;
+    animation: photo-wall-card-in 380ms var(--fp-ease) backwards;
+}
+
+.photo-wall-gallery-thumb .photo-wall-card-inner {
+    padding: 4px;
+}
+
+/* 胶片带 */
+
+.photo-wall-filmstrip-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 20px 10px;
+}
+
+.photo-wall-filmstrip-stage .photo-wall-feature {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.photo-wall-filmstrip {
+    display: flex;
+    flex: 0 0 82px;
+    gap: 9px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+}
+
+.photo-wall-filmstrip::-webkit-scrollbar {
+    display: none;
+}
+
+.photo-wall-filmthumb {
+    flex: 0 0 112px;
+}
+
+.photo-wall-filmthumb .photo-wall-card-inner {
+    padding: 4px;
+}
+
+.photo-wall-filmthumb .photo-wall-tape {
+    display: none;
+}
+
+/* 旅行手账 */
+
+.photo-wall-journal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 14px;
+    padding: 4px 22px 12px;
+    overflow: hidden;
+}
+
+.photo-wall-journal-card {
+    min-height: 0;
+    transform: rotate(-1.2deg);
+    animation: photo-wall-card-in 420ms var(--fp-ease) backwards;
+}
+
+.photo-wall-journal-card:nth-child(2n) {
+    transform: rotate(1.1deg);
+}
+
+.photo-wall-journal-card:nth-child(3n) {
+    transform: rotate(-0.5deg);
+}
+
+/* 聚焦照片墙 */
+
+.photo-wall-focus-stage {
+    margin: 0 18px 10px;
+    padding: 10px 6px 6px;
+}
+
+.photo-wall-focus-halo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(44%, 272px);
+    aspect-ratio: 1;
+    border: 1px solid var(--photo-wall-line);
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--fp-accent-soft), transparent 70%);
+    transform: translate(-50%, -50%);
+}
+
+.photo-wall-focus-core {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 2;
+    width: min(40%, 270px);
+    height: 82%;
+    padding: 7px 7px 29px;
+    overflow: visible;
+    border-radius: 6px;
+    background: var(--photo-wall-paper);
+    box-shadow: 5px 9px 20px rgba(0, 0, 0, 0.2);
+    transform: translate(-50%, -50%) rotate(-1deg);
+    transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
+}
+
+.photo-wall-focus-core:hover,
+.photo-wall-focus-core:focus-visible {
+    transform: translate(-50%, calc(-50% - 4px)) rotate(0) scale(1.02);
+}
+
+.photo-wall-focus-core img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 3px;
+    background: transparent;
+}
+
+.photo-wall-focus-core span {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 7px;
+    padding: 2px 1px;
+    overflow: hidden;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--fp-ink);
+    font-size: var(--fp-size-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.photo-wall-orbit-card {
+    position: absolute;
+    z-index: 1;
+    left: var(--photo-x);
+    top: var(--photo-y);
+    width: clamp(88px, 17%, 128px);
+    aspect-ratio: 4 / 5;
+    transform: rotate(var(--photo-r));
+    animation: photo-wall-card-in 420ms var(--fp-ease) var(--photo-delay) backwards;
+}
+
+/* 图片连接线 */
+
+.photo-wall-connector {
+    position: absolute;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(90deg, var(--fp-accent), transparent);
+    transform-origin: 0 50%;
+}
+
+.photo-wall-connector::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--fp-accent);
+}
+
+/* 原图预览 */
+
+.photo-wall-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 10030;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 5vw;
+    pointer-events: auto;
+    background: var(--photo-wall-scrim);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    animation: photo-wall-fade-in 180ms ease both;
+}
+
+.photo-wall-viewer-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(90vw, 1200px);
+    height: min(84vh, 860px);
+}
+
+.photo-wall-viewer-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--fp-radius-panel);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.38);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 160ms ease;
+}
+
+.photo-wall-viewer-loader {
+    position: absolute;
+    width: min(52vw, 420px);
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: var(--fp-radius-panel);
+    background: var(--fp-rule);
+    pointer-events: none;
+}
+
+.photo-wall-viewer-loader::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        100deg,
+        transparent 18%,
+        var(--photo-wall-paper-muted) 50%,
+        transparent 82%
+    );
+    transform: translateX(-100%);
+    animation: photo-wall-viewer-shimmer 1.2s ease-in-out infinite;
+}
+
+.photo-wall-viewer-stage.is-loading .photo-wall-viewer-image,
+.photo-wall-viewer-stage.is-error .photo-wall-viewer-image {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.photo-wall-viewer-stage:not(.is-loading) .photo-wall-viewer-loader {
+    display: none;
+}
+
+.photo-wall-viewer-error {
+    display: none;
+    padding: 10px 14px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass);
+    color: var(--fp-ink);
+    font-size: var(--fp-size-sm);
+    pointer-events: none;
+}
+
+.photo-wall-viewer-stage.is-error .photo-wall-viewer-error {
+    display: block;
+}
+
+.photo-wall-viewer-close {
+    position: fixed;
+    top: max(18px, env(safe-area-inset-top));
+    right: 20px;
+}
+
+.photo-wall-viewer-nav {
+    position: fixed;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    margin-top: -24px;
+    font-size: 26px;
+}
+
+.photo-wall-viewer-nav.is-prev { left: 20px; }
+.photo-wall-viewer-nav.is-next { right: 20px; }
+
+.photo-wall-viewer-count {
+    position: fixed;
+    left: 50%;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    padding: 7px 13px;
+    border-radius: var(--fp-radius-control);
+    background: var(--fp-glass);
+    color: var(--fp-ink);
+    font-size: var(--fp-size-sm);
+    font-variant-numeric: tabular-nums;
+    transform: translateX(-50%);
+}
+
+@keyframes photo-wall-card-in {
+    from {
+        opacity: 0;
+        translate: 0 10px;
+        scale: 0.94;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+        scale: 1;
+    }
+}
+
+@keyframes photo-wall-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes photo-wall-viewer-shimmer {
+    to { transform: translateX(100%); }
+}
+
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
+    .photo-wall-window.is-mobile {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: min(76vh, 680px);
+        transform: translateY(18px);
+    }
+
+    .photo-wall-window.is-mobile .photo-wall-panel {
+        border-radius: var(--fp-radius-panel) var(--fp-radius-panel) 0 0;
+    }
+
+    .photo-wall-window.is-mobile .photo-wall-heading {
+        padding: 16px 16px 10px;
+    }
+
+    .photo-wall-window.is-mobile .photo-wall-heading h3 {
+        font-size: var(--fp-size-xl);
+    }
+
+    .photo-wall-window.is-mobile .photo-wall-filmstrip-stage {
+        padding-inline: 14px;
+    }
+
+    .photo-wall-window.is-mobile .photo-wall-footer {
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    body.photo-wall-mobile-open .map-controls {
+        visibility: hidden;
+    }
+
+    .photo-wall-viewer-nav {
+        top: auto;
+        bottom: max(54px, calc(env(safe-area-inset-bottom) + 54px));
+        margin-top: 0;
+    }
+
+    .photo-wall-viewer-stage {
+        width: 94vw;
+        height: 72vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .photo-wall-window,
+    .photo-wall-card-inner,
+    .photo-wall-feature,
+    .photo-wall-focus-core {
+        transition-duration: 1ms;
+    }
+
+    .photo-wall-scatter-card,
+    .photo-wall-orbit-card,
+    .photo-wall-journal-card,
+    .photo-wall-gallery-thumb,
+    .photo-wall-viewer {
+        animation: none;
+    }
+
+    .photo-wall-viewer-loader::after {
+        animation: none;
+    }
+
+    .photo-wall-card:hover .photo-wall-card-inner,
+    .photo-wall-card:focus-visible .photo-wall-card-inner,
+    .photo-wall-feature:hover,
+    .photo-wall-feature:focus-visible,
+    .photo-wall-focus-core:hover,
+    .photo-wall-focus-core:focus-visible {
+        transform: none;
+    }
+}

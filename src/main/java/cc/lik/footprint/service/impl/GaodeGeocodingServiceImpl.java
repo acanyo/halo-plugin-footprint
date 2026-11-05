@@ -151,12 +151,14 @@ public class GaodeGeocodingServiceImpl implements GaodeGeocodingService {
                 log.warn("逆地理编码失败: {}", json.path("info").asText());
                 return null;
             }
-            JsonNode addressComponent = json.path("regeocode").path("addressComponent");
+            JsonNode regeocode = json.path("regeocode");
+            JsonNode addressComponent = regeocode.path("addressComponent");
             if (addressComponent.isMissingNode()) {
                 return null;
             }
 
             GeoInfo geoInfo = new GeoInfo();
+            geoInfo.setAddress(resolveFormattedAddress(regeocode, addressComponent));
             geoInfo.setProvince(resolveProvince(addressComponent));
             geoInfo.setCity(resolveCity(addressComponent));
             applyAdcodes(addressComponent.path("adcode").asText(), geoInfo);
@@ -165,6 +167,39 @@ public class GaodeGeocodingServiceImpl implements GaodeGeocodingService {
             log.error("解析逆地理编码响应失败: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * 优先使用高德返回的格式化地址；字段缺失时用省、市、区县、街道拼一个兜底值。
+     */
+    private String resolveFormattedAddress(JsonNode regeocode, JsonNode addressComponent) {
+        JsonNode formatted = regeocode.path("formatted_address");
+        if (formatted.isTextual() && !formatted.asText().isBlank()) {
+            return formatted.asText();
+        }
+        if (formatted.isArray()) {
+            StringBuilder joined = new StringBuilder();
+            formatted.forEach(item -> {
+                if (item.isTextual() && !item.asText().isBlank()) {
+                    joined.append(item.asText());
+                }
+            });
+            if (!joined.isEmpty()) {
+                return joined.toString();
+            }
+        }
+        JsonNode streetNumber = addressComponent.path("streetNumber");
+        return java.util.stream.Stream.of(
+                resolveProvince(addressComponent),
+                resolveCity(addressComponent),
+                addressComponent.path("district").asText(""),
+                addressComponent.path("township").asText(""),
+                streetNumber.path("street").asText(""),
+                streetNumber.path("number").asText("")
+            )
+            .filter(value -> value != null && !value.isBlank())
+            .distinct()
+            .collect(java.util.stream.Collectors.joining());
     }
 
     /** 直辖市时 province 可能为空，此时退到 city。 */

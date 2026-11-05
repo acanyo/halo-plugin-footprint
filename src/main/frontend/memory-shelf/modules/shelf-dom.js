@@ -256,8 +256,10 @@ export function renderShelfStage() {
           // 否则舞台会掉进第一列（372px），版面直接被拉歪
           (infoHtml(book) || '<aside class="ms-info" id="msInfo"></aside>') +
           '<section class="ms-stage" id="msStage" tabindex="0" role="group" ' +
-            'aria-label="书架：滚轮或左右方向键切换省份，点击当前的书翻开">' +
+            'aria-label="书架：滚轮或左右方向键切换省份，点击当前的书翻开，点击墙上的照片查看城市相册">' +
             '<div class="ms-floor" aria-hidden="true"></div>' +
+            '<button class="ms-wall-frame-action" type="button" tabindex="0" ' +
+              'aria-label="打开墙上的旅行照片">墙上的旅行照片</button>' +
             // 舞台右缘那颗浮动「›」已撤掉：它和顶栏那对 ‹ › 几乎在同一列、
             // 显隐条件也一样，看着就是同一对按钮被拆成两处（用户反馈"冲突"）。
             // 翻屏统一由顶栏那对负责，见 pageStep()。
@@ -267,7 +269,16 @@ export function renderShelfStage() {
             // （那句顶栏没有替代品，顶栏副标题在书本模式是收起的）。
             '<div class="ms-stage-hint"></div>' +
           '</section>' +
-          '<div class="ms-building" id="msBuilding"><span>正在装订书架…</span></div>' +
+          '<div class="ms-building" id="msBuilding" role="status" aria-live="polite">' +
+            '<span class="ms-binding-icon" aria-hidden="true">' +
+              '<span class="ms-binding-book">' +
+                '<span class="ms-binding-pages"></span>' +
+                '<span class="ms-binding-cover"></span>' +
+              '</span>' +
+              '<span class="ms-binding-thread"></span>' +
+            '</span>' +
+            '<span class="ms-building-label">正在装订书架<span class="ms-binding-dots"></span></span>' +
+          '</div>' +
         '</div>';
     els.stage = $('msStage');
     // 竖栏必须在 **stage 重建之后**再插进去：放在函数开头时 els.stage 还指向

@@ -18,6 +18,7 @@ import { woodMaps } from './textures.js';
 import { buildRig } from './book-geometry.js';
 import { BOOK_W, BOOK_H, BOOK_T, PLANK_TOP, PLANK_H } from './book-dimensions.js';
 import { startAnimation } from './shelf-render-loop.js';
+import { createWallFrame, updateWallFrame } from './wall-frame.js';
 
 // ---------------- 纸尘（照 complete-shelf 的 addDust） ----------------
 // 棚里飘的一点浮尘。它给的是：110 个点、种子随机分布在一个长方体里、
@@ -463,16 +464,8 @@ export function initShelf() {
     // 书架深度（z≈0）可见横向约 ±3.9，墙面（z=-3.6）约 ±5.8。
     // 所以：墙面高处、以及搁板**前方**的地面看得见；
     // 搁板右端（x≈6~8）其实已经在画面之外 —— 原方案 2 就改成前景右下。
-    // 上方墙面：暗木画框 + 一张纸面（挂在书架线上方，不在书后面）
-    // （壁灯按用户选择 B 去掉了：只留画框，墙面更干净；那盏暖光也一并去掉）
-    var wallFrame = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.78, 0.055), woodDarkMaterial);
-    wallFrame.position.set(2.7, 2.15, -3.56);
-    wallFrame.receiveShadow = true;
-    scene.add(wallFrame);
-    var framePaper = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.62),
-        new THREE.MeshStandardMaterial({ color: '#f6f0e2', roughness: 0.95, metalness: 0 }));
-    framePaper.position.set(2.7, 2.15, -3.52);
-    scene.add(framePaper);
+    // 上方墙面相框显示当前省份的代表照片；换省时由 wall-frame.js 交叉淡入。
+    var frameParts = createWallFrame(THREE, scene, woodDarkMaterial);
 
     // （地面上的三本平放书 + 落地小台灯按用户要求整组去掉；只留墙面上的画框与壁灯。
     //   相应的那盏暖光也一并去掉，避免"没有来源的光"。）
@@ -490,6 +483,7 @@ export function initShelf() {
         backRail: backRail,
         uprights: uprights,
         dust: dust,
+        ...frameParts,
         camera: camera,
         rigs: rigs,
         raycaster: new THREE.Raycaster(),
@@ -520,6 +514,7 @@ export function initShelf() {
 
     // 建好就先把当前这本的屋子刷上（不过渡，避免开场从 0 号色滑到当前色）
     applyRoomTheme(state.active, true);
+    updateWallFrame(state.books[state.active], true);
     layoutShelf(true);
     // 着色器先异步编译完再开渲染循环。直接 render 时首帧要同步编译全部着色器：
     // 实测（M3 Pro）主线程卡 2.6 秒，「正在装订书架…」的占位动画跟着冻住。

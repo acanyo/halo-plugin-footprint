@@ -13,11 +13,18 @@
  * 外观与 plugin-auth-ui / plugin-lingui 的工作台一致，样式在 styles/。
  */
 
-import { Dialog, IconRefreshLine, Toast, VButton, VLoading, VPagination } from "@halo-dev/components";
+import {
+  Dialog,
+  IconRefreshLine,
+  Toast,
+  VButton,
+  VLoading,
+  VPagination,
+} from "@halo-dev/components";
 import RiAddLine from "~icons/ri/add-line";
 import RiExternalLinkLine from "~icons/ri/external-link-line";
 import RiMapPinLine from "~icons/ri/map-pin-line";
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useFootprintList } from "@/composables/useFootprintList";
 import { useFootprintStats } from "@/composables/useFootprintStats";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
@@ -25,12 +32,36 @@ import FootprintListItem from "../components/FootprintListItem.vue";
 import FootprintOverview from "../components/FootprintOverview.vue";
 import ManualLocationModal from "../components/ManualLocationModal.vue";
 import ProvinceCityDistribution from "../components/ProvinceCityDistribution.vue";
+import FootprintGroupsPanel from "../components/FootprintGroupsPanel.vue";
+import FootprintWishesPanel from "../components/FootprintWishesPanel.vue";
 import { footprintApiClient } from "@/api";
 import type { Footprint, Option } from "@/api/models";
 import "@/styles/index.css";
 
 defineOptions({
   name: "FootprintManagement",
+});
+
+type ManagementTab = "footprints" | "groups" | "wishes";
+const initialTabParam = new URLSearchParams(window.location.search).get("tab");
+const initialTab: ManagementTab =
+  initialTabParam === "groups" || initialTabParam === "wishes"
+    ? initialTabParam
+    : "footprints";
+const activeTab = ref<ManagementTab>(initialTab);
+const groupsPanel = ref<InstanceType<typeof FootprintGroupsPanel>>();
+const wishesPanel = ref<InstanceType<typeof FootprintWishesPanel>>();
+
+watch(activeTab, (tab) => {
+  const url = new URL(window.location.href);
+  if (tab === "footprints") url.searchParams.delete("tab");
+  else url.searchParams.set("tab", tab);
+  history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  if (tab === "groups") {
+    nextTick(() => groupsPanel.value?.refresh());
+  } else if (tab === "wishes") {
+    nextTick(() => wishesPanel.value?.refresh());
+  }
 });
 
 const {
@@ -83,6 +114,28 @@ const editingModal = ref(false);
 function handleEdit(footprint?: Footprint) {
   selectedFootprint.value = footprint;
   editingModal.value = true;
+}
+
+async function handleCreateGroup(memberNames: string[] = []) {
+  activeTab.value = "groups";
+  await nextTick();
+  groupsPanel.value?.openCreate(memberNames);
+}
+
+function handleTabKeydown(event: KeyboardEvent) {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  const tabs = Array.from(
+    (event.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>(
+      '[role="tab"]',
+    ) || [],
+  );
+  const current = tabs.indexOf(event.currentTarget as HTMLElement);
+  if (current < 0) return;
+  event.preventDefault();
+  const offset = event.key === "ArrowRight" ? 1 : -1;
+  const next = tabs[(current + offset + tabs.length) % tabs.length];
+  next.focus();
+  next.click();
 }
 
 async function onEditingModalClose() {
@@ -195,7 +248,15 @@ function handleOpenFrontend() {
         </span>
         <h1>足迹</h1>
         <span class="fp-brand-divider" aria-hidden="true">/</span>
-        <span class="fp-brand-caption">去过的地方 · 照片 · 票根</span>
+        <span class="fp-brand-caption">
+          {{
+            activeTab === "footprints"
+              ? "去过的地方 · 照片 · 票根"
+              : activeTab === "groups"
+                ? "把足迹组合成旅程与收藏"
+                : "记录尚未到访的未来足迹与计划"
+          }}
+        </span>
       </div>
       <div class="fp-header-actions">
         <button
@@ -206,13 +267,84 @@ function handleOpenFrontend() {
         >
           <RiExternalLinkLine width="15" height="15" aria-hidden="true" /><span>前台地图</span>
         </button>
-        <button type="button" class="fp-button is-primary" @click="handleEdit()">
+        <button
+          v-if="activeTab === 'footprints'"
+          type="button"
+          class="fp-button is-primary"
+          @click="handleEdit()"
+        >
           <RiAddLine width="15" height="15" aria-hidden="true" />新建足迹
+        </button>
+        <button
+          v-else-if="activeTab === 'groups'"
+          type="button"
+          class="fp-button is-primary"
+          @click="handleCreateGroup()"
+        >
+          <RiAddLine width="15" height="15" aria-hidden="true" />新建旅程或收藏
+        </button>
+        <button
+          v-else
+          type="button"
+          class="fp-button is-primary"
+          @click="wishesPanel?.openCreate()"
+        >
+          <RiAddLine width="15" height="15" aria-hidden="true" />新建未来足迹
         </button>
       </div>
     </header>
 
-    <main class="fp-main">
+    <nav class="fp-management-tabs" aria-label="足迹管理内容">
+      <div role="tablist" aria-label="足迹管理模块" class="fp-management-tablist">
+        <button
+          id="fp-tab-footprints"
+          type="button"
+          role="tab"
+          aria-controls="fp-footprints-panel"
+          :aria-selected="activeTab === 'footprints'"
+          :tabindex="activeTab === 'footprints' ? 0 : -1"
+          :class="{ 'is-active': activeTab === 'footprints' }"
+          @keydown="handleTabKeydown"
+          @click="activeTab = 'footprints'"
+        >
+          足迹维护
+        </button>
+        <button
+          id="fp-tab-groups"
+          type="button"
+          role="tab"
+          aria-controls="fp-groups-panel"
+          :aria-selected="activeTab === 'groups'"
+          :tabindex="activeTab === 'groups' ? 0 : -1"
+          :class="{ 'is-active': activeTab === 'groups' }"
+          @keydown="handleTabKeydown"
+          @click="activeTab = 'groups'"
+        >
+          我的旅途集
+        </button>
+        <button
+          id="fp-tab-wishes"
+          type="button"
+          role="tab"
+          aria-controls="fp-wishes-panel"
+          :aria-selected="activeTab === 'wishes'"
+          :tabindex="activeTab === 'wishes' ? 0 : -1"
+          :class="{ 'is-active': activeTab === 'wishes' }"
+          @keydown="handleTabKeydown"
+          @click="activeTab = 'wishes'"
+        >
+          未来足迹
+        </button>
+      </div>
+    </nav>
+
+    <main
+      v-show="activeTab === 'footprints'"
+      id="fp-footprints-panel"
+      class="fp-main"
+      role="tabpanel"
+      aria-labelledby="fp-tab-footprints"
+    >
       <FootprintOverview
         v-if="stats"
         :stats="stats"
@@ -246,6 +378,9 @@ function handleOpenFrontend() {
               />
               <div v-if="selectedFootprints.length" class="fp-selection">
                 <span>已选 {{ selectedFootprints.length }} 项</span>
+                <VButton size="sm" @click="handleCreateGroup(selectedFootprints)">
+                  新建旅程或收藏
+                </VButton>
                 <VButton size="sm" type="danger" @click="handleDeleteInBatch">删除</VButton>
                 <VButton size="sm" @click="clearSelection">取消</VButton>
               </div>
@@ -266,8 +401,8 @@ function handleOpenFrontend() {
                 label="排序"
                 :items="[
                   { label: '默认' },
-                  { label: '最近创建', value: 'spec.createTime,desc' },
-                  { label: '较晚创建', value: 'spec.createTime,asc' },
+                  { label: '最近访问', value: 'spec.createTime,desc' },
+                  { label: '较早访问', value: 'spec.createTime,asc' },
                 ]"
               />
               <button
@@ -336,6 +471,9 @@ function handleOpenFrontend() {
         </div>
       </section>
     </main>
+
+    <FootprintGroupsPanel v-if="activeTab === 'groups'" id="fp-groups-panel" ref="groupsPanel" />
+    <FootprintWishesPanel v-if="activeTab === 'wishes'" id="fp-wishes-panel" ref="wishesPanel" />
   </div>
 
   <ManualLocationModal

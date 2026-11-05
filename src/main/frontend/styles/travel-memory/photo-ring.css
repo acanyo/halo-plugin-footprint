@@ -8,7 +8,7 @@
             position: fixed;
             left: 0;
             top: 0;
-            z-index: 9997;          /* 与 #markerTip 同级：卡片在根层，天然压在环上方 */
+            z-index: 10006;         /* 高于底部导航和旅途集信息坞 */
             pointer-events: none;
             opacity: 0;
             visibility: hidden;
@@ -24,7 +24,7 @@
            跟着整层抬起来不会有别的观感变化；根节点是 pointer-events:none，
            卡片在没被大图盖住的部分照样能点。 */
         #photoRing.is-viewing {
-            z-index: 9998;
+            z-index: 10007;
         }
         #photoRing.is-hidden {
             opacity: 0;              /* 标记转到地球背面：淡出但保留状态 */

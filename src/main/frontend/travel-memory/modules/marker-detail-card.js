@@ -38,6 +38,10 @@ import {
     flyToCity,
     hideMarkerTip
 } from './markers.js';
+import {
+    clearWishEntitySelection,
+    setWishEntitySelected
+} from './wish-layer.js';
 
 let deps = null;
 
@@ -69,6 +73,7 @@ const cityCardProvince = document.getElementById('cityCardProvince');
 const markerCardAddr = document.getElementById('markerCardAddr');
 const markerCardAddrRow = document.getElementById('markerCardAddrRow');
 const markerCardDesc = document.getElementById('markerCardDesc');
+const markerCardTags = document.getElementById('markerCardTags');
 const markerCardActions = markerCard.querySelector('.marker-card-actions');
 const markerCardTicket = document.getElementById('markerCardTicket');
 export const markerCardGallery = document.getElementById('markerCardGallery');
@@ -89,6 +94,7 @@ let detailCardsReady = false;
 
 detailCardsReady = true;   // 详情卡已就绪，可响应整球视图自动关闭
 let activeFootprintIndex = -1;
+let activeWishKey = '';
 let markerRestoreRaf = null;
 
 function setMarkerSelected(index) {
@@ -152,6 +158,12 @@ export function hideMarkerCard() {
     hidePhotoRing();                               // 卡片收起时照片环一起收（环是卡片的延伸）
     document.body.classList.remove('card-open');   // 恢复右下角浮动按钮
     resumeAutoRotate('card');                      // 详情卡关掉：按用户偏好恢复自转
+    clearWishEntitySelection();
+    activeWishKey = '';
+    markerCard.classList.remove('is-wish');
+    delete markerCard.dataset.wishEntity;
+    markerCardTags.hidden = true;
+    markerCardTags.replaceChildren();
     if (!markerCard.classList.contains('visible')) return;
     markerCard.classList.remove('visible');
     // 注意：这里要的是「那个按钮」，不是判断结果 —— 直接写 && 链会得到布尔值，
@@ -300,6 +312,11 @@ export function showMarkerCard(fp, index) {
     hideCityCard(false);
     closeProvinceCards();   // 详情卡与省份卡片组互斥：打开详情卡就收起省份卡片
     pauseAutoRotate('card');   // 打开足迹详情卡：临时停转（关掉卡片按用户偏好自动恢复）
+    clearWishEntitySelection();
+    activeWishKey = '';
+    markerCard.classList.remove('is-wish');
+    markerCardTags.hidden = true;
+    markerCardTags.replaceChildren();
     activeFootprintIndex = index;
     markerCardTitle.textContent = fp.name;
     markerCardAddr.textContent = fp.address || '';
@@ -345,6 +362,89 @@ export function showMarkerCard(fp, index) {
     setMarkerSelected(index);
     openMarkerCardFrom(index);   // 从被点的标记方向展开（标记不可用时保持默认的右侧滑入）
     document.body.classList.add('card-open');   // 隐藏右下角浮动按钮，避免遮挡
+    setOverlayHidden(markerCard, false);
+}
+
+function wishPlanStamp(wish) {
+    const year = Number(wish?.spec?.plannedYear);
+    const month = Number(wish?.spec?.plannedMonth);
+    if (Number.isFinite(year) && year > 0) {
+        return `${year}${Number.isFinite(month) && month > 0
+            ? `.${String(month).padStart(2, '0')}`
+            : ''}`;
+    }
+    return String(wish?.spec?.plannedTimeNote || '').trim();
+}
+
+export function wishCardIsOpenFor(wish, entity) {
+    return markerCard.classList.contains('visible') &&
+        activeWishKey === wish?.metadata?.name &&
+        (!entity || String(entity.id || '') === markerCard.dataset.wishEntity);
+}
+
+export function showWishCard(wish, entity) {
+    if (!wish?.spec) return;
+    hideCityCard(false);
+    closeProvinceCards();
+    hidePhotoRing();
+    hideMarkerTip();
+    pauseAutoRotate('card');
+    activeFootprintIndex = -1;
+    activeWishKey = wish.metadata?.name || '';
+    markerCard.dataset.wishEntity = entity?.id || '';
+    markerCard.classList.add('is-wish');
+
+    const title = String(wish.spec.title || '未来足迹');
+    const status = {
+        wish: '心愿',
+        planning: '计划中',
+        booked: '已订票',
+        visited: '已实现'
+    }[wish.spec.status] || '心愿';
+    const region = [wish.spec.province, wish.spec.city].filter(Boolean).join(' / ');
+    const lng = Number(wish.spec.longitude);
+    const lat = Number(wish.spec.latitude);
+    const coordinate = Number.isFinite(lng) && Number.isFinite(lat)
+        ? `${formatLatitude(lat)}  ${formatLongitude(lng)}`
+        : '';
+    const plan = wishPlanStamp(wish);
+
+    markerCardMedia.classList.add('no-image');
+    markerCardMedia.style.backgroundImage = 'none';
+    markerCardMedia.innerHTML =
+        '<span class="marker-card-monogram">' +
+        (Array.from(title)[0] || '愿') +
+        '</span>';
+    markerCardKind.textContent = status;
+    markerCardKind.hidden = false;
+    markerCardStamp.textContent = plan;
+    markerCardStamp.hidden = !plan;
+    markerCardTitle.textContent = title;
+    markerCardMeta.textContent = [region, coordinate].filter(Boolean).join('，');
+    markerCardMeta.hidden = !markerCardMeta.textContent;
+    markerCardAddr.textContent = wish.spec.address || '';
+    if (markerCardAddrRow) {
+        markerCardAddrRow.hidden = !(wish.spec.address || '').trim();
+    }
+    markerCardDesc.textContent =
+        wish.spec.description || '还没有写下想去这里的理由。';
+    const tags = [...new Set(
+        (Array.isArray(wish.spec.tags) ? wish.spec.tags : [])
+            .map(tag => String(tag || '').trim())
+            .filter(Boolean)
+    )];
+    markerCardTags.replaceChildren(...tags.map(tag => {
+        const item = document.createElement('span');
+        item.textContent = tag;
+        return item;
+    }));
+    markerCardTags.hidden = tags.length === 0;
+    markerCardActions.hidden = true;
+    markerCardTicket.hidden = true;
+    markerCardGallery.hidden = true;
+    setWishEntitySelected(entity || null);
+    markerCard.classList.add('visible');
+    document.body.classList.add('card-open');
     setOverlayHidden(markerCard, false);
 }
 

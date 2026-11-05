@@ -70,8 +70,8 @@ export function insightTimeStats(fps) {
     if (!dated.length) return null;
     const first = dated[0];
     const last = dated[dated.length - 1];
-    const firstTime = new Date(String(first.createTime) + 'T00:00:00').getTime();
-    const lastTime = new Date(String(last.createTime) + 'T00:00:00').getTime();
+    const firstTime = new Date(String(first.createTime)).getTime();
+    const lastTime = new Date(String(last.createTime)).getTime();
     const spanDays = Number.isFinite(firstTime) && Number.isFinite(lastTime)
         ? Math.max(0, Math.round((lastTime - firstTime) / 86400000))
         : 0;
@@ -222,7 +222,7 @@ export function insightTicketCollectorDone(m) {
     return m.footprintCount > 0 && m.ticketCount * 2 >= m.footprintCount;
 }
 
-// 周末：createTime 被统一成 YYYY-MM-DD，小时已经丢了，只能算到「星期」这一层
+// 周末：只判断访问时间所在的星期
 export function insightIsWeekend(fp) {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String((fp && fp.createTime) || ''));
     if (!m) return false;

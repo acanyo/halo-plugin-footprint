@@ -37,10 +37,19 @@ import {
     markerCard,
     cityCard,
     showMarkerCard,
+    showWishCard,
+    wishCardIsOpenFor,
     hideMarkerCard,
     showCityCard,
     hideCityCard
 } from './marker-detail-card.js';
+import {
+    clearWishEntityHover,
+    findWishEntity,
+    setWishEntityHovered,
+    wishEntityAtScreen,
+    wishForEntity
+} from './wish-layer.js';
 
 let deps = null;
 
@@ -115,16 +124,24 @@ export function initMarkersInput() {
     markerPickHandler = new Cesium.ScreenSpaceEventHandler(deps.viewer().scene.canvas);
     markerPickHandler.setInputAction((movement) => {
         const found = pickMarkerUnderPointer(movement.endPosition);
+        const wishEntity = wishEntityAtScreen(movement.endPosition);
+        setWishEntityHovered(wishEntity);
         // 光标是标记「可点」的第一层暗示（尺寸放大由 setMarkerFocus 负责）
-        setHoveredMarker(!!found);
+        setHoveredMarker(!!found || !!wishEntity);
         // 没落在标记上时再看一眼是不是可点击的省份（几何判定，内部节流）
-        setHoveredProvince(!found && provinceHoverAt(movement.endPosition));
+        setHoveredProvince(!found && !wishEntity && provinceHoverAt(movement.endPosition));
         applyCanvasCursor();
         // 在同一个标记上滑动不必反复重设气泡：写文本 + 一次坐标换算 + 两次样式写，
         // 单次都很便宜，但指针事件每秒能来上百次。只有「指向的标记变了」才动 DOM。
-        const hoverKey = found ? (found.type + ':' + found.index) : '';
+        const hoverKey = wishEntity
+            ? 'wish:' + wishEntity.id
+            : found
+                ? (found.type + ':' + found.index)
+                : '';
         if (!claimHoveredMarkerKey(hoverKey)) return;
-        if (found && found.type === 'footprint') {
+        if (wishEntity) {
+            hideMarkerTip();
+        } else if (found && found.type === 'footprint') {
             showMarkerTip(markerEntityList()[found.index], footprintTipText(deps.footprints()[found.index]));
         } else if (found && found.type === 'city') {
             showMarkerTip(cityMarkerEntityList()[found.index], cityTipText(found.index));
@@ -136,6 +153,7 @@ export function initMarkersInput() {
     // 鼠标离开画布时收起名称气泡
     deps.viewer().scene.canvas.addEventListener('mouseleave', () => {
         hideMarkerTip();
+        clearWishEntityHover();
         setHoveredMarker(false);
         setHoveredProvince(false);
         applyCanvasCursor();
@@ -143,9 +161,21 @@ export function initMarkersInput() {
 
     // 点击足迹打开详情卡；点击城市标记显示城市聚合卡；点击空白处关闭
     markerPickHandler.setInputAction((movement) => {
-        const found = findPickedMarker(deps.viewer().scene.pick(movement.position));
+        const picked = deps.viewer().scene.pick(movement.position);
+        const wishEntity = findWishEntity(picked?.id);
+        const wish = wishForEntity(wishEntity);
+        if (wish) {
+            if (wishCardIsOpenFor(wish, wishEntity)) {
+                hideMarkerCard();
+                return;
+            }
+            showWishCard(wish, wishEntity);
+            return;
+        }
+        const found = findPickedMarker(picked);
         if (found && found.type === 'footprint') {
             const fp = deps.footprints()[found.index];
+            window.FootprintGroupBridge?.trackMapMember?.(fp);
             // 再点同一个标记 = 收起（照片环 + 足迹卡一起收）
             if (photoRingIsOpenFor(fp)) {
                 hidePhotoRing();

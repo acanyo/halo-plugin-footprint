@@ -90,16 +90,150 @@
 .ms-scene { position: relative; }
 
 .ms-building {
+    --ms-binding-paper: rgba(255, 255, 255, 0.94);
+    --ms-binding-line: rgba(58, 58, 64, 0.24);
+
     position: absolute;
     inset: 0;
     z-index: 5;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 14px;
     background: linear-gradient(180deg, var(--ms-room-wall) 0%, var(--ms-room-floor) 100%);
     color: var(--fp-ink-soft);
     font-size: var(--fp-size-sm);
+    letter-spacing: 0.04em;
     transition: opacity 0.26s ease;
+}
+
+.ms-building-label {
+    display: inline-flex;
+    align-items: baseline;
+}
+
+.ms-binding-dots::after {
+    content: '';
+    display: inline-block;
+    width: 0.6em;
+    text-align: left;
+    animation: msBindingDots 1.2s steps(4, end) infinite;
+}
+
+.ms-binding-icon {
+    position: relative;
+    display: block;
+    width: 72px;
+    height: 58px;
+    perspective: 150px;
+}
+
+.ms-binding-book {
+    position: absolute;
+    left: 10px;
+    top: 3px;
+    width: 48px;
+    height: 48px;
+    transform-style: preserve-3d;
+    animation: msBookThread 2.5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.ms-binding-pages,
+.ms-binding-cover {
+    position: absolute;
+    top: 3px;
+    height: 42px;
+    box-sizing: border-box;
+    border-radius: 2px 6px 6px 2px;
+}
+
+.ms-binding-pages {
+    left: 10px;
+    width: 36px;
+    border: 1px solid var(--ms-binding-line);
+    background:
+        repeating-linear-gradient(
+            180deg,
+            var(--ms-binding-paper) 0 5px,
+            var(--ms-binding-line) 5px 6px
+        );
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1);
+}
+
+.ms-binding-cover {
+    left: 4px;
+    z-index: 2;
+    width: 42px;
+    border: 1px solid var(--ms-accent);
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent 30%),
+        var(--ms-accent);
+    transform-origin: 7px 50%;
+    animation: msBookCover 2.5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.ms-binding-cover::after {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 11px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--ms-gold);
+    box-shadow: 0 6px 0 var(--fp-accent-soft), 0 12px 0 var(--fp-accent-soft);
+    content: '';
+}
+
+.ms-binding-thread {
+    position: absolute;
+    right: 1px;
+    top: 14px;
+    z-index: 3;
+    width: 19px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--ms-gold);
+    box-shadow: 0 0 7px var(--fp-accent-soft);
+    transform-origin: 100% 50%;
+    animation: msBindThread 2.5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.ms-binding-thread::after {
+    position: absolute;
+    left: -3px;
+    top: -2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ms-gold);
+    content: '';
+}
+
+@keyframes msBookThread {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    48% { transform: translateY(-2px) rotate(0.7deg); }
+}
+
+@keyframes msBookCover {
+    0%, 100% { transform: rotateY(-2deg); }
+    45% { transform: rotateY(-17deg); }
+    68% { transform: rotateY(-8deg); }
+}
+
+@keyframes msBindThread {
+    0%, 16% { opacity: 0; transform: translate(5px, -6px) rotate(-52deg); }
+    24% { opacity: 1; transform: translate(3px, 0) rotate(-52deg); }
+    52% { opacity: 1; transform: translate(1px, 22px) rotate(-52deg); }
+    76% { opacity: 0.82; transform: translate(-2px, 38px) rotate(-52deg); }
+    88%, 100% { opacity: 0; transform: translate(-5px, 45px) rotate(-52deg); }
+}
+
+@keyframes msBindingDots {
+    0% { content: ''; }
+    25% { content: '·'; }
+    50% { content: '··'; }
+    75% { content: '···'; }
 }
 
 .ms-building.is-done { opacity: 0; }

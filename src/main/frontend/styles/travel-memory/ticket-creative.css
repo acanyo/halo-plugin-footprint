@@ -501,8 +501,8 @@
         }
         /* 每页用自己的画布比例；宽度取「最大宽」和「最大高换算出的宽」里更紧的一边 */
         .ticket-letter-stage {
-            --media-ratio: 0.703125;      /* 写信画布 900 × 1280 */
-            --media-aspect: 900 / 1280;
+            --media-ratio: 1.163636;      /* 写信画布 1280 × 1100，横向通栏 */
+            --media-aspect: 1280 / 1100;
         }
         .postcard-stage {
             --media-ratio: 0.75;          /* 城市明信片画布 1080 × 1440 */
@@ -568,6 +568,12 @@
         .postcard-stage.is-loading #postcardPreviewImg,
         .postcard-stage.is-error #postcardPreviewImg {
             visibility: hidden;
+        }
+        .ticket-letter-stage .ticket-letter-skeleton,
+        .ticket-letter-stage #ticketLetterImg {
+            /* 横向写信页比竖向城市明信片更宽，避免把正文缩得过小 */
+            --media-max-w: min(920px, 94vw);
+            --media-max-h: min(72vh, 640px);
         }
         .ticket-letter-stage.is-ready .ticket-letter-skeleton,
         .postcard-stage.is-ready .postcard-skeleton {

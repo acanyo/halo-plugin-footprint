@@ -32,6 +32,7 @@ import { cityView, closeCityView } from './city-view.js';
 import { cityWall, closeCityWall } from './city-wall.js';
 import { isAutoRotating } from './auto-rotate.js';
 import { tdtTodayUsage } from './tianditu-usage.js';
+import { backFootprintGroups } from './footprint-groups.js';
 
 let deps = null;
 
@@ -94,7 +95,8 @@ function introOverlayElements() {
         introOverlayEls = [
             document.getElementById('cityView'),
             document.getElementById('cityWall'),
-            document.getElementById('ticketGallery')
+            document.getElementById('ticketGallery'),
+            document.getElementById('footprintGroupsView')
         ];
     }
     return introOverlayEls;
@@ -135,6 +137,9 @@ function updateIntroVisibility() {
     }
     // 2D 高德视图：导航栏常驻（保证 2D/3D 切换按钮可用），地球标题卡/浮动按钮隐藏
     if (isAmapMode()) {
+        // 标题的 DOM 类与内部状态必须一起清掉。只移除 .visible 会让 introVisible
+        // 仍为 true；切回 3D 后高度重新超过阈值时，就不会再次加回标题卡。
+        introVisible = false;
         pageIntro.classList.remove('visible');
         topNav.classList.add('visible');
         document.body.classList.remove('nav-zoom');
@@ -341,6 +346,7 @@ document.addEventListener('keydown', (e) => {
         closeInsight();
         return;
     }
+    if (backFootprintGroups()) return;
     if (cityView.classList.contains('show')) {
         closeCityView();
         return;

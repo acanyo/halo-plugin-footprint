@@ -86,6 +86,7 @@ let cityFlightTimer = null;
 let cityMoveEndHandler = null;
 let cityRevealRaf = null;
 let focusedMarker = null;        // 当前聚焦（悬停/键盘选中）的标记，null 表示无
+let groupEmphasisKeys = null;    // 当前旅程/收藏成员；null 表示未启用组合高亮
 let markerOcclusionDirty = true; // 标记遮挡需要重算（相机或标记位置变化时置位）
 let markerLabelDirty = true;     // 地名标签需要重排（标记或标签显隐变化时置位）
 let pendingMarkerAudit = false;  // 需要在真实渲染结果上体检一次标记（展开/重建后）
@@ -301,7 +302,18 @@ const MARKER_IMAGE_SETTLE_MS = 1000;
 const markerImageSwapAt = new Map();   // 下标 -> 换图时刻（performance.now）
 function markerCoverUrl(fp) {
     const first = fp && cityWallImages(fp)[0];
-    return first ? first.url : '';
+    const raw = first ? String(first.url || '').trim() : '';
+    if (!raw) return '';
+    // 与 2D createMarker / 时间线保持一致：3D 照片标记也必须使用后台
+    // “标记点图片”的 from → to → suffix 规则。规则全空时保持原 URL。
+    const config = deps.footprintCfg() || {};
+    const from = String(config.markerImageFrom || '');
+    const to = String(config.markerImageTo || '');
+    const suffix = String(config.markerImageSuffix || '');
+    let url = raw;
+    if (from) url = url.split(from).join(to);
+    if (suffix && !url.endsWith(suffix)) url += suffix;
+    return url;
 }
 function markerImageOf(fp) {
     return cachedMarkerPhoto(markerCoverUrl(fp)) || MARKER_URL;
@@ -662,6 +674,13 @@ const MARKER_HOVER_SCALE = 1.16;
 function markerEmphasisColor(entity, focus) {
     const dim = Cesium.Color.WHITE.withAlpha(PROVINCE_MARKER_DIM_ALPHA);
     if (focus) return focus === entity ? Cesium.Color.WHITE : dim;
+    if (groupEmphasisKeys) {
+        const index = markerEntities.indexOf(entity);
+        const footprint = index >= 0 ? deps.footprints()[index] : null;
+        return footprint && groupEmphasisKeys.has(footprint.key)
+            ? Cesium.Color.WHITE
+            : dim;
+    }
     if (isProvinceCardsActive()) return provinceBrightEntitySet().has(entity) ? Cesium.Color.WHITE : dim;
     return Cesium.Color.WHITE;
 }
@@ -675,6 +694,23 @@ export function refreshMarkerColors() {
     });
 }
 
+function applyGroupVisibility() {
+    markerEntities.forEach((entity, index) => {
+        if (!entity) return;
+        const member = !groupEmphasisKeys ||
+            groupEmphasisKeys.has(deps.footprints()[index]?.key);
+        if (entity.billboard) entity.billboard.show = member;
+        if (!member) {
+            entity.show = false;
+            if (entity.label) entity.label.show = false;
+        }
+    });
+    markerFocusLayer.querySelectorAll('[data-footprint-key]').forEach(button => {
+        button.hidden = !!groupEmphasisKeys &&
+            !groupEmphasisKeys.has(button.dataset.footprintKey);
+    });
+}
+
 export function setMarkerFocus(entity) {
     if (focusedMarker === entity) return;
     if (focusedMarker && focusedMarker.billboard) focusedMarker.billboard.scale = 1;
@@ -682,6 +718,17 @@ export function setMarkerFocus(entity) {
     if (entity && entity.billboard) entity.billboard.scale = MARKER_HOVER_SCALE;
     const outlineMat = Cesium.Color.WHITE.withAlpha(entity ? 0.2 : 0.4);
     outlinePolylines().forEach(p => { if (p) p.material = outlineMat; });
+    refreshMarkerColors();
+}
+
+/**
+ * 设置当前旅程/收藏的成员高亮。传 null 恢复普通标记颜色。
+ * groupEmphasisKeys 使用 Footprint.key（metadata.name），避免同名地点误匹配。
+ */
+export function setGroupEmphasis(keys) {
+    groupEmphasisKeys = keys && keys.size ? new Set(keys) : null;
+    if (groupEmphasisKeys) applyMarkerMode(false);
+    applyGroupVisibility();
     refreshMarkerColors();
 }
 
@@ -746,6 +793,7 @@ function updateMarkerOverlays() {
         if (updateCityMerge()) markerOcclusionDirty = true;
     }
     const cameraMoved = updateMarkerOcclusion(markerOcclusionDirty, deps.viewer, cityMode, cityMarkerEntities, markerEntities, cityMergedAway);
+    applyGroupVisibility();
     markerOcclusionDirty = false;
     if (!cameraMoved && !markerLabelDirty) return;
     markerLabelDirty = false;
@@ -760,6 +808,7 @@ function updateMarkerOverlays() {
         cityList: cityList,
         cityLabelOf: cityLabelText
     });
+    applyGroupVisibility();
     if (pendingMarkerAudit) {
         pendingMarkerAudit = false;
         auditMarkerRendering();
@@ -827,6 +876,7 @@ function buildMarkerFocusButtons() {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'marker-focus-btn';
+        btn.dataset.footprintKey = fp.key || '';
         btn.textContent = '查看' + fp.name + '足迹详情';
         btn.addEventListener('focus', () => {
             if (bounceFocusIntoPhotoRing()) return;
@@ -909,6 +959,7 @@ export function rebuildMarkerModeFromCamera() {
 /** 高度阈值驱动的模式切换（updateIntroVisibility 每帧调用）。 */
 export function syncMarkerModeByHeight(cameraHeight) {
     if (cityFlightActive) return;
+    if (groupEmphasisKeys) return;
     if (cityMode && cameraHeight < CITY_EXPAND_HEIGHT) {
         applyMarkerMode(false);
     } else if (!cityMode && cameraHeight > CITY_COLLAPSE_HEIGHT) {

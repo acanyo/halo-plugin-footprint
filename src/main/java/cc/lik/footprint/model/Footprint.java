@@ -1,6 +1,7 @@
 package cc.lik.footprint.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -121,7 +122,8 @@ public class Footprint extends AbstractExtension {
         /**
          * 创建时间
          */
-        @Schema(description = "创建时间")
+        @NotNull
+        @Schema(description = "访问时间", requiredMode = Schema.RequiredMode.REQUIRED)
         private Instant createTime;
 
         @Schema(description = "省级行政区")
