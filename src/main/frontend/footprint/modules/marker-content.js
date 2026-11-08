@@ -10,6 +10,7 @@
 
 import { getCachedImage, processFootprintImageUrl } from './footprint-data.js';
 import { escapeHtml, formatDateToYMD } from './format.js';
+import { wishStatusKey, wishStatusLabel } from '../../shared/wish-status.js';
 
 // 图片墙图片按「显示顺序」排好，只取 URL。后台存的是 {url, order}，老数据可能是纯字符串
 const getGalleryUrls = (images) => {
@@ -140,13 +141,6 @@ export function createInfoWindow(spec) {
     `;
 }
 
-const WISH_STATUS_TEXT = {
-    wish: '心愿',
-    planning: '计划中',
-    booked: '已订票',
-    visited: '已实现'
-};
-
 function wishPlanText(spec) {
     const year = Number(spec?.plannedYear);
     const month = Number(spec?.plannedMonth);
@@ -168,7 +162,8 @@ function wishCoordinateText(spec) {
 export function createWishInfoWindow(wish) {
     const spec = wish?.spec || {};
     const title = String(spec.title || '未来足迹');
-    const status = WISH_STATUS_TEXT[spec.status] || WISH_STATUS_TEXT.wish;
+    const statusKey = wishStatusKey(spec.status);
+    const status = wishStatusLabel(statusKey);
     const region = [spec.province, spec.city].filter(Boolean).join(' / ');
     const tags = [...new Set(
         (Array.isArray(spec.tags) ? spec.tags : [])
@@ -179,7 +174,7 @@ export function createWishInfoWindow(wish) {
         ? `<li class="info-window-row">${icon}<span>${escapeHtml(String(text))}</span></li>`
         : '';
     return `
-        <div class="info-window info-window--wish">
+        <div class="info-window info-window--wish" data-wish-status="${statusKey}">
             <div class="wish-info-hero">
                 <span class="wish-info-status">${escapeHtml(status)}</span>
                 <span class="wish-info-initial">${escapeHtml(Array.from(title)[0] || '愿')}</span>

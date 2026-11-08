@@ -5,7 +5,12 @@
  * 因此不会在这个图层中重复出现。
  */
 
-import { accentHex } from '../../shared/accent.js';
+import { accentHex, accentInkFor, accentRgba } from '../../shared/accent.js';
+import {
+    isMapWishStatus,
+    wishStatusKey,
+    wishStatusLabel
+} from '../../shared/wish-status.js';
 
 let deps = null;
 let wishEntities = [];
@@ -13,11 +18,12 @@ let activeWishes = [];
 let selectedWishEntity = null;
 let hoveredWishEntity = null;
 
-const STATUS_TEXT = {
-    wish: '心愿',
-    planning: '计划中',
-    booked: '已订票'
+const WISH_MARKER_SIZES = {
+    wish: 34,
+    planning: 37,
+    booked: 34
 };
+const markerImageCache = new Map();
 
 export function setupWishLayer(d) {
     deps = d;
@@ -34,13 +40,65 @@ function validCoordinate(wish) {
 function visibleWishes(wishes) {
     return (Array.isArray(wishes) ? wishes : []).filter(wish =>
         wish && wish.metadata && !wish.metadata.deletionTimestamp &&
-        wish.spec && wish.spec.status !== 'visited' && validCoordinate(wish)
+        wish.spec && isMapWishStatus(wish.spec.status) && validCoordinate(wish)
     );
 }
 
+function svgDataUrl(svg) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function wishMarkerImage(status) {
+    const key = wishStatusKey(status);
+    const accent = accentHex();
+    const cacheKey = `${key}:${accent}`;
+    if (markerImageCache.has(cacheKey)) return markerImageCache.get(cacheKey);
+
+    const ink = accentInkFor(accent);
+    const common = [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">',
+        '<defs><filter id="s" x="-35%" y="-35%" width="170%" height="170%">',
+        '<feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#000000" flood-opacity="0.34"/>',
+        '</filter></defs>',
+        '<circle cx="32" cy="32" r="30" fill="#ffffff" opacity="0.01"/>'
+    ];
+    let shape;
+    if (key === 'wish') {
+        shape = [
+            '<circle cx="32" cy="32" r="21" fill="#ffffff" opacity="0.96" filter="url(#s)"/>',
+            `<circle cx="32" cy="32" r="13" fill="#ffffff" stroke="${accent}" stroke-width="5"/>`
+        ];
+    } else if (key === 'planning') {
+        shape = [
+            '<circle cx="32" cy="32" r="21" fill="#ffffff" opacity="0.96" filter="url(#s)"/>',
+            `<circle cx="32" cy="32" r="15" fill="${accentRgba(0.18)}" stroke="${accent}" stroke-width="4"/>`,
+            `<circle cx="32" cy="32" r="5" fill="${accent}"/>`
+        ];
+    } else if (key === 'booked') {
+        shape = [
+            '<rect x="9" y="13" width="46" height="38" rx="12" fill="#ffffff" opacity="0.96" filter="url(#s)"/>',
+            `<rect x="14" y="18" width="36" height="28" rx="6" fill="${accent}"/>`,
+            `<path d="m26 32 3.5 3.5 8-9" fill="none" stroke="${ink}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`
+        ];
+    } else {
+        shape = [
+            '<circle cx="32" cy="32" r="21" fill="#ffffff" opacity="0.96" filter="url(#s)"/>',
+            `<circle cx="32" cy="32" r="13" fill="${accentRgba(0.14)}" stroke="${accent}" stroke-width="4"/>`
+        ];
+    }
+    const image = svgDataUrl([...common, ...shape, '</svg>'].join(''));
+    markerImageCache.set(cacheKey, image);
+    return image;
+}
+
+function wishMarkerSize(status) {
+    return WISH_MARKER_SIZES[wishStatusKey(status)] || WISH_MARKER_SIZES.wish;
+}
+
 function addWishEntity(wish) {
+    const statusKey = wishStatusKey(wish.spec.status);
     const color = Cesium.Color.fromCssColorString(accentHex());
-    const status = STATUS_TEXT[wish.spec.status] || '未来足迹';
+    const size = wishMarkerSize(statusKey);
     return deps.viewer().entities.add({
         id: `wish:${wish.metadata.name}`,
         name: wish.spec.title,
@@ -49,15 +107,16 @@ function addWishEntity(wish) {
             Number(wish.spec.latitude),
             40
         ),
-        point: {
-            pixelSize: 13,
-            color,
-            outlineColor: Cesium.Color.WHITE,
-            outlineWidth: 3,
+        billboard: {
+            image: wishMarkerImage(statusKey),
+            width: size,
+            height: size,
+            scale: 1,
+            verticalOrigin: Cesium.VerticalOrigin.CENTER,
             disableDepthTestDistance: Number.POSITIVE_INFINITY
         },
         label: {
-            text: `${wish.spec.title} · ${status}`,
+            text: `${wish.spec.title} · ${wishStatusLabel(statusKey)}`,
             font: '600 13px "MiSans", sans-serif',
             fillColor: Cesium.Color.WHITE,
             outlineColor: Cesium.Color.BLACK.withAlpha(0.55),
@@ -67,7 +126,7 @@ function addWishEntity(wish) {
             backgroundColor: color.withAlpha(0.86),
             backgroundPadding: new Cesium.Cartesian2(7, 4),
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-            pixelOffset: new Cesium.Cartesian2(0, -17),
+            pixelOffset: new Cesium.Cartesian2(0, -size * 0.72),
             disableDepthTestDistance: Number.POSITIVE_INFINITY
         }
     });
@@ -132,7 +191,7 @@ export function wishEntityAtScreen(screenPos) {
     let nearest = null;
     let nearestDistance = Infinity;
     for (const entity of wishEntities) {
-        if (!entity || entity.show === false || !entity.point || entity.point.show === false) {
+        if (!entity || entity.show === false || !entity.billboard || entity.billboard.show === false) {
             continue;
         }
         const world = entity.position && entity.position.getValue(now);
@@ -149,7 +208,9 @@ export function wishEntityAtScreen(screenPos) {
         const dx = screenPos.x - projected.x;
         const dy = screenPos.y - projected.y;
         const distance = dx * dx + dy * dy;
-        const hitRadius = entity === selectedWishEntity ? 18 : 13;
+        const width = entity.billboard.width?.getValue?.(now) || 34;
+        const scale = entity.billboard.scale?.getValue?.(now) || 1;
+        const hitRadius = width * scale * (entity === selectedWishEntity ? 0.64 : 0.56);
         if (distance <= hitRadius * hitRadius && distance < nearestDistance) {
             nearest = entity;
             nearestDistance = distance;
@@ -167,13 +228,12 @@ export function wishForEntity(entityOrId) {
 }
 
 function refreshWishEntityStyle(entity) {
-    if (!entity?.point) return;
-    entity.point.pixelSize = entity === selectedWishEntity
-        ? 19
+    if (!entity?.billboard) return;
+    entity.billboard.scale = entity === selectedWishEntity
+        ? 1.24
         : entity === hoveredWishEntity
-            ? 17
-            : 13;
-    entity.point.outlineWidth = entity === selectedWishEntity ? 4 : 3;
+            ? 1.12
+            : 1;
 }
 
 export function setWishEntitySelected(entity) {
