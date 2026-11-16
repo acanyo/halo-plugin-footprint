@@ -110,6 +110,14 @@ public class FootprintConfigServiceImpl implements FootprintConfigService {
                     .cityCardHoverCarousel(
                         field(cityWall, legacy, "cityCardHoverCarousel").asBoolean(true))
                     .enablePostcard(field(cityWall, legacy, "enablePostcard").asBoolean(true))
+                    .enableTravelWall(
+                        field(cityWall, legacy, "enableTravelWall").asBoolean(false))
+                    .travelWallTitle(
+                        field(cityWall, legacy, "travelWallTitle")
+                            .asText("城市记忆墙"))
+                    .travelWallMotto(
+                        field(cityWall, legacy, "travelWallMotto")
+                            .asText("人生得意须尽欢"))
 
                     .markerImageFrom(image.path("markerImageFrom").asText(""))
                     .markerImageTo(image.path("markerImageTo").asText(""))

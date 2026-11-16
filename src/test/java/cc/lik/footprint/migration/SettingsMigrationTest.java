@@ -13,12 +13,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import reactor.core.publisher.Mono;
+import run.halo.app.core.extension.Setting;
 import run.halo.app.extension.ConfigMap;
 import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.Secret;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,6 +60,8 @@ class SettingsMigrationTest {
         configMap.setData(new HashMap<>());
 
         when(client.fetch(ConfigMap.class, CONFIG_MAP_NAME)).thenReturn(Mono.just(configMap));
+        when(client.fetch(Setting.class, "plugin-footprint-settings"))
+            .thenReturn(Mono.empty());
         when(client.update(any(ConfigMap.class)))
             .thenAnswer(inv -> Mono.just(inv.getArgument(0)));
     }
@@ -233,6 +237,41 @@ class SettingsMigrationTest {
         assertThat(data).containsKey("globe3d");
         assertThat(group("globe3d").has("ticketGalleryInfoStyle")).isFalse();
         assertThat(group("globe3d").path("globeTitle").asText()).isEqualTo("我的旅行");
+    }
+
+    @Test
+    @DisplayName("已有 Setting 表单会幂等补齐旅行记忆墙配置")
+    void addsTravelWallSettingFields() {
+        Setting setting = new Setting();
+        Metadata metadata = new Metadata();
+        metadata.setName("plugin-footprint-settings");
+        setting.setMetadata(metadata);
+
+        Setting.SettingForm cityWall = new Setting.SettingForm();
+        cityWall.setGroup("cityWall");
+        cityWall.setLabel("城市卡片墙");
+        cityWall.setFormSchema(new java.util.ArrayList<>(List.of(
+            Map.of("$formkit", "checkbox", "name", "enablePostcard")
+        )));
+        Setting.SettingSpec spec = new Setting.SettingSpec();
+        spec.setForms(List.of(cityWall));
+        setting.setSpec(spec);
+
+        when(client.fetch(Setting.class, "plugin-footprint-settings"))
+            .thenReturn(Mono.just(setting));
+        when(client.update(any(Setting.class)))
+            .thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+
+        migration.migrate().block();
+        migration.migrate().block();
+
+        List<String> fieldNames = cityWall.getFormSchema().stream()
+            .filter(Map.class::isInstance)
+            .map(item -> String.valueOf(((Map<?, ?>) item).get("name")))
+            .toList();
+        assertThat(fieldNames).contains("enablePostcard", "enableTravelWall",
+            "travelWallTitle", "travelWallMotto");
+        verify(client).update(setting);
     }
 
     @Test

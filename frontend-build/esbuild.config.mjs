@@ -35,6 +35,7 @@ const OUT = join(ROOT, 'build/resources/main/static');
 /** 第 1 类：已模块化，需要 bundle。key 是输出的文件名（不含扩展名） */
 const BUNDLES = {
   'travel-memory': join(FRONTEND, 'travel-memory/index.js'),
+  'travel-wall': join(FRONTEND, 'travel-wall/index.js'),
   'footprint': join(FRONTEND, 'footprint/index.js'),
   'memory-shelf': join(FRONTEND, 'memory-shelf/index.js'),
 };
@@ -97,6 +98,7 @@ for (const [name, entry] of Object.entries(BUNDLES)) {
  */
 const CSS_BUNDLES = {
   'travel-memory': join(FRONTEND, 'styles/travel-memory/index.css'),
+  'travel-wall': join(FRONTEND, 'styles/travel-wall/index.css'),
   footprint: join(FRONTEND, 'styles/footprint/index.css'),
   'memory-shelf': join(FRONTEND, 'styles/memory-shelf/index.css'),
 };

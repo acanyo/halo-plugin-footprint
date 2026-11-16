@@ -72,6 +72,7 @@ application-local.properties
 
 /node_modules/
 /test/
+/test - 副本/
 /ui/node_modules/
 /workplace/
 /src/main/resources/console/
@@ -86,7 +87,6 @@ frontend-build/node_modules/
 docs
 
 ### 视觉自检脚本的输出（tools/shelf-visual-check.mjs 生成的截图）
-tools/.visual-check/
-tools/.ui-tour/
+tools/
 
 AGENTS.md

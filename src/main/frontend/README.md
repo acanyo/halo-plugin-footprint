@@ -9,6 +9,8 @@ src/main/frontend/
 ├── travel-memory/        3D 地球（Cesium）：标记、省份卡片、照片环、城记、票根册、我的旅途集、洞察……
 │   ├── index.js          装配层：建 Viewer，按顺序 setup / init 各模块
 │   └── modules/
+├── travel-wall/          城记内打开的旅行记忆墙（Canvas）
+│   └── index.js          模板、数据和画布交互入口
 ├── footprint/            2D 地图（高德）：时间线、照片墙、抛物线动画
 │   ├── index.js          DOMContentLoaded 入口 + window.Footprint2D
 │   └── modules/
@@ -17,6 +19,7 @@ src/main/frontend/
 │   └── modules/
 └── styles/
     ├── travel-memory/    index.css 用 @import 串起各片段
+    ├── travel-wall/      旅行记忆墙样式，引用足迹共用视觉变量
     ├── footprint/
     └── memory-shelf/
 
@@ -34,11 +37,13 @@ frontend-build/esbuild.config.mjs 打包配置
 | 入口 | 产物 | 格式 |
 |---|---|---|
 | `travel-memory/index.js` | `static/js/travel-memory.js` | IIFE |
+| `travel-wall/index.js` | `static/js/travel-wall.js` | IIFE |
 | `footprint/index.js` | `static/js/footprint.js` | IIFE |
 | `memory-shelf/index.js` | `static/js/memory-shelf.js` | IIFE |
 | `styles/<name>/index.css` | `static/css/<name>.css` | — |
 
-产物的 URL 由 `FootprintHeadProcessor.java` 注入到页面，**文件名不能改**，改了要同步改 Java。
+旅行记忆墙按后台开关在模板里按需加载；其余常驻产物的 URL 由
+`FootprintHeadProcessor.java` 注入到页面，**文件名不能改**，改了要同步改 Java 或模板。
 
 产物带 sourcemap，开 DevTools 时能对到源码行号。
 

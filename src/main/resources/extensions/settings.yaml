@@ -290,6 +290,21 @@ spec:
           name: enablePostcard
           value: true
           help: "为每张城市卡片提供「明信片」按钮，可预览、下载或分享生成的竖版旅行明信片"
+        - $formkit: checkbox
+          label: 启用旅行记忆墙
+          name: enableTravelWall
+          value: false
+          help: "警告：开启后会加载全部足迹照片，照片较多时可能增加流量、占用内存并延长加载时间，请根据站点数据量谨慎启用。"
+        - $formkit: text
+          label: 记忆墙标题
+          name: travelWallTitle
+          value: '城市记忆墙'
+          help: "显示在记忆墙顶栏；留空则不显示标题。"
+        - $formkit: text
+          label: 竖排题字
+          name: travelWallMotto
+          value: '人生得意须尽欢'
+          help: "显示在记忆墙右侧；留空则隐藏，文字较长时会自动缩小字号。"
     - group: imageProcess
       label: 图片处理配置
       help: "如果你的图床需要给同一张原图生成不同质量的缩略图，可在此按用途配置 URL 规则；三项都留空时，界面将直接使用足迹中保存的图片 URL（通用做法）。"

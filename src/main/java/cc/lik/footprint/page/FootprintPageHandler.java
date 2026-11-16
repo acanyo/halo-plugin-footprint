@@ -6,6 +6,7 @@ import cc.lik.footprint.model.FootprintWish;
 import cc.lik.footprint.service.FootprintConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.pf4j.PluginWrapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -30,6 +31,7 @@ public class FootprintPageHandler {
     private final TemplateNameResolver templateNameResolver;
     private final ReactiveExtensionClient client;
     private final FootprintConfigService configService;
+    private final PluginWrapper pluginWrapper;
 
     public Mono<ServerResponse> render(ServerRequest request) {
         return configService.getConfigByGroupName()
@@ -88,6 +90,8 @@ public class FootprintPageHandler {
                         model.put("footprints", footprints);
                         model.put("footprintGroups", groups);
                         model.put("footprintWishes", wishes);
+                        model.put("pluginVersion",
+                            pluginWrapper.getDescriptor().getVersion());
                         // 给 Head 处理器等渲染扩展一个稳定的页面标识（Halo 约定）：
                         // FootprintHeadProcessor 靠它判断"这是足迹页"，才注入 3D 地球那套资源。
                         model.put(ModelConst.TEMPLATE_ID, "plugin:footprint:footprints");

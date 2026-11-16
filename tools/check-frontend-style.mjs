@@ -26,8 +26,8 @@ const walk = (dir, ext) => readdirSync(dir).flatMap((name) => {
 });
 
 // footprint/ 是「2D 地图」页（高德地图）的样式与脚本
-const STYLE_DIRS = ["travel-memory", "memory-shelf", "shared", "footprint"].map((d) => join(ROOT, "src/main/frontend/styles", d));
-const SCRIPT_DIRS = ["travel-memory", "memory-shelf", "footprint", "shared"].map((d) => join(ROOT, "src/main/frontend", d));
+const STYLE_DIRS = ["travel-memory", "travel-wall", "memory-shelf", "shared", "footprint"].map((d) => join(ROOT, "src/main/frontend/styles", d));
+const SCRIPT_DIRS = ["travel-memory", "travel-wall", "memory-shelf", "footprint", "shared"].map((d) => join(ROOT, "src/main/frontend", d));
 const TEMPLATE = join(ROOT, "src/main/resources/templates/footprint.html");
 
 const issues = { eyebrow: [], dot: [], color: [], font: [] };
