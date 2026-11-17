@@ -1673,7 +1673,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const gap = 6;
         const isTitle = item.kind === 'title';
         const territoryPreferenceGap = isTitle ? 30 : LABEL_CLEARANCE;
-        const searchLimit = isTitle ? 48 : 96;
+        const searchLimit = isTitle ? 84 : 96;
         const lateralOffsets = isTitle
             ? [0, 12, -12, 24, -24]
             : [0, 8, -8, 16, -16, 25, -25];
@@ -1749,12 +1749,12 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 photoAnchors.length ? photoAnchors : clusters
             ).map(anchor => rectDistance(candidate, anchor)));
             const edgePenalty = preferredEdge === 'bottom' &&
-                candidate.y < clusters[0].y ? (isTitle ? 12 : 24) :
+                candidate.y < clusters[0].y ? (isTitle ? 4 : 24) :
                 preferredEdge === 'top' &&
-                    candidate.y > clusters[0].y ? (isTitle ? 12 : 24) : 0;
+                    candidate.y > clusters[0].y ? (isTitle ? 4 : 24) : 0;
             const titleSidePenalty = isTitle
                 ? (side === preferredEdge ? 0 :
-                    side === 'top' || side === 'bottom' ? 3 : 8)
+                    side === 'top' || side === 'bottom' ? 4 : 36)
                 : 0;
             const sidePenalty = isTitle
                 ? titleSidePenalty
@@ -1770,7 +1770,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                     1
                 )
                 : 0;
-            const score = distance + edgePenalty + sidePenalty -
+            const distanceCost = isTitle ? distance * 0.55 : distance;
+            const score = distanceCost + edgePenalty + sidePenalty -
                 rowProgress * 6 + territoryPenalty(candidate) +
                 titleLabelPenalty(candidate);
             if (!best || score < best.score) {
@@ -1851,24 +1852,32 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                             consider(
                                 x + offset,
                                 cluster.y - item.h - gap - step,
-                                width
+                                width,
+                                undefined,
+                                isTitle ? 'top' : undefined
                             );
                             consider(
                                 x + offset,
                                 cluster.y + cluster.h + gap + step,
-                                width
+                                width,
+                                undefined,
+                                isTitle ? 'bottom' : undefined
                             );
                         });
                         alignY.forEach(y => {
                             consider(
                                 cluster.x - width - gap - step,
                                 y + offset,
-                                width
+                                width,
+                                undefined,
+                                isTitle ? 'left' : undefined
                             );
                             consider(
                                 cluster.x + cluster.w + gap + step,
                                 y + offset,
-                                width
+                                width,
+                                undefined,
+                                isTitle ? 'right' : undefined
                             );
                         });
                     });
@@ -1889,13 +1898,17 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             widths.forEach(width => {
                 for (let step = 0; step <= 240; step += 6) {
                     consider(centerX - width / 2,
-                        minY - item.h - gap - step, width);
+                        minY - item.h - gap - step, width,
+                        undefined, isTitle ? 'top' : undefined);
                     consider(centerX - width / 2,
-                        maxY + gap + step, width);
+                        maxY + gap + step, width,
+                        undefined, isTitle ? 'bottom' : undefined);
                     consider(minX - width - gap - step,
-                        minY + (maxY - minY - item.h) / 2, width);
+                        minY + (maxY - minY - item.h) / 2, width,
+                        undefined, isTitle ? 'left' : undefined);
                     consider(maxX + gap + step,
-                        minY + (maxY - minY - item.h) / 2, width);
+                        minY + (maxY - minY - item.h) / 2, width,
+                        undefined, isTitle ? 'right' : undefined);
                 }
             });
             if (best) return best;
