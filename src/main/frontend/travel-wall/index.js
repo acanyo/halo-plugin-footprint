@@ -167,7 +167,14 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const dragLightingCtx = dragLighting.getContext('2d');
     const body = root;
     const loadingState = document.getElementById('loadingState');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingDetail = document.getElementById('loadingDetail');
+    const loadingBar = document.getElementById('loadingBar');
     const wallSummary = document.getElementById('wallSummary');
+    const wallYearControl = document.querySelector('.wall-year-filter');
+    const wallYearTrigger = document.getElementById('wallYearTrigger');
+    const wallYearValue = document.getElementById('wallYearValue');
+    const wallYearMenu = document.getElementById('wallYearMenu');
     const travelWallBack = document.getElementById('travelWallBack');
     const debugPanel = document.getElementById('debugPanel');
     const debugText = document.getElementById('debugText');
@@ -177,10 +184,14 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     const fitBtn = document.getElementById('fitBtn');
     const exportBtn = document.getElementById('exportBtn');
+    const immersiveBtn = document.getElementById('immersiveBtn');
+    const immersiveExitBtn = document.getElementById('immersiveExitBtn');
     const preview = document.getElementById('photoPreview');
+    const previewFigure = preview.querySelector('figure');
     const previewImage = document.getElementById('previewImage');
     const previewTitle = document.getElementById('previewTitle');
     const previewMeta = document.getElementById('previewMeta');
+    const previewDescription = document.getElementById('previewDescription');
     const previewCloseBtn = document.getElementById('previewCloseBtn');
     const previewPrevBtn = document.getElementById('previewPrevBtn');
     const previewNextBtn = document.getElementById('previewNextBtn');
@@ -199,6 +210,23 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function dismissGestureNote() {
         if (gestureNote) gestureNote.classList.add('is-dismissed');
+    }
+
+    function setLoadingPhase(title, detail, progress) {
+        loadingTitle.textContent = title;
+        loadingDetail.textContent = detail || '';
+        loadingBar.style.width = clamp(Number(progress) || 0, 0, 100) + '%';
+        loadingState.classList.remove('is-hidden');
+    }
+
+    function completeLoadingState() {
+        if (!sceneReady || imagesLoading() ||
+            loadingState.classList.contains('is-hidden')) {
+            return;
+        }
+        setLoadingPhase('旅行记忆墙已就绪', '可以自由拖动、缩放和查看照片', 100);
+        loadingFinished = true;
+        loadingState.classList.add('is-passive', 'is-hidden');
     }
 
     const MAP_WIDTH = 960;
@@ -339,6 +367,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     const state = {
         theme: 'paper',
+        immersive: false,
         selectedId: '',
         hoveredId: '',
         hoveredFootprint: null,
@@ -351,6 +380,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     };
 
     let groups = [];
+    let wallData = null;
+    let activeYear = 'all';
+    let wallYearOpen = false;
     let sceneTickets = [];
     let sceneTicketRects = [];
     let initialized = false;
@@ -383,6 +415,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let sceneTicketCacheKey = '';
     const pinSprites = new Map();
     let loadPlanReady = false;
+    let loadGeneration = 0;
     let sceneReady = false;
     let mapMask = null;
     let scene = null;
@@ -411,6 +444,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let layoutVersion = 0;
     let layoutMetrics = null;
     let initialFitPending = true;
+    let cameraBeforeImmersive = null;
+    let loadingFinished = false;
 
     function theme() {
         return THEMES[state.theme] || THEMES.paper;
@@ -432,6 +467,92 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     function formatDate(value) {
         const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
         return match ? match[1] + '.' + match[2] + '.' + match[3] : '日期未知';
+    }
+
+    function footprintYear(footprint) {
+        const match = String(footprint && footprint.createTime || '')
+            .match(/^(\d{4})-/);
+        return match ? match[1] : '';
+    }
+
+    function availableYears() {
+        return unique((wallData && wallData.footprints || [])
+            .map(footprintYear)
+            .filter(Boolean))
+            .sort((a, b) => Number(b) - Number(a));
+    }
+
+    function activeYearLabel() {
+        return activeYear === 'all' ? '全部年份' : activeYear + ' 年';
+    }
+
+    function updateYearControl() {
+        wallYearValue.textContent = activeYearLabel();
+        wallYearMenu.querySelectorAll('[role="option"]').forEach(option => {
+            option.setAttribute(
+                'aria-selected',
+                String(option.dataset.year === activeYear)
+            );
+        });
+    }
+
+    function setYearMenuOpen(open, restoreFocus = false) {
+        const next = !!open && !wallYearTrigger.disabled &&
+            wallYearMenu.children.length > 0;
+        wallYearOpen = next;
+        wallYearControl.classList.toggle('is-open', next);
+        wallYearTrigger.setAttribute('aria-expanded', String(next));
+        wallYearMenu.hidden = !next;
+        if (next) {
+            const selected = wallYearMenu.querySelector(
+                '[role="option"][aria-selected="true"]'
+            );
+            window.requestAnimationFrame(() => {
+                (selected || wallYearMenu.firstElementChild)?.focus({
+                    preventScroll: true
+                });
+            });
+        } else if (restoreFocus) {
+            wallYearTrigger.focus({ preventScroll: true });
+        }
+    }
+
+    function selectYearOption(option) {
+        if (!option || !option.dataset.year) return;
+        const year = option.dataset.year;
+        setYearMenuOpen(false, true);
+        applyYearFilter(year);
+    }
+
+    function moveYearMenuFocus(offset) {
+        const options = [
+            ...wallYearMenu.querySelectorAll('[role="option"]')
+        ];
+        if (!options.length) return;
+        const current = options.indexOf(document.activeElement);
+        const next = current < 0
+            ? (offset > 0 ? 0 : options.length - 1)
+            : (current + offset + options.length) % options.length;
+        options[next].focus({ preventScroll: true });
+    }
+
+    function populateYearOptions() {
+        const fragment = document.createDocumentFragment();
+        const years = availableYears();
+        if (activeYear !== 'all' && !years.includes(activeYear)) {
+            activeYear = 'all';
+        }
+        ['all', ...years].forEach(year => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'wall-year-option';
+            option.dataset.year = year;
+            option.setAttribute('role', 'option');
+            option.textContent = year === 'all' ? '全部年份' : year + ' 年';
+            fragment.append(option);
+        });
+        wallYearMenu.replaceChildren(fragment);
+        updateYearControl();
     }
 
     function cityKey(footprint) {
@@ -540,6 +661,60 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             group.ny = projected.y;
         });
         updateSummary();
+    }
+
+    function dataForYear(year) {
+        if (!wallData) return null;
+        if (year === 'all') return wallData;
+        return {
+            ...wallData,
+            footprints: wallData.footprints.filter(footprint =>
+                footprintYear(footprint) === year
+            )
+        };
+    }
+
+    function applyYearFilter(year) {
+        const next = year === 'all' ? 'all' : String(year || '');
+        if (!next || next === activeYear) return;
+        activeYear = next;
+        updateYearControl();
+        stopPendingImageLoads();
+        imageItems.forEach(item => item.groups.clear());
+        data = dataForYear(activeYear);
+        groups = [];
+        sceneTickets = [];
+        sceneTicketRects = [];
+        state.selectedId = '';
+        state.hoveredId = '';
+        state.hoveredFootprint = null;
+        state.hoveredPhoto = null;
+        state.hoveredTicket = null;
+        loadPlanReady = false;
+        sceneReady = false;
+        initialFitPending = false;
+        loadingFinished = false;
+        layoutDirty = true;
+        sceneBaseCache = null;
+        sceneBaseCacheKey = '';
+        wallSnapshotCache = null;
+        wallSnapshotCacheKey = '';
+        wallTileCache = null;
+        wallTileCacheKey = '';
+        sceneTicketCache = null;
+        sceneTicketCacheKey = '';
+        mapLayers.clear();
+        loadingState.classList.remove('is-hidden', 'is-passive');
+        setLoadingPhase(
+            '正在切换年份',
+            activeYearLabel() + '，重新整理城市位置',
+            12
+        );
+        updateInteractionLock(true);
+        buildGroups();
+        resize();
+        buildLoadPlan();
+        setFitView(true);
     }
 
     function getImageItem(url) {
@@ -2330,6 +2505,58 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         });
     }
 
+    function groupHitsRect(group, rect, offsetX, offsetY, padding) {
+        const dx = offsetX || 0;
+        const dy = offsetY || 0;
+        return groupContentRects(group).some(content => {
+            const shifted = {
+                x: content.x + dx,
+                y: content.y + dy,
+                w: content.w,
+                h: content.h
+            };
+            return rectsOverlapWithPadding(
+                shifted,
+                rect,
+                padding || 0
+            );
+        });
+    }
+
+    function sceneHeadingWorldRect() {
+        const metrics = sceneHeadingMetrics();
+        if (!metrics || !scene || !scene.boardRect) return null;
+        const board = scene.boardRect;
+        return {
+            x: board.x + BOARD_FRAME + 26,
+            y: board.y + BOARD_FRAME + 26,
+            w: metrics.width,
+            h: metrics.height
+        };
+    }
+
+    function expandSceneForHeading() {
+        const heading = sceneHeadingWorldRect();
+        if (!heading) return;
+        const clearance = 18;
+        const topEdges = groups.map(group => {
+            const bounds = groupBounds(group);
+            if (!bounds ||
+                bounds.x + bounds.w <= heading.x - clearance ||
+                bounds.x >= heading.x + heading.w + clearance) {
+                return null;
+            }
+            return bounds.y;
+        }).filter(Number.isFinite);
+        if (!topEdges.length) return;
+        const extension = Math.ceil((
+            heading.y + heading.h + clearance - Math.min(...topEdges)
+        ) / 8) * 8;
+        if (extension <= 0) return;
+        scene.topExtension = extension;
+        refreshBoardBounds();
+    }
+
     function localMoveDirections(group, other, mapRect) {
         const directions = [];
         const seen = new Set();
@@ -3203,11 +3430,12 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function refreshBoardBounds() {
         if (!scene) return;
+        const topExtension = Math.max(0, scene.topExtension || 0);
         const boardRect = {
             x: -BOARD_FRAME,
-            y: -BOARD_FRAME,
+            y: -BOARD_FRAME - topExtension,
             width: scene.worldWidth + BOARD_FRAME * 2,
-            height: scene.worldHeight + BOARD_FRAME * 2
+            height: scene.worldHeight + BOARD_FRAME * 2 + topExtension
         };
         scene.boardRect = boardRect;
         scene.viewRect = {
@@ -3683,6 +3911,14 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 ).length, 0),
             mapIntrusions,
             mapIntrusionDetails,
+            headingOverlaps: (() => {
+                const heading = sceneHeadingWorldRect();
+                return heading
+                    ? groups.filter(group =>
+                        groupHitsRect(group, heading, 0, 0, 18)
+                    ).length
+                    : 0;
+            })(),
             worldArea: Math.round(scene.worldWidth * scene.worldHeight),
             photoArea: Math.round(photos.reduce((sum, rect) =>
                 sum + rect.width * rect.height, 0)),
@@ -3694,6 +3930,14 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function layoutSafeInsets() {
+        if (state.immersive) {
+            return {
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: 24
+            };
+        }
         return {
             left: 24,
             right: Math.min(250, Math.max(222, viewport.width * 0.13)),
@@ -3789,6 +4033,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         markPhase('titleReattach');
         normalizeWorldBounds();
         markPhase('normalize');
+        expandSceneForHeading();
+        markPhase('headingSeparation');
 
         const insets = layoutSafeInsets();
         const safeWidth = Math.max(1,
@@ -4114,13 +4360,17 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function buildLoadPlan() {
+        const generation = ++loadGeneration;
         loadQueue.length = 0;
-        queuedImages = 0;
-        finishedImages = 0;
-        failedImages = 0;
-        groups.forEach(group => group.mediaItems.forEach(item => {
-            if (item && item.groups) item.groups.add(group);
-        }));
+        groups.forEach(group => {
+            group.mediaItems.forEach(item => {
+                if (item && item.groups) item.groups.add(group);
+            });
+            group.ready = group.mediaItems.every(item =>
+                item.status === 'loaded' || item.status === 'error'
+            );
+            if (group.ready) group.spriteDirty = true;
+        });
         const centerX = scene.mapRect.x + MAP_WIDTH / 2;
         const centerY = scene.mapRect.y + MAP_HEIGHT / 2;
         const sorted = groups.slice().sort((a, b) => {
@@ -4136,23 +4386,31 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             );
             return ad - bd;
         });
+        const ordered = [];
+        const seen = new Set();
+        const addItem = item => {
+            if (!item || seen.has(item)) return;
+            seen.add(item);
+            ordered.push(item);
+        };
         const maxDepth = Math.max(0, ...sorted.map(group => group.mediaItems.length));
         for (let depth = 0; depth < maxDepth; depth++) {
             sorted.forEach(group => {
-                const item = group.mediaItems[depth];
-                if (item && item.status === 'idle') {
-                    item.status = 'queued';
-                    loadQueue.push(item);
-                    queuedImages++;
-                }
+                addItem(group.mediaItems[depth]);
             });
         }
-        sceneTickets.forEach(ticket => {
-            const item = ticket.item;
-            if (item && item.status === 'idle') {
+        sceneTickets.forEach(ticket => addItem(ticket.item));
+
+        queuedImages = ordered.length;
+        finishedImages = ordered.filter(item =>
+            item.status === 'loaded' || item.status === 'error'
+        ).length;
+        failedImages = ordered.filter(item => item.status === 'error').length;
+        ordered.forEach(item => {
+            item.loadGeneration = generation;
+            if (item.status === 'idle') {
                 item.status = 'queued';
                 loadQueue.push(item);
-                queuedImages++;
             }
         });
         loadPlanReady = true;
@@ -4185,7 +4443,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         item.image = image;
         image.onload = () => {
             loadingImages--;
-            finishedImages++;
+            if (item.loadGeneration === loadGeneration) {
+                finishedImages++;
+            }
             const width = image.naturalWidth || image.width;
             const height = image.naturalHeight || image.height;
             if (width && height) item.aspect = width / height;
@@ -4199,7 +4459,6 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             });
             scheduleRelayout();
             dirty = true;
-            updateLoadingState();
             drainImageQueue();
         };
         image.onerror = () => {
@@ -4215,9 +4474,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 }
             }
             loadingImages--;
-            finishedImages++;
+            if (item.loadGeneration === loadGeneration) {
+                finishedImages++;
+                failedImages++;
+            }
             item.status = 'error';
-            failedImages++;
             item.groups.forEach(group => {
                 group.ready = group.mediaItems.every(other =>
                     other.status === 'loaded' || other.status === 'error'
@@ -4226,7 +4487,6 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             });
             scheduleRelayout();
             dirty = true;
-            updateLoadingState();
             drainImageQueue();
         };
         const sourceUrl = wallThumbnailUrl(item.url);
@@ -4299,6 +4559,10 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         layoutWorld(true);
         clampCamera();
         tooSmallNotice.hidden = width >= 1280 && height >= 720;
+        if (state.previewPhoto) {
+            previewFigure.style.width = '';
+            window.requestAnimationFrame(fitPreviewFrameToImage);
+        }
         dirty = true;
         scheduleDraw();
     }
@@ -4340,6 +4604,31 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             dirty = true;
             scheduleDraw();
         }
+    }
+
+    function setImmersive(enabled, restoreView = true) {
+        const next = !!enabled;
+        if (state.immersive === next) return;
+        state.immersive = next;
+        root.classList.toggle('is-immersive', next);
+        immersiveBtn.setAttribute('aria-pressed', String(next));
+        immersiveExitBtn.hidden = !next;
+        if (next) {
+            cameraBeforeImmersive = { ...camera };
+            dismissGestureNote();
+            if (sceneReady) setFitView(true);
+            window.requestAnimationFrame(() => immersiveExitBtn.focus());
+            return;
+        }
+        const previousCamera = restoreView ? cameraBeforeImmersive : null;
+        cameraBeforeImmersive = null;
+        if (previousCamera && sceneReady) {
+            animateCamera(previousCamera, 320);
+        } else {
+            dirty = true;
+            scheduleDraw();
+        }
+        if (root.classList.contains('show')) immersiveBtn.focus();
     }
 
     function animateCamera(target, duration) {
@@ -4758,18 +5047,15 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         );
     }
 
-    function paintSceneHeading(target) {
-        const board = scene.boardRect;
+    function sceneHeadingMetrics(target = ctx) {
         const summary = wallSummary.textContent || '正在准备旅行记忆墙';
-        if (!configuredTitle && !summary) return;
+        if (!configuredTitle && !summary) return null;
         const titleSize = sceneHeadingTitleSize();
         const metaSize = clamp(
             Math.round(scene.worldHeight * 0.019),
             12,
             16
         );
-        const labelX = board.x + BOARD_FRAME + 26;
-        const labelY = board.y + BOARD_FRAME + 26;
         const labelPaddingX = 20;
         const labelPaddingY = 15;
         const accentWidth = 3;
@@ -4785,6 +5071,36 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             labelPaddingX * 2 + accentWidth;
         const labelHeight = labelPaddingY * 2 + titleLineHeight +
             lineGap + (summary ? metaSize : 0);
+        return {
+            summary,
+            titleSize,
+            metaSize,
+            labelPaddingX,
+            labelPaddingY,
+            accentWidth,
+            lineGap,
+            titleLineHeight,
+            width: labelWidthFinal,
+            height: labelHeight
+        };
+    }
+
+    function paintSceneHeading(target) {
+        const metrics = sceneHeadingMetrics(target);
+        if (!metrics) return;
+        const board = scene.boardRect;
+        const labelX = board.x + BOARD_FRAME + 26;
+        const labelY = board.y + BOARD_FRAME + 26;
+        const {
+            summary,
+            titleSize,
+            metaSize,
+            labelPaddingX,
+            labelPaddingY,
+            accentWidth,
+            lineGap,
+            titleLineHeight
+        } = metrics;
 
         target.save();
         target.textAlign = 'left';
@@ -4797,8 +5113,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             target,
             labelX,
             labelY,
-            labelWidthFinal,
-            labelHeight,
+            metrics.width,
+            metrics.height,
             10
         );
         target.fillStyle = 'rgba(250, 246, 237, 0.9)';
@@ -4814,7 +5130,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             labelX + 1,
             labelY + 11,
             accentWidth,
-            labelHeight - 22,
+            metrics.height - 22,
             2
         );
         target.fill();
@@ -4848,7 +5164,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const rows = metrics.rows;
         const gapY = metrics.gapY;
         const cellHeight = metrics.cellHeight;
-        const startY = board.y + metrics.startY;
+        const startY = board.y + (scene.topExtension || 0) + metrics.startY;
 
         sceneTickets.forEach((ticket, index) => {
             const item = ticket.item;
@@ -5045,9 +5361,10 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         if (!configuredMotto) return;
         const palette = theme();
         const board = scene.boardRect;
+        const contentTop = board.y + (scene.topExtension || 0);
         const characters = Array.from(configuredMotto);
-        const bandTop = board.y + BOARD_FRAME + scene.worldHeight * 0.05;
-        const bandBottom = board.y + BOARD_FRAME + scene.worldHeight * 0.50;
+        const bandTop = contentTop + BOARD_FRAME + scene.worldHeight * 0.05;
+        const bandBottom = contentTop + BOARD_FRAME + scene.worldHeight * 0.50;
         const desiredSize = sceneHeadingTitleSize() * 1.6;
         const rangeSize = (bandBottom - bandTop) /
             (characters.length * 1.08);
@@ -5137,8 +5454,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function ensureSceneBaseCache() {
-        if (!scene || !loadPlanReady ||
-            imagesLoading() || layoutDirty || layoutTimer) {
+        if (!scene || !loadPlanReady || layoutDirty || layoutTimer) {
             return null;
         }
         const board = scene.boardRect;
@@ -5197,8 +5513,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         wallTileCache = null;
         wallTileCacheKey = '';
         scheduleWallSnapshotBuild();
-        updateInteractionLock(false);
-        loadingState.classList.add('is-hidden');
+        updateLoadingState();
+        if (!imagesLoading()) completeLoadingState();
         document.documentElement.dataset.sceneCache = JSON.stringify({
             width: cache.width,
             height: cache.height,
@@ -5309,11 +5625,16 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             })
             .forEach(group => {
                 const withLabels = shouldDrawFootprintLabels(group);
+                const titleActive = shouldShowCityTitleBackground(group);
                 if (!group.sprite ||
                     group.spriteDirty ||
                     group.spriteLabels !== withLabels ||
-                    group.spriteTitleActive) {
-                    buildGroupSprite(group, withLabels, false);
+                    group.spriteTitleActive !== titleActive) {
+                    buildGroupSprite(
+                        group,
+                        withLabels,
+                        titleActive
+                    );
                 }
                 drawGroupSprite(cacheCtx, group);
             });
@@ -5323,6 +5644,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
         wallSnapshotCache = { canvas: cache, rect, scale };
         wallSnapshotCacheKey = key;
+        completeLoadingState();
         return wallSnapshotCache;
     }
 
@@ -5710,8 +6032,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             return;
         }
         const withLabels = shouldDrawFootprintLabels(group);
-        const titleActive = !exporting &&
-            group.id === state.hoveredId;
+        const titleActive = shouldShowCityTitleBackground(group);
         if (group.ready &&
             (!group.sprite ||
                 group.spriteDirty ||
@@ -5803,6 +6124,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             LABEL_ZOOM_THRESHOLD;
     }
 
+    function shouldShowCityTitleBackground(group) {
+        return !exporting &&
+            (group.id === state.selectedId || group.id === state.hoveredId);
+    }
+
     function buildGroupSprite(group, withLabels, titleActive) {
         if (!Number.isFinite(group.width) ||
             !Number.isFinite(group.height) ||
@@ -5842,7 +6168,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         paintGroup(
             ctx,
             group,
-            !dragging,
+            true,
             shouldDrawFootprintLabels(group),
             group.id === state.hoveredId
         );
@@ -6422,12 +6748,35 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         );
     }
 
+    function fitPreviewFrameToImage() {
+        if (!state.previewPhoto || !previewImage.naturalWidth) return;
+        const imageWidth = previewImage.getBoundingClientRect().width;
+        if (!imageWidth) return;
+        const figureStyle = window.getComputedStyle(previewFigure);
+        const horizontalPadding =
+            parseFloat(figureStyle.paddingLeft || '0') +
+            parseFloat(figureStyle.paddingRight || '0');
+        previewFigure.style.width =
+            Math.ceil((imageWidth + horizontalPadding) * 100) / 100 + 'px';
+    }
+
     function renderPreviewPhoto(rectangle) {
         state.previewPhoto = rectangle;
+        previewFigure.style.width = '';
         previewImage.src = rectangle.item.url;
         previewImage.alt =
             state.previewGroup.city + '，' + rectangle.footprint;
         previewTitle.textContent = rectangle.footprint;
+        const footprint = (state.previewGroup.footprints || []).find(item =>
+            item.key === rectangle.footprintId
+        ) || (state.previewGroup.footprints || []).find(item =>
+            item.name === rectangle.footprint
+        );
+        const description = String(
+            footprint && footprint.description || ''
+        ).trim();
+        previewDescription.textContent = description;
+        previewDescription.hidden = !description;
         const hasSequence = state.previewPhotos.length > 1;
         previewMeta.textContent =
             state.previewGroup.city + '，' + formatDate(rectangle.createTime) +
@@ -6469,6 +6818,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         preview.classList.remove('show');
         preview.setAttribute('aria-hidden', 'true');
         previewImage.removeAttribute('src');
+        previewFigure.style.width = '';
+        previewDescription.textContent = '';
+        previewDescription.hidden = true;
         previewPrevBtn.hidden = true;
         previewNextBtn.hidden = true;
         canvas.focus();
@@ -6492,8 +6844,17 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             if (event.key === 'Escape') closePreview();
             return;
         }
+        if (wallYearOpen && event.key === 'Escape') {
+            event.preventDefault();
+            setYearMenuOpen(false, true);
+            return;
+        }
         if (event.key === 'Escape') {
             event.preventDefault();
+            if (state.immersive) {
+                setImmersive(false);
+                return;
+            }
             closeTravelWall();
             return;
         }
@@ -6524,7 +6885,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     function updateSummary() {
         const footprintCount = groups.reduce((sum, group) => sum + group.footprintCount, 0);
         const photoCount = groups.reduce((sum, group) => sum + group.photoCount, 0);
-        wallSummary.textContent = groups.length + ' 座城市，' +
+        wallSummary.textContent = activeYearLabel() + '：' +
+            groups.length + ' 座城市，' +
             footprintCount + ' 条足迹，' + photoCount + ' 张照片，' +
             sceneTickets.length + ' 张票根';
     }
@@ -6560,48 +6922,56 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function updateLoadingState() {
-        const total = queuedImages;
-        if (!total) {
-            loadingState.textContent = '正在准备旅行记忆墙';
-            scheduleRelayout(true);
-            if (loadPlanReady) {
-                loadingState.classList.add('is-hidden');
-                canvas.classList.remove('is-loading');
-                updateInteractionLock(!sceneReady);
-                if (initialFitPending && sceneReady) {
-                    initialFitPending = false;
-                    window.setTimeout(() => {
-                        ensureLayoutSettled();
-                        setFitView(false);
-                    }, 80);
-                }
-            } else {
-                updateInteractionLock(true);
-            }
+        if (loadingFinished) {
+            updateInteractionLock(!sceneReady);
             return;
         }
-        loadingState.textContent = '照片 ' + finishedImages + ' / ' + total +
-            (failedImages ? '，失败 ' + failedImages : '');
-        if (finishedImages >= total && loadingImages === 0) {
-            scheduleRelayout(true);
-            canvas.classList.remove('is-loading');
-            updateInteractionLock(true);
-            if (initialFitPending) {
-                initialFitPending = false;
-                window.setTimeout(() => {
-                    ensureLayoutSettled();
-                    setFitView(false);
-                }, 80);
+        const total = queuedImages;
+        const ratio = total ? finishedImages / total : 1;
+        const passive = sceneReady && loadPlanReady;
+        loadingState.classList.toggle('is-passive', passive);
+        canvas.classList.toggle('is-loading', !sceneReady);
+        updateInteractionLock(!sceneReady);
+        if (initialFitPending && sceneReady) {
+            initialFitPending = false;
+            window.setTimeout(() => {
+                ensureLayoutSettled();
+                setFitView(false);
+            }, 80);
+        }
+        if (!total) {
+            if (!sceneReady) {
+                setLoadingPhase(
+                    '正在铺开旅行记忆',
+                    activeYearLabel() + '，整理城市位置与画面',
+                    18
+                );
             }
+            scheduleRelayout(true);
+            return;
+        }
+
+        const detail = activeYearLabel() + ' · 照片 ' +
+            finishedImages + ' / ' + total +
+            (failedImages ? ' · 失败 ' + failedImages : '');
+        if (finishedImages >= total && loadingImages === 0) {
+            setLoadingPhase(
+                '正在生成拖拽画面',
+                detail + ' · 优化整墙浏览',
+                92
+            );
+            scheduleRelayout(true);
         } else {
-            canvas.classList.add('is-loading');
-            canvas.style.cursor = 'progress';
-            updateInteractionLock(true);
+            setLoadingPhase(
+                sceneReady ? '照片继续载入中' : '正在铺开旅行记忆',
+                detail,
+                18 + ratio * 66
+            );
         }
     }
 
     function interactionLocked() {
-        return !sceneReady || imagesLoading();
+        return !sceneReady;
     }
 
     function updateInteractionLock(locked) {
@@ -6613,6 +6983,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         canvas.style.cursor = locked ? 'progress' : 'grab';
 
         const controls = [
+            wallYearTrigger,
+            immersiveBtn,
             zoomInBtn,
             zoomOutBtn,
             fitBtn,
@@ -6621,10 +6993,15 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             stressBtn
         ];
         controls.forEach(control => {
-            control.disabled = locked ||
-                (control === exportBtn && exporting) ||
+            control.disabled = locked || exporting ||
+                (control === exportBtn && imagesLoading()) ||
                 (control === stressBtn && !debugEnabled);
         });
+        wallYearControl.classList.toggle(
+            'is-disabled',
+            wallYearTrigger.disabled
+        );
+        if (wallYearTrigger.disabled) setYearMenuOpen(false);
 
         if (locked) {
             dragging = false;
@@ -6698,6 +7075,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     async function exportWall() {
         if (exporting) return;
         exporting = true;
+        updateInteractionLock(false);
         exportCancelRequested = false;
         const task = ++exportTask;
         exportBtn.disabled = true;
@@ -6791,13 +7169,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             }, error.name === 'ExportCancelled' ? 700 : 2200);
         } finally {
             exporting = false;
+            updateInteractionLock(!sceneReady);
             groups.forEach(group => {
                 group.spriteDirty = true;
             });
             dirty = true;
             scheduleDraw();
             exportCancelBtn.disabled = false;
-            exportBtn.disabled = false;
         }
     }
 
@@ -6909,6 +7287,50 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         canvas.addEventListener('wheel', onWheel, { passive: false });
         window.addEventListener('resize', resize);
         window.addEventListener('keydown', onKeyDown);
+        wallYearTrigger.addEventListener('click', () => {
+            setYearMenuOpen(!wallYearOpen);
+        });
+        wallYearTrigger.addEventListener('keydown', event => {
+            if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+            event.preventDefault();
+            setYearMenuOpen(true);
+        });
+        wallYearMenu.addEventListener('click', event => {
+            const option = event.target.closest('[role="option"]');
+            if (!option) return;
+            selectYearOption(option);
+        });
+        wallYearMenu.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                moveYearMenuFocus(event.key === 'ArrowDown' ? 1 : -1);
+            } else if (event.key === 'Home' || event.key === 'End') {
+                event.preventDefault();
+                const options = [
+                    ...wallYearMenu.querySelectorAll('[role="option"]')
+                ];
+                const option = event.key === 'Home'
+                    ? options[0] : options[options.length - 1];
+                option?.focus({ preventScroll: true });
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                setYearMenuOpen(false, true);
+            } else if (event.key === 'Tab') {
+                setYearMenuOpen(false);
+            }
+        });
+        document.addEventListener('pointerdown', event => {
+            if (wallYearOpen && !wallYearControl.contains(event.target)) {
+                setYearMenuOpen(false);
+            }
+        });
+        immersiveBtn.addEventListener('click', () => {
+            setImmersive(!state.immersive);
+        });
+        immersiveExitBtn.addEventListener('click', () => {
+            setImmersive(false);
+        });
         zoomInBtn.addEventListener('click', () => {
             zoomAt(viewport.width / 2, viewport.height / 2, 1.18);
         });
@@ -6937,6 +7359,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         previewCloseBtn.addEventListener('click', closePreview);
         previewPrevBtn.addEventListener('click', () => movePreview(-1));
         previewNextBtn.addEventListener('click', () => movePreview(1));
+        previewImage.addEventListener('load', () => {
+            window.requestAnimationFrame(fitPreviewFrameToImage);
+        });
         preview.addEventListener('click', event => {
             if (event.target === preview) closePreview();
         });
@@ -7039,7 +7464,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                     groups: groups.length,
                     footprints: groups.reduce((sum, group) => sum + group.footprintCount, 0),
                     photos: groups.reduce((sum, group) => sum + group.photoCount, 0),
-                    tickets: groups.reduce((sum, group) => sum + group.tickets.length, 0),
+                    tickets: sceneTickets.length,
                     theme: state.theme,
                     hoveredFootprint: state.hoveredFootprint
                         ? state.hoveredFootprint.footprintId : '',
@@ -7080,6 +7505,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                     height: scene.worldHeight
                 },
                 mapRect: scene.mapRect,
+                headingRect: sceneHeadingWorldRect(),
                 view: {
                     camera: { ...camera },
                     fitScale,
@@ -7090,6 +7516,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 groups: groups.map(group => ({
                     city: group.city,
                     rect: group.worldRect,
+                    contentBounds: groupBounds(group),
                     titleRect: group.titleRect,
                     titleOverlay: !!group.cityLabel.overlay,
                     labels: group.labels.map(label => ({
@@ -7157,16 +7584,24 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     async function initializeTravelWall() {
-        [data] = await Promise.all([
+        const [loadedData] = await Promise.all([
             loadTravelWallData(),
             ensureMottoFontReady()
         ]);
+        data = loadedData;
+        wallData = loadedData;
         if (!data || !Array.isArray(data.footprints) || !data.footprints.length) {
             throw new Error('还没有可以铺到记忆墙上的足迹');
         }
         if (!data.geo) {
             throw new Error('中国地图轮廓数据不完整');
         }
+        populateYearOptions();
+        setLoadingPhase(
+            '正在整理城市位置',
+            activeYearLabel() + '，归类足迹、照片与票根',
+            10
+        );
         await new Promise(resolve => window.requestAnimationFrame(resolve));
         if (!root.classList.contains('show')) return;
         init();
@@ -7198,11 +7633,18 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         if (initializationPromise) return;
 
         loadingState.classList.remove('is-hidden');
-        loadingState.textContent = '正在准备旅行记忆墙';
+        loadingState.classList.remove('is-passive');
+        loadingFinished = false;
+        setLoadingPhase('正在准备旅行记忆墙', '读取足迹数据', 4);
         initializationPromise = initializeTravelWall()
             .catch(error => {
+                loadingFinished = false;
                 loadingState.classList.remove('is-hidden');
-                loadingState.textContent = error.message || '旅行记忆墙加载失败';
+                setLoadingPhase(
+                    '旅行记忆墙加载失败',
+                    error.message || '请稍后重试',
+                    100
+                );
                 console.error('[travel-wall] initialization failed', error);
             })
             .finally(() => {
@@ -7224,6 +7666,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         if (state.previewPhoto) closePreview();
         stopPendingImageLoads();
         clearDragSnapshot();
+        setYearMenuOpen(false);
+        setImmersive(false, false);
         root.classList.remove('show');
         root.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('travel-wall-open');

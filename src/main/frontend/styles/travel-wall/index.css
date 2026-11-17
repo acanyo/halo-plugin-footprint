@@ -188,6 +188,7 @@ body.travel-wall-open #pageIntro {
     backdrop-filter: blur(var(--fp-blur));
     box-shadow: var(--fp-shadow);
     pointer-events: auto;
+    transition: opacity 220ms var(--fp-ease), visibility 220ms;
 }
 
 .wall-back {
@@ -212,6 +213,145 @@ body.travel-wall-open #pageIntro {
     align-items: center;
     justify-self: end;
     gap: 7px;
+}
+
+.wall-year-filter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 10px 0 12px;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--rule);
+    color: var(--soft);
+    white-space: nowrap;
+    transition:
+        background-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.wall-year-label {
+    color: var(--faint);
+    font-size: var(--fp-size-xs);
+}
+
+.wall-year-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 76px;
+    min-height: 34px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.wall-year-trigger:disabled {
+    cursor: not-allowed;
+}
+
+.wall-year-chevron {
+    width: 13px;
+    height: 13px;
+    flex: none;
+    color: var(--faint);
+    pointer-events: none;
+    transition: color 180ms ease, transform 180ms ease;
+}
+
+.wall-year-filter:hover {
+    background: var(--rule);
+}
+
+.wall-year-filter:hover .wall-year-chevron,
+.wall-year-filter:focus-within .wall-year-chevron {
+    color: var(--soft);
+}
+
+.wall-year-filter.is-open .wall-year-chevron {
+    color: var(--soft);
+    transform: rotate(180deg);
+}
+
+.wall-year-filter.is-disabled {
+    opacity: 0.48;
+}
+
+.wall-year-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 12;
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    max-height: min(320px, calc(100vh - 96px));
+    padding: 5px;
+    overflow-y: auto;
+    border: 1px solid var(--fp-rule);
+    border-radius: 15px;
+    background: var(--surface);
+    box-shadow: var(--fp-shadow-lift);
+    -webkit-backdrop-filter: blur(20px) saturate(135%);
+    backdrop-filter: blur(20px) saturate(135%);
+}
+
+.wall-year-menu[hidden] {
+    display: none;
+}
+
+.wall-year-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 30px 0 13px;
+    border: 0;
+    border-radius: var(--fp-radius-control);
+    background: var(--rule);
+    color: var(--soft);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+}
+
+.wall-year-option::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    width: 5px;
+    height: 9px;
+    border-right: 1.8px solid currentColor;
+    border-bottom: 1.8px solid currentColor;
+    opacity: 0;
+    transform: translateY(-62%) rotate(45deg) scale(0.8);
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.wall-year-option:hover,
+.wall-year-option:focus-visible {
+    outline: 0;
+    background: var(--rule);
+    color: var(--ink);
+}
+
+.wall-year-option[aria-selected="true"] {
+    background: var(--fp-accent-soft);
+    color: var(--accent);
+}
+
+.wall-year-option[aria-selected="true"]::after {
+    opacity: 1;
+    transform: translateY(-62%) rotate(45deg) scale(1);
 }
 
 .tool-button,
@@ -249,6 +389,47 @@ body.travel-wall-open #pageIntro {
 #travelMemoryWall button:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+}
+
+.wall-year-filter:focus-within {
+    box-shadow: 0 0 0 3px var(--fp-accent-soft);
+    outline: 0;
+}
+
+.wall-year-filter.is-open {
+    background: var(--rule);
+}
+
+.immersive-exit {
+    position: fixed;
+    top: max(20px, env(safe-area-inset-top));
+    right: 24px;
+    z-index: 6;
+    min-height: 36px;
+    padding: 0 15px;
+    border: 1px solid var(--tmw-preview-border);
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    color: var(--ink);
+    font: 500 12px/1 var(--font-text);
+    cursor: pointer;
+    -webkit-backdrop-filter: blur(16px) saturate(135%);
+    backdrop-filter: blur(16px) saturate(135%);
+}
+
+.immersive-exit[hidden] {
+    display: none;
+}
+
+#travelMemoryWall.is-immersive .wall-header,
+#travelMemoryWall.is-immersive .zoom-controls,
+#travelMemoryWall.is-immersive .mini-map-panel,
+#travelMemoryWall.is-immersive .gesture-note,
+#travelMemoryWall.is-immersive .debug-panel {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .debug-panel {
@@ -386,14 +567,86 @@ body.travel-wall-open #pageIntro {
     left: 50%;
     top: 50%;
     z-index: 5;
-    padding: 11px 15px;
-    border-radius: 999px;
+    padding: 13px 16px;
+    border-radius: 14px;
     background: var(--surface);
     box-shadow: var(--shadow);
     color: var(--soft);
     font-size: 12px;
     transform: translate(-50%, -50%);
-    transition: opacity 260ms ease, visibility 260ms ease;
+    transition:
+        top 280ms var(--fp-ease),
+        padding 280ms var(--fp-ease),
+        border-radius 280ms var(--fp-ease),
+        opacity 260ms ease,
+        visibility 260ms ease;
+}
+
+.loading-state {
+    display: grid;
+    gap: 10px;
+    width: min(320px, calc(100vw - 48px));
+}
+
+.loading-copy {
+    display: grid;
+    gap: 3px;
+}
+
+.loading-copy strong {
+    color: var(--ink);
+    font: 400 15px/1.25 var(--font-title);
+}
+
+.loading-copy span {
+    color: var(--soft);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.loading-track {
+    display: block;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--rule);
+}
+
+.loading-track i {
+    display: block;
+    width: 4%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width 220ms var(--fp-ease);
+}
+
+.loading-state.is-passive {
+    top: 50%;
+    grid-template-columns: auto 92px;
+    align-items: center;
+    gap: 12px;
+    width: auto;
+    max-width: min(430px, calc(100vw - 48px));
+    padding: 9px 12px;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+}
+
+.loading-state.is-passive .loading-copy {
+    gap: 1px;
+}
+
+.loading-state.is-passive .loading-copy strong {
+    font: 500 11px/1.25 var(--font-text);
+}
+
+.loading-state.is-passive .loading-copy span {
+    font-size: 10px;
+}
+
+.loading-state.is-passive .loading-track {
+    width: 92px;
 }
 
 .loading-state.is-hidden {
@@ -402,6 +655,7 @@ body.travel-wall-open #pageIntro {
 }
 
 .too-small-notice {
+    display: grid;
     max-width: 420px;
     border-radius: 16px;
     line-height: 1.7;
@@ -433,6 +687,8 @@ body.travel-wall-open #pageIntro {
 .photo-preview figure {
     display: flex;
     flex-direction: column;
+    width: fit-content;
+    min-height: 0;
     max-width: min(1120px, 88vw);
     max-height: calc(100dvh - 140px);
     margin: 0;
@@ -440,6 +696,7 @@ body.travel-wall-open #pageIntro {
     border-radius: 18px;
     background: var(--surface-solid);
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.32);
+    overflow: hidden;
     opacity: 0;
     transform: translateY(12px) scale(0.985);
     transition:
@@ -453,7 +710,10 @@ body.travel-wall-open #pageIntro {
 }
 
 .photo-preview img {
+    flex: 1 1 auto;
     display: block;
+    align-self: center;
+    min-height: 0;
     max-width: 100%;
     max-height: calc(100dvh - 220px);
     object-fit: contain;
@@ -463,8 +723,13 @@ body.travel-wall-open #pageIntro {
 
 .photo-preview figcaption {
     display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    width: 0;
+    min-width: 100%;
     align-items: baseline;
-    gap: 12px;
+    column-gap: 12px;
+    row-gap: 7px;
     padding: 12px 8px 0;
 }
 
@@ -478,6 +743,25 @@ body.travel-wall-open #pageIntro {
 .photo-preview span {
     color: var(--soft);
     font-size: 12px;
+}
+
+.preview-description {
+    flex: 1 0 100%;
+    width: 100%;
+    min-width: 0;
+    max-height: min(150px, 20dvh);
+    margin: 0;
+    padding-right: 6px;
+    overflow-y: auto;
+    color: var(--soft);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.preview-description[hidden] {
+    display: none;
 }
 
 .preview-close {
@@ -609,6 +893,10 @@ body.travel-wall-open #pageIntro {
 
     .tool-button {
         padding: 0 10px;
+    }
+
+    .wall-year-filter {
+        padding: 0 8px;
     }
 }
 

@@ -302,10 +302,32 @@
                     <span>返回城记</span>
                 </button>
                 <div class="wall-toolbar" role="toolbar" aria-label="旅行记忆墙工具">
+                    <div class="wall-year-filter">
+                        <span id="wallYearLabel" class="wall-year-label">年份</span>
+                        <button id="wallYearTrigger" class="wall-year-trigger" type="button"
+                                aria-labelledby="wallYearLabel wallYearValue"
+                                aria-haspopup="listbox" aria-expanded="false"
+                                aria-controls="wallYearMenu" disabled>
+                            <span id="wallYearValue">全部年份</span>
+                            <svg class="wall-year-chevron" viewBox="0 0 16 16"
+                                 fill="none" stroke="currentColor" stroke-width="1.6"
+                                 stroke-linecap="round" stroke-linejoin="round"
+                                 aria-hidden="true">
+                                <path d="m4 6 4 4 4-4"/>
+                            </svg>
+                        </button>
+                        <div id="wallYearMenu" class="wall-year-menu" role="listbox"
+                             aria-labelledby="wallYearLabel" hidden></div>
+                    </div>
                     <button id="exportBtn" class="tool-button" type="button">导出整墙</button>
                     <button id="fitBtn" class="tool-button" type="button">适配全图</button>
+                    <button id="immersiveBtn" class="tool-button" type="button"
+                            aria-pressed="false">沉浸观看</button>
                 </div>
             </header>
+            <button id="immersiveExitBtn" class="immersive-exit" type="button" hidden>
+                退出沉浸
+            </button>
             <p id="wallSummary" class="sr-only" aria-live="polite">
                 正在读取足迹数据
             </p>
@@ -329,7 +351,13 @@
 
             <p class="gesture-note">拖动平移，滚轮缩放。点击城市或照片组聚焦，点击单张照片查看原图。</p>
             <div id="loadingState" class="loading-state" role="status">
-                正在准备旅行记忆墙
+                <span class="loading-copy">
+                    <strong id="loadingTitle">正在准备旅行记忆墙</strong>
+                    <span id="loadingDetail">读取足迹数据</span>
+                </span>
+                <span class="loading-track" aria-hidden="true">
+                    <i id="loadingBar"></i>
+                </span>
             </div>
             <div id="tooSmallNotice" class="too-small-notice" hidden>
                 请将窗口宽度调整到 1280px 以上，以获得完整的旅行记忆墙体验。
@@ -347,6 +375,7 @@
                     <figcaption>
                         <strong id="previewTitle"></strong>
                         <span id="previewMeta"></span>
+                        <p id="previewDescription" class="preview-description"></p>
                     </figcaption>
                 </figure>
                 <button id="previewNextBtn"
