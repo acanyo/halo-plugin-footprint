@@ -195,6 +195,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const previewCloseBtn = document.getElementById('previewCloseBtn');
     const previewPrevBtn = document.getElementById('previewPrevBtn');
     const previewNextBtn = document.getElementById('previewNextBtn');
+    const previewTransitionCanvas = document.createElement('canvas');
+    previewTransitionCanvas.className = 'preview-transition-photo';
+    previewTransitionCanvas.setAttribute('aria-hidden', 'true');
+    preview.append(previewTransitionCanvas);
+    const previewTransitionCtx = previewTransitionCanvas.getContext('2d');
     const exportProgress = document.getElementById('exportProgress');
     const exportProgressText = document.getElementById('exportProgressText');
     const exportProgressBar = document.getElementById('exportProgressBar');
@@ -227,6 +232,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         setLoadingPhase('旅行记忆墙已就绪', '可以自由拖动、缩放和查看照片', 100);
         loadingFinished = true;
         loadingState.classList.add('is-passive', 'is-hidden');
+        playInitialFitTransition();
     }
 
     const MAP_WIDTH = 960;
@@ -444,8 +450,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let layoutVersion = 0;
     let layoutMetrics = null;
     let initialFitPending = true;
+    let initialFitFrame = 0;
     let cameraBeforeImmersive = null;
     let loadingFinished = false;
+    let previewSession = 0;
+    let previewOpenComplete = false;
+    let previewImageReady = false;
+    let previewTransitionAnimation = null;
 
     function theme() {
         return THEMES[state.theme] || THEMES.paper;
@@ -4595,7 +4606,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         }
     }
 
-    function setFitView(animate) {
+    function setFitView(animate, options = {}) {
         const insets = layoutSafeInsets();
         const availableWidth = Math.max(1,
             viewport.width - insets.left - insets.right);
@@ -4610,8 +4621,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 (availableHeight - scene.viewRect.height * fitScale) / 2 -
                 scene.viewRect.y * fitScale
         };
-        if (animate && !reduceMotion) animateCamera(target, 420);
-        else {
+        if (animate && !reduceMotion) {
+            animateCamera(
+                target,
+                Number(options.duration) || 420,
+                options
+            );
+        } else {
             camera = target;
             clampCamera();
             dirty = true;
@@ -4644,22 +4660,51 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         if (root.classList.contains('show')) immersiveBtn.focus();
     }
 
-    function animateCamera(target, duration) {
+    function animateCamera(target, duration, options = {}) {
         const from = { ...camera };
+        const fromScale = Math.max(0.0001, from.scale);
+        const targetScale = Math.max(0.0001, target.scale);
         const started = performance.now();
         const run = now => {
             const raw = Math.min(1, (now - started) / duration);
-            const eased = 1 - Math.pow(1 - raw, 3);
+            const eased = options.easing === 'in-out'
+                ? (raw < 0.5
+                    ? 4 * raw * raw * raw
+                    : 1 - Math.pow(-2 * raw + 2, 3) / 2)
+                : 1 - Math.pow(1 - raw, 3);
             camera = {
                 x: from.x + (target.x - from.x) * eased,
                 y: from.y + (target.y - from.y) * eased,
-                scale: from.scale + (target.scale - from.scale) * eased
+                scale: options.logZoom
+                    ? fromScale * Math.pow(targetScale / fromScale, eased)
+                    : from.scale + (target.scale - from.scale) * eased
             };
             dirty = true;
             scheduleDraw();
             if (raw < 1) requestAnimationFrame(run);
         };
         requestAnimationFrame(run);
+    }
+
+    function playInitialFitTransition() {
+        if (!initialFitPending || initialFitFrame) return;
+        initialFitFrame = requestAnimationFrame(() => {
+            initialFitFrame = requestAnimationFrame(() => {
+                initialFitFrame = 0;
+                if (!root.classList.contains('show') ||
+                    !sceneReady ||
+                    imagesLoading()) {
+                    return;
+                }
+                initialFitPending = false;
+                ensureLayoutSettled();
+                setFitView(true, {
+                    duration: 680,
+                    easing: 'in-out',
+                    logZoom: true
+                });
+            });
+        });
     }
 
     function clampCamera() {
@@ -6761,22 +6806,70 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         );
     }
 
+    function previewPhotoAspect(rectangle) {
+        try {
+            const expectedUrl = new URL(
+                rectangle.item.url,
+                window.location.href
+            ).href;
+            if (previewImage.currentSrc === expectedUrl &&
+                previewImage.naturalWidth &&
+                previewImage.naturalHeight) {
+                return previewImage.naturalWidth / previewImage.naturalHeight;
+            }
+        } catch (error) {
+            // Fall back to the wall thumbnail ratio.
+        }
+        const aspect = Number(rectangle && rectangle.item &&
+            rectangle.item.aspect);
+        return Number.isFinite(aspect) && aspect > 0 ? aspect : 4 / 3;
+    }
+
     function fitPreviewFrameToImage() {
-        if (!state.previewPhoto || !previewImage.naturalWidth) return;
-        const imageWidth = previewImage.getBoundingClientRect().width;
-        if (!imageWidth) return;
+        if (!state.previewPhoto) return;
         const figureStyle = window.getComputedStyle(previewFigure);
         const horizontalPadding =
             parseFloat(figureStyle.paddingLeft || '0') +
             parseFloat(figureStyle.paddingRight || '0');
-        previewFigure.style.width =
-            Math.ceil((imageWidth + horizontalPadding) * 100) / 100 + 'px';
+        const verticalPadding =
+            parseFloat(figureStyle.paddingTop || '0') +
+            parseFloat(figureStyle.paddingBottom || '0');
+        const aspect = previewPhotoAspect(state.previewPhoto);
+        const maxFigureWidth = Math.max(180,
+            Math.min(1120, viewport.width * 0.88));
+        const maxImageWidth = Math.max(160,
+            maxFigureWidth - horizontalPadding);
+        const maxImageHeight = Math.max(160, viewport.height - 220);
+        const maxFigureHeight = Math.max(240, viewport.height - 140);
+        let width = Math.min(maxImageWidth, maxImageHeight * aspect);
+        let height = width / aspect;
+        for (let pass = 0; pass < 2; pass++) {
+            previewImage.style.width =
+                Math.ceil(width * 100) / 100 + 'px';
+            previewImage.style.height =
+                Math.ceil(height * 100) / 100 + 'px';
+            previewFigure.style.width =
+                Math.ceil((width + horizontalPadding) * 100) /
+                100 + 'px';
+            const captionHeight =
+                previewFigure.querySelector('figcaption')
+                    .getBoundingClientRect().height;
+            const availableImageHeight = Math.max(120, Math.min(
+                maxImageHeight,
+                maxFigureHeight - verticalPadding - captionHeight - 6
+            ));
+            if (height <= availableImageHeight) break;
+            height = availableImageHeight;
+            width = height * aspect;
+        }
+        previewImage.style.aspectRatio = String(aspect);
     }
 
     function renderPreviewPhoto(rectangle) {
         state.previewPhoto = rectangle;
+        previewImageReady = false;
+        previewImage.classList.remove('is-ready');
         previewFigure.style.width = '';
-        previewImage.src = rectangle.item.url;
         previewImage.alt =
             state.previewGroup.city + '，' + rectangle.footprint;
         previewTitle.textContent = rectangle.footprint;
@@ -6802,36 +6895,214 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         previewNextBtn.hidden = !hasSequence;
         previewPrevBtn.disabled = false;
         previewNextBtn.disabled = false;
+        fitPreviewFrameToImage();
+        previewImage.src = rectangle.item.url;
     }
 
-    function movePreview(direction) {
-        if (!state.previewPhoto || state.previewPhotos.length < 2) return;
-        const count = state.previewPhotos.length;
-        state.previewIndex =
-            (state.previewIndex + direction + count) % count;
-        renderPreviewPhoto(state.previewPhotos[state.previewIndex]);
+    function previewScreenRect(rectangle) {
+        const width = Math.max(1, rectangle.width * camera.scale);
+        const height = Math.max(1, rectangle.height * camera.scale);
+        const centerX = (rectangle.worldX + rectangle.width / 2) *
+            camera.scale + camera.x;
+        const centerY = (rectangle.worldY + rectangle.height / 2) *
+            camera.scale + camera.y;
+        return {
+            left: centerX - width / 2,
+            top: centerY - height / 2,
+            width,
+            height,
+            rotation: Number(rectangle.rotation) || 0
+        };
+    }
+
+    function previewImageScreenRect() {
+        const rect = previewImage.getBoundingClientRect();
+        return {
+            left: rect.left,
+            top: rect.top,
+            width: Math.max(1, rect.width),
+            height: Math.max(1, rect.height),
+            rotation: 0
+        };
+    }
+
+    function previewLayoutImageScreenRect() {
+        const previousTransform = previewFigure.style.transform;
+        previewFigure.style.transform = 'none';
+        const rect = previewImageScreenRect();
+        previewFigure.style.transform = previousTransform;
+        return rect;
+    }
+
+    function paintPreviewTransition(rectangle) {
+        const sprite = rectangle && rectangle.item &&
+            rectangle.item.sprite;
+        if (!sprite || !sprite.width || !sprite.height) return false;
+        previewTransitionCanvas.width = sprite.width;
+        previewTransitionCanvas.height = sprite.height;
+        previewTransitionCtx.clearRect(
+            0,
+            0,
+            previewTransitionCanvas.width,
+            previewTransitionCanvas.height
+        );
+        previewTransitionCtx.drawImage(
+            sprite,
+            0,
+            0,
+            previewTransitionCanvas.width,
+            previewTransitionCanvas.height
+        );
+        return true;
+    }
+
+    function placePreviewTransition(rect) {
+        previewTransitionCanvas.style.left = rect.left + 'px';
+        previewTransitionCanvas.style.top = rect.top + 'px';
+        previewTransitionCanvas.style.width = rect.width + 'px';
+        previewTransitionCanvas.style.height = rect.height + 'px';
+        previewTransitionCanvas.style.transform =
+            'rotate(' + rect.rotation + 'deg)';
+    }
+
+    function stopPreviewTransition() {
+        if (previewTransitionAnimation) {
+            previewTransitionAnimation.cancel();
+            previewTransitionAnimation = null;
+        }
+        previewTransitionCanvas.classList.remove('is-active');
+        previewTransitionCanvas.style.opacity = '';
+    }
+
+    function animatePreviewTransition(from, to, duration, easing, done, delay = 0) {
+        stopPreviewTransition();
+        placePreviewTransition(from);
+        previewTransitionCanvas.classList.add('is-active');
+        previewTransitionAnimation = previewTransitionCanvas.animate([
+            {
+                left: from.left + 'px',
+                top: from.top + 'px',
+                width: from.width + 'px',
+                height: from.height + 'px',
+                borderRadius: '6px',
+                opacity: 1,
+                transform: 'rotate(' + from.rotation + 'deg)'
+            },
+            {
+                left: to.left + 'px',
+                top: to.top + 'px',
+                width: to.width + 'px',
+                height: to.height + 'px',
+                borderRadius: '10px',
+                opacity: 1,
+                transform: 'rotate(' + to.rotation + 'deg)'
+            }
+        ], {
+            duration,
+            easing,
+            delay,
+            fill: 'forwards'
+        });
+        const animation = previewTransitionAnimation;
+        animation.finished.then(() => {
+            if (previewTransitionAnimation !== animation) return;
+            previewTransitionAnimation = null;
+            done();
+        }).catch(() => {
+            // A newer preview action cancelled this transition.
+        });
+    }
+
+    function revealPreviewImage(session) {
+        if (session !== previewSession ||
+            !previewOpenComplete ||
+            !previewImageReady ||
+            !state.previewPhoto) {
+            return;
+        }
+        previewImage.classList.add('is-ready');
+        if (!previewTransitionCanvas.classList.contains('is-active')) return;
+        const animation = previewTransitionCanvas.animate([
+            { opacity: 1 },
+            { opacity: 0 }
+        ], {
+            duration: 200,
+            easing: 'ease-out',
+            fill: 'forwards'
+        });
+        previewTransitionAnimation = animation;
+        animation.finished.then(() => {
+            if (previewTransitionAnimation !== animation ||
+                session !== previewSession) {
+                return;
+            }
+            previewTransitionAnimation = null;
+            previewTransitionCanvas.classList.remove('is-active');
+            previewTransitionCanvas.style.opacity = '';
+        }).catch(() => {
+            // Closing during the crossfade takes over the canvas.
+        });
+    }
+
+    function finishPreviewOpen(session) {
+        if (session !== previewSession || !state.previewPhoto) return;
+        previewOpenComplete = true;
+        preview.classList.remove('is-opening');
+        preview.classList.add('is-content-visible');
+        revealPreviewImage(session);
     }
 
     function openPreview(rectangle, group) {
+        if (!rectangle || !rectangle.item) return;
+        const session = ++previewSession;
+        previewOpenComplete = false;
+        previewImageReady = false;
         state.previewGroup = group;
         state.previewPhotos = footprintPreviewPhotos(rectangle, group);
         state.previewIndex = Math.max(0, state.previewPhotos.indexOf(rectangle));
-        renderPreviewPhoto(rectangle);
-        preview.classList.add('show');
+        preview.classList.remove(
+            'is-closing',
+            'is-content-visible',
+            'is-opening'
+        );
+        preview.classList.add('show', 'is-opening');
         preview.setAttribute('aria-hidden', 'false');
+        renderPreviewPhoto(rectangle);
+        fitPreviewFrameToImage();
+        const target = previewLayoutImageScreenRect();
         previewCloseBtn.focus();
+        if (reduceMotion || !paintPreviewTransition(rectangle)) {
+            finishPreviewOpen(session);
+            return;
+        }
+        animatePreviewTransition(
+            previewScreenRect(rectangle),
+            target,
+            600,
+            'cubic-bezier(0.4, 0, 0.2, 1)',
+            () => finishPreviewOpen(session),
+            50
+        );
     }
 
-    function closePreview() {
-        if (!state.previewPhoto) return;
+    function clearPreviewState() {
         state.previewPhoto = null;
         state.previewGroup = null;
         state.previewPhotos = [];
         state.previewIndex = 0;
-        preview.classList.remove('show');
+        preview.classList.remove(
+            'show',
+            'is-opening',
+            'is-content-visible',
+            'is-closing'
+        );
         preview.setAttribute('aria-hidden', 'true');
         previewImage.removeAttribute('src');
+        previewImage.classList.remove('is-ready');
         previewFigure.style.width = '';
+        previewImage.style.width = '';
+        previewImage.style.height = '';
+        previewImage.style.aspectRatio = '';
         previewDescription.textContent = '';
         previewDescription.hidden = true;
         previewPrevBtn.hidden = true;
@@ -6839,6 +7110,49 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         canvas.focus();
         dirty = true;
         scheduleDraw();
+    }
+
+    function closePreview() {
+        if (!state.previewPhoto || preview.classList.contains('is-closing')) {
+            return;
+        }
+        const session = ++previewSession;
+        const rectangle = state.previewPhoto;
+        previewOpenComplete = false;
+        previewImageReady = false;
+        preview.classList.remove('is-opening', 'is-content-visible');
+        preview.classList.add('is-closing');
+        const finish = () => {
+            if (session !== previewSession) return;
+            stopPreviewTransition();
+            clearPreviewState();
+        };
+        if (reduceMotion || !paintPreviewTransition(rectangle)) {
+            finish();
+            return;
+        }
+        animatePreviewTransition(
+            previewImageScreenRect(),
+            previewScreenRect(rectangle),
+            240,
+            'cubic-bezier(0.4, 0, 1, 1)',
+            finish
+        );
+    }
+
+    function movePreview(direction) {
+        if (!state.previewPhoto ||
+            state.previewPhotos.length < 2 ||
+            preview.classList.contains('is-opening') ||
+            preview.classList.contains('is-closing')) {
+            return;
+        }
+        const count = state.previewPhotos.length;
+        state.previewIndex =
+            (state.previewIndex + direction + count) % count;
+        renderPreviewPhoto(state.previewPhotos[state.previewIndex]);
+        previewImageReady = false;
+        previewImage.classList.remove('is-ready');
     }
 
     function onWheel(event) {
@@ -6945,13 +7259,6 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         loadingState.classList.toggle('is-passive', passive);
         canvas.classList.toggle('is-loading', !sceneReady);
         updateInteractionLock(!sceneReady);
-        if (initialFitPending && sceneReady) {
-            initialFitPending = false;
-            window.setTimeout(() => {
-                ensureLayoutSettled();
-                setFitView(false);
-            }, 80);
-        }
         if (!total) {
             if (!sceneReady) {
                 setLoadingPhase(
@@ -7374,6 +7681,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         previewNextBtn.addEventListener('click', () => movePreview(1));
         previewImage.addEventListener('load', () => {
             window.requestAnimationFrame(fitPreviewFrameToImage);
+            if (!state.previewPhoto) return;
+            previewImageReady = true;
+            revealPreviewImage(previewSession);
         });
         preview.addEventListener('click', event => {
             if (event.target === preview) closePreview();
