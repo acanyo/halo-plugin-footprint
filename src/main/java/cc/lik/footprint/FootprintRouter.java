@@ -22,6 +22,7 @@ public class FootprintRouter {
     @Bean
     RouterFunction<ServerResponse> footprintRouterFunction() {
         return route(GET("/footprints"), pageHandler::render)
+            .andRoute(GET("/footprints/memory-wall"), pageHandler::render)
             .andRoute(GET("/footprints/image-proxy"), imageProxyHandler::handle);
     }
 }

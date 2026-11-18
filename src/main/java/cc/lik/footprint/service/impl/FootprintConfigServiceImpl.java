@@ -118,6 +118,10 @@ public class FootprintConfigServiceImpl implements FootprintConfigService {
                     .travelWallMotto(
                         field(cityWall, legacy, "travelWallMotto")
                             .asText("人生得意须尽欢"))
+                    .travelWallStyle(
+                        normalizeTravelWallStyle(
+                            field(cityWall, legacy, "travelWallStyle")
+                                .asText("classic")))
 
                     .markerImageFrom(image.path("markerImageFrom").asText(""))
                     .markerImageTo(image.path("markerImageTo").asText(""))
@@ -146,6 +150,13 @@ public class FootprintConfigServiceImpl implements FootprintConfigService {
 
     private static int clampPhotoWallPageSize(int value) {
         return Math.max(1, Math.min(12, value));
+    }
+
+    private static String normalizeTravelWallStyle(String value) {
+        return switch (value == null ? "" : value.trim()) {
+            case "scrapbook" -> value.trim();
+            default -> "classic";
+        };
     }
 
     /**

@@ -92,6 +92,10 @@ public class FootprintPageHandler {
                         model.put("footprintWishes", wishes);
                         model.put("pluginVersion",
                             pluginWrapper.getDescriptor().getVersion());
+                        model.put(
+                            "travelWallDirect",
+                            "/footprints/memory-wall".equals(request.path())
+                        );
                         // 给 Head 处理器等渲染扩展一个稳定的页面标识（Halo 约定）：
                         // FootprintHeadProcessor 靠它判断"这是足迹页"，才注入 3D 地球那套资源。
                         model.put(ModelConst.TEMPLATE_ID, "plugin:footprint:footprints");

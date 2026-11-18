@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>把 2.9.18 及更早版本堆在 {@code globe3d} 一个分组里的配置，拆分到
@@ -144,6 +145,18 @@ public class SettingsMigration {
                     "value", "人生得意须尽欢",
                     "help", "显示在记忆墙右侧；留空则隐藏，文字较长时会自动缩小字号。"
                 ));
+                changed |= upsertField(schema, Map.of(
+                    "$formkit", "select",
+                    "label", "记忆墙场景样式",
+                    "name", "travelWallStyle",
+                    "value", "classic",
+                    "options", List.of(
+                        Map.of("label", "经典软木板", "value", "classic"),
+                        Map.of("label", "旅行手账", "value", "scrapbook")
+                    ),
+                    "help", "选择旅行记忆墙的场景语言。默认使用经典软木板，"
+                        + "也可以切换为旅行手账。"
+                ));
                 if (!changed) {
                     return Mono.empty();
                 }
@@ -167,6 +180,24 @@ public class SettingsMigration {
             .anyMatch(item -> name.equals(item.get("name")));
         if (exists) {
             return false;
+        }
+        schema.add(field);
+        return true;
+    }
+
+    private boolean upsertField(List<Object> schema, Map<String, Object> field) {
+        String name = String.valueOf(field.get("name"));
+        for (int index = 0; index < schema.size(); index++) {
+            Object item = schema.get(index);
+            if (!(item instanceof Map<?, ?> current) ||
+                !name.equals(current.get("name"))) {
+                continue;
+            }
+            if (Objects.equals(current, field)) {
+                return false;
+            }
+            schema.set(index, field);
+            return true;
         }
         schema.add(field);
         return true;

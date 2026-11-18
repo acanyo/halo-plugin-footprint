@@ -20,7 +20,7 @@
     <script src="/plugins/footprint/assets/static/cesium/Cesium.js"></script>
     <script src="/plugins/footprint/assets/static/vendor/pako.min.js"></script>
     <script src="/plugins/footprint/assets/static/vendor/tdtplug.umd.min.js"></script>
-    <th:block th:if="${settings.enableTravelWall}">
+    <th:block th:if="${settings.enableTravelWall or travelWallDirect}">
         <link rel="stylesheet" type="text/css"
               th:href="|/plugins/footprint/assets/static/css/travel-wall.css?version=${pluginVersion}|">
         <script defer type="text/javascript"
@@ -65,6 +65,8 @@
             enableTravelWall: /*[[${settings.enableTravelWall}]]*/ false,
             travelWallTitle: /*[[${settings.travelWallTitle}]]*/ '城市记忆墙',
             travelWallMotto: /*[[${settings.travelWallMotto}]]*/ '人生得意须尽欢',
+            travelWallStyle: /*[[${settings.travelWallStyle}]]*/ 'classic',
+            travelWallDirect: /*[[${travelWallDirect}]]*/ false,
             enableTicketJourneyReplay: /*[[${settings.enableTicketJourneyReplay}]]*/ false,
             enableTicketSeasonLight: /*[[${settings.enableTicketSeasonLight}]]*/ false,
             enableTicketOracle: /*[[${settings.enableTicketOracle}]]*/ false,

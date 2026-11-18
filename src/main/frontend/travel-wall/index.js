@@ -5,7 +5,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     const root = document.getElementById('travelMemoryWall');
     const openButton = document.getElementById('travelWallBtn');
-    if (!root || !openButton) return;
+    if (!root) return;
 
     const footprintConfig = window.FOOTPRINT_CONFIG || {};
     const configuredTitle = String(
@@ -14,6 +14,21 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const configuredMotto = String(
         footprintConfig.travelWallMotto || '人生得意须尽欢'
     ).trim();
+    const directTravelWall = footprintConfig.travelWallDirect === true;
+    const allowedWallStyles = new Set([
+        'classic',
+        'scrapbook'
+    ]);
+    const wallStyleParams = new URLSearchParams(window.location.search);
+    const requestedWallStyle = (
+        wallStyleParams.get('debug') === '1'
+            ? wallStyleParams.get('wallStyle')
+            : ''
+    ) || footprintConfig.travelWallStyle || 'classic';
+    const configuredWallStyle = allowedWallStyles.has(
+        String(requestedWallStyle).trim()
+    ) ? String(requestedWallStyle).trim() : 'classic';
+    root.dataset.sceneStyle = configuredWallStyle;
     const mottoFont = '"Ma Shan Zheng", "KaiTi", "STKaiti", serif';
     const wallAccent = accentHex();
 
@@ -283,6 +298,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const SPRITE_SHADOW_PADDING = 18;
     const PAN_MARGIN_X = 360;
     const PAN_MARGIN_Y = 300;
+    const SCRAPBOOK_MOTTO_GAP = 72;
 
     const THEMES = {
         paper: {
@@ -327,52 +343,53 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             mottoEdge: '#33271d',
             mottoShadow: 'rgba(38, 28, 20, 0.5)'
         },
-        studio: {
-            background: '#202027',
-            wallTop: '#34333a',
-            wallBottom: '#19191f',
-            wallLight: 'rgba(255, 236, 207, 0.09)',
-            wallShade: 'rgba(0, 0, 0, 0.28)',
-            board: '#665f57',
-            boardDeep: '#403c38',
-            boardWeave: 'rgba(232, 219, 195, 0.075)',
-            boardFleck: 'rgba(255, 244, 221, 0.08)',
-            frameWood: '#4b382d',
-            frameLight: '#765c49',
-            frameDeep: '#211916',
-            mapPaper: '#302f36',
-            mapPaperEdge: 'rgba(0, 0, 0, 0.45)',
-            mapFold: 'rgba(235, 231, 222, 0.14)',
-            mapFill: '#303038',
-            mapVisited: accentRgba(0.24),
-            mapStroke: 'rgba(237, 237, 241, 0.27)',
-            mapLabel: 'rgba(224, 224, 232, 0.68)',
-            mapLabelVisited: accentRgba(0.92),
-            ink: '#ededf1',
-            soft: '#b3b3bc',
-            faint: '#85858f',
+        scrapbook: {
+            background: '#9b8671',
+            wallTop: '#b7a48e',
+            wallBottom: '#66513f',
+            wallLight: 'rgba(255, 244, 220, 0.32)',
+            wallShade: 'rgba(45, 30, 20, 0.28)',
+            board: '#ded0b8',
+            boardDeep: '#bda78a',
+            boardWeave: 'rgba(104, 76, 50, 0.1)',
+            boardFleck: 'rgba(255, 252, 243, 0.16)',
+            frameWood: '#8c6d4f',
+            frameLight: '#ba9a72',
+            frameDeep: '#573f2c',
+            mapPaper: '#f3e7cf',
+            mapPaperEdge: 'rgba(103, 76, 50, 0.3)',
+            mapFold: 'rgba(108, 82, 56, 0.2)',
+            mapFill: '#faf1df',
+            mapVisited: accentRgba(0.2),
+            mapStroke: 'rgba(76, 62, 48, 0.28)',
+            mapLabel: 'rgba(85, 70, 54, 0.7)',
+            mapLabelVisited: accentRgba(0.9),
+            ink: '#3d342b',
+            soft: '#756151',
+            faint: '#9a8775',
             accent: wallAccent,
-            accentSoft: accentRgba(0.18),
-            line: 'rgba(220, 220, 230, 0.2)',
-            lineActive: accentRgba(0.95),
-            thread: 'rgba(226, 214, 197, 0.52)',
-            frame: '#f0eff3',
-            frameSoft: '#d8d7de',
-            ticket: '#e9dece',
-            placeholder: '#5b5b66',
-            shadow: 'rgba(0, 0, 0, 0.38)',
-            ambientShadow: 'rgba(0, 0, 0, 0.42)',
-            contactShadow: 'rgba(0, 0, 0, 0.5)',
-            warmLight: 'rgba(255, 224, 188, 0.13)',
-            coolShade: 'rgba(4, 8, 13, 0.22)',
-            mottoInk: '#f2e4c8',
-            mottoEdge: '#33271d',
-            mottoShadow: 'rgba(38, 28, 20, 0.5)'
+            accentSoft: accentRgba(0.15),
+            line: 'rgba(82, 61, 43, 0.22)',
+            lineActive: accentRgba(0.9),
+            thread: 'rgba(107, 78, 53, 0.52)',
+            frame: '#fffaf0',
+            frameSoft: '#e8dac5',
+            ticket: '#f5e8cf',
+            placeholder: '#d8c8ae',
+            shadow: 'rgba(69, 47, 30, 0.18)',
+            ambientShadow: 'rgba(65, 43, 28, 0.25)',
+            contactShadow: 'rgba(51, 33, 21, 0.32)',
+            warmLight: 'rgba(255, 236, 199, 0.3)',
+            coolShade: 'rgba(65, 46, 36, 0.15)',
+            mottoInk: '#6b4b31',
+            mottoEdge: '#4d3522',
+            mottoShadow: 'rgba(65, 43, 27, 0.25)'
         }
     };
 
     const state = {
         theme: 'paper',
+        sceneStyle: 'classic',
         immersive: false,
         selectedId: '',
         hoveredId: '',
@@ -460,6 +477,31 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function theme() {
         return THEMES[state.theme] || THEMES.paper;
+    }
+
+    function sceneStyleIs(name) {
+        return state.sceneStyle === name;
+    }
+
+    function sceneThemeKey(style) {
+        return style === 'classic' ? 'paper' : style;
+    }
+
+    function sceneLayoutProfile() {
+        if (sceneStyleIs('scrapbook')) {
+            return {
+                photoSize: 68,
+                photoLimit: 90,
+                rotationStep: 0.68,
+                framePadding: 4
+            };
+        }
+        return {
+            photoSize: MAX_PHOTO_SIZE,
+            photoLimit: 92,
+            rotationStep: 0.36,
+            framePadding: PHOTO_FRAME
+        };
     }
 
     function clamp(value, min, max) {
@@ -1197,12 +1239,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const clusters = [];
         const labels = [];
         const entries = [];
+        const layoutProfile = sceneLayoutProfile();
         groups.forEach(group => {
             const photoSize = clamp(
-                Math.round(MAX_PHOTO_SIZE -
+                Math.round(layoutProfile.photoSize -
                     Math.log2(Math.max(1, group.photoCount)) * 3),
                 52,
-                MAX_PHOTO_SIZE
+                layoutProfile.photoSize
             );
             const title = {
                 id: group.id + '|title',
@@ -1257,7 +1300,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                             ? 1.18 + (photoHash % 3) * 0.04
                             : 0.88 + (photoHash % 5) * 0.035;
                         const photoLimit = Math.min(
-                            92,
+                            layoutProfile.photoLimit,
                             Math.round(photoSize * sizeFactor)
                         );
                         const box = imageBox(
@@ -1277,7 +1320,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                             h: box.height,
                             rotation: (
                                 (stableHash(photo.url + '|rotation') % 13) - 6
-                            ) * 0.36,
+                            ) * layoutProfile.rotationStep,
                             x: null,
                             y: null
                         };
@@ -3449,6 +3492,21 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             const mottoRailExtra = Math.round(ticketRailExtra * 0.5);
             scene.worldWidth += ticketRailExtra + mottoRailExtra;
         }
+        if (sceneStyleIs('scrapbook') && configuredMotto) {
+            const rightmostContent = Math.max(
+                mapRect.x + mapRect.width,
+                ...groups.flatMap(group =>
+                    groupContentRects(group).map(rect => rect.x + rect.w)
+                )
+            );
+            const mottoCardWidth = sceneMottoCardWidth();
+            const mottoCardLeft = scene.worldWidth - 2 - mottoCardWidth;
+            const extraRight = Math.max(
+                0,
+                SCRAPBOOK_MOTTO_GAP - (mottoCardLeft - rightmostContent)
+            );
+            scene.worldWidth += Math.ceil(extraRight);
+        }
         refreshBoardBounds();
     }
 
@@ -4772,7 +4830,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const key = themeKey + ':' + kind;
         if (materialPatterns.has(key)) return materialPatterns.get(key);
 
-        const size = kind === 'wall' ? 180 : (kind === 'paper' ? 128 : 144);
+        const size = kind === 'wall' ? 180 :
+            (kind === 'paper' ? 128 : (kind === 'table' ? 224 : 144));
         const tile = document.createElement('canvas');
         tile.width = size;
         tile.height = size;
@@ -4784,9 +4843,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         };
 
         if (kind === 'wall') {
-            tileCtx.strokeStyle = themeKey === 'studio'
-                ? 'rgba(255, 255, 255, 0.022)'
-                : 'rgba(68, 59, 50, 0.035)';
+            tileCtx.strokeStyle = 'rgba(68, 59, 50, 0.035)';
             tileCtx.lineWidth = 0.7;
             for (let index = 0; index < 34; index++) {
                 const y = random() * size;
@@ -4794,6 +4851,37 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 tileCtx.moveTo(random() * 34, y);
                 tileCtx.lineTo(size - random() * 34, y + random() * 1.5);
                 tileCtx.stroke();
+            }
+        } else if (kind === 'table') {
+            const palette = THEMES[themeKey];
+            tileCtx.strokeStyle = palette.boardWeave;
+            tileCtx.lineWidth = 0.9;
+            for (let offset = 16; offset < size; offset += 26) {
+                tileCtx.beginPath();
+                tileCtx.moveTo(0, offset + random() * 3);
+                tileCtx.bezierCurveTo(
+                    size * 0.28,
+                    offset - 4 + random() * 8,
+                    size * 0.68,
+                    offset + 4 - random() * 8,
+                    size,
+                    offset + random() * 3
+                );
+                tileCtx.stroke();
+            }
+            tileCtx.fillStyle = palette.boardFleck;
+            for (let index = 0; index < 30; index++) {
+                tileCtx.beginPath();
+                tileCtx.ellipse(
+                    random() * size,
+                    random() * size,
+                    1 + random() * 2.2,
+                    0.5 + random(),
+                    random() * Math.PI,
+                    0,
+                    Math.PI * 2
+                );
+                tileCtx.fill();
             }
         } else if (kind === 'board') {
             const palette = THEMES[themeKey];
@@ -4821,9 +4909,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             }
         } else {
             const palette = THEMES[themeKey];
-            tileCtx.fillStyle = themeKey === 'studio'
-                ? 'rgba(255, 255, 255, 0.018)'
-                : 'rgba(88, 70, 48, 0.026)';
+            tileCtx.fillStyle = 'rgba(88, 70, 48, 0.026)';
             for (let index = 0; index < 120; index++) {
                 tileCtx.fillRect(
                     random() * size,
@@ -4867,6 +4953,20 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.fillStyle = wall;
         target.fillRect(0, 0, width, height);
 
+        if (sceneStyleIs('scrapbook')) {
+            const tablePattern = materialPattern(
+                target,
+                state.theme,
+                'table'
+            );
+            if (tablePattern) {
+                target.globalAlpha = 0.78;
+                target.fillStyle = tablePattern;
+                target.fillRect(0, 0, width, height);
+                target.globalAlpha = 1;
+            }
+        }
+
         const daylight = target.createRadialGradient(
             width * 0.08, -height * 0.12, 0,
             width * 0.08, -height * 0.12, Math.max(width, height) * 0.92
@@ -4879,10 +4979,26 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
         const wallPattern = materialPattern(target, state.theme, 'wall');
         if (wallPattern) {
-            target.globalAlpha = state.theme === 'studio' ? 0.42 : 0.55;
+            target.globalAlpha = 0.55;
             target.fillStyle = wallPattern;
             target.fillRect(0, 0, width, height);
             target.globalAlpha = 1;
+        }
+
+        if (sceneStyleIs('scrapbook')) {
+            const tableLight = target.createRadialGradient(
+                width * 0.48,
+                height * 0.18,
+                0,
+                width * 0.48,
+                height * 0.18,
+                Math.max(width, height) * 0.78
+            );
+            tableLight.addColorStop(0, 'rgba(255, 235, 200, 0.25)');
+            tableLight.addColorStop(0.56, 'rgba(255, 255, 255, 0)');
+            tableLight.addColorStop(1, 'rgba(37, 24, 16, 0.3)');
+            target.fillStyle = tableLight;
+            target.fillRect(0, 0, width, height);
         }
     }
 
@@ -4912,7 +5028,156 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         ctx.drawImage(cache, 0, 0);
     }
 
+    function paintTapeStrip(target, x, y, width, height, angle, alpha) {
+        target.save();
+        target.translate(x + width / 2, y + height / 2);
+        target.rotate(angle * Math.PI / 180);
+        target.globalAlpha = alpha;
+        target.fillStyle = '#eadcb9';
+        target.fillRect(-width / 2, -height / 2, width, height);
+        target.strokeStyle = 'rgba(117, 91, 55, 0.2)';
+        target.lineWidth = 0.6;
+        target.beginPath();
+        target.moveTo(-width / 2 + 2, -height / 2 + 2);
+        target.lineTo(width / 2 - 2, -height / 2 + 2);
+        target.moveTo(-width / 2 + 2, height / 2 - 2);
+        target.lineTo(width / 2 - 2, height / 2 - 2);
+        target.stroke();
+        target.restore();
+    }
+
+    function paintScrapbookSurface(target) {
+        const palette = theme();
+        const board = scene.boardRect;
+        const inset = 12;
+        const inner = {
+            x: board.x + inset,
+            y: board.y + inset,
+            width: board.width - inset * 2,
+            height: board.height - inset * 2
+        };
+        target.save();
+        target.shadowColor = palette.ambientShadow;
+        target.shadowBlur = 32;
+        target.shadowOffsetX = 8;
+        target.shadowOffsetY = 14;
+        roundRectPath(
+            target,
+            board.x,
+            board.y,
+            board.width,
+            board.height,
+            10
+        );
+        target.fillStyle = palette.boardDeep;
+        target.fill();
+        target.restore();
+
+        const paperTone = target.createLinearGradient(
+            inner.x, inner.y, inner.x + inner.width, inner.y + inner.height
+        );
+        paperTone.addColorStop(0, palette.board);
+        paperTone.addColorStop(0.62, palette.board);
+        paperTone.addColorStop(1, palette.boardDeep);
+        roundRectPath(
+            target,
+            inner.x,
+            inner.y,
+            inner.width,
+            inner.height,
+            5
+        );
+        target.fillStyle = paperTone;
+        target.fill();
+
+        target.save();
+        roundRectPath(
+            target,
+            inner.x,
+            inner.y,
+            inner.width,
+            inner.height,
+            5
+        );
+        target.clip();
+        const pattern = materialPattern(target, state.theme, 'board');
+        if (pattern) {
+            target.fillStyle = pattern;
+            target.fillRect(inner.x, inner.y, inner.width, inner.height);
+        }
+        const glow = target.createRadialGradient(
+            inner.x + inner.width * 0.2,
+            inner.y + inner.height * 0.08,
+            0,
+            inner.x + inner.width * 0.2,
+            inner.y + inner.height * 0.08,
+            Math.max(inner.width, inner.height)
+        );
+        glow.addColorStop(0, palette.warmLight);
+        glow.addColorStop(0.6, 'rgba(255, 255, 255, 0)');
+        glow.addColorStop(1, palette.wallShade);
+        target.fillStyle = glow;
+        target.fillRect(inner.x, inner.y, inner.width, inner.height);
+        target.restore();
+
+        target.save();
+        target.setLineDash([7, 6]);
+        target.strokeStyle = palette.line;
+        target.lineWidth = 1;
+        roundRectPath(
+            target,
+            inner.x + 9,
+            inner.y + 9,
+            inner.width - 18,
+            inner.height - 18,
+            4
+        );
+        target.stroke();
+        target.restore();
+
+        paintTapeStrip(
+            target,
+            inner.x - 8,
+            inner.y - 6,
+            92,
+            22,
+            -8,
+            0.88
+        );
+        paintTapeStrip(
+            target,
+            inner.x + inner.width - 84,
+            inner.y - 6,
+            92,
+            22,
+            8,
+            0.88
+        );
+        paintTapeStrip(
+            target,
+            inner.x - 8,
+            inner.y + inner.height - 16,
+            92,
+            22,
+            8,
+            0.82
+        );
+        paintTapeStrip(
+            target,
+            inner.x + inner.width - 84,
+            inner.y + inner.height - 16,
+            92,
+            22,
+            -8,
+            0.82
+        );
+    }
+
     function paintStudioBoard(target) {
+        if (sceneStyleIs('scrapbook')) {
+            paintScrapbookSurface(target);
+            return;
+        }
         const palette = theme();
         const board = scene.boardRect;
         const inner = {
@@ -5028,6 +5293,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.lineTo(board.x + board.width - 3, board.y + board.height - 3);
         target.stroke();
         target.restore();
+
     }
 
     function paintMapPaperBase(target) {
@@ -5084,9 +5350,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             mapRect.height - 1
         );
         target.save();
-        target.strokeStyle = state.theme === 'studio'
-            ? 'rgba(255, 255, 255, 0.08)'
-            : 'rgba(255, 253, 248, 0.72)';
+        target.strokeStyle = 'rgba(255, 253, 248, 0.72)';
         target.lineWidth = 1;
         target.beginPath();
         target.moveTo(mapRect.x + 2, mapRect.y + 2);
@@ -5095,6 +5359,45 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.lineTo(mapRect.x + 2, mapRect.y + mapRect.height - 4);
         target.stroke();
         target.restore();
+
+        if (sceneStyleIs('scrapbook')) {
+            paintTapeStrip(
+                target,
+                mapRect.x - 10,
+                mapRect.y - 7,
+                76,
+                20,
+                -10,
+                0.88
+            );
+            paintTapeStrip(
+                target,
+                mapRect.x + mapRect.width - 66,
+                mapRect.y - 7,
+                76,
+                20,
+                10,
+                0.88
+            );
+            paintTapeStrip(
+                target,
+                mapRect.x - 10,
+                mapRect.y + mapRect.height - 13,
+                76,
+                20,
+                10,
+                0.82
+            );
+            paintTapeStrip(
+                target,
+                mapRect.x + mapRect.width - 66,
+                mapRect.y + mapRect.height - 13,
+                76,
+                20,
+                -10,
+                0.82
+            );
+        }
     }
 
     function sceneHeadingTitleSize() {
@@ -5103,6 +5406,20 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             42,
             56
         );
+    }
+
+    function sceneMottoCardWidth() {
+        if (!configuredMotto || !scene) return 0;
+        const characters = Array.from(configuredMotto);
+        const desiredSize = sceneHeadingTitleSize() * 1.6;
+        const rangeSize = scene.worldHeight * 0.45 /
+            (characters.length * 1.08);
+        const fontSize = clamp(
+            Math.round(Math.min(desiredSize, rangeSize)),
+            18,
+            96
+        );
+        return fontSize * 1.62;
     }
 
     function sceneHeadingMetrics(target = ctx) {
@@ -5163,7 +5480,20 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.save();
         target.textAlign = 'left';
         target.textBaseline = 'top';
-        target.shadowColor = 'rgba(62, 47, 34, 0.14)';
+        if (sceneStyleIs('scrapbook')) {
+            target.translate(
+                labelX + metrics.width / 2,
+                labelY + metrics.height / 2
+            );
+            target.rotate(-0.8 * Math.PI / 180);
+            target.translate(
+                -(labelX + metrics.width / 2),
+                -(labelY + metrics.height / 2)
+            );
+        }
+        target.shadowColor = sceneStyleIs('classic')
+            ? 'rgba(62, 47, 34, 0.14)'
+            : theme().ambientShadow;
         target.shadowBlur = 12;
         target.shadowOffsetX = 2;
         target.shadowOffsetY = 4;
@@ -5175,10 +5505,14 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             metrics.height,
             10
         );
-        target.fillStyle = 'rgba(250, 246, 237, 0.9)';
+        target.fillStyle = sceneStyleIs('scrapbook')
+            ? 'rgba(252, 243, 224, 0.96)'
+            : 'rgba(250, 246, 237, 0.9)';
         target.fill();
         target.shadowColor = 'transparent';
-        target.strokeStyle = 'rgba(104, 80, 56, 0.18)';
+        target.strokeStyle = sceneStyleIs('scrapbook')
+            ? 'rgba(104, 80, 56, 0.22)'
+            : 'rgba(104, 80, 56, 0.18)';
         target.lineWidth = 0.8;
         target.stroke();
 
@@ -5208,6 +5542,27 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             target.fillText(summary, contentX, contentY);
         }
         target.restore();
+
+        if (sceneStyleIs('scrapbook')) {
+            paintTapeStrip(
+                target,
+                labelX + 8,
+                labelY - 8,
+                64,
+                18,
+                -8,
+                0.92
+            );
+            paintTapeStrip(
+                target,
+                labelX + metrics.width - 72,
+                labelY - 8,
+                64,
+                18,
+                8,
+                0.92
+            );
+        }
     }
 
     function paintSceneTickets(target) {
@@ -5270,9 +5625,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                     drawWidth,
                     drawHeight
                 );
-                target.strokeStyle = state.theme === 'studio'
-                    ? 'rgba(255, 255, 255, 0.18)'
-                    : 'rgba(44, 31, 21, 0.22)';
+                target.strokeStyle = 'rgba(44, 31, 21, 0.22)';
                 target.lineWidth = 0.55;
                 target.strokeRect(drawX, drawY, drawWidth, drawHeight);
                 sceneTicketRects.push({
@@ -5291,9 +5644,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                     height: drawHeight
                 });
             } else {
-                target.fillStyle = state.theme === 'studio'
-                    ? 'rgba(29, 27, 25, 0.82)'
-                    : 'rgba(91, 68, 47, 0.2)';
+                target.fillStyle = 'rgba(91, 68, 47, 0.2)';
                 roundRectPath(
                     target,
                     -columnWidth / 2,
@@ -5432,22 +5783,82 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             96
         );
         const spacing = fontSize * 1.08;
-        const centerX = board.x + board.width - BOARD_FRAME / 2;
+        const textHeight = fontSize + spacing * (characters.length - 1);
+        const cardWidth = sceneMottoCardWidth();
+        const cardHeight = textHeight + fontSize * 0.9;
+        const cardCenterX = sceneStyleIs('classic')
+            ? board.x + board.width - BOARD_FRAME / 2
+            : board.x + board.width - BOARD_FRAME - cardWidth / 2 - 18;
+        const centerX = cardCenterX;
         const startY = bandTop + fontSize / 2;
+        const cardCenterY = startY + textHeight / 2 - fontSize / 2;
+
+        if (!sceneStyleIs('classic')) {
+            target.save();
+            if (sceneStyleIs('scrapbook')) {
+                target.translate(cardCenterX, cardCenterY);
+                target.rotate(1.2 * Math.PI / 180);
+                target.translate(-cardCenterX, -cardCenterY);
+            }
+            target.shadowColor = palette.ambientShadow;
+            target.shadowBlur = 13;
+            target.shadowOffsetX = 3;
+            target.shadowOffsetY = 5;
+            roundRectPath(
+                target,
+                cardCenterX - cardWidth / 2,
+                cardCenterY - cardHeight / 2,
+                cardWidth,
+                cardHeight,
+                5
+            );
+            target.fillStyle = 'rgba(248, 238, 218, 0.96)';
+            target.fill();
+            target.shadowColor = 'transparent';
+            target.strokeStyle = palette.line;
+            target.lineWidth = 0.8;
+            target.stroke();
+            target.restore();
+
+            if (sceneStyleIs('scrapbook')) {
+                paintTapeStrip(
+                    target,
+                    cardCenterX - 28,
+                    cardCenterY - cardHeight / 2 - 7,
+                    56,
+                    18,
+                    -5,
+                    0.9
+                );
+                paintTapeStrip(
+                    target,
+                    cardCenterX - 28,
+                    cardCenterY + cardHeight / 2 - 10,
+                    56,
+                    18,
+                    5,
+                    0.86
+                );
+            }
+        }
 
         target.save();
         target.font = '400 ' + fontSize + 'px ' + mottoFont;
         target.textAlign = 'center';
         target.textBaseline = 'middle';
+        const mottoColor = palette.mottoInk;
 
         characters.forEach((character, index) => {
             const y = startY + spacing * index;
             target.save();
             target.shadowColor = palette.mottoShadow;
-            target.shadowBlur = fontSize * 0.16;
-            target.shadowOffsetX = fontSize * 0.03;
-            target.shadowOffsetY = fontSize * 0.05;
-            target.fillStyle = palette.mottoInk;
+            target.shadowBlur = sceneStyleIs('classic')
+                ? fontSize * 0.16 : fontSize * 0.06;
+            target.shadowOffsetX = sceneStyleIs('classic')
+                ? fontSize * 0.03 : fontSize * 0.02;
+            target.shadowOffsetY = sceneStyleIs('classic')
+                ? fontSize * 0.05 : fontSize * 0.03;
+            target.fillStyle = mottoColor;
             target.fillText(character, centerX, y);
             target.restore();
         });
@@ -6184,7 +6595,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function shouldShowCityTitleBackground(group) {
         return !exporting &&
-            (group.id === state.selectedId || group.id === state.hoveredId);
+            (group.id === state.selectedId ||
+                group.id === state.hoveredId);
     }
 
     function buildGroupSprite(group, withLabels, titleActive) {
@@ -6401,14 +6813,16 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             target.rotate(rotation * Math.PI / 180);
             target.translate(-(x + width / 2), -(y + height / 2));
         }
+        const frameColor = theme().frame;
+        const framePadding = sceneLayoutProfile().framePadding;
         roundRectPath(target, x, y, width, height, 2);
         target.save();
         target.shadowColor = theme().ambientShadow;
         target.shadowBlur = 12;
         target.shadowOffsetX = 3;
         target.shadowOffsetY = 5;
-        target.globalAlpha = state.theme === 'studio' ? 0.9 : 0.82;
-        target.fillStyle = theme().frame;
+        target.globalAlpha = 0.82;
+        target.fillStyle = frameColor;
         target.fill();
         target.restore();
 
@@ -6417,21 +6831,19 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.shadowColor = theme().contactShadow;
         target.shadowBlur = 1.4;
         target.shadowOffsetY = 1;
-        target.fillStyle = theme().frame;
+        target.fillStyle = frameColor;
         target.fill();
         target.restore();
 
         roundRectPath(target, x, y, width, height, 2);
-        target.fillStyle = theme().frame;
+        target.fillStyle = frameColor;
         target.fill();
         target.strokeStyle = theme().line;
         target.lineWidth = 0.8;
         target.stroke();
 
         target.save();
-        target.strokeStyle = state.theme === 'studio'
-            ? 'rgba(255, 255, 255, 0.16)'
-            : 'rgba(255, 255, 255, 0.72)';
+        target.strokeStyle = 'rgba(255, 255, 255, 0.72)';
         target.lineWidth = 0.75;
         target.beginPath();
         target.moveTo(x + 2.4, y + 0.65);
@@ -6448,10 +6860,10 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.stroke();
         target.restore();
 
-        const innerX = x + PHOTO_FRAME;
-        const innerY = y + PHOTO_FRAME;
-        const innerWidth = Math.max(1, width - PHOTO_FRAME * 2);
-        const innerHeight = Math.max(1, height - PHOTO_FRAME * 2);
+        const innerX = x + framePadding;
+        const innerY = y + framePadding;
+        const innerWidth = Math.max(1, width - framePadding * 2);
+        const innerHeight = Math.max(1, height - framePadding * 2);
         roundRectPath(
             target,
             innerX,
@@ -6497,6 +6909,27 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.strokeStyle = 'rgba(32, 25, 20, 0.18)';
         target.lineWidth = 0.7;
         target.stroke();
+
+        if (sceneStyleIs('scrapbook')) {
+            paintTapeStrip(
+                target,
+                x + 4,
+                y - 4,
+                28,
+                9,
+                -8,
+                0.86
+            );
+            paintTapeStrip(
+                target,
+                x + width - 32,
+                y - 4,
+                28,
+                9,
+                8,
+                0.86
+            );
+        }
         if (rotation) target.restore();
     }
 
@@ -7747,9 +8180,12 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function init() {
+        state.sceneStyle = configuredWallStyle;
+        state.theme = sceneThemeKey(state.sceneStyle);
         updateInteractionLock(true);
         if (debugEnabled) debugPanel.hidden = false;
         body.dataset.theme = state.theme;
+        body.dataset.sceneStyle = state.sceneStyle;
         buildGroups();
         buildMapMask();
         bindEvents();
@@ -7789,6 +8225,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                     photos: groups.reduce((sum, group) => sum + group.photoCount, 0),
                     tickets: sceneTickets.length,
                     theme: state.theme,
+                    sceneStyle: state.sceneStyle,
                     hoveredFootprint: state.hoveredFootprint
                         ? state.hoveredFootprint.footprintId : '',
                     queuedImages,
@@ -7998,10 +8435,18 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             closeTimer = 0;
             if (!root.classList.contains('show')) root.hidden = true;
         }, 320);
-        openButton.focus();
+        if (directTravelWall) {
+            window.location.assign('/footprints');
+            return;
+        }
+        openButton?.focus();
     }
 
-    openButton.addEventListener('click', openTravelWall);
+    if (directTravelWall) {
+        window.requestAnimationFrame(openTravelWall);
+    } else if (openButton) {
+        openButton.addEventListener('click', openTravelWall);
+    }
     canvas.addEventListener('pointerdown', dismissGestureNote, { passive: true });
     canvas.addEventListener('wheel', dismissGestureNote, { passive: true });
     zoomInBtn.addEventListener('click', dismissGestureNote);

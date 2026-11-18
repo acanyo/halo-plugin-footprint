@@ -51,6 +51,25 @@
     visibility: visible;
 }
 
+#travelMemoryWall[data-scene-style="scrapbook"] {
+    --tmw-daylight: rgba(255, 236, 201, 0.46);
+    --tmw-note-paper: rgba(250, 240, 220, 0.92);
+    --scene-light: rgba(255, 238, 205, 0.28);
+    --scene-wall-a: #aa947e;
+    --scene-wall-b: #846c58;
+    --scene-wall-c: #5e4939;
+    --scene-surface: rgba(250, 242, 226, 0.84);
+    background:
+        radial-gradient(circle at 48% 12%, var(--scene-light), transparent 48%),
+        linear-gradient(135deg, var(--scene-wall-a), var(--scene-wall-b) 62%, var(--scene-wall-c));
+}
+
+#travelMemoryWall[data-scene-style="scrapbook"] .wall-header,
+#travelMemoryWall[data-scene-style="scrapbook"] .zoom-controls,
+#travelMemoryWall[data-scene-style="scrapbook"] .mini-map-panel {
+    background: var(--scene-surface);
+}
+
 body.travel-wall-open #topNav,
 body.travel-wall-open #pageIntro {
     opacity: 0;

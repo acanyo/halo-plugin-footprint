@@ -251,7 +251,17 @@ class SettingsMigrationTest {
         cityWall.setGroup("cityWall");
         cityWall.setLabel("城市卡片墙");
         cityWall.setFormSchema(new java.util.ArrayList<>(List.of(
-            Map.of("$formkit", "checkbox", "name", "enablePostcard")
+            Map.of("$formkit", "checkbox", "name", "enablePostcard"),
+            Map.of(
+                "$formkit", "select",
+                "name", "travelWallStyle",
+                "value", "studio",
+                "options", List.of(
+                    Map.of("label", "当前样式", "value", "classic"),
+                    Map.of("label", "旅行工作室", "value", "studio"),
+                    Map.of("label", "收藏家画廊", "value", "gallery")
+                )
+            )
         )));
         Setting.SettingSpec spec = new Setting.SettingSpec();
         spec.setForms(List.of(cityWall));
@@ -270,7 +280,17 @@ class SettingsMigrationTest {
             .map(item -> String.valueOf(((Map<?, ?>) item).get("name")))
             .toList();
         assertThat(fieldNames).contains("enablePostcard", "enableTravelWall",
-            "travelWallTitle", "travelWallMotto");
+            "travelWallTitle", "travelWallMotto", "travelWallStyle");
+        Map<?, ?> styleField = cityWall.getFormSchema().stream()
+            .filter(Map.class::isInstance)
+            .map(Map.class::cast)
+            .filter(item -> "travelWallStyle".equals(item.get("name")))
+            .findFirst()
+            .orElseThrow();
+        assertThat(styleField.get("value")).isEqualTo("classic");
+        assertThat(String.valueOf(styleField.get("options")))
+            .contains("经典软木板", "scrapbook")
+            .doesNotContain("studio", "gallery", "旅行工作室", "收藏家画廊");
         verify(client).update(setting);
     }
 
