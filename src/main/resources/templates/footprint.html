@@ -20,6 +20,12 @@
     <script src="/plugins/footprint/assets/static/cesium/Cesium.js"></script>
     <script src="/plugins/footprint/assets/static/vendor/pako.min.js"></script>
     <script src="/plugins/footprint/assets/static/vendor/tdtplug.umd.min.js"></script>
+    <th:block th:if="${settings.enableTravelWall or travelWallDirect}">
+        <link rel="stylesheet" type="text/css"
+              th:href="|/plugins/footprint/assets/static/css/travel-wall.css?version=${pluginVersion}|">
+        <script defer type="text/javascript"
+                th:src="|/plugins/footprint/assets/static/js/travel-wall.js?version=${pluginVersion}|"></script>
+    </th:block>
     <!-- travel-memory.css / district-pinyin.js / travel-memory.js 由 FootprintHeadProcessor
          按插件版本号注入（?version=${version}），这里不再写死版本 -->
 
@@ -56,6 +62,11 @@
             enableInsight: /*[[${settings.enableInsight}]]*/ true,
             cityCardHoverCarousel: /*[[${settings.cityCardHoverCarousel}]]*/ true,
             enablePostcard: /*[[${settings.enablePostcard}]]*/ true,
+            enableTravelWall: /*[[${settings.enableTravelWall}]]*/ false,
+            travelWallTitle: /*[[${settings.travelWallTitle}]]*/ '城市记忆墙',
+            travelWallMotto: /*[[${settings.travelWallMotto}]]*/ '人生得意须尽欢',
+            travelWallStyle: /*[[${settings.travelWallStyle}]]*/ 'classic',
+            travelWallDirect: /*[[${travelWallDirect}]]*/ false,
             enableTicketJourneyReplay: /*[[${settings.enableTicketJourneyReplay}]]*/ false,
             enableTicketSeasonLight: /*[[${settings.enableTicketSeasonLight}]]*/ false,
             enableTicketOracle: /*[[${settings.enableTicketOracle}]]*/ false,
@@ -263,6 +274,8 @@
             <div class="city-wall-actions" id="cityWallFeatureActions">
                 <button id="cityWallTimeCapsuleBtn" class="fp-btn" type="button" hidden>去年今天</button>
                 <button id="cityWallInsightBtn" class="fp-btn" type="button" hidden>足迹洞察</button>
+                <button id="travelWallBtn" class="fp-btn" type="button"
+                        th:if="${settings.enableTravelWall}">记忆墙</button>
             </div>
         </div>
         <div class="city-wall-body">
@@ -272,6 +285,116 @@
                 <span>添加足迹后，这里会按城市列出。</span>
             </div>
         </div>
+    </div>
+    <!-- 旅行记忆墙：从城记进入，全量足迹按城市铺在软木板上。 -->
+    <div id="travelMemoryWall" class="travel-memory-wall fp-sheet"
+         role="dialog" aria-modal="true"
+         th:attr="aria-label=${settings.travelWallTitle}"
+         aria-hidden="true" hidden>
+        <main class="wall-shell">
+            <canvas id="wallCanvas" tabindex="0"
+                    aria-label="可拖动缩放的旅行记忆墙"></canvas>
+            <header class="wall-header">
+                <button id="travelWallBack" class="fp-btn wall-back" type="button"
+                        aria-label="返回城记">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                        <path d="m14.5 6-6 6 6 6"/>
+                    </svg>
+                    <span>返回城记</span>
+                </button>
+                <div class="wall-toolbar" role="toolbar" aria-label="旅行记忆墙工具">
+                    <div class="wall-year-filter">
+                        <span id="wallYearLabel" class="wall-year-label">年份</span>
+                        <button id="wallYearTrigger" class="wall-year-trigger" type="button"
+                                aria-labelledby="wallYearLabel wallYearValue"
+                                aria-haspopup="listbox" aria-expanded="false"
+                                aria-controls="wallYearMenu" disabled>
+                            <span id="wallYearValue">全部年份</span>
+                            <svg class="wall-year-chevron" viewBox="0 0 16 16"
+                                 fill="none" stroke="currentColor" stroke-width="1.6"
+                                 stroke-linecap="round" stroke-linejoin="round"
+                                 aria-hidden="true">
+                                <path d="m4 6 4 4 4-4"/>
+                            </svg>
+                        </button>
+                        <div id="wallYearMenu" class="wall-year-menu" role="listbox"
+                             aria-labelledby="wallYearLabel" hidden></div>
+                    </div>
+                    <button id="exportBtn" class="tool-button" type="button">导出整墙</button>
+                    <button id="fitBtn" class="tool-button" type="button">适配全图</button>
+                    <button id="immersiveBtn" class="tool-button" type="button"
+                            aria-pressed="false">沉浸观看</button>
+                </div>
+            </header>
+            <button id="immersiveExitBtn" class="immersive-exit" type="button" hidden>
+                退出沉浸
+            </button>
+            <p id="wallSummary" class="sr-only" aria-live="polite">
+                正在读取足迹数据
+            </p>
+
+            <div id="debugPanel" class="debug-panel" hidden>
+                <span id="debugText">等待数据</span>
+                <button id="stressBtn" type="button">测试 3 秒</button>
+            </div>
+
+            <div class="zoom-controls" role="group" aria-label="画布缩放">
+                <button id="zoomOutBtn" type="button" aria-label="缩小">−</button>
+                <span id="zoomValue">100%</span>
+                <button id="zoomInBtn" type="button" aria-label="放大">+</button>
+            </div>
+
+            <aside class="mini-map-panel" aria-label="旅行墙导航">
+                <canvas id="miniMapCanvas" width="188" height="132"
+                        aria-label="旅行记忆墙迷你地图"></canvas>
+                <button id="returnMapBtn" type="button">回到地图</button>
+            </aside>
+
+            <p class="gesture-note">拖动平移，滚轮缩放。点击城市或照片组聚焦，点击单张照片查看原图。</p>
+            <div id="loadingState" class="loading-state" role="status">
+                <span class="loading-copy">
+                    <strong id="loadingTitle">正在准备旅行记忆墙</strong>
+                    <span id="loadingDetail">读取足迹数据</span>
+                </span>
+                <span class="loading-track" aria-hidden="true">
+                    <i id="loadingBar"></i>
+                </span>
+            </div>
+            <div id="tooSmallNotice" class="too-small-notice" hidden>
+                请将窗口宽度调整到 1280px 以上，以获得完整的旅行记忆墙体验。
+            </div>
+
+            <div id="photoPreview" class="photo-preview" role="dialog"
+                 aria-modal="true" aria-hidden="true">
+                <button id="previewCloseBtn" class="preview-close" type="button"
+                        aria-label="关闭照片预览">关闭</button>
+                <button id="previewPrevBtn"
+                        class="preview-switch preview-switch-prev" type="button"
+                        aria-label="上一张照片" hidden>‹</button>
+                <figure>
+                    <img id="previewImage" alt="">
+                    <figcaption>
+                        <strong id="previewTitle"></strong>
+                        <span id="previewMeta"></span>
+                        <p id="previewDescription" class="preview-description"></p>
+                    </figcaption>
+                </figure>
+                <button id="previewNextBtn"
+                        class="preview-switch preview-switch-next" type="button"
+                        aria-label="下一张照片" hidden>›</button>
+            </div>
+
+            <div id="exportProgress" class="export-progress" role="status"
+                 aria-live="polite" hidden>
+                <div>
+                    <strong>正在导出整面旅行记忆墙</strong>
+                    <p id="exportProgressText">准备照片</p>
+                    <span class="export-track"><i id="exportProgressBar"></i></span>
+                    <button id="exportCancelBtn" type="button">取消导出</button>
+                </div>
+            </div>
+        </main>
     </div>
     <!-- 去年今天：历史同月同日的足迹回看 -->
     <div id="timeCapsule" class="feature-overlay fp-sheet" role="dialog" aria-modal="true" aria-label="去年今天" aria-hidden="true">

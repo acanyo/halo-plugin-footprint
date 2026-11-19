@@ -10,6 +10,11 @@ import {
     wishStatusRank
 } from './footprint-group-model.js';
 import { formatLatitude, formatLongitude } from './survey-format.js';
+import {
+    WISH_STATUS_ORDER,
+    wishStatusKey,
+    wishStatusLabel
+} from '../../shared/wish-status.js';
 
 const view = document.getElementById('footprintGroupsView');
 const mapDock = document.getElementById('footprintGroupMapDock');
@@ -208,15 +213,8 @@ function refreshResolvedGroups() {
     );
 }
 
-const WISH_STATUS_LABELS = {
-    wish: '心愿',
-    planning: '计划中',
-    booked: '已订票',
-    visited: '已实现'
-};
-
 function wishStatusText(wish) {
-    return WISH_STATUS_LABELS[wish?.spec?.status] || '心愿';
+    return wishStatusLabel(wish?.spec?.status);
 }
 
 function wishPlanText(wish) {
@@ -519,7 +517,7 @@ function wishCardHtml(wish) {
     const tags = Array.isArray(wish.spec.tags) ? wish.spec.tags : [];
     return `
         <article class="group-library-card group-library-card--wish"
-            data-wish-status="${escapeHtml(wish.spec.status || 'wish')}">
+            data-wish-status="${wishStatusKey(wish.spec.status)}">
             <button type="button" class="group-library-card-hit" data-wish-key="${escapeHtml(wish.metadata.name)}"
                 aria-label="打开未来足迹：${escapeHtml(wish.spec.title)}"></button>
             <div class="group-card-body group-wish-card-body">
@@ -697,13 +695,14 @@ function renderList(options = {}) {
             <div class="group-wish-status-filters" role="group" aria-label="筛选未来足迹状态">
                 ${[
                     ['all', '全部状态'],
-                    ['wish', '心愿'],
-                    ['planning', '计划中'],
-                    ['booked', '已订票'],
-                    ['visited', '已实现']
+                    ...WISH_STATUS_ORDER.map(key => [key, wishStatusLabel(key)])
                 ].map(([key, label]) => `
                     <button type="button" data-wish-status-filter="${key}"
-                        aria-pressed="${wishStatusFilter === key}">${label}</button>
+                        aria-pressed="${wishStatusFilter === key}">
+                        ${key === 'all' ? '' : `<i class="wish-status-swatch"
+                            data-status="${key}" aria-hidden="true"></i>`}
+                        <span>${label}</span>
+                    </button>
                 `).join('')}
             </div>` : ''}
         <div class="group-library-list"></div>`;
@@ -1234,7 +1233,8 @@ function renderWishDetail() {
             </div>
         </header>
         <article class="group-detail is-wish-detail" tabindex="-1">
-            <section class="group-wish-detail-panel">
+            <section class="group-wish-detail-panel"
+                data-wish-status="${wishStatusKey(wish.spec.status)}">
                 <div class="group-wish-detail-kicker">
                     <span>未来足迹</span>
                     <b>${escapeHtml(wishStatusText(wish))}</b>

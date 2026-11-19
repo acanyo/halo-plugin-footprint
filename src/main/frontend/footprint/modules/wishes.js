@@ -3,17 +3,16 @@
 import { state } from './state.js';
 import { isMobile } from './env.js';
 import { createWishInfoWindow } from './marker-content.js';
+import {
+    isMapWishStatus,
+    wishStatusKey,
+    wishStatusLabel
+} from '../../shared/wish-status.js';
 
 let wishMarkers = [];
 let wishInfoWindow = null;
 let wishMap = null;
 let wishMapClickHandler = null;
-
-const STATUS_TEXT = {
-    wish: '心愿',
-    planning: '计划中',
-    booked: '已订票'
-};
 
 function validCoordinate(wish) {
     const lng = Number(wish?.spec?.longitude);
@@ -26,12 +25,12 @@ function validCoordinate(wish) {
 function markerContent(wish) {
     const root = document.createElement('div');
     root.className = 'fp-wish-map-marker';
-    root.dataset.status = wish.spec.status || 'wish';
+    const statusKey = wishStatusKey(wish.spec.status);
+    root.dataset.status = statusKey;
     const dot = document.createElement('i');
     dot.setAttribute('aria-hidden', 'true');
     const label = document.createElement('span');
-    const status = STATUS_TEXT[wish.spec.status] || '心愿';
-    label.textContent = `${wish.spec.title || '未来足迹'} · ${status}`;
+    label.textContent = `${wish.spec.title || '未来足迹'} · ${wishStatusLabel(statusKey)}`;
     root.append(dot, label);
     return root;
 }
@@ -90,7 +89,7 @@ export function showFootprintWishLayer(wishes) {
     const map = state.activeMapInstance;
     if (!map || typeof AMap === 'undefined') return 0;
     const visible = (Array.isArray(wishes) ? wishes : []).filter(wish =>
-        wish && wish.spec && wish.spec.status !== 'visited' && validCoordinate(wish)
+        wish && wish.spec && isMapWishStatus(wish.spec.status) && validCoordinate(wish)
     );
     wishMarkers = visible.map(createWishMarker);
     wishMarkers.forEach(marker => map.add(marker));

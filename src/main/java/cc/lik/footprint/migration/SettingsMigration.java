@@ -7,15 +7,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import run.halo.app.core.extension.Setting;
 import run.halo.app.extension.ConfigMap;
 import run.halo.app.extension.GroupVersionKind;
 import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.Secret;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>把 2.9.18 及更早版本堆在 {@code globe3d} 一个分组里的配置，拆分到
@@ -38,6 +41,8 @@ public class SettingsMigration {
 
     /** 与 plugin.yaml 的 spec.configMapName 保持一致 */
     private static final String CONFIG_MAP_NAME = "plugin-footprint-configmap";
+    private static final String SETTING_NAME = "plugin-footprint-settings";
+    private static final String CITY_WALL_GROUP = "cityWall";
 
     /** 拆分前所有 3D 相关配置的存放分组 */
     private static final String LEGACY_GROUP = "globe3d";
@@ -88,13 +93,114 @@ public class SettingsMigration {
      * 迁移失败必须是「不影响使用」而不是「插件起不来」。
      */
     public Mono<Void> migrate() {
-        return client.fetch(ConfigMap.class, CONFIG_MAP_NAME)
+        Mono<Void> configMigration = client.fetch(ConfigMap.class, CONFIG_MAP_NAME)
             .flatMap(this::migrateConfigMap)
             .onErrorResume(e -> {
                 log.error("足迹插件配置迁移失败，将继续使用 globe3d 中的原配置", e);
                 return Mono.empty();
             })
             .then();
+        return configMigration.then(ensureTravelWallSettingFields());
+    }
+
+    /**
+     * DevTools 热重载会刷新插件资源，但已经保存的 Setting 表单不会自动补上新增字段。
+     * 这里按字段名幂等补齐，避免用户必须卸载重装插件或重启 Halo。
+     */
+    private Mono<Void> ensureTravelWallSettingFields() {
+        return client.fetch(Setting.class, SETTING_NAME)
+            .flatMap(setting -> {
+                if (setting.getSpec() == null || setting.getSpec().getForms() == null) {
+                    return Mono.empty();
+                }
+                var cityWall = setting.getSpec().getForms().stream()
+                    .filter(form -> CITY_WALL_GROUP.equals(form.getGroup()))
+                    .findFirst()
+                    .orElse(null);
+                if (cityWall == null) {
+                    return Mono.empty();
+                }
+                List<Object> schema = cityWall.getFormSchema() == null
+                    ? new ArrayList<>()
+                    : new ArrayList<>(cityWall.getFormSchema());
+                boolean changed = appendField(schema, Map.of(
+                    "$formkit", "checkbox",
+                    "label", "启用旅行记忆墙",
+                    "name", "enableTravelWall",
+                    "value", false,
+                    "help", "警告：开启后会加载全部足迹照片，照片较多时可能增加流量、"
+                        + "占用内存并延长加载时间，请根据站点数据量谨慎启用。"
+                ));
+                changed |= appendField(schema, Map.of(
+                    "$formkit", "text",
+                    "label", "记忆墙标题",
+                    "name", "travelWallTitle",
+                    "value", "城市记忆墙",
+                    "help", "显示在记忆墙场景框左上角；留空则不显示标题。"
+                ));
+                changed |= appendField(schema, Map.of(
+                    "$formkit", "text",
+                    "label", "竖排题字",
+                    "name", "travelWallMotto",
+                    "value", "人生得意须尽欢",
+                    "help", "显示在记忆墙右侧；留空则隐藏，文字较长时会自动缩小字号。"
+                ));
+                changed |= upsertField(schema, Map.of(
+                    "$formkit", "select",
+                    "label", "记忆墙场景样式",
+                    "name", "travelWallStyle",
+                    "value", "classic",
+                    "options", List.of(
+                        Map.of("label", "经典软木板", "value", "classic"),
+                        Map.of("label", "旅行手账", "value", "scrapbook")
+                    ),
+                    "help", "选择旅行记忆墙的场景语言。默认使用经典软木板，"
+                        + "也可以切换为旅行手账。"
+                ));
+                if (!changed) {
+                    return Mono.empty();
+                }
+                cityWall.setFormSchema(schema);
+                return client.update(setting)
+                    .doOnNext(updated -> log.info(
+                        "足迹插件设置表单已补齐旅行记忆墙配置"))
+                    .then();
+            })
+            .onErrorResume(e -> {
+                log.error("补齐旅行记忆墙设置表单失败，可在下次插件重载后重试", e);
+                return Mono.empty();
+            });
+    }
+
+    private boolean appendField(List<Object> schema, Map<String, Object> field) {
+        String name = String.valueOf(field.get("name"));
+        boolean exists = schema.stream()
+            .filter(Map.class::isInstance)
+            .map(Map.class::cast)
+            .anyMatch(item -> name.equals(item.get("name")));
+        if (exists) {
+            return false;
+        }
+        schema.add(field);
+        return true;
+    }
+
+    private boolean upsertField(List<Object> schema, Map<String, Object> field) {
+        String name = String.valueOf(field.get("name"));
+        for (int index = 0; index < schema.size(); index++) {
+            Object item = schema.get(index);
+            if (!(item instanceof Map<?, ?> current) ||
+                !name.equals(current.get("name"))) {
+                continue;
+            }
+            if (Objects.equals(current, field)) {
+                return false;
+            }
+            schema.set(index, field);
+            return true;
+        }
+        schema.add(field);
+        return true;
     }
 
     private Mono<Void> migrateConfigMap(ConfigMap configMap) {

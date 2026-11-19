@@ -42,6 +42,7 @@ import {
     clearWishEntitySelection,
     setWishEntitySelected
 } from './wish-layer.js';
+import { wishStatusKey, wishStatusLabel } from '../../shared/wish-status.js';
 
 let deps = null;
 
@@ -162,6 +163,7 @@ export function hideMarkerCard() {
     activeWishKey = '';
     markerCard.classList.remove('is-wish');
     delete markerCard.dataset.wishEntity;
+    delete markerCard.dataset.wishStatus;
     markerCardTags.hidden = true;
     markerCardTags.replaceChildren();
     if (!markerCard.classList.contains('visible')) return;
@@ -315,6 +317,7 @@ export function showMarkerCard(fp, index) {
     clearWishEntitySelection();
     activeWishKey = '';
     markerCard.classList.remove('is-wish');
+    delete markerCard.dataset.wishStatus;
     markerCardTags.hidden = true;
     markerCardTags.replaceChildren();
     activeFootprintIndex = index;
@@ -392,15 +395,12 @@ export function showWishCard(wish, entity) {
     activeFootprintIndex = -1;
     activeWishKey = wish.metadata?.name || '';
     markerCard.dataset.wishEntity = entity?.id || '';
+    const statusKey = wishStatusKey(wish.spec.status);
+    markerCard.dataset.wishStatus = statusKey;
     markerCard.classList.add('is-wish');
 
     const title = String(wish.spec.title || '未来足迹');
-    const status = {
-        wish: '心愿',
-        planning: '计划中',
-        booked: '已订票',
-        visited: '已实现'
-    }[wish.spec.status] || '心愿';
+    const status = wishStatusLabel(statusKey);
     const region = [wish.spec.province, wish.spec.city].filter(Boolean).join(' / ');
     const lng = Number(wish.spec.longitude);
     const lat = Number(wish.spec.latitude);

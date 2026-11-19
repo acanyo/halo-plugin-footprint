@@ -219,6 +219,38 @@
             line-height: 1.4;
         }
         .marker-card-eyebrow[hidden] { display: none; }
+        #markerCard.is-wish[data-wish-status="wish"] .marker-card-media.no-image {
+            background: var(--fp-paper-raised);
+            box-shadow: inset 0 0 0 2px var(--fp-accent);
+        }
+        #markerCard.is-wish[data-wish-status="planning"] .marker-card-media.no-image {
+            background: var(--fp-accent-soft);
+            box-shadow: inset 0 0 0 1px var(--fp-accent);
+        }
+        #markerCard.is-wish[data-wish-status="booked"] .marker-card-media.no-image {
+            background:
+                radial-gradient(circle at 75% 20%, var(--fp-accent-soft), transparent 48%),
+                var(--fp-accent);
+            box-shadow: inset 0 0 0 2px var(--fp-paper-raised);
+        }
+        #markerCard.is-wish[data-wish-status="booked"] .marker-card-monogram {
+            color: var(--fp-accent-ink);
+            opacity: 0.9;
+        }
+        #markerCard.is-wish[data-wish-status="wish"] .marker-card-eyebrow {
+            border: 1px solid var(--fp-accent);
+            background: var(--fp-paper-raised);
+            color: var(--fp-ink-soft);
+        }
+        #markerCard.is-wish[data-wish-status="planning"] .marker-card-eyebrow {
+            border: 1px solid var(--fp-accent);
+            background: var(--fp-accent-soft);
+            color: var(--fp-ink-soft);
+        }
+        #markerCard.is-wish[data-wish-status="booked"] .marker-card-eyebrow {
+            background: var(--fp-accent);
+            color: var(--fp-accent-ink);
+        }
         .marker-card-stamp {
             flex: none;
             margin-left: auto;

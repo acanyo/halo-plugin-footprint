@@ -62,6 +62,11 @@ public class BaseConfig {
     private Boolean enableInsight;
     private Boolean cityCardHoverCarousel;
     private Boolean enablePostcard;
+    private Boolean enableTravelWall;
+    private String travelWallTitle;
+    private String travelWallMotto;
+    /** 记忆墙场景样式：classic / scrapbook */
+    private String travelWallStyle;
 
     // 图片处理（group: imageProcess）
     private String markerImageFrom;

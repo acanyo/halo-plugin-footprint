@@ -6,6 +6,7 @@ import cc.lik.footprint.model.FootprintWish;
 import cc.lik.footprint.service.FootprintConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.pf4j.PluginWrapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -27,13 +28,23 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 @RequiredArgsConstructor
 public class FootprintPageHandler {
 
+    private static final String TRAVEL_WALL_PATH = "/footprints/memory-wall";
+
     private final TemplateNameResolver templateNameResolver;
     private final ReactiveExtensionClient client;
     private final FootprintConfigService configService;
+    private final PluginWrapper pluginWrapper;
 
     public Mono<ServerResponse> render(ServerRequest request) {
         return configService.getConfigByGroupName()
             .flatMap(settings -> {
+                boolean travelWallRequest =
+                    TRAVEL_WALL_PATH.equals(request.path());
+                if (travelWallRequest &&
+                    !Boolean.TRUE.equals(settings.getEnableTravelWall())) {
+                    return ServerResponse.notFound().build();
+                }
+
                 // 按创建时间倒序排序
                 Comparator<Footprint> comparator = Comparator.comparing(
                     footprint -> footprint.getSpec().getCreateTime(),
@@ -88,6 +99,12 @@ public class FootprintPageHandler {
                         model.put("footprints", footprints);
                         model.put("footprintGroups", groups);
                         model.put("footprintWishes", wishes);
+                        model.put("pluginVersion",
+                            pluginWrapper.getDescriptor().getVersion());
+                        model.put(
+                            "travelWallDirect",
+                            travelWallRequest
+                        );
                         // 给 Head 处理器等渲染扩展一个稳定的页面标识（Halo 约定）：
                         // FootprintHeadProcessor 靠它判断"这是足迹页"，才注入 3D 地球那套资源。
                         model.put(ModelConst.TEMPLATE_ID, "plugin:footprint:footprints");

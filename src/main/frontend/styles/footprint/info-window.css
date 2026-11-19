@@ -50,17 +50,36 @@
     top: 10px;
     left: 10px;
     padding: 3px 8px;
+    border: 1px solid var(--fp-accent);
     border-radius: var(--fp-radius-control);
-    background: var(--fp-accent);
-    color: var(--fp-accent-ink);
+    background: var(--fp-paper-raised);
+    color: var(--fp-ink-soft);
     font-size: var(--fp-size-xs);
     font-weight: 600;
+}
+.info-window--wish[data-wish-status="planning"] .wish-info-status {
+    background: var(--fp-accent-soft);
+}
+.info-window--wish[data-wish-status="booked"] .wish-info-status {
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
 }
 .info-window .wish-info-initial {
     color: var(--fp-accent);
     font-family: var(--fp-font-title);
     font-size: 44px;
     line-height: 1;
+}
+.info-window--wish[data-wish-status="wish"] .wish-info-hero {
+    box-shadow: inset 0 0 0 2px var(--fp-accent-soft);
+}
+.info-window--wish[data-wish-status="booked"] .wish-info-hero {
+    background:
+        radial-gradient(circle at 75% 20%, var(--fp-accent-soft), transparent 48%),
+        linear-gradient(145deg, var(--fp-accent-soft), var(--fp-accent));
+}
+.info-window--wish[data-wish-status="booked"] .wish-info-initial {
+    color: var(--fp-accent-ink);
 }
 .info-window .image img {
     position: absolute;

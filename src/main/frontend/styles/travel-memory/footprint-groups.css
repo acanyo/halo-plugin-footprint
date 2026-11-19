@@ -1620,13 +1620,32 @@ body.footprint-group-map-mode #map-stats {
 .group-wish-status,
 .group-wish-detail-kicker b {
     padding: 3px 9px;
+    border: 1px solid var(--fp-rule-strong);
     border-radius: var(--fp-radius-control);
-    background: var(--fp-accent-soft);
-    color: var(--fp-accent);
+    background: var(--fp-paper-raised);
+    color: var(--fp-ink-soft);
     font-size: var(--fp-size-xs);
     font-weight: 600;
 }
+.group-library-card--wish[data-wish-status="wish"] .group-wish-status,
+.group-wish-detail-panel[data-wish-status="wish"] .group-wish-detail-kicker b {
+    border-color: var(--fp-accent);
+    background: var(--fp-paper-raised);
+    color: var(--fp-ink-soft);
+}
+.group-library-card--wish[data-wish-status="planning"] .group-wish-status,
+.group-wish-detail-panel[data-wish-status="planning"] .group-wish-detail-kicker b {
+    border-color: var(--fp-accent);
+    background: var(--fp-accent-soft);
+    color: var(--fp-ink-soft);
+}
 .group-library-card--wish[data-wish-status="booked"] .group-wish-status {
+    border-color: var(--fp-accent);
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
+}
+.group-wish-detail-panel[data-wish-status="booked"] .group-wish-detail-kicker b {
+    border-color: var(--fp-accent);
     background: var(--fp-accent);
     color: var(--fp-accent-ink);
 }
@@ -1688,6 +1707,11 @@ body.footprint-group-map-mode #map-stats {
     flex: none;
 }
 .group-wish-status-filters button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    gap: 6px;
     min-height: 30px;
     padding: 0 11px;
     border: 1px solid var(--fp-rule);
@@ -1802,24 +1826,78 @@ body.footprint-group-map-mode #map-stats {
     white-space: nowrap;
     cursor: pointer;
 }
-.fp-wish-map-marker i {
-    width: 15px;
-    height: 15px;
-    border: 3px solid var(--fp-paper-raised);
+.fp-wish-map-marker i,
+.wish-status-swatch {
+    position: relative;
+    display: block;
+    flex: none;
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--fp-paper-raised);
     border-radius: 50%;
     background: var(--fp-accent);
     box-shadow: 0 0 0 2px var(--fp-accent-soft);
     transition: transform var(--fp-dur) var(--fp-ease), box-shadow var(--fp-dur) var(--fp-ease);
 }
-.fp-wish-map-marker[data-status="booked"] i {
-    border-radius: 4px;
+.fp-wish-map-marker[data-status="wish"] i,
+.wish-status-swatch[data-status="wish"] {
+    border-color: var(--fp-accent);
+    background: var(--fp-paper-raised);
+}
+.fp-wish-map-marker[data-status="planning"] i,
+.wish-status-swatch[data-status="planning"] {
+    border-color: var(--fp-accent);
+    background: var(--fp-accent-soft);
+}
+.fp-wish-map-marker[data-status="planning"] i::after,
+.wish-status-swatch[data-status="planning"]::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--fp-accent);
+}
+.fp-wish-map-marker[data-status="booked"] i,
+.wish-status-swatch[data-status="booked"] {
+    width: 22px;
+    height: 16px;
+    border-radius: 5px;
+    background: var(--fp-accent);
+}
+.fp-wish-map-marker[data-status="booked"] i::after,
+.wish-status-swatch[data-status="booked"]::after {
+    content: "✓";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--fp-accent-ink);
+    font: 700 10px/1 var(--fp-font-text);
+}
+.fp-wish-map-marker[data-status="visited"] i,
+.wish-status-swatch[data-status="visited"] {
+    border-color: var(--fp-rule-strong);
+    background: var(--fp-paper-raised);
+    color: var(--fp-ink-soft);
 }
 .fp-wish-map-marker span {
     padding: 3px 7px;
+    border: 1px solid transparent;
     border-radius: var(--fp-radius-control);
     background: var(--fp-glass-strong);
     box-shadow: var(--fp-shadow);
     transition: color var(--fp-dur) var(--fp-ease), background-color var(--fp-dur) var(--fp-ease);
+}
+.fp-wish-map-marker[data-status="wish"] span,
+.fp-wish-map-marker[data-status="planning"] span {
+    border-color: var(--fp-accent-soft);
+    color: var(--fp-ink);
+}
+.fp-wish-map-marker[data-status="booked"] span {
+    border-color: var(--fp-accent);
+    background: var(--fp-accent);
+    color: var(--fp-accent-ink);
 }
 .fp-wish-map-marker:hover i {
     transform: scale(1.28);
