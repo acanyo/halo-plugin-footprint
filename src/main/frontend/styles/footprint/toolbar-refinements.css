@@ -83,21 +83,21 @@
     outline: none;
 }
 
-/* ===== 移动端：两行网格，第一行时间线 / 留言板，第二行图层 ===== */
+/* ===== 移动端：和 3D Dock 一样保持单行 ===== */
 @media screen and (max-width: 768px) {
     .map-controls {
         left: 50%;
         right: auto;
-        bottom: calc(10px + var(--safe-bottom));
-        width: calc(100vw - 24px);
-        max-width: 440px;
+        bottom: max(10px, var(--safe-bottom));
+        width: min(360px, calc(100vw - 24px - var(--safe-left) - var(--safe-right)));
+        max-width: none;
         display: grid !important;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        grid-template-rows: 44px 40px;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-rows: 50px;
         align-items: stretch;
-        gap: 6px;
-        padding: 6px;
-        border-radius: calc(var(--fp-radius-panel) + 4px);
+        gap: 2px;
+        padding: 4px;
+        border-radius: 28px;
         transform: translateX(-50%);
     }
     .map-controls .button-group::after {
@@ -111,42 +111,87 @@
     .map-controls > * {
         min-width: 0;
     }
+    .map-controls .button-group {
+        grid-column: 1 / span 2;
+        grid-row: 1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2px;
+        width: auto;
+        padding: 0;
+        align-items: stretch;
+    }
     .map-controls #timeline-btn {
-        grid-column: 1;
+        grid-column: 3;
         grid-row: 1;
     }
     .map-controls #messageBoards {
-        grid-column: 2;
+        grid-column: 4;
+        grid-row: 1;
+    }
+    .map-controls #groupGalleryBtn2d {
+        grid-column: 5;
         grid-row: 1;
     }
     .map-controls #back3dBtn {
-        grid-column: 1 / -1;
-        grid-row: 3;
-    }
-    .map-controls .button-group {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        width: 100%;
-        align-items: stretch;
+        grid-column: 6;
+        grid-row: 1;
     }
     .map-controls #timeline-btn,
     .map-controls #messageBoards {
         width: 100%;
-        min-height: 44px;
-        padding: 0 8px;
-        background: var(--fp-rule);
+        min-height: 50px;
+        flex-direction: column;
+        gap: 3px;
+        padding: 4px 2px;
+        background: transparent;
+        font-size: 10.5px;
+        line-height: 1;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }
+    .map-controls #groupGalleryBtn2d,
+    .map-controls #back3dBtn,
     .map-controls .button-group .control-btn {
-        flex: 1 1 0;
-        width: 50%;
+        width: 100%;
         min-width: 0;
-        min-height: 34px;
-        padding: 0 6px;
-        font-size: var(--fp-size-xs);
+        min-height: 50px;
+        flex-direction: column;
+        gap: 3px;
+        padding: 4px 2px;
+        font-size: 10.5px;
+        line-height: 1;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
+    }
+    .map-controls .button-group .control-btn::before,
+    .map-controls #groupGalleryBtn2d::before,
+    .map-controls #back3dBtn::before {
+        content: '';
+        flex: 0 0 17px;
+        width: 17px;
+        height: 17px;
+        background-color: currentColor;
+        -webkit-mask: var(--fp2d-dock-icon) center / contain no-repeat;
+        mask: var(--fp2d-dock-icon) center / contain no-repeat;
+    }
+    .map-controls #timeline-btn::before,
+    .map-controls #messageBoards::before {
+        flex: 0 0 17px;
+        width: 17px;
+        height: 17px;
+    }
+    .map-controls .control-btn[data-type="normal"] {
+        --fp2d-dock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z'/%3E%3Cpath d='M9 3v15M15 6v15'/%3E%3C/svg%3E");
+    }
+    .map-controls .control-btn[data-type="satellite"] {
+        --fp2d-dock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.5' width='17' height='15' rx='2.5'/%3E%3Cpath d='m4 16 5.5-5 4 3 2.5-2 4 4'/%3E%3Ccircle cx='16.5' cy='8.5' r='1.4'/%3E%3C/svg%3E");
+    }
+    .map-controls #groupGalleryBtn2d {
+        --fp2d-dock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='18' r='2'/%3E%3Ccircle cx='19' cy='6' r='2'/%3E%3Cpath d='M6.7 16.7C10 12.8 11 10.4 14.2 8.2'/%3E%3Cpath d='M10 18h10M4 6h8'/%3E%3C/svg%3E");
+    }
+    .map-controls #back3dBtn {
+        --fp2d-dock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3.6 9h16.8M3.6 15h16.8M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z'/%3E%3C/svg%3E");
     }
     .map-controls #zoom-buttons,
     .map-controls .zoom-buttons,
@@ -158,13 +203,27 @@
 }
 @media screen and (max-width: 380px) {
     .map-controls {
-        width: calc(100vw - 16px);
-        gap: 4px;
-        padding: 5px;
-        grid-template-rows: 42px 38px;
+        width: calc(100vw - 16px - var(--safe-left) - var(--safe-right));
+        gap: 1px;
+        padding: 3px;
+        grid-template-rows: 48px;
     }
     .map-controls #timeline-btn,
-    .map-controls #messageBoards {
-        padding-inline: 5px;
+    .map-controls #messageBoards,
+    .map-controls #groupGalleryBtn2d,
+    .map-controls #back3dBtn,
+    .map-controls .button-group .control-btn {
+        min-height: 48px;
+        padding-inline: 2px;
+        font-size: 9.5px;
+    }
+    .map-controls .button-group .control-btn::before,
+    .map-controls #groupGalleryBtn2d::before,
+    .map-controls #back3dBtn::before,
+    .map-controls #timeline-btn::before,
+    .map-controls #messageBoards::before {
+        flex-basis: 16px;
+        width: 16px;
+        height: 16px;
     }
 }

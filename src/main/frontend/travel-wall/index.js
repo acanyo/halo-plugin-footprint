@@ -7,6 +7,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const openButton = document.getElementById('travelWallBtn');
     if (!root) return;
 
+    const travelWallPath = '/footprints/memory-wall';
     const footprintConfig = window.FOOTPRINT_CONFIG || {};
     const configuredTitle = String(
         footprintConfig.travelWallTitle || '城市记忆墙'
@@ -671,8 +672,6 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             group.ticketRects = [];
             group.labels = [];
             group.sprite = null;
-            group.spriteLabels = false;
-            group.spriteTitleActive = false;
             group.spriteDirty = true;
             group.ready = false;
             group.side = '';
@@ -6093,19 +6092,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 return aa - bb;
             })
             .forEach(group => {
-                const withLabels = shouldDrawFootprintLabels(group);
-                const titleActive = shouldShowCityTitleBackground(group);
-                if (!group.sprite ||
-                    group.spriteDirty ||
-                    group.spriteLabels !== withLabels ||
-                    group.spriteTitleActive !== titleActive) {
-                    buildGroupSprite(
-                        group,
-                        withLabels,
-                        titleActive
-                    );
+                if (!group.sprite || group.spriteDirty) {
+                    buildGroupSprite(group);
                 }
                 drawGroupSprite(cacheCtx, group);
+                drawGroupDetails(cacheCtx, group);
             });
         groups.forEach(group => drawCityPin(group, cacheCtx));
         paintSceneTickets(cacheCtx);
@@ -6500,18 +6491,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             ctx.restore();
             return;
         }
-        const withLabels = shouldDrawFootprintLabels(group);
-        const titleActive = shouldShowCityTitleBackground(group);
-        if (group.ready &&
-            (!group.sprite ||
-                group.spriteDirty ||
-                group.spriteLabels !== withLabels ||
-                group.spriteTitleActive !== titleActive)) {
-            buildGroupSprite(group, withLabels, titleActive);
+        if (group.ready && (!group.sprite || group.spriteDirty)) {
+            buildGroupSprite(group);
         }
         if (!drawGroupSprite(ctx, group)) {
             drawLiveGroup(group);
         }
+        drawGroupDetails(ctx, group);
         ctx.restore();
         if (active) {
             if (state.hoveredFootprint &&
@@ -6599,14 +6585,12 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 group.id === state.hoveredId);
     }
 
-    function buildGroupSprite(group, withLabels, titleActive) {
+    function buildGroupSprite(group) {
         if (!Number.isFinite(group.width) ||
             !Number.isFinite(group.height) ||
             group.width <= 0 ||
             group.height <= 0) {
             group.sprite = null;
-            group.spriteLabels = false;
-            group.spriteTitleActive = false;
             group.spriteDirty = false;
             return;
         }
@@ -6624,25 +6608,32 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         spriteCtx.imageSmoothingQuality = 'high';
         spriteCtx.setTransform(scale, 0, 0, scale, 0, 0);
         spriteCtx.translate(padding, padding);
-        paintGroup(spriteCtx, group, true, withLabels, titleActive);
+        // 分组图层只保存稳定的图片和基础文字。悬停/选中态走轻量叠加层，
+        // 否则鼠标在相邻城市之间移动时会反复重建整组照片画布。
+        paintGroup(spriteCtx, group, true, false, false);
         group.sprite = sprite;
         group.spritePadding = padding;
-        group.spriteLabels = !!withLabels;
-        group.spriteTitleActive = !!titleActive;
         group.spriteDirty = false;
     }
 
     function drawLiveGroup(group) {
         ctx.save();
         ctx.translate(group.x, group.y);
-        paintGroup(
-            ctx,
-            group,
-            true,
-            shouldDrawFootprintLabels(group),
-            group.id === state.hoveredId
-        );
+        paintGroup(ctx, group, true, false, false);
         ctx.restore();
+    }
+
+    function drawGroupDetails(target, group) {
+        const withLabels = shouldDrawFootprintLabels(group);
+        const titleActive = shouldShowCityTitleBackground(group);
+        if (!withLabels && !titleActive) return;
+        target.save();
+        target.translate(group.x, group.y);
+        if (titleActive) drawCityTitle(target, group, true);
+        if (withLabels) {
+            group.labels.forEach(label => drawFootprintLabel(target, label));
+        }
+        target.restore();
     }
 
     function paintGroup(
@@ -7846,7 +7837,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                     item.status === 'loaded' || item.status === 'error'
                 );
                 if (group.ready) {
-                    buildGroupSprite(group, true, false);
+                    buildGroupSprite(group);
                 }
                 setExportProgress(
                     18 + ((index + 1) / groups.length) * 42,
@@ -7981,9 +7972,10 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             } else {
                 target.save();
                 target.translate(group.x, group.y);
-                paintGroup(target, group, images, true, false);
+                paintGroup(target, group, images, false, false);
                 target.restore();
             }
+            drawGroupDetails(target, group);
         });
         groups.forEach(group => {
             target.beginPath();
@@ -8445,7 +8437,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     if (directTravelWall) {
         window.requestAnimationFrame(openTravelWall);
     } else if (openButton) {
-        openButton.addEventListener('click', openTravelWall);
+        openButton.addEventListener('click', () => {
+            window.location.assign(travelWallPath);
+        });
     }
     canvas.addEventListener('pointerdown', dismissGestureNote, { passive: true });
     canvas.addEventListener('wheel', dismissGestureNote, { passive: true });

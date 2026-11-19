@@ -44,11 +44,11 @@
             #topNav .nav-group-more { display: none; }
             #topNav.tools-open .nav-group-more {
                 display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(5, minmax(0, 1fr));
                 position: absolute;
                 bottom: calc(100% + 12px);
                 right: 0;
-                width: min(300px, calc(100vw - 24px));
+                width: min(320px, calc(100vw - 24px));
                 padding: 8px;
                 gap: 4px;
                 border-radius: var(--fp-radius-panel);
@@ -64,9 +64,14 @@
             #topNav.tools-open .nav-group-more .nav-menu > button {
                 width: 100%;
                 min-width: 0;
+                padding-inline: 4px;
+                font-size: 10px;
             }
             /* 窄屏里的底图列表在工具面板里整行展开，不再是第二层浮层 */
             #topNav.tools-open .nav-group-more .nav-menu {
+                grid-column: auto;
+            }
+            #topNav.tools-open .nav-group-more .nav-menu.open {
                 grid-column: 1 / -1;
             }
             #topNav.tools-open #layerButtons.nav-menu-panel {

@@ -28,6 +28,8 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 @RequiredArgsConstructor
 public class FootprintPageHandler {
 
+    private static final String TRAVEL_WALL_PATH = "/footprints/memory-wall";
+
     private final TemplateNameResolver templateNameResolver;
     private final ReactiveExtensionClient client;
     private final FootprintConfigService configService;
@@ -36,6 +38,13 @@ public class FootprintPageHandler {
     public Mono<ServerResponse> render(ServerRequest request) {
         return configService.getConfigByGroupName()
             .flatMap(settings -> {
+                boolean travelWallRequest =
+                    TRAVEL_WALL_PATH.equals(request.path());
+                if (travelWallRequest &&
+                    !Boolean.TRUE.equals(settings.getEnableTravelWall())) {
+                    return ServerResponse.notFound().build();
+                }
+
                 // 按创建时间倒序排序
                 Comparator<Footprint> comparator = Comparator.comparing(
                     footprint -> footprint.getSpec().getCreateTime(),
@@ -94,7 +103,7 @@ public class FootprintPageHandler {
                             pluginWrapper.getDescriptor().getVersion());
                         model.put(
                             "travelWallDirect",
-                            "/footprints/memory-wall".equals(request.path())
+                            travelWallRequest
                         );
                         // 给 Head 处理器等渲染扩展一个稳定的页面标识（Halo 约定）：
                         // FootprintHeadProcessor 靠它判断"这是足迹页"，才注入 3D 地球那套资源。
