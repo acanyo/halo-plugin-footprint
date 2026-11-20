@@ -637,7 +637,6 @@ body.travel-wall-open #pageIntro {
     height: 100%;
     border-radius: inherit;
     background: var(--accent);
-    transition: width 220ms var(--fp-ease);
 }
 
 .loading-state.is-passive {

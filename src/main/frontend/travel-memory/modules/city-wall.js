@@ -48,8 +48,26 @@ const cityWallBody = document.getElementById('cityWallBody');
 export const cityWallTimeCapsuleBtn = document.getElementById('cityWallTimeCapsuleBtn');
 export const cityWallInsightBtn = document.getElementById('cityWallInsightBtn');
 export const cityWallProvinceFilter = document.getElementById('cityWallProvinceFilter');
+const CITY_WALL_VIEW = 'city';
 // 只看某个省（从足迹洞察的省份排行点进来）；关闭卡片墙时自动清掉
 let cityWallProvinceFilterName = '';
+
+function cityWallViewRequested() {
+    return new URLSearchParams(window.location.search).get('view') ===
+        CITY_WALL_VIEW;
+}
+
+function clearCityWallViewRequest() {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('view') !== CITY_WALL_VIEW) return;
+    url.searchParams.delete('view');
+    const query = url.searchParams.toString();
+    window.history.replaceState(
+        window.history.state,
+        '',
+        url.pathname + (query ? '?' + query : '') + url.hash
+    );
+}
 
 // 叠在卡片墙之上的覆盖层（时间胶囊 / 足迹洞察 / 明信片）关闭后，把焦点还给卡片墙顶部的返回按钮
 export function focusCityWallTop() {
@@ -502,6 +520,7 @@ export function openCityWall() {
 export function closeCityWall(returnFocus = true) {
     if (!cityWall || !cityWall.classList.contains('show')) return;
     stopCityCardCarousel();
+    clearCityWallViewRequest();
     cityWall.classList.remove('show');
     deps.setOverlayHidden(cityWall, true);
     document.body.classList.remove('city-wall-open');
@@ -533,4 +552,7 @@ export function initCityWall() {
     document.addEventListener('touchmove', () => {
         cityCardCarouselPauseUntil = Date.now() + 350;
     }, { passive: true });
+    if (cityWallViewRequested()) {
+        window.requestAnimationFrame(() => openCityWall());
+    }
 }

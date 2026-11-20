@@ -289,7 +289,9 @@
     <!-- 旅行记忆墙：从城记进入，全量足迹按城市铺在软木板上。 -->
     <div id="travelMemoryWall" class="travel-memory-wall fp-sheet"
          role="dialog" aria-modal="true"
-         th:attr="aria-label=${settings.travelWallTitle}"
+         th:attr="aria-label=${settings.travelWallTitle},
+                  data-scene-style=${settings.travelWallStyle == 'scrapbook' ? 'scrapbook' : 'classic'},
+                  data-theme=${settings.travelWallStyle == 'scrapbook' ? 'scrapbook' : 'paper'}"
          aria-hidden="true" hidden>
         <main class="wall-shell">
             <canvas id="wallCanvas" tabindex="0"

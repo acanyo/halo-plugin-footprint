@@ -8,6 +8,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     if (!root) return;
 
     const travelWallPath = '/footprints/memory-wall';
+    const cityWallPath = '/footprints?view=city';
     const footprintConfig = window.FOOTPRINT_CONFIG || {};
     const configuredTitle = String(
         footprintConfig.travelWallTitle || '城市记忆墙'
@@ -166,6 +167,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     ctx.imageSmoothingQuality = 'high';
     const dragSurface = document.createElement('div');
     const dragBackdrop = document.createElement('canvas');
+    const dragBuffer = document.createElement('canvas');
     const dragCanvas = document.createElement('canvas');
     const dragLighting = document.createElement('canvas');
     dragSurface.className = 'wall-drag-surface';
@@ -176,10 +178,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     dragSurface.append(dragBackdrop, dragCanvas, dragLighting);
     canvas.insertAdjacentElement('afterend', dragSurface);
     const dragBackdropCtx = dragBackdrop.getContext('2d');
-    const dragCtx = dragCanvas.getContext('2d', {
-        alpha: true,
-        desynchronized: true
-    });
+    const dragBufferCtx = dragBuffer.getContext('2d');
+    const dragCtx = dragCanvas.getContext('2d', { alpha: true });
     const dragLightingCtx = dragLighting.getContext('2d');
     const body = root;
     const loadingState = document.getElementById('loadingState');
@@ -389,8 +389,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     };
 
     const state = {
-        theme: 'paper',
-        sceneStyle: 'classic',
+        theme: sceneThemeKey(configuredWallStyle),
+        sceneStyle: configuredWallStyle,
         immersive: false,
         selectedId: '',
         hoveredId: '',
@@ -433,6 +433,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let dragSnapshotCamera = null;
     let dragSnapshotOverscanX = DRAG_SURFACE_OVERSCAN_X;
     let dragSnapshotOverscanY = DRAG_SURFACE_OVERSCAN_Y;
+    let dragBackdropSource = null;
+    let dragLightingSource = null;
     let sceneLightingCache = null;
     let sceneLightingCacheKey = '';
     let sceneTicketCache = null;
@@ -6263,37 +6265,63 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             DRAG_SURFACE_MAX_SIDE / displayWidth,
             DRAG_SURFACE_MAX_SIDE / displayHeight
         );
-        dragCanvas.width = Math.max(1, Math.ceil(displayWidth * scale));
-        dragCanvas.height = Math.max(1, Math.ceil(displayHeight * scale));
+        const pixelWidth = Math.max(1, Math.ceil(displayWidth * scale));
+        const pixelHeight = Math.max(1, Math.ceil(displayHeight * scale));
+        const canvasResized = dragCanvas.width !== pixelWidth ||
+            dragCanvas.height !== pixelHeight;
+        if (canvasResized) {
+            dragCanvas.width = pixelWidth;
+            dragCanvas.height = pixelHeight;
+        }
         dragCanvas.style.left = -overscanX + 'px';
         dragCanvas.style.top = -overscanY + 'px';
         dragCanvas.style.width = displayWidth + 'px';
         dragCanvas.style.height = displayHeight + 'px';
-        dragCanvas.style.transform = 'translate3d(0, 0, 0)';
-        dragSurface.classList.add('is-active');
 
         const backdrop = ensureRoomBackdropCache();
-        dragBackdrop.width = backdrop.width;
-        dragBackdrop.height = backdrop.height;
-        dragBackdropCtx.drawImage(backdrop, 0, 0);
+        if (dragBackdropSource !== backdrop ||
+            dragBackdrop.width !== backdrop.width ||
+            dragBackdrop.height !== backdrop.height) {
+            dragBackdrop.width = backdrop.width;
+            dragBackdrop.height = backdrop.height;
+            dragBackdropCtx.drawImage(backdrop, 0, 0);
+            dragBackdropSource = backdrop;
+        }
         const lighting = ensureSceneLightingCache();
-        dragLighting.width = lighting.width;
-        dragLighting.height = lighting.height;
-        dragLightingCtx.drawImage(lighting, 0, 0);
+        if (dragLightingSource !== lighting ||
+            dragLighting.width !== lighting.width ||
+            dragLighting.height !== lighting.height) {
+            dragLighting.width = lighting.width;
+            dragLighting.height = lighting.height;
+            dragLightingCtx.drawImage(lighting, 0, 0);
+            dragLightingSource = lighting;
+        }
 
-        dragCtx.setTransform(1, 0, 0, 1, 0, 0);
-        dragCtx.clearRect(0, 0, dragCanvas.width, dragCanvas.height);
-        dragCtx.setTransform(
+        if (dragBuffer.width !== pixelWidth || dragBuffer.height !== pixelHeight) {
+            dragBuffer.width = pixelWidth;
+            dragBuffer.height = pixelHeight;
+        }
+        dragBufferCtx.setTransform(1, 0, 0, 1, 0, 0);
+        dragBufferCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+        dragBufferCtx.imageSmoothingEnabled = true;
+        dragBufferCtx.imageSmoothingQuality = 'high';
+        dragBufferCtx.setTransform(
             camera.scale * scale, 0, 0, camera.scale * scale,
             (camera.x + overscanX) * scale,
             (camera.y + overscanY) * scale
         );
-        drawWallTilesRegion(dragCtx, tiles, {
+        drawWallTilesRegion(dragBufferCtx, tiles, {
             x: -(camera.x + overscanX) / camera.scale,
             y: -(camera.y + overscanY) / camera.scale,
             width: displayWidth / camera.scale,
             height: displayHeight / camera.scale
         });
+        dragCtx.setTransform(1, 0, 0, 1, 0, 0);
+        dragCtx.globalCompositeOperation = 'copy';
+        dragCtx.drawImage(dragBuffer, 0, 0);
+        dragCtx.globalCompositeOperation = 'source-over';
+        dragCanvas.style.transform = 'translate3d(0, 0, 0)';
+        dragSurface.classList.add('is-active');
 
         dragSnapshotCamera = { ...camera };
         dragSnapshotOverscanX = overscanX;
@@ -6354,6 +6382,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         drawTicketHover(ctx);
         drawSceneLighting();
         drawMiniMap();
+        if (!dragging && dragSnapshotActive) clearDragSnapshot();
 
         const frameMs = performance.now() - start;
         recordPerformance(now, frameMs);
@@ -7177,6 +7206,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         clampCamera();
         if (dragSnapshotActive) {
             updateDragSnapshot();
+            drawMiniMap();
             return;
         }
         dirty = true;
@@ -7195,7 +7225,6 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             else if (hit) selectGroup(hit.group.id);
             else selectGroup('');
         }
-        clearDragSnapshot();
         dragging = false;
         activePointer = null;
         lastPointer = null;
@@ -7709,7 +7738,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             setLoadingPhase(
                 sceneReady ? '照片继续载入中' : '正在铺开旅行记忆',
                 detail,
-                18 + ratio * 66
+                18 + ratio * 74
             );
         }
     }
@@ -8415,6 +8444,10 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function closeTravelWall() {
         if (!root.classList.contains('show')) return;
+        if (directTravelWall) {
+            window.location.replace(cityWallPath);
+            return;
+        }
         if (state.previewPhoto) closePreview();
         stopPendingImageLoads();
         clearDragSnapshot();
@@ -8427,10 +8460,6 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             closeTimer = 0;
             if (!root.classList.contains('show')) root.hidden = true;
         }, 320);
-        if (directTravelWall) {
-            window.location.assign('/footprints');
-            return;
-        }
         openButton?.focus();
     }
 
