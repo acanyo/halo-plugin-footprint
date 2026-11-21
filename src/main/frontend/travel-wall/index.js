@@ -11,7 +11,7 @@ import {
     const openButton = document.getElementById('travelWallBtn');
     if (!root) return;
 
-    const travelWallPath = '/footprints/memory-wall';
+    const travelWallPath = '/footprints?view=memory-wall';
     const cityWallPath = '/footprints?view=city';
     const footprintConfig = window.FOOTPRINT_CONFIG || {};
     const configuredTitle = String(
@@ -80,6 +80,22 @@ import {
             footprints: normalized,
             geo
         };
+    }
+
+    function ensureTravelWallDataLoaded() {
+        if (warmedWallData) return Promise.resolve(warmedWallData);
+        if (!wallDataPromise) {
+            wallDataPromise = loadTravelWallData()
+                .then(result => {
+                    warmedWallData = result;
+                    return result;
+                })
+                .catch(error => {
+                    wallDataPromise = null;
+                    throw error;
+                });
+        }
+        return wallDataPromise;
     }
 
     function normalizeFootprint(item) {
@@ -250,7 +266,7 @@ import {
     }
 
     function completeLoadingState() {
-        if (!sceneReady || imagesLoading() ||
+        if (!sceneReady || !firstFrameDrawn || imagesLoading() ||
             loadingState.classList.contains('is-hidden')) {
             return;
         }
@@ -420,6 +436,9 @@ import {
     let sceneTicketRects = [];
     let initialized = false;
     let initializationPromise = null;
+    let wallDataPromise = null;
+    let warmedWallData = null;
+    let warmupScheduled = false;
     let closeTimer = 0;
     const imageItems = new Map();
     const loadQueue = [];
@@ -482,6 +501,8 @@ import {
     let initialFitFrame = 0;
     let cameraBeforeImmersive = null;
     let loadingFinished = false;
+    let firstFrameRevealPending = false;
+    let firstFrameDrawn = false;
     let previewSession = 0;
     let previewOpenComplete = false;
     let previewImageReady = false;
@@ -4318,7 +4339,11 @@ import {
         scheduleDraw();
     }
 
-    function buildMapLayer(themeKey) {
+    function buildMapLayer(
+        themeKey,
+        geo = data && data.geo,
+        visited = new Set(groups.map(group => group.provinceAdcode))
+    ) {
         if (mapLayers.has(themeKey)) return mapLayers.get(themeKey);
         const palette = THEMES[themeKey];
         const scale = 3;
@@ -4329,8 +4354,7 @@ import {
         layerCtx.imageSmoothingEnabled = true;
         layerCtx.imageSmoothingQuality = 'high';
         layerCtx.setTransform(scale, 0, 0, scale, 0, 0);
-        const visited = new Set(groups.map(group => group.provinceAdcode));
-        const features = (data.geo.features || []).filter(feature => {
+        const features = ((geo && geo.features) || []).filter(feature => {
             const adcode = String(feature && feature.properties &&
                 feature.properties.adcode || '');
             return /^\d{6}$/.test(adcode);
@@ -4372,12 +4396,13 @@ import {
         return layer;
     }
 
-    function buildMapMask() {
+    function buildMapMask(geo = data && data.geo) {
+        if (!geo) return false;
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = MAP_WIDTH;
         maskCanvas.height = MAP_HEIGHT;
         const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-        const features = (data.geo.features || []).filter(feature => {
+        const features = (geo.features || []).filter(feature => {
             const adcode = String(feature && feature.properties &&
                 feature.properties.adcode || '');
             return /^\d{6}$/.test(adcode);
@@ -4393,6 +4418,7 @@ import {
             width: MAP_WIDTH,
             height: MAP_HEIGHT
         };
+        return true;
     }
 
     function maskAlphaAt(x, y) {
@@ -4507,6 +4533,7 @@ import {
         });
         loadPlanReady = true;
         drainImageQueue();
+        if (!sceneReady) scheduleRelayout(true);
     }
 
     function drainImageQueue() {
@@ -6392,6 +6419,7 @@ import {
         drawSceneLighting();
         drawMiniMap();
         if (!dragging && dragSnapshotActive) clearDragSnapshot();
+        if (sceneReady && !firstFrameDrawn) finishTravelWallEntry();
         if (sceneReady && loadPlanReady && !layoutDirty && !layoutTimer &&
             !imagesLoading()) {
             completeLoadingState();
@@ -7721,7 +7749,7 @@ import {
         }
         const total = queuedImages;
         const ratio = total ? finishedImages / total : 1;
-        const passive = sceneReady && loadPlanReady;
+        const passive = sceneReady && loadPlanReady && firstFrameDrawn;
         loadingState.classList.toggle('is-passive', passive);
         canvas.classList.toggle('is-loading', !sceneReady);
         updateInteractionLock(!sceneReady);
@@ -7749,7 +7777,11 @@ import {
             scheduleRelayout(true);
         } else {
             setLoadingPhase(
-                sceneReady ? '照片继续载入中' : '正在铺开旅行记忆',
+                !sceneReady
+                    ? '正在铺开旅行记忆'
+                    : (firstFrameDrawn
+                        ? '照片继续载入中'
+                        : '正在准备整墙画面'),
                 detail,
                 18 + ratio * 74
             );
@@ -8213,6 +8245,51 @@ import {
             JSON.stringify(result);
     }
 
+    async function warmTravelWallResources() {
+        if (directTravelWall || initialized || root.classList.contains('show')) {
+            return;
+        }
+        root.dataset.warmup = 'running';
+        try {
+            const [loadedData] = await Promise.all([
+                ensureTravelWallDataLoaded(),
+                ensureMottoFontReady()
+            ]);
+            if (initialized || root.classList.contains('show')) return;
+            buildMapMask(loadedData.geo);
+            buildMapLayer(
+                sceneThemeKey(configuredWallStyle),
+                loadedData.geo,
+                new Set(loadedData.footprints.map(footprint =>
+                    footprint.provinceAdcode
+                ))
+            );
+            root.dataset.warmup = 'ready';
+        } catch (error) {
+            warmedWallData = null;
+            wallDataPromise = null;
+            root.dataset.warmup = 'error';
+            console.warn('[travel-wall] warmup failed', error);
+        }
+    }
+
+    function scheduleTravelWallWarmup() {
+        if (directTravelWall || initialized || root.classList.contains('show') ||
+            warmupScheduled || root.dataset.warmup === 'ready') {
+            return;
+        }
+        warmupScheduled = true;
+        const run = () => {
+            warmupScheduled = false;
+            void warmTravelWallResources();
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(run, { timeout: 1200 });
+        } else {
+            window.setTimeout(run, 240);
+        }
+    }
+
     function init() {
         state.sceneStyle = configuredWallStyle;
         state.theme = sceneThemeKey(state.sceneStyle);
@@ -8221,7 +8298,7 @@ import {
         body.dataset.theme = state.theme;
         body.dataset.sceneStyle = state.sceneStyle;
         buildGroups();
-        buildMapMask();
+        if (!mapMask) buildMapMask();
         bindEvents();
         resize();
         if (debugEnabled &&
@@ -8379,7 +8456,7 @@ import {
 
     async function initializeTravelWall() {
         const [loadedData] = await Promise.all([
-            loadTravelWallData(),
+            ensureTravelWallDataLoaded(),
             ensureMottoFontReady()
         ]);
         data = loadedData;
@@ -8402,8 +8479,28 @@ import {
         initialized = true;
     }
 
+    function finishTravelWallEntry() {
+        if (firstFrameDrawn || firstFrameRevealPending) return;
+        firstFrameRevealPending = true;
+        const reveal = () => {
+            firstFrameRevealPending = false;
+            firstFrameDrawn = true;
+            root.classList.remove('is-preparing');
+            updateLoadingState();
+        };
+        if (reduceMotion) {
+            reveal();
+            return;
+        }
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(reveal);
+        });
+    }
+
     function openTravelWall() {
         if (root.classList.contains('show')) return;
+        const waitingForFirstFrame = !firstFrameDrawn;
+        root.classList.toggle('is-preparing', waitingForFirstFrame);
         clearDragSnapshot();
         if (gestureNote) gestureNote.classList.remove('is-dismissed');
         if (closeTimer) {
@@ -8434,6 +8531,7 @@ import {
         initializationPromise = initializeTravelWall()
             .catch(error => {
                 loadingFinished = false;
+                root.classList.remove('is-preparing');
                 loadingState.classList.remove('is-hidden', 'is-passive');
                 loadingRetryBtn.hidden = false;
                 setLoadingPhase(
@@ -8457,6 +8555,11 @@ import {
             });
     }
 
+    function travelWallQueryActive() {
+        return new URLSearchParams(window.location.search).get('view') ===
+            'memory-wall';
+    }
+
     function closeTravelWall(options = {}) {
         if (!root.classList.contains('show')) return;
         if (directTravelWall) {
@@ -8475,15 +8578,11 @@ import {
             closeTimer = 0;
             if (!root.classList.contains('show')) root.hidden = true;
         }, 320);
-        if (options.syncHistory !== false && travelWallRouteActive() &&
+        if (options.syncHistory !== false && travelWallQueryActive() &&
             window.history.state?.travelWall === true) {
             window.history.back();
         }
         openButton?.focus();
-    }
-
-    function travelWallRouteActive() {
-        return window.location.pathname.replace(/\/+$/, '') === travelWallPath;
     }
 
     function openTravelWallFromHistory() {
@@ -8503,6 +8602,10 @@ import {
     if (directTravelWall) {
         window.requestAnimationFrame(openTravelWall);
     } else if (openButton) {
+        window.addEventListener(
+            'footprint:city-wall-open',
+            scheduleTravelWallWarmup
+        );
         openButton.addEventListener('click', event => {
             event.preventDefault();
             openTravelWallFromHistory();
@@ -8510,7 +8613,7 @@ import {
     }
     if (!directTravelWall) {
         window.addEventListener('popstate', () => {
-            if (travelWallRouteActive()) {
+            if (travelWallQueryActive()) {
                 openTravelWall();
             } else if (root.classList.contains('show')) {
                 closeTravelWall({ syncHistory: false });

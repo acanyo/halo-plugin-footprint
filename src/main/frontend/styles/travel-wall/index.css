@@ -34,9 +34,7 @@
     inset: 0;
     z-index: 10040;
     overflow: hidden;
-    background:
-        radial-gradient(circle at 16% 3%, var(--tmw-daylight), transparent 38%),
-        var(--fp-paper);
+    background: transparent;
     color: var(--ink);
     font-family: var(--font-text);
     -webkit-font-smoothing: antialiased;
@@ -44,6 +42,19 @@
     visibility: hidden;
     transition: opacity var(--fp-dur) var(--fp-ease),
         visibility var(--fp-dur);
+}
+
+#travelMemoryWall::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        radial-gradient(circle at 16% 3%, var(--tmw-daylight), transparent 38%),
+        var(--fp-paper);
+    opacity: 1;
+    pointer-events: none;
+    transition: opacity 360ms var(--fp-ease);
 }
 
 #travelMemoryWall.show {
@@ -59,6 +70,9 @@
     --scene-wall-b: #846c58;
     --scene-wall-c: #5e4939;
     --scene-surface: rgba(250, 242, 226, 0.84);
+}
+
+#travelMemoryWall[data-scene-style="scrapbook"]::before {
     background:
         radial-gradient(circle at 48% 12%, var(--scene-light), transparent 48%),
         linear-gradient(135deg, var(--scene-wall-a), var(--scene-wall-b) 62%, var(--scene-wall-c));
@@ -68,6 +82,26 @@
 #travelMemoryWall[data-scene-style="scrapbook"] .zoom-controls,
 #travelMemoryWall[data-scene-style="scrapbook"] .mini-map-panel {
     background: var(--scene-surface);
+}
+
+#travelMemoryWall .wall-toolbar,
+#travelMemoryWall .zoom-controls,
+#travelMemoryWall .mini-map-panel,
+#travelMemoryWall .gesture-note {
+    transition:
+        opacity 220ms var(--fp-ease),
+        visibility 220ms var(--fp-ease),
+        transform 220ms var(--fp-ease);
+}
+
+#travelMemoryWall.is-preparing .wall-toolbar,
+#travelMemoryWall.is-preparing .zoom-controls,
+#travelMemoryWall.is-preparing .mini-map-panel,
+#travelMemoryWall.is-preparing .gesture-note {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(5px);
 }
 
 body.travel-wall-open #topNav,
@@ -121,6 +155,7 @@ body.wall-direct #view-3d {
 
 #travelMemoryWall .wall-shell {
     position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     min-height: 100dvh;

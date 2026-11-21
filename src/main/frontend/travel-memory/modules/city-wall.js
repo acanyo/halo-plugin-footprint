@@ -49,6 +49,7 @@ export const cityWallTimeCapsuleBtn = document.getElementById('cityWallTimeCapsu
 export const cityWallInsightBtn = document.getElementById('cityWallInsightBtn');
 export const cityWallProvinceFilter = document.getElementById('cityWallProvinceFilter');
 const CITY_WALL_VIEW = 'city';
+const CITY_WALL_PATH = '/footprints?view=city';
 // 只看某个省（从足迹洞察的省份排行点进来）；关闭卡片墙时自动清掉
 let cityWallProvinceFilterName = '';
 
@@ -66,6 +67,19 @@ function clearCityWallViewRequest() {
         window.history.state,
         '',
         url.pathname + (query ? '?' + query : '') + url.hash
+    );
+}
+
+function pushCityWallView() {
+    if (cityWallViewRequested()) return;
+    const previous = window.history.state;
+    window.history.pushState(
+        {
+            ...(previous && typeof previous === 'object' ? previous : {}),
+            cityWall: true
+        },
+        '',
+        CITY_WALL_PATH
     );
 }
 
@@ -498,8 +512,9 @@ export function renderCityWall() {
     startCityWallWarmQueue(cityWallGrid);
 }
 
-export function openCityWall() {
+export function openCityWall(syncHistory = true) {
     if (!cityWall || cityWall.classList.contains('show')) return;
+    if (syncHistory === true) pushCityWallView();
     // 卡片墙背景不透明，暂停地球渲染，避免其满帧率渲染抢走滚动所需资源
     setGlobeRenderLoop(false);
     if (lightbox.classList.contains('show')) deps.closeLightbox(false);
@@ -511,16 +526,21 @@ export function openCityWall() {
     cityWall.classList.add('show');
     deps.setOverlayHidden(cityWall, false);
     document.body.classList.add('city-wall-open');
+    if (deps.footprintCfg()?.enableTravelWall === true) {
+        window.dispatchEvent(new Event('footprint:city-wall-open'));
+    }
     // 与城市图片墙一致：触屏不自动聚焦，避免“返回地球”出现焦点描边
     if (!(window.matchMedia('(hover: none)').matches || 'ontouchstart' in window)) {
         cityWallBack.focus();
     }
 }
 
-export function closeCityWall(returnFocus = true) {
+export function closeCityWall(returnFocus = true, syncHistory = true) {
     if (!cityWall || !cityWall.classList.contains('show')) return;
+    const managedHistoryEntry =
+        window.history.state?.cityWall === true &&
+        cityWallViewRequested();
     stopCityCardCarousel();
-    clearCityWallViewRequest();
     cityWall.classList.remove('show');
     deps.setOverlayHidden(cityWall, true);
     document.body.classList.remove('city-wall-open');
@@ -530,6 +550,10 @@ export function closeCityWall(returnFocus = true) {
     stopCityWallCoverLoader();
     stopCityWallWarmQueue();
     setGlobeRenderLoop(true);
+    if (syncHistory !== false) {
+        if (managedHistoryEntry) window.history.back();
+        else clearCityWallViewRequest();
+    }
     if (returnFocus) {
         const trigger = cityWallBtn;
         setTimeout(() => {
@@ -555,4 +579,11 @@ export function initCityWall() {
     if (cityWallViewRequested()) {
         window.requestAnimationFrame(() => openCityWall());
     }
+    window.addEventListener('popstate', () => {
+        if (cityWallViewRequested()) {
+            if (!cityWall.classList.contains('show')) openCityWall(false);
+        } else if (cityWall.classList.contains('show')) {
+            closeCityWall(true, false);
+        }
+    });
 }

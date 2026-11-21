@@ -64,7 +64,7 @@ export function initCreativeOverlays() {
         });
     });
 
-    deps.cityWallBtn().addEventListener('click', deps.openCityWall);
+    deps.cityWallBtn().addEventListener('click', () => deps.openCityWall());
     deps.cityWallBack().addEventListener('click', () => deps.closeCityWall());
     if (deps.cityWallProvinceFilter()) {
         deps.cityWallProvinceFilter().addEventListener('click', () => deps.setCityWallProvinceFilter(''));
