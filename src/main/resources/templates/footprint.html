@@ -7,19 +7,21 @@
     <meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
     <title th:text="${settings.title}">足迹 - 记录生活的每一步</title>
-    <!-- 引入高德地图API -->
-    <script type="text/javascript">
-        window._AMapSecurityConfig = {
-            securityJsCode: /*[[${settings.gaoDeKey}]]*/''
-        }
-    </script>
-    <script type="text/javascript" th:src="|https://webapi.amap.com/maps?v=2.0&key=${settings.gaoDeKey}|"></script>
+    <th:block th:if="${!travelWallDirect}">
+        <!-- 引入高德地图API -->
+        <script type="text/javascript">
+            window._AMapSecurityConfig = {
+                securityJsCode: /*[[${settings.gaoDeKey}]]*/''
+            }
+        </script>
+        <script type="text/javascript" th:src="|https://webapi.amap.com/maps?v=2.0&key=${settings.gaoDeKey}|"></script>
 
-    <!-- Cesium 3D 地球（本地静态资源，仅 /footprints 页面加载） -->
-    <link href="/plugins/footprint/assets/static/cesium/Widgets/widgets.css" rel="stylesheet">
-    <script src="/plugins/footprint/assets/static/cesium/Cesium.js"></script>
-    <script src="/plugins/footprint/assets/static/vendor/pako.min.js"></script>
-    <script src="/plugins/footprint/assets/static/vendor/tdtplug.umd.min.js"></script>
+        <!-- Cesium 3D 地球（本地静态资源，仅 /footprints 页面加载） -->
+        <link href="/plugins/footprint/assets/static/cesium/Widgets/widgets.css" rel="stylesheet">
+        <script src="/plugins/footprint/assets/static/cesium/Cesium.js"></script>
+        <script src="/plugins/footprint/assets/static/vendor/pako.min.js"></script>
+        <script src="/plugins/footprint/assets/static/vendor/tdtplug.umd.min.js"></script>
+    </th:block>
     <th:block th:if="${settings.enableTravelWall or travelWallDirect}">
         <link rel="stylesheet" type="text/css"
               th:href="|/plugins/footprint/assets/static/css/travel-wall.css?version=${pluginVersion}|">
@@ -85,7 +87,8 @@
         // console.log('Footprint Config:', window.FOOTPRINT_CONFIG);
     </script>
 </head>
-<body id="footprint-page" th:class="'mode-3d marker-style-' + ${settings.markerStyle}">
+<body id="footprint-page" th:class="'mode-3d marker-style-' + ${settings.markerStyle}"
+      th:classappend="${travelWallDirect} ? ' wall-direct' : ''">
 <!-- 底部导航坞（两个视图共用）：主入口 + 地球开关，居中浮在页面底部。
      放在底部而不是顶部：主题自己的导航通常在顶部，足迹页再放一条会重复。
      id 保持不变（各模块按 id 取按钮）；#sceneModeBtn 的文字由 view-mode.js 改写在 .dock-label 里。 -->
@@ -359,9 +362,14 @@
                     <strong id="loadingTitle">正在准备旅行记忆墙</strong>
                     <span id="loadingDetail">读取足迹数据</span>
                 </span>
-                <span class="loading-track" aria-hidden="true">
+                <span id="loadingProgress" class="loading-track" role="progressbar"
+                      aria-label="旅行记忆墙加载进度" aria-valuemin="0"
+                      aria-valuemax="100" aria-valuenow="4">
                     <i id="loadingBar"></i>
                 </span>
+                <button id="loadingRetryBtn" class="loading-retry" type="button" hidden>
+                    重新加载
+                </button>
             </div>
             <div id="tooSmallNotice" class="too-small-notice" hidden>
                 请将窗口宽度调整到 1280px 以上，以获得完整的旅行记忆墙体验。
@@ -962,7 +970,8 @@
 
 <!-- 留言板：整页一个，评论挂在 FootprintGuestbook/footprints 上。
      haloCommentEnabled 为假（站点关了评论、或没装评论组件）时不输出，两个入口按钮也保持隐藏 -->
-<div id="guestbook" class="guestbook" th:if="${haloCommentEnabled}" role="dialog" aria-modal="true"
+<div id="guestbook" class="guestbook" th:if="${haloCommentEnabled and !travelWallDirect}"
+     role="dialog" aria-modal="true"
      aria-labelledby="guestbookTitle" aria-hidden="true" hidden>
     <div class="guestbook-backdrop" data-guestbook-close></div>
     <section class="guestbook-panel">

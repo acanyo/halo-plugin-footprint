@@ -81,6 +81,22 @@ body.travel-wall-open #pageIntro {
     display: none;
 }
 
+body.wall-direct {
+    margin: 0;
+    min-height: 100dvh;
+}
+
+body.wall-direct > :not(#view-3d),
+body.wall-direct #view-3d > :not(#travelMemoryWall) {
+    display: none !important;
+}
+
+body.wall-direct #view-3d {
+    display: block !important;
+    width: 100%;
+    min-height: 100dvh;
+}
+
 #travelMemoryWall,
 #travelMemoryWall * {
     box-sizing: border-box;
@@ -637,6 +653,21 @@ body.travel-wall-open #pageIntro {
     height: 100%;
     border-radius: inherit;
     background: var(--accent);
+}
+
+.loading-retry {
+    justify-self: center;
+    padding: 7px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--fp-paper-raised);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.loading-state.is-passive .loading-retry {
+    display: none;
 }
 
 .loading-state.is-passive {

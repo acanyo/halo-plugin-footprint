@@ -1,4 +1,8 @@
-import { accentHex, accentRgba } from '../shared/accent.js';
+import {
+    accentHex,
+    accentRgba,
+    applyAccentToDocument
+} from '../shared/accent.js';
 
 (async () => {
     'use strict';
@@ -30,6 +34,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const configuredWallStyle = allowedWallStyles.has(
         String(requestedWallStyle).trim()
     ) ? String(requestedWallStyle).trim() : 'classic';
+    applyAccentToDocument();
     root.dataset.sceneStyle = configuredWallStyle;
     const mottoFont = '"Ma Shan Zheng", "KaiTi", "STKaiti", serif';
     const wallAccent = accentHex();
@@ -185,7 +190,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const loadingState = document.getElementById('loadingState');
     const loadingTitle = document.getElementById('loadingTitle');
     const loadingDetail = document.getElementById('loadingDetail');
+    const loadingProgress = document.getElementById('loadingProgress');
     const loadingBar = document.getElementById('loadingBar');
+    const loadingRetryBtn = document.getElementById('loadingRetryBtn');
     const wallSummary = document.getElementById('wallSummary');
     const wallYearControl = document.querySelector('.wall-year-filter');
     const wallYearTrigger = document.getElementById('wallYearTrigger');
@@ -226,7 +233,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const tooSmallNotice = document.getElementById('tooSmallNotice');
     const debugEnabled = new URLSearchParams(window.location.search).get('debug') === '1';
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const fontText = getComputedStyle(body).fontFamily;
+    const fontText = getComputedStyle(root).fontFamily;
     const gestureNote = root.querySelector('.gesture-note');
 
     function dismissGestureNote() {
@@ -234,9 +241,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function setLoadingPhase(title, detail, progress) {
+        const value = clamp(Number(progress) || 0, 0, 100);
         loadingTitle.textContent = title;
         loadingDetail.textContent = detail || '';
-        loadingBar.style.width = clamp(Number(progress) || 0, 0, 100) + '%';
+        loadingBar.style.width = value + '%';
+        loadingProgress.setAttribute('aria-valuenow', String(Math.round(value)));
         loadingState.classList.remove('is-hidden');
     }
 
@@ -6383,6 +6392,10 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         drawSceneLighting();
         drawMiniMap();
         if (!dragging && dragSnapshotActive) clearDragSnapshot();
+        if (sceneReady && loadPlanReady && !layoutDirty && !layoutTimer &&
+            !imagesLoading()) {
+            completeLoadingState();
+        }
 
         const frameMs = performance.now() - start;
         recordPerformance(now, frameMs);
@@ -7729,8 +7742,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             (failedImages ? ' · 失败 ' + failedImages : '');
         if (finishedImages >= total && loadingImages === 0) {
             setLoadingPhase(
-                '正在生成拖拽画面',
-                detail + ' · 优化整墙浏览',
+                '正在完成首屏画面',
+                detail + ' · 拖拽优化将在后台继续',
                 92
             );
             scheduleRelayout(true);
@@ -8415,12 +8428,14 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
         loadingState.classList.remove('is-hidden');
         loadingState.classList.remove('is-passive');
+        loadingRetryBtn.hidden = true;
         loadingFinished = false;
         setLoadingPhase('正在准备旅行记忆墙', '读取足迹数据', 4);
         initializationPromise = initializeTravelWall()
             .catch(error => {
                 loadingFinished = false;
-                loadingState.classList.remove('is-hidden');
+                loadingState.classList.remove('is-hidden', 'is-passive');
+                loadingRetryBtn.hidden = false;
                 setLoadingPhase(
                     '旅行记忆墙加载失败',
                     error.message || '请稍后重试',
@@ -8442,7 +8457,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             });
     }
 
-    function closeTravelWall() {
+    function closeTravelWall(options = {}) {
         if (!root.classList.contains('show')) return;
         if (directTravelWall) {
             window.location.replace(cityWallPath);
@@ -8460,14 +8475,46 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             closeTimer = 0;
             if (!root.classList.contains('show')) root.hidden = true;
         }, 320);
+        if (options.syncHistory !== false && travelWallRouteActive() &&
+            window.history.state?.travelWall === true) {
+            window.history.back();
+        }
         openButton?.focus();
+    }
+
+    function travelWallRouteActive() {
+        return window.location.pathname.replace(/\/+$/, '') === travelWallPath;
+    }
+
+    function openTravelWallFromHistory() {
+        if (root.classList.contains('show')) return;
+        const previous = window.history.state;
+        window.history.pushState(
+            {
+                ...(previous && typeof previous === 'object' ? previous : {}),
+                travelWall: true
+            },
+            '',
+            travelWallPath
+        );
+        openTravelWall();
     }
 
     if (directTravelWall) {
         window.requestAnimationFrame(openTravelWall);
     } else if (openButton) {
-        openButton.addEventListener('click', () => {
-            window.location.assign(travelWallPath);
+        openButton.addEventListener('click', event => {
+            event.preventDefault();
+            openTravelWallFromHistory();
+        });
+    }
+    if (!directTravelWall) {
+        window.addEventListener('popstate', () => {
+            if (travelWallRouteActive()) {
+                openTravelWall();
+            } else if (root.classList.contains('show')) {
+                closeTravelWall({ syncHistory: false });
+            }
         });
     }
     canvas.addEventListener('pointerdown', dismissGestureNote, { passive: true });
@@ -8475,6 +8522,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     zoomInBtn.addEventListener('click', dismissGestureNote);
     zoomOutBtn.addEventListener('click', dismissGestureNote);
     if (travelWallBack) {
-        travelWallBack.addEventListener('click', closeTravelWall);
+        travelWallBack.addEventListener('click', () => closeTravelWall());
     }
+    loadingRetryBtn.addEventListener('click', () => window.location.reload());
 })();
