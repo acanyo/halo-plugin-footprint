@@ -28,7 +28,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 @RequiredArgsConstructor
 public class FootprintPageHandler {
 
-    private static final String TRAVEL_WALL_PATH = "/footprints/memory-wall";
+    private static final String TRAVEL_WALL_VIEW = "memory-wall";
 
     private final TemplateNameResolver templateNameResolver;
     private final ReactiveExtensionClient client;
@@ -39,7 +39,9 @@ public class FootprintPageHandler {
         return configService.getConfigByGroupName()
             .flatMap(settings -> {
                 boolean travelWallRequest =
-                    TRAVEL_WALL_PATH.equals(request.path());
+                    TRAVEL_WALL_VIEW.equals(
+                        request.queryParam("view").orElse("")
+                    );
                 if (travelWallRequest &&
                     !Boolean.TRUE.equals(settings.getEnableTravelWall())) {
                     return ServerResponse.notFound().build();

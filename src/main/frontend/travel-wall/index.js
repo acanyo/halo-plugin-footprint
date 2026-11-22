@@ -1,4 +1,8 @@
-import { accentHex, accentRgba } from '../shared/accent.js';
+import {
+    accentHex,
+    accentRgba,
+    applyAccentToDocument
+} from '../shared/accent.js';
 
 (async () => {
     'use strict';
@@ -7,7 +11,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const openButton = document.getElementById('travelWallBtn');
     if (!root) return;
 
-    const travelWallPath = '/footprints/memory-wall';
+    const travelWallPath = '/footprints?view=memory-wall';
+    const cityWallPath = '/footprints?view=city';
     const footprintConfig = window.FOOTPRINT_CONFIG || {};
     const configuredTitle = String(
         footprintConfig.travelWallTitle || '城市记忆墙'
@@ -29,6 +34,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const configuredWallStyle = allowedWallStyles.has(
         String(requestedWallStyle).trim()
     ) ? String(requestedWallStyle).trim() : 'classic';
+    applyAccentToDocument();
     root.dataset.sceneStyle = configuredWallStyle;
     const mottoFont = '"Ma Shan Zheng", "KaiTi", "STKaiti", serif';
     const wallAccent = accentHex();
@@ -74,6 +80,22 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             footprints: normalized,
             geo
         };
+    }
+
+    function ensureTravelWallDataLoaded() {
+        if (warmedWallData) return Promise.resolve(warmedWallData);
+        if (!wallDataPromise) {
+            wallDataPromise = loadTravelWallData()
+                .then(result => {
+                    warmedWallData = result;
+                    return result;
+                })
+                .catch(error => {
+                    wallDataPromise = null;
+                    throw error;
+                });
+        }
+        return wallDataPromise;
     }
 
     function normalizeFootprint(item) {
@@ -161,11 +183,12 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let data = null;
 
     const canvas = document.getElementById('wallCanvas');
-    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+    const ctx = canvas.getContext('2d', { alpha: true });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     const dragSurface = document.createElement('div');
     const dragBackdrop = document.createElement('canvas');
+    const dragBuffer = document.createElement('canvas');
     const dragCanvas = document.createElement('canvas');
     const dragLighting = document.createElement('canvas');
     dragSurface.className = 'wall-drag-surface';
@@ -176,16 +199,16 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     dragSurface.append(dragBackdrop, dragCanvas, dragLighting);
     canvas.insertAdjacentElement('afterend', dragSurface);
     const dragBackdropCtx = dragBackdrop.getContext('2d');
-    const dragCtx = dragCanvas.getContext('2d', {
-        alpha: true,
-        desynchronized: true
-    });
+    const dragBufferCtx = dragBuffer.getContext('2d');
+    const dragCtx = dragCanvas.getContext('2d', { alpha: true });
     const dragLightingCtx = dragLighting.getContext('2d');
     const body = root;
     const loadingState = document.getElementById('loadingState');
     const loadingTitle = document.getElementById('loadingTitle');
     const loadingDetail = document.getElementById('loadingDetail');
+    const loadingProgress = document.getElementById('loadingProgress');
     const loadingBar = document.getElementById('loadingBar');
+    const loadingRetryBtn = document.getElementById('loadingRetryBtn');
     const wallSummary = document.getElementById('wallSummary');
     const wallYearControl = document.querySelector('.wall-year-filter');
     const wallYearTrigger = document.getElementById('wallYearTrigger');
@@ -222,11 +245,19 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const exportCancelBtn = document.getElementById('exportCancelBtn');
     const miniMapCanvas = document.getElementById('miniMapCanvas');
     const miniMapCtx = miniMapCanvas.getContext('2d');
+    const miniMapStage = document.createElement('div');
+    const miniMapViewportCanvas = document.createElement('canvas');
+    miniMapStage.className = 'mini-map-stage';
+    miniMapViewportCanvas.className = 'mini-map-viewport';
+    miniMapViewportCanvas.setAttribute('aria-hidden', 'true');
+    miniMapCanvas.before(miniMapStage);
+    miniMapStage.append(miniMapCanvas, miniMapViewportCanvas);
+    const miniMapViewportCtx = miniMapViewportCanvas.getContext('2d');
     const returnMapBtn = document.getElementById('returnMapBtn');
     const tooSmallNotice = document.getElementById('tooSmallNotice');
     const debugEnabled = new URLSearchParams(window.location.search).get('debug') === '1';
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const fontText = getComputedStyle(body).fontFamily;
+    const fontText = getComputedStyle(root).fontFamily;
     const gestureNote = root.querySelector('.gesture-note');
 
     function dismissGestureNote() {
@@ -234,14 +265,16 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function setLoadingPhase(title, detail, progress) {
+        const value = clamp(Number(progress) || 0, 0, 100);
         loadingTitle.textContent = title;
         loadingDetail.textContent = detail || '';
-        loadingBar.style.width = clamp(Number(progress) || 0, 0, 100) + '%';
+        loadingBar.style.width = value + '%';
+        loadingProgress.setAttribute('aria-valuenow', String(Math.round(value)));
         loadingState.classList.remove('is-hidden');
     }
 
     function completeLoadingState() {
-        if (!sceneReady || imagesLoading() ||
+        if (!sceneReady || !firstFrameDrawn || imagesLoading() ||
             loadingState.classList.contains('is-hidden')) {
             return;
         }
@@ -267,7 +300,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     const MAP_PULL_STEP = 16;
     const MAP_PULL_LIMIT = 96;
     const LABEL_ZOOM_THRESHOLD = 1.15;
-    const EXPORT_SQUARE_PADDING = 64;
+    const EXPORT_PADDING = 32;
     const MAP_CLEARANCE = 14;
     const GROUP_COMPONENT_GAP = 18;
     const LAYOUT_RING_STEP = 16;
@@ -389,8 +422,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     };
 
     const state = {
-        theme: 'paper',
-        sceneStyle: 'classic',
+        theme: sceneThemeKey(configuredWallStyle),
+        sceneStyle: configuredWallStyle,
         immersive: false,
         selectedId: '',
         hoveredId: '',
@@ -411,6 +444,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let sceneTicketRects = [];
     let initialized = false;
     let initializationPromise = null;
+    let wallDataPromise = null;
+    let warmedWallData = null;
+    let warmupScheduled = false;
     let closeTimer = 0;
     const imageItems = new Map();
     const loadQueue = [];
@@ -433,6 +469,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let dragSnapshotCamera = null;
     let dragSnapshotOverscanX = DRAG_SURFACE_OVERSCAN_X;
     let dragSnapshotOverscanY = DRAG_SURFACE_OVERSCAN_Y;
+    let dragSnapshotClearFrame = 0;
+    let dragBackdropSource = null;
+    let dragLightingSource = null;
     let sceneLightingCache = null;
     let sceneLightingCacheKey = '';
     let sceneTicketCache = null;
@@ -453,7 +492,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let dragging = false;
     let movedDuringDrag = false;
     let activePointer = null;
+    let activePointerType = '';
     let lastPointer = null;
+    let dragVelocityX = 0;
+    let dragVelocityY = 0;
+    let lastDragUpdate = 0;
     let drawStart = 0;
     let drawFrames = 0;
     let drawTime = 0;
@@ -461,6 +504,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let stressUntil = 0;
     let lastDebugUpdate = 0;
     let miniMapView = null;
+    let miniMapStaticKey = '';
+    let dragMoveFrame = 0;
+    let pendingDragPoint = null;
+    let cameraAnimationFrame = 0;
+    let cameraAnimationToken = 0;
     let exporting = false;
     let exportTask = 0;
     let exportCancelRequested = false;
@@ -469,8 +517,12 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     let layoutMetrics = null;
     let initialFitPending = true;
     let initialFitFrame = 0;
+    let yearTransitionPending = false;
     let cameraBeforeImmersive = null;
+    let immersiveExitTimer = 0;
     let loadingFinished = false;
+    let firstFrameRevealPending = false;
+    let firstFrameDrawn = false;
     let previewSession = 0;
     let previewOpenComplete = false;
     let previewImageReady = false;
@@ -730,6 +782,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const next = year === 'all' ? 'all' : String(year || '');
         if (!next || next === activeYear) return;
         activeYear = next;
+        yearTransitionPending = true;
+        root.classList.add('is-year-switching');
         updateYearControl();
         stopPendingImageLoads();
         imageItems.forEach(item => item.groups.clear());
@@ -4307,7 +4361,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         scheduleDraw();
     }
 
-    function buildMapLayer(themeKey) {
+    function buildMapLayer(
+        themeKey,
+        geo = data && data.geo,
+        visited = new Set(groups.map(group => group.provinceAdcode))
+    ) {
         if (mapLayers.has(themeKey)) return mapLayers.get(themeKey);
         const palette = THEMES[themeKey];
         const scale = 3;
@@ -4318,8 +4376,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         layerCtx.imageSmoothingEnabled = true;
         layerCtx.imageSmoothingQuality = 'high';
         layerCtx.setTransform(scale, 0, 0, scale, 0, 0);
-        const visited = new Set(groups.map(group => group.provinceAdcode));
-        const features = (data.geo.features || []).filter(feature => {
+        const features = ((geo && geo.features) || []).filter(feature => {
             const adcode = String(feature && feature.properties &&
                 feature.properties.adcode || '');
             return /^\d{6}$/.test(adcode);
@@ -4361,12 +4418,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         return layer;
     }
 
-    function buildMapMask() {
+    function buildMapMask(geo = data && data.geo) {
+        if (!geo) return false;
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = MAP_WIDTH;
         maskCanvas.height = MAP_HEIGHT;
         const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-        const features = (data.geo.features || []).filter(feature => {
+        const features = (geo.features || []).filter(feature => {
             const adcode = String(feature && feature.properties &&
                 feature.properties.adcode || '');
             return /^\d{6}$/.test(adcode);
@@ -4382,6 +4440,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             width: MAP_WIDTH,
             height: MAP_HEIGHT
         };
+        return true;
     }
 
     function maskAlphaAt(x, y) {
@@ -4496,6 +4555,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         });
         loadPlanReady = true;
         drainImageQueue();
+        if (!sceneReady) scheduleRelayout(true);
     }
 
     function drainImageQueue() {
@@ -4622,6 +4682,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function resize() {
         if (!root.classList.contains('show')) return;
+        cancelCameraAnimation();
         clearDragSnapshot();
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -4656,6 +4717,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         };
         if (animate && !reduceMotion) animateCamera(target, 420);
         else {
+            cancelCameraAnimation();
             camera = target;
             clampCamera();
             dirty = true;
@@ -4685,6 +4747,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 options
             );
         } else {
+            cancelCameraAnimation();
             camera = target;
             clampCamera();
             dirty = true;
@@ -4698,13 +4761,31 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         state.immersive = next;
         root.classList.toggle('is-immersive', next);
         immersiveBtn.setAttribute('aria-pressed', String(next));
-        immersiveExitBtn.hidden = !next;
         if (next) {
+            if (immersiveExitTimer) {
+                window.clearTimeout(immersiveExitTimer);
+                immersiveExitTimer = 0;
+            }
+            immersiveExitBtn.hidden = false;
+            window.requestAnimationFrame(() => {
+                if (state.immersive) {
+                    immersiveExitBtn.classList.add('is-visible');
+                }
+            });
             cameraBeforeImmersive = { ...camera };
             dismissGestureNote();
             if (sceneReady) setFitView(true);
             window.requestAnimationFrame(() => immersiveExitBtn.focus());
             return;
+        }
+        immersiveExitBtn.classList.remove('is-visible');
+        if (reduceMotion) {
+            immersiveExitBtn.hidden = true;
+        } else {
+            immersiveExitTimer = window.setTimeout(() => {
+                immersiveExitTimer = 0;
+                if (!state.immersive) immersiveExitBtn.hidden = true;
+            }, 220);
         }
         const previousCamera = restoreView ? cameraBeforeImmersive : null;
         cameraBeforeImmersive = null;
@@ -4717,12 +4798,24 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         if (root.classList.contains('show')) immersiveBtn.focus();
     }
 
+    function cancelCameraAnimation() {
+        cameraAnimationToken++;
+        if (cameraAnimationFrame) {
+            window.cancelAnimationFrame(cameraAnimationFrame);
+            cameraAnimationFrame = 0;
+        }
+        return cameraAnimationToken;
+    }
+
     function animateCamera(target, duration, options = {}) {
+        const token = cancelCameraAnimation();
         const from = { ...camera };
         const fromScale = Math.max(0.0001, from.scale);
         const targetScale = Math.max(0.0001, target.scale);
         const started = performance.now();
+        const logZoom = options.logZoom !== false;
         const run = now => {
+            if (token !== cameraAnimationToken) return;
             const raw = Math.min(1, (now - started) / duration);
             const eased = options.easing === 'in-out'
                 ? (raw < 0.5
@@ -4732,15 +4825,19 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             camera = {
                 x: from.x + (target.x - from.x) * eased,
                 y: from.y + (target.y - from.y) * eased,
-                scale: options.logZoom
+                scale: logZoom
                     ? fromScale * Math.pow(targetScale / fromScale, eased)
                     : from.scale + (target.scale - from.scale) * eased
             };
             dirty = true;
             scheduleDraw();
-            if (raw < 1) requestAnimationFrame(run);
+            if (raw < 1) {
+                cameraAnimationFrame = window.requestAnimationFrame(run);
+            } else {
+                cameraAnimationFrame = 0;
+            }
         };
-        requestAnimationFrame(run);
+        cameraAnimationFrame = window.requestAnimationFrame(run);
     }
 
     function playInitialFitTransition() {
@@ -4799,6 +4896,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function zoomAt(x, y, factor) {
+        cancelCameraAnimation();
         const before = screenToWorld({ x, y });
         camera.scale = clamp(
             camera.scale * factor,
@@ -6263,37 +6361,63 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             DRAG_SURFACE_MAX_SIDE / displayWidth,
             DRAG_SURFACE_MAX_SIDE / displayHeight
         );
-        dragCanvas.width = Math.max(1, Math.ceil(displayWidth * scale));
-        dragCanvas.height = Math.max(1, Math.ceil(displayHeight * scale));
+        const pixelWidth = Math.max(1, Math.ceil(displayWidth * scale));
+        const pixelHeight = Math.max(1, Math.ceil(displayHeight * scale));
+        const canvasResized = dragCanvas.width !== pixelWidth ||
+            dragCanvas.height !== pixelHeight;
+        if (canvasResized) {
+            dragCanvas.width = pixelWidth;
+            dragCanvas.height = pixelHeight;
+        }
         dragCanvas.style.left = -overscanX + 'px';
         dragCanvas.style.top = -overscanY + 'px';
         dragCanvas.style.width = displayWidth + 'px';
         dragCanvas.style.height = displayHeight + 'px';
-        dragCanvas.style.transform = 'translate3d(0, 0, 0)';
-        dragSurface.classList.add('is-active');
 
         const backdrop = ensureRoomBackdropCache();
-        dragBackdrop.width = backdrop.width;
-        dragBackdrop.height = backdrop.height;
-        dragBackdropCtx.drawImage(backdrop, 0, 0);
+        if (dragBackdropSource !== backdrop ||
+            dragBackdrop.width !== backdrop.width ||
+            dragBackdrop.height !== backdrop.height) {
+            dragBackdrop.width = backdrop.width;
+            dragBackdrop.height = backdrop.height;
+            dragBackdropCtx.drawImage(backdrop, 0, 0);
+            dragBackdropSource = backdrop;
+        }
         const lighting = ensureSceneLightingCache();
-        dragLighting.width = lighting.width;
-        dragLighting.height = lighting.height;
-        dragLightingCtx.drawImage(lighting, 0, 0);
+        if (dragLightingSource !== lighting ||
+            dragLighting.width !== lighting.width ||
+            dragLighting.height !== lighting.height) {
+            dragLighting.width = lighting.width;
+            dragLighting.height = lighting.height;
+            dragLightingCtx.drawImage(lighting, 0, 0);
+            dragLightingSource = lighting;
+        }
 
-        dragCtx.setTransform(1, 0, 0, 1, 0, 0);
-        dragCtx.clearRect(0, 0, dragCanvas.width, dragCanvas.height);
-        dragCtx.setTransform(
+        if (dragBuffer.width !== pixelWidth || dragBuffer.height !== pixelHeight) {
+            dragBuffer.width = pixelWidth;
+            dragBuffer.height = pixelHeight;
+        }
+        dragBufferCtx.setTransform(1, 0, 0, 1, 0, 0);
+        dragBufferCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+        dragBufferCtx.imageSmoothingEnabled = true;
+        dragBufferCtx.imageSmoothingQuality = 'high';
+        dragBufferCtx.setTransform(
             camera.scale * scale, 0, 0, camera.scale * scale,
             (camera.x + overscanX) * scale,
             (camera.y + overscanY) * scale
         );
-        drawWallTilesRegion(dragCtx, tiles, {
+        drawWallTilesRegion(dragBufferCtx, tiles, {
             x: -(camera.x + overscanX) / camera.scale,
             y: -(camera.y + overscanY) / camera.scale,
             width: displayWidth / camera.scale,
             height: displayHeight / camera.scale
         });
+        dragCtx.setTransform(1, 0, 0, 1, 0, 0);
+        dragCtx.globalCompositeOperation = 'copy';
+        dragCtx.drawImage(dragBuffer, 0, 0);
+        dragCtx.globalCompositeOperation = 'source-over';
+        dragCanvas.style.transform = 'translate3d(0, 0, 0)';
+        dragSurface.classList.add('is-active');
 
         dragSnapshotCamera = { ...camera };
         dragSnapshotOverscanX = overscanX;
@@ -6316,9 +6440,21 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     }
 
     function clearDragSnapshot() {
+        if (dragSnapshotClearFrame) {
+            window.cancelAnimationFrame(dragSnapshotClearFrame);
+            dragSnapshotClearFrame = 0;
+        }
         dragSnapshotActive = false;
         dragSnapshotCamera = null;
         dragSurface.classList.remove('is-active');
+    }
+
+    function scheduleClearDragSnapshot() {
+        if (dragSnapshotClearFrame) return;
+        dragSnapshotClearFrame = window.requestAnimationFrame(() => {
+            dragSnapshotClearFrame = 0;
+            if (!dragging) clearDragSnapshot();
+        });
     }
 
     function draw(now) {
@@ -6354,6 +6490,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         drawTicketHover(ctx);
         drawSceneLighting();
         drawMiniMap();
+        if (!dragging && dragSnapshotActive) scheduleClearDragSnapshot();
+        if (sceneReady && !firstFrameDrawn) finishTravelWallEntry();
+        if (sceneReady && yearTransitionPending) finishYearTransition();
+        if (sceneReady && loadPlanReady && !layoutDirty && !layoutTimer &&
+            !imagesLoading()) {
+            completeLoadingState();
+        }
 
         const frameMs = performance.now() - start;
         recordPerformance(now, frameMs);
@@ -6901,25 +7044,53 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         target.lineWidth = 0.7;
         target.stroke();
 
-        if (sceneStyleIs('scrapbook')) {
-            paintTapeStrip(
-                target,
-                x + 4,
-                y - 4,
-                28,
-                9,
-                -8,
-                0.86
-            );
-            paintTapeStrip(
-                target,
-                x + width - 32,
-                y - 4,
-                28,
-                9,
-                8,
-                0.86
-            );
+        if (sceneStyleIs('scrapbook') && width >= 40 && height >= 28) {
+            const doubleTapeWidth = clamp(width * 0.24, 10, 24);
+            const doubleTapeInset = Math.max(1.5, width * 0.025);
+            const doubleTapeGap = Math.max(4, width * 0.08);
+            const canShowTwo =
+                (width >= 48 || (width >= 46 && height >= 56)) &&
+                width >= doubleTapeWidth * 2 +
+                    doubleTapeInset * 2 + doubleTapeGap;
+            const tapeWidth = canShowTwo
+                ? doubleTapeWidth
+                : clamp(width * 0.36, 14, 32);
+            const tapeHeight = clamp(height * 0.14, 7, 11);
+            const tapeInset = canShowTwo
+                ? doubleTapeInset
+                : Math.max(3, width * 0.06);
+            const tapeY = y - tapeHeight * 0.38;
+            const rotation = canShowTwo ? 6 : 3.5;
+            if (canShowTwo) {
+                paintTapeStrip(
+                    target,
+                    x + tapeInset,
+                    tapeY,
+                    tapeWidth,
+                    tapeHeight,
+                    -rotation,
+                    0.82
+                );
+                paintTapeStrip(
+                    target,
+                    x + width - tapeInset - tapeWidth,
+                    tapeY,
+                    tapeWidth,
+                    tapeHeight,
+                    rotation,
+                    0.82
+                );
+            } else {
+                paintTapeStrip(
+                    target,
+                    x + (width - tapeWidth) / 2,
+                    tapeY,
+                    tapeWidth,
+                    tapeHeight,
+                    3.5,
+                    0.82
+                );
+            }
         }
         if (rotation) target.restore();
     }
@@ -6941,11 +7112,14 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const cssWidth = 188;
         const cssHeight = 132;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        if (miniMapCanvas.width !== Math.round(cssWidth * dpr) ||
-            miniMapCanvas.height !== Math.round(cssHeight * dpr)) {
-            miniMapCanvas.width = Math.round(cssWidth * dpr);
-            miniMapCanvas.height = Math.round(cssHeight * dpr);
-        }
+        const pixelWidth = Math.round(cssWidth * dpr);
+        const pixelHeight = Math.round(cssHeight * dpr);
+        [miniMapCanvas, miniMapViewportCanvas].forEach(canvas => {
+            if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+                canvas.width = pixelWidth;
+                canvas.height = pixelHeight;
+            }
+        });
         const pad = 8;
         const scale = Math.min(
             (cssWidth - pad * 2) / scene.worldWidth,
@@ -6955,41 +7129,58 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const offsetY = (cssHeight - scene.worldHeight * scale) / 2;
         miniMapView = { scale, offsetX, offsetY, cssWidth, cssHeight };
 
-        miniMapCtx.setTransform(1, 0, 0, 1, 0, 0);
-        miniMapCtx.clearRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
-        miniMapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        miniMapCtx.fillStyle = theme().background;
-        miniMapCtx.fillRect(0, 0, cssWidth, cssHeight);
-        miniMapCtx.fillStyle = theme().accentSoft;
-        miniMapCtx.fillRect(
-            offsetX + scene.mapRect.x * scale,
-            offsetY + scene.mapRect.y * scale,
-            scene.mapRect.width * scale,
-            scene.mapRect.height * scale
-        );
-        groups.forEach(group => {
-            miniMapCtx.fillStyle = group.id === state.selectedId
-                ? theme().accent
-                : (group.id === state.hoveredId
-                    ? theme().lineActive
-                    : theme().placeholder);
-            (group.components.length ? group.components : [group]).forEach(rect => {
-                miniMapCtx.fillRect(
-                    offsetX + rect.x * scale,
-                    offsetY + rect.y * scale,
-                    Math.max(2, rect.w * scale),
-                    Math.max(2, rect.h * scale)
-                );
+        const key = [
+            state.theme,
+            layoutVersion,
+            scene.worldWidth,
+            scene.worldHeight,
+            scene.mapRect.x,
+            scene.mapRect.y,
+            state.selectedId,
+            state.hoveredId,
+            dpr
+        ].join(':');
+        if (key !== miniMapStaticKey) {
+            miniMapCtx.setTransform(1, 0, 0, 1, 0, 0);
+            miniMapCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+            miniMapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            miniMapCtx.fillStyle = theme().background;
+            miniMapCtx.fillRect(0, 0, cssWidth, cssHeight);
+            miniMapCtx.fillStyle = theme().accentSoft;
+            miniMapCtx.fillRect(
+                offsetX + scene.mapRect.x * scale,
+                offsetY + scene.mapRect.y * scale,
+                scene.mapRect.width * scale,
+                scene.mapRect.height * scale
+            );
+            groups.forEach(group => {
+                miniMapCtx.fillStyle = group.id === state.selectedId
+                    ? theme().accent
+                    : (group.id === state.hoveredId
+                        ? theme().lineActive
+                        : theme().placeholder);
+                (group.components.length ? group.components : [group]).forEach(rect => {
+                    miniMapCtx.fillRect(
+                        offsetX + rect.x * scale,
+                        offsetY + rect.y * scale,
+                        Math.max(2, rect.w * scale),
+                        Math.max(2, rect.h * scale)
+                    );
+                });
             });
-        });
+            miniMapStaticKey = key;
+        }
 
         const worldLeft = -camera.x / camera.scale;
         const worldTop = -camera.y / camera.scale;
         const worldWidth = viewport.width / camera.scale;
         const worldHeight = viewport.height / camera.scale;
-        miniMapCtx.strokeStyle = theme().accent;
-        miniMapCtx.lineWidth = 1.4;
-        miniMapCtx.strokeRect(
+        miniMapViewportCtx.setTransform(1, 0, 0, 1, 0, 0);
+        miniMapViewportCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+        miniMapViewportCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        miniMapViewportCtx.strokeStyle = theme().accent;
+        miniMapViewportCtx.lineWidth = 1.4;
+        miniMapViewportCtx.strokeRect(
             offsetX + worldLeft * scale,
             offsetY + worldTop * scale,
             worldWidth * scale,
@@ -6999,6 +7190,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function centerCameraFromMiniMap(event) {
         if (!miniMapView || interactionLocked()) return;
+        cancelCameraAnimation();
         const rect = miniMapCanvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
@@ -7116,14 +7308,81 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     }
 
+    function applyPendingDragFrame() {
+        dragMoveFrame = 0;
+        if (!dragging || !pendingDragPoint || interactionLocked()) {
+            pendingDragPoint = null;
+            return;
+        }
+        const point = pendingDragPoint;
+        pendingDragPoint = null;
+        const now = performance.now();
+        const elapsed = Math.max(1, now - lastDragUpdate);
+        const dx = point.x - lastPointer.x;
+        const dy = point.y - lastPointer.y;
+        if (Math.abs(dx) + Math.abs(dy) > 2) movedDuringDrag = true;
+        camera.x += dx;
+        camera.y += dy;
+        lastPointer = point;
+        lastDragUpdate = now;
+        dragVelocityX = dragVelocityX * 0.55 + (dx / elapsed) * 0.45;
+        dragVelocityY = dragVelocityY * 0.55 + (dy / elapsed) * 0.45;
+        clampCamera();
+        if (dragSnapshotActive) {
+            updateDragSnapshot();
+        } else {
+            dirty = true;
+            scheduleDraw();
+        }
+        drawMiniMap();
+    }
+
+    function schedulePendingDrag(point) {
+        pendingDragPoint = point;
+        if (!dragMoveFrame) {
+            dragMoveFrame = window.requestAnimationFrame(applyPendingDragFrame);
+        }
+    }
+
+    function flushPendingDrag() {
+        if (dragMoveFrame) {
+            window.cancelAnimationFrame(dragMoveFrame);
+            dragMoveFrame = 0;
+        }
+        if (pendingDragPoint) applyPendingDragFrame();
+    }
+
+    function startDragGlide() {
+        if (reduceMotion || activePointerType !== 'mouse') return;
+        const speed = Math.hypot(dragVelocityX, dragVelocityY);
+        if (speed < 0.06) return;
+        const current = { ...camera };
+        camera = {
+            x: current.x + dragVelocityX * 140,
+            y: current.y + dragVelocityY * 140,
+            scale: current.scale
+        };
+        clampCamera();
+        const target = { ...camera };
+        camera = current;
+        if (Math.hypot(target.x - current.x, target.y - current.y) < 1) return;
+        animateCamera(target, 180, { easing: 'out', logZoom: false });
+    }
+
     function onPointerDown(event) {
         if (state.previewPhoto || exporting || interactionLocked()) return;
+        cancelCameraAnimation();
+        flushPendingDrag();
         canvas.setPointerCapture(event.pointerId);
         prepareDragSnapshot();
         dragging = true;
         movedDuringDrag = false;
         activePointer = event.pointerId;
+        activePointerType = event.pointerType || 'mouse';
         lastPointer = eventPoint(event);
+        dragVelocityX = 0;
+        dragVelocityY = 0;
+        lastDragUpdate = performance.now();
         canvas.classList.add('is-dragging');
     }
 
@@ -7168,23 +7427,13 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             canvas.style.cursor = hit ? 'pointer' : 'grab';
             return;
         }
-        const dx = point.x - lastPointer.x;
-        const dy = point.y - lastPointer.y;
-        if (Math.abs(dx) + Math.abs(dy) > 2) movedDuringDrag = true;
-        camera.x += dx;
-        camera.y += dy;
-        lastPointer = point;
-        clampCamera();
-        if (dragSnapshotActive) {
-            updateDragSnapshot();
-            return;
-        }
-        dirty = true;
-        scheduleDraw();
+        schedulePendingDrag(point);
     }
 
     function onPointerUp(event) {
         if (state.previewPhoto || exporting || interactionLocked()) return;
+        schedulePendingDrag(eventPoint(event));
+        flushPendingDrag();
         const point = eventPoint(event);
         const hit = hitTest(point);
         if (dragging && !movedDuringDrag) {
@@ -7195,9 +7444,10 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             else if (hit) selectGroup(hit.group.id);
             else selectGroup('');
         }
-        clearDragSnapshot();
         dragging = false;
+        startDragGlide();
         activePointer = null;
+        activePointerType = '';
         lastPointer = null;
         canvas.classList.remove('is-dragging');
         canvas.style.cursor = hit ? 'pointer' : 'grab';
@@ -7380,46 +7630,112 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         return true;
     }
 
+    function paintCurrentPreviewSnapshot() {
+        if (!previewImageReady ||
+            !previewImage.naturalWidth ||
+            !previewImage.naturalHeight) {
+            return false;
+        }
+        stopPreviewTransition();
+        const maxSide = 1800;
+        const scale = Math.min(
+            1,
+            maxSide / previewImage.naturalWidth,
+            maxSide / previewImage.naturalHeight
+        );
+        previewTransitionCanvas.width = Math.max(
+            1,
+            Math.round(previewImage.naturalWidth * scale)
+        );
+        previewTransitionCanvas.height = Math.max(
+            1,
+            Math.round(previewImage.naturalHeight * scale)
+        );
+        previewTransitionCtx.clearRect(
+            0,
+            0,
+            previewTransitionCanvas.width,
+            previewTransitionCanvas.height
+        );
+        previewTransitionCtx.drawImage(
+            previewImage,
+            0,
+            0,
+            previewTransitionCanvas.width,
+            previewTransitionCanvas.height
+        );
+        placePreviewTransition(previewImageScreenRect());
+        previewTransitionCanvas.style.opacity = '1';
+        previewTransitionCanvas.classList.add('is-active');
+        return true;
+    }
+
+    function previewTransitionTransform(rect, baseWidth, baseHeight) {
+        const matrix = new DOMMatrix();
+        matrix.translateSelf(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2
+        );
+        matrix.rotateSelf(Number(rect.rotation) || 0);
+        matrix.scaleSelf(
+            rect.width / baseWidth,
+            rect.height / baseHeight
+        );
+        matrix.translateSelf(-baseWidth / 2, -baseHeight / 2);
+        return 'matrix(' + [
+            matrix.a,
+            matrix.b,
+            matrix.c,
+            matrix.d,
+            matrix.e,
+            matrix.f
+        ].join(', ') + ')';
+    }
+
     function placePreviewTransition(rect) {
-        previewTransitionCanvas.style.left = rect.left + 'px';
-        previewTransitionCanvas.style.top = rect.top + 'px';
+        previewTransitionCanvas.style.left = '0px';
+        previewTransitionCanvas.style.top = '0px';
         previewTransitionCanvas.style.width = rect.width + 'px';
         previewTransitionCanvas.style.height = rect.height + 'px';
-        previewTransitionCanvas.style.transform =
-            'rotate(' + rect.rotation + 'deg)';
+        previewTransitionCanvas.style.transform = previewTransitionTransform(
+            rect,
+            rect.width,
+            rect.height
+        );
     }
 
     function stopPreviewTransition() {
-        if (previewTransitionAnimation) {
-            previewTransitionAnimation.cancel();
-            previewTransitionAnimation = null;
-        }
+        previewTransitionCanvas.getAnimations().forEach(animation =>
+            animation.cancel()
+        );
+        previewTransitionAnimation = null;
         previewTransitionCanvas.classList.remove('is-active');
         previewTransitionCanvas.style.opacity = '';
+        previewTransitionCanvas.style.transform = '';
     }
 
     function animatePreviewTransition(from, to, duration, easing, done, delay = 0) {
         stopPreviewTransition();
         placePreviewTransition(from);
+        const fromTransform = previewTransitionTransform(
+            from,
+            from.width,
+            from.height
+        );
+        const toTransform = previewTransitionTransform(
+            to,
+            from.width,
+            from.height
+        );
         previewTransitionCanvas.classList.add('is-active');
         previewTransitionAnimation = previewTransitionCanvas.animate([
             {
-                left: from.left + 'px',
-                top: from.top + 'px',
-                width: from.width + 'px',
-                height: from.height + 'px',
-                borderRadius: '6px',
                 opacity: 1,
-                transform: 'rotate(' + from.rotation + 'deg)'
+                transform: fromTransform
             },
             {
-                left: to.left + 'px',
-                top: to.top + 'px',
-                width: to.width + 'px',
-                height: to.height + 'px',
-                borderRadius: '10px',
                 opacity: 1,
-                transform: 'rotate(' + to.rotation + 'deg)'
+                transform: toTransform
             }
         ], {
             duration,
@@ -7461,6 +7777,9 @@ import { accentHex, accentRgba } from '../shared/accent.js';
                 return;
             }
             previewTransitionAnimation = null;
+            previewTransitionCanvas.getAnimations().forEach(item =>
+                item.cancel()
+            );
             previewTransitionCanvas.classList.remove('is-active');
             previewTransitionCanvas.style.opacity = '';
         }).catch(() => {
@@ -7522,7 +7841,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         );
         preview.setAttribute('aria-hidden', 'true');
         previewImage.removeAttribute('src');
-        previewImage.classList.remove('is-ready');
+        previewImage.classList.remove('is-ready', 'is-swapping');
         previewFigure.style.width = '';
         previewImage.style.width = '';
         previewImage.style.height = '';
@@ -7567,6 +7886,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     function movePreview(direction) {
         if (!state.previewPhoto ||
             state.previewPhotos.length < 2 ||
+            !previewImageReady ||
             preview.classList.contains('is-opening') ||
             preview.classList.contains('is-closing')) {
             return;
@@ -7574,9 +7894,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         const count = state.previewPhotos.length;
         state.previewIndex =
             (state.previewIndex + direction + count) % count;
-        renderPreviewPhoto(state.previewPhotos[state.previewIndex]);
+        paintCurrentPreviewSnapshot();
         previewImageReady = false;
         previewImage.classList.remove('is-ready');
+        previewImage.classList.add('is-swapping');
+        renderPreviewPhoto(state.previewPhotos[state.previewIndex]);
     }
 
     function onWheel(event) {
@@ -7611,6 +7933,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         }
         if (interactionLocked()) return;
         if (event.target instanceof HTMLButtonElement) return;
+        cancelCameraAnimation();
         if (event.key === '0') setFitView(true);
         else if (event.key === '+' || event.key === '=') {
             zoomAt(viewport.width / 2, viewport.height / 2, 1.16);
@@ -7679,7 +8002,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         }
         const total = queuedImages;
         const ratio = total ? finishedImages / total : 1;
-        const passive = sceneReady && loadPlanReady;
+        const passive = sceneReady && loadPlanReady && firstFrameDrawn;
         loadingState.classList.toggle('is-passive', passive);
         canvas.classList.toggle('is-loading', !sceneReady);
         updateInteractionLock(!sceneReady);
@@ -7700,16 +8023,20 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             (failedImages ? ' · 失败 ' + failedImages : '');
         if (finishedImages >= total && loadingImages === 0) {
             setLoadingPhase(
-                '正在生成拖拽画面',
-                detail + ' · 优化整墙浏览',
+                '正在完成首屏画面',
+                detail + ' · 拖拽优化将在后台继续',
                 92
             );
             scheduleRelayout(true);
         } else {
             setLoadingPhase(
-                sceneReady ? '照片继续载入中' : '正在铺开旅行记忆',
+                !sceneReady
+                    ? '正在铺开旅行记忆'
+                    : (firstFrameDrawn
+                        ? '照片继续载入中'
+                        : '正在准备整墙画面'),
                 detail,
-                18 + ratio * 66
+                18 + ratio * 74
             );
         }
     }
@@ -7749,6 +8076,11 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
         if (locked) {
             dragging = false;
+            if (dragMoveFrame) {
+                window.cancelAnimationFrame(dragMoveFrame);
+                dragMoveFrame = 0;
+            }
+            pendingDragPoint = null;
             activePointer = null;
             lastPointer = null;
             canvas.classList.remove('is-dragging');
@@ -7848,21 +8180,27 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
             const totalWorldHeight = scene.worldHeight;
             const contentWidth = scene.worldWidth;
-            const exportWorldSide = Math.max(
-                contentWidth,
-                totalWorldHeight
-            ) + EXPORT_SQUARE_PADDING * 2;
+            const exportWorldWidth = contentWidth + EXPORT_PADDING * 2;
+            const exportWorldHeight =
+                totalWorldHeight + EXPORT_PADDING * 2;
             const maxLongEdge = 8192;
             const maxPixels = 50 * 1024 * 1024;
             const scale = Math.min(
-                maxLongEdge / exportWorldSide,
-                Math.sqrt(maxPixels / (exportWorldSide * exportWorldSide))
+                maxLongEdge / exportWorldWidth,
+                maxLongEdge / exportWorldHeight,
+                Math.sqrt(maxPixels /
+                    (exportWorldWidth * exportWorldHeight))
             );
-            const outputWidth = Math.max(1, Math.round(exportWorldSide * scale));
-            const outputHeight = outputWidth;
-            const contentOffsetX = (exportWorldSide - contentWidth) / 2;
-            const contentOffsetY =
-                (exportWorldSide - totalWorldHeight) / 2;
+            const outputWidth = Math.max(
+                1,
+                Math.round(exportWorldWidth * scale)
+            );
+            const outputHeight = Math.max(
+                1,
+                Math.round(exportWorldHeight * scale)
+            );
+            const contentOffsetX = EXPORT_PADDING;
+            const contentOffsetY = EXPORT_PADDING;
             setExportProgress(62,
                 '生成 ' + outputWidth + ' × ' + outputHeight + ' PNG');
             await new Promise(resolve => requestAnimationFrame(resolve));
@@ -7992,7 +8330,8 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     function setExportProgress(percent, text) {
         exportProgressText.textContent = text;
-        exportProgressBar.style.width = percent + '%';
+        exportProgressBar.style.transform =
+            'scaleX(' + clamp(Number(percent) || 0, 0, 100) / 100 + ')';
     }
 
     function downloadBlob(blob) {
@@ -8105,10 +8444,12 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         previewPrevBtn.addEventListener('click', () => movePreview(-1));
         previewNextBtn.addEventListener('click', () => movePreview(1));
         previewImage.addEventListener('load', () => {
-            window.requestAnimationFrame(fitPreviewFrameToImage);
             if (!state.previewPhoto) return;
+            previewImage.classList.remove('is-swapping');
+            fitPreviewFrameToImage();
             previewImageReady = true;
             revealPreviewImage(previewSession);
+            window.requestAnimationFrame(fitPreviewFrameToImage);
         });
         preview.addEventListener('click', event => {
             if (event.target === preview) closePreview();
@@ -8171,6 +8512,51 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             JSON.stringify(result);
     }
 
+    async function warmTravelWallResources() {
+        if (directTravelWall || initialized || root.classList.contains('show')) {
+            return;
+        }
+        root.dataset.warmup = 'running';
+        try {
+            const [loadedData] = await Promise.all([
+                ensureTravelWallDataLoaded(),
+                ensureMottoFontReady()
+            ]);
+            if (initialized || root.classList.contains('show')) return;
+            buildMapMask(loadedData.geo);
+            buildMapLayer(
+                sceneThemeKey(configuredWallStyle),
+                loadedData.geo,
+                new Set(loadedData.footprints.map(footprint =>
+                    footprint.provinceAdcode
+                ))
+            );
+            root.dataset.warmup = 'ready';
+        } catch (error) {
+            warmedWallData = null;
+            wallDataPromise = null;
+            root.dataset.warmup = 'error';
+            console.warn('[travel-wall] warmup failed', error);
+        }
+    }
+
+    function scheduleTravelWallWarmup() {
+        if (directTravelWall || initialized || root.classList.contains('show') ||
+            warmupScheduled || root.dataset.warmup === 'ready') {
+            return;
+        }
+        warmupScheduled = true;
+        const run = () => {
+            warmupScheduled = false;
+            void warmTravelWallResources();
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(run, { timeout: 1200 });
+        } else {
+            window.setTimeout(run, 240);
+        }
+    }
+
     function init() {
         state.sceneStyle = configuredWallStyle;
         state.theme = sceneThemeKey(state.sceneStyle);
@@ -8179,7 +8565,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         body.dataset.theme = state.theme;
         body.dataset.sceneStyle = state.sceneStyle;
         buildGroups();
-        buildMapMask();
+        if (!mapMask) buildMapMask();
         bindEvents();
         resize();
         if (debugEnabled &&
@@ -8337,7 +8723,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
     async function initializeTravelWall() {
         const [loadedData] = await Promise.all([
-            loadTravelWallData(),
+            ensureTravelWallDataLoaded(),
             ensureMottoFontReady()
         ]);
         data = loadedData;
@@ -8360,8 +8746,38 @@ import { accentHex, accentRgba } from '../shared/accent.js';
         initialized = true;
     }
 
+    function finishTravelWallEntry() {
+        if (firstFrameDrawn || firstFrameRevealPending) return;
+        firstFrameRevealPending = true;
+        const reveal = () => {
+            firstFrameRevealPending = false;
+            firstFrameDrawn = true;
+            root.classList.remove('is-preparing');
+            updateLoadingState();
+        };
+        if (reduceMotion) {
+            reveal();
+            return;
+        }
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(reveal);
+        });
+    }
+
+    function finishYearTransition() {
+        if (!yearTransitionPending) return;
+        yearTransitionPending = false;
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                root.classList.remove('is-year-switching');
+            });
+        });
+    }
+
     function openTravelWall() {
         if (root.classList.contains('show')) return;
+        const waitingForFirstFrame = !firstFrameDrawn;
+        root.classList.toggle('is-preparing', waitingForFirstFrame);
         clearDragSnapshot();
         if (gestureNote) gestureNote.classList.remove('is-dismissed');
         if (closeTimer) {
@@ -8386,12 +8802,17 @@ import { accentHex, accentRgba } from '../shared/accent.js';
 
         loadingState.classList.remove('is-hidden');
         loadingState.classList.remove('is-passive');
+        loadingRetryBtn.hidden = true;
         loadingFinished = false;
         setLoadingPhase('正在准备旅行记忆墙', '读取足迹数据', 4);
         initializationPromise = initializeTravelWall()
             .catch(error => {
                 loadingFinished = false;
-                loadingState.classList.remove('is-hidden');
+                yearTransitionPending = false;
+                root.classList.remove('is-year-switching');
+                root.classList.remove('is-preparing');
+                loadingState.classList.remove('is-hidden', 'is-passive');
+                loadingRetryBtn.hidden = false;
                 setLoadingPhase(
                     '旅行记忆墙加载失败',
                     error.message || '请稍后重试',
@@ -8413,8 +8834,17 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             });
     }
 
-    function closeTravelWall() {
+    function travelWallQueryActive() {
+        return new URLSearchParams(window.location.search).get('view') ===
+            'memory-wall';
+    }
+
+    function closeTravelWall(options = {}) {
         if (!root.classList.contains('show')) return;
+        if (directTravelWall) {
+            window.location.replace(cityWallPath);
+            return;
+        }
         if (state.previewPhoto) closePreview();
         stopPendingImageLoads();
         clearDragSnapshot();
@@ -8427,18 +8857,46 @@ import { accentHex, accentRgba } from '../shared/accent.js';
             closeTimer = 0;
             if (!root.classList.contains('show')) root.hidden = true;
         }, 320);
-        if (directTravelWall) {
-            window.location.assign('/footprints');
-            return;
+        if (options.syncHistory !== false && travelWallQueryActive() &&
+            window.history.state?.travelWall === true) {
+            window.history.back();
         }
         openButton?.focus();
+    }
+
+    function openTravelWallFromHistory() {
+        if (root.classList.contains('show')) return;
+        const previous = window.history.state;
+        window.history.pushState(
+            {
+                ...(previous && typeof previous === 'object' ? previous : {}),
+                travelWall: true
+            },
+            '',
+            travelWallPath
+        );
+        openTravelWall();
     }
 
     if (directTravelWall) {
         window.requestAnimationFrame(openTravelWall);
     } else if (openButton) {
-        openButton.addEventListener('click', () => {
-            window.location.assign(travelWallPath);
+        window.addEventListener(
+            'footprint:city-wall-open',
+            scheduleTravelWallWarmup
+        );
+        openButton.addEventListener('click', event => {
+            event.preventDefault();
+            openTravelWallFromHistory();
+        });
+    }
+    if (!directTravelWall) {
+        window.addEventListener('popstate', () => {
+            if (travelWallQueryActive()) {
+                openTravelWall();
+            } else if (root.classList.contains('show')) {
+                closeTravelWall({ syncHistory: false });
+            }
         });
     }
     canvas.addEventListener('pointerdown', dismissGestureNote, { passive: true });
@@ -8446,6 +8904,7 @@ import { accentHex, accentRgba } from '../shared/accent.js';
     zoomInBtn.addEventListener('click', dismissGestureNote);
     zoomOutBtn.addEventListener('click', dismissGestureNote);
     if (travelWallBack) {
-        travelWallBack.addEventListener('click', closeTravelWall);
+        travelWallBack.addEventListener('click', () => closeTravelWall());
     }
+    loadingRetryBtn.addEventListener('click', () => window.location.reload());
 })();

@@ -1485,7 +1485,7 @@ function exitWishMap() {
 function showOverlay() {
     if (!view) return;
     document.body.classList.remove('footprint-group-map-mode');
-    if (deps.cityWall().classList.contains('show')) deps.closeCityWall();
+    if (deps.cityWall().classList.contains('show')) deps.closeCityWall(false, false);
     deps.hideMarkerCard();
     deps.hideCityCard(false);
     deps.hideMarkerTip();

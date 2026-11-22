@@ -126,7 +126,7 @@ function renderTimeCapsule() {
         ticketBtn.addEventListener('click', () => {
             const idx = timeCapsuleTicketIndex(fp);
             closeTimeCapsule(false);
-            deps.closeCityWall(false);
+            deps.closeCityWall(false, false);
             if (idx >= 0) setTicketView(true, idx, false);
         });
         actions.appendChild(ticketBtn);

@@ -30,6 +30,7 @@ public class FootprintHeadProcessor implements TemplateHeadProcessor {
      * 足迹页特有的模型字段，作为 _templateId 没有透传时的第二道判据。
      */
     private static final String FOOTPRINT_MODEL_KEY = "footprints";
+    private static final String TRAVEL_WALL_DIRECT_KEY = "travelWallDirect";
 
     private final PluginWrapper pluginWrapper;
 
@@ -39,6 +40,9 @@ public class FootprintHeadProcessor implements TemplateHeadProcessor {
         // 这里输出的资源全部只服务于足迹页（2D 老页面 + 3D 地球 + 票根字体），
         // 而 Head 处理器是全局注入点：先确认当前渲染的就是足迹页，别的页面一个字节都不输出。
         if (!isFootprintPage(context)) {
+            return Mono.empty();
+        }
+        if (Boolean.TRUE.equals(context.getVariable(TRAVEL_WALL_DIRECT_KEY))) {
             return Mono.empty();
         }
 
