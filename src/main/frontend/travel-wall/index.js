@@ -183,7 +183,7 @@ import {
     let data = null;
 
     const canvas = document.getElementById('wallCanvas');
-    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+    const ctx = canvas.getContext('2d', { alpha: true });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     const dragSurface = document.createElement('div');
@@ -469,6 +469,7 @@ import {
     let dragSnapshotCamera = null;
     let dragSnapshotOverscanX = DRAG_SURFACE_OVERSCAN_X;
     let dragSnapshotOverscanY = DRAG_SURFACE_OVERSCAN_Y;
+    let dragSnapshotClearFrame = 0;
     let dragBackdropSource = null;
     let dragLightingSource = null;
     let sceneLightingCache = null;
@@ -6439,9 +6440,21 @@ import {
     }
 
     function clearDragSnapshot() {
+        if (dragSnapshotClearFrame) {
+            window.cancelAnimationFrame(dragSnapshotClearFrame);
+            dragSnapshotClearFrame = 0;
+        }
         dragSnapshotActive = false;
         dragSnapshotCamera = null;
         dragSurface.classList.remove('is-active');
+    }
+
+    function scheduleClearDragSnapshot() {
+        if (dragSnapshotClearFrame) return;
+        dragSnapshotClearFrame = window.requestAnimationFrame(() => {
+            dragSnapshotClearFrame = 0;
+            if (!dragging) clearDragSnapshot();
+        });
     }
 
     function draw(now) {
@@ -6477,7 +6490,7 @@ import {
         drawTicketHover(ctx);
         drawSceneLighting();
         drawMiniMap();
-        if (!dragging && dragSnapshotActive) clearDragSnapshot();
+        if (!dragging && dragSnapshotActive) scheduleClearDragSnapshot();
         if (sceneReady && !firstFrameDrawn) finishTravelWallEntry();
         if (sceneReady && yearTransitionPending) finishYearTransition();
         if (sceneReady && loadPlanReady && !layoutDirty && !layoutTimer &&
