@@ -245,6 +245,14 @@ import {
     const exportCancelBtn = document.getElementById('exportCancelBtn');
     const miniMapCanvas = document.getElementById('miniMapCanvas');
     const miniMapCtx = miniMapCanvas.getContext('2d');
+    const miniMapStage = document.createElement('div');
+    const miniMapViewportCanvas = document.createElement('canvas');
+    miniMapStage.className = 'mini-map-stage';
+    miniMapViewportCanvas.className = 'mini-map-viewport';
+    miniMapViewportCanvas.setAttribute('aria-hidden', 'true');
+    miniMapCanvas.before(miniMapStage);
+    miniMapStage.append(miniMapCanvas, miniMapViewportCanvas);
+    const miniMapViewportCtx = miniMapViewportCanvas.getContext('2d');
     const returnMapBtn = document.getElementById('returnMapBtn');
     const tooSmallNotice = document.getElementById('tooSmallNotice');
     const debugEnabled = new URLSearchParams(window.location.search).get('debug') === '1';
@@ -292,7 +300,7 @@ import {
     const MAP_PULL_STEP = 16;
     const MAP_PULL_LIMIT = 96;
     const LABEL_ZOOM_THRESHOLD = 1.15;
-    const EXPORT_SQUARE_PADDING = 64;
+    const EXPORT_PADDING = 32;
     const MAP_CLEARANCE = 14;
     const GROUP_COMPONENT_GAP = 18;
     const LAYOUT_RING_STEP = 16;
@@ -483,7 +491,11 @@ import {
     let dragging = false;
     let movedDuringDrag = false;
     let activePointer = null;
+    let activePointerType = '';
     let lastPointer = null;
+    let dragVelocityX = 0;
+    let dragVelocityY = 0;
+    let lastDragUpdate = 0;
     let drawStart = 0;
     let drawFrames = 0;
     let drawTime = 0;
@@ -491,6 +503,11 @@ import {
     let stressUntil = 0;
     let lastDebugUpdate = 0;
     let miniMapView = null;
+    let miniMapStaticKey = '';
+    let dragMoveFrame = 0;
+    let pendingDragPoint = null;
+    let cameraAnimationFrame = 0;
+    let cameraAnimationToken = 0;
     let exporting = false;
     let exportTask = 0;
     let exportCancelRequested = false;
@@ -499,7 +516,9 @@ import {
     let layoutMetrics = null;
     let initialFitPending = true;
     let initialFitFrame = 0;
+    let yearTransitionPending = false;
     let cameraBeforeImmersive = null;
+    let immersiveExitTimer = 0;
     let loadingFinished = false;
     let firstFrameRevealPending = false;
     let firstFrameDrawn = false;
@@ -762,6 +781,8 @@ import {
         const next = year === 'all' ? 'all' : String(year || '');
         if (!next || next === activeYear) return;
         activeYear = next;
+        yearTransitionPending = true;
+        root.classList.add('is-year-switching');
         updateYearControl();
         stopPendingImageLoads();
         imageItems.forEach(item => item.groups.clear());
@@ -4660,6 +4681,7 @@ import {
 
     function resize() {
         if (!root.classList.contains('show')) return;
+        cancelCameraAnimation();
         clearDragSnapshot();
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -4694,6 +4716,7 @@ import {
         };
         if (animate && !reduceMotion) animateCamera(target, 420);
         else {
+            cancelCameraAnimation();
             camera = target;
             clampCamera();
             dirty = true;
@@ -4723,6 +4746,7 @@ import {
                 options
             );
         } else {
+            cancelCameraAnimation();
             camera = target;
             clampCamera();
             dirty = true;
@@ -4736,13 +4760,31 @@ import {
         state.immersive = next;
         root.classList.toggle('is-immersive', next);
         immersiveBtn.setAttribute('aria-pressed', String(next));
-        immersiveExitBtn.hidden = !next;
         if (next) {
+            if (immersiveExitTimer) {
+                window.clearTimeout(immersiveExitTimer);
+                immersiveExitTimer = 0;
+            }
+            immersiveExitBtn.hidden = false;
+            window.requestAnimationFrame(() => {
+                if (state.immersive) {
+                    immersiveExitBtn.classList.add('is-visible');
+                }
+            });
             cameraBeforeImmersive = { ...camera };
             dismissGestureNote();
             if (sceneReady) setFitView(true);
             window.requestAnimationFrame(() => immersiveExitBtn.focus());
             return;
+        }
+        immersiveExitBtn.classList.remove('is-visible');
+        if (reduceMotion) {
+            immersiveExitBtn.hidden = true;
+        } else {
+            immersiveExitTimer = window.setTimeout(() => {
+                immersiveExitTimer = 0;
+                if (!state.immersive) immersiveExitBtn.hidden = true;
+            }, 220);
         }
         const previousCamera = restoreView ? cameraBeforeImmersive : null;
         cameraBeforeImmersive = null;
@@ -4755,12 +4797,24 @@ import {
         if (root.classList.contains('show')) immersiveBtn.focus();
     }
 
+    function cancelCameraAnimation() {
+        cameraAnimationToken++;
+        if (cameraAnimationFrame) {
+            window.cancelAnimationFrame(cameraAnimationFrame);
+            cameraAnimationFrame = 0;
+        }
+        return cameraAnimationToken;
+    }
+
     function animateCamera(target, duration, options = {}) {
+        const token = cancelCameraAnimation();
         const from = { ...camera };
         const fromScale = Math.max(0.0001, from.scale);
         const targetScale = Math.max(0.0001, target.scale);
         const started = performance.now();
+        const logZoom = options.logZoom !== false;
         const run = now => {
+            if (token !== cameraAnimationToken) return;
             const raw = Math.min(1, (now - started) / duration);
             const eased = options.easing === 'in-out'
                 ? (raw < 0.5
@@ -4770,15 +4824,19 @@ import {
             camera = {
                 x: from.x + (target.x - from.x) * eased,
                 y: from.y + (target.y - from.y) * eased,
-                scale: options.logZoom
+                scale: logZoom
                     ? fromScale * Math.pow(targetScale / fromScale, eased)
                     : from.scale + (target.scale - from.scale) * eased
             };
             dirty = true;
             scheduleDraw();
-            if (raw < 1) requestAnimationFrame(run);
+            if (raw < 1) {
+                cameraAnimationFrame = window.requestAnimationFrame(run);
+            } else {
+                cameraAnimationFrame = 0;
+            }
         };
-        requestAnimationFrame(run);
+        cameraAnimationFrame = window.requestAnimationFrame(run);
     }
 
     function playInitialFitTransition() {
@@ -4837,6 +4895,7 @@ import {
     }
 
     function zoomAt(x, y, factor) {
+        cancelCameraAnimation();
         const before = screenToWorld({ x, y });
         camera.scale = clamp(
             camera.scale * factor,
@@ -6420,6 +6479,7 @@ import {
         drawMiniMap();
         if (!dragging && dragSnapshotActive) clearDragSnapshot();
         if (sceneReady && !firstFrameDrawn) finishTravelWallEntry();
+        if (sceneReady && yearTransitionPending) finishYearTransition();
         if (sceneReady && loadPlanReady && !layoutDirty && !layoutTimer &&
             !imagesLoading()) {
             completeLoadingState();
@@ -6971,25 +7031,53 @@ import {
         target.lineWidth = 0.7;
         target.stroke();
 
-        if (sceneStyleIs('scrapbook')) {
-            paintTapeStrip(
-                target,
-                x + 4,
-                y - 4,
-                28,
-                9,
-                -8,
-                0.86
-            );
-            paintTapeStrip(
-                target,
-                x + width - 32,
-                y - 4,
-                28,
-                9,
-                8,
-                0.86
-            );
+        if (sceneStyleIs('scrapbook') && width >= 40 && height >= 28) {
+            const doubleTapeWidth = clamp(width * 0.24, 10, 24);
+            const doubleTapeInset = Math.max(1.5, width * 0.025);
+            const doubleTapeGap = Math.max(4, width * 0.08);
+            const canShowTwo =
+                (width >= 48 || (width >= 46 && height >= 56)) &&
+                width >= doubleTapeWidth * 2 +
+                    doubleTapeInset * 2 + doubleTapeGap;
+            const tapeWidth = canShowTwo
+                ? doubleTapeWidth
+                : clamp(width * 0.36, 14, 32);
+            const tapeHeight = clamp(height * 0.14, 7, 11);
+            const tapeInset = canShowTwo
+                ? doubleTapeInset
+                : Math.max(3, width * 0.06);
+            const tapeY = y - tapeHeight * 0.38;
+            const rotation = canShowTwo ? 6 : 3.5;
+            if (canShowTwo) {
+                paintTapeStrip(
+                    target,
+                    x + tapeInset,
+                    tapeY,
+                    tapeWidth,
+                    tapeHeight,
+                    -rotation,
+                    0.82
+                );
+                paintTapeStrip(
+                    target,
+                    x + width - tapeInset - tapeWidth,
+                    tapeY,
+                    tapeWidth,
+                    tapeHeight,
+                    rotation,
+                    0.82
+                );
+            } else {
+                paintTapeStrip(
+                    target,
+                    x + (width - tapeWidth) / 2,
+                    tapeY,
+                    tapeWidth,
+                    tapeHeight,
+                    3.5,
+                    0.82
+                );
+            }
         }
         if (rotation) target.restore();
     }
@@ -7011,11 +7099,14 @@ import {
         const cssWidth = 188;
         const cssHeight = 132;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        if (miniMapCanvas.width !== Math.round(cssWidth * dpr) ||
-            miniMapCanvas.height !== Math.round(cssHeight * dpr)) {
-            miniMapCanvas.width = Math.round(cssWidth * dpr);
-            miniMapCanvas.height = Math.round(cssHeight * dpr);
-        }
+        const pixelWidth = Math.round(cssWidth * dpr);
+        const pixelHeight = Math.round(cssHeight * dpr);
+        [miniMapCanvas, miniMapViewportCanvas].forEach(canvas => {
+            if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+                canvas.width = pixelWidth;
+                canvas.height = pixelHeight;
+            }
+        });
         const pad = 8;
         const scale = Math.min(
             (cssWidth - pad * 2) / scene.worldWidth,
@@ -7025,41 +7116,58 @@ import {
         const offsetY = (cssHeight - scene.worldHeight * scale) / 2;
         miniMapView = { scale, offsetX, offsetY, cssWidth, cssHeight };
 
-        miniMapCtx.setTransform(1, 0, 0, 1, 0, 0);
-        miniMapCtx.clearRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
-        miniMapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        miniMapCtx.fillStyle = theme().background;
-        miniMapCtx.fillRect(0, 0, cssWidth, cssHeight);
-        miniMapCtx.fillStyle = theme().accentSoft;
-        miniMapCtx.fillRect(
-            offsetX + scene.mapRect.x * scale,
-            offsetY + scene.mapRect.y * scale,
-            scene.mapRect.width * scale,
-            scene.mapRect.height * scale
-        );
-        groups.forEach(group => {
-            miniMapCtx.fillStyle = group.id === state.selectedId
-                ? theme().accent
-                : (group.id === state.hoveredId
-                    ? theme().lineActive
-                    : theme().placeholder);
-            (group.components.length ? group.components : [group]).forEach(rect => {
-                miniMapCtx.fillRect(
-                    offsetX + rect.x * scale,
-                    offsetY + rect.y * scale,
-                    Math.max(2, rect.w * scale),
-                    Math.max(2, rect.h * scale)
-                );
+        const key = [
+            state.theme,
+            layoutVersion,
+            scene.worldWidth,
+            scene.worldHeight,
+            scene.mapRect.x,
+            scene.mapRect.y,
+            state.selectedId,
+            state.hoveredId,
+            dpr
+        ].join(':');
+        if (key !== miniMapStaticKey) {
+            miniMapCtx.setTransform(1, 0, 0, 1, 0, 0);
+            miniMapCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+            miniMapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            miniMapCtx.fillStyle = theme().background;
+            miniMapCtx.fillRect(0, 0, cssWidth, cssHeight);
+            miniMapCtx.fillStyle = theme().accentSoft;
+            miniMapCtx.fillRect(
+                offsetX + scene.mapRect.x * scale,
+                offsetY + scene.mapRect.y * scale,
+                scene.mapRect.width * scale,
+                scene.mapRect.height * scale
+            );
+            groups.forEach(group => {
+                miniMapCtx.fillStyle = group.id === state.selectedId
+                    ? theme().accent
+                    : (group.id === state.hoveredId
+                        ? theme().lineActive
+                        : theme().placeholder);
+                (group.components.length ? group.components : [group]).forEach(rect => {
+                    miniMapCtx.fillRect(
+                        offsetX + rect.x * scale,
+                        offsetY + rect.y * scale,
+                        Math.max(2, rect.w * scale),
+                        Math.max(2, rect.h * scale)
+                    );
+                });
             });
-        });
+            miniMapStaticKey = key;
+        }
 
         const worldLeft = -camera.x / camera.scale;
         const worldTop = -camera.y / camera.scale;
         const worldWidth = viewport.width / camera.scale;
         const worldHeight = viewport.height / camera.scale;
-        miniMapCtx.strokeStyle = theme().accent;
-        miniMapCtx.lineWidth = 1.4;
-        miniMapCtx.strokeRect(
+        miniMapViewportCtx.setTransform(1, 0, 0, 1, 0, 0);
+        miniMapViewportCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+        miniMapViewportCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        miniMapViewportCtx.strokeStyle = theme().accent;
+        miniMapViewportCtx.lineWidth = 1.4;
+        miniMapViewportCtx.strokeRect(
             offsetX + worldLeft * scale,
             offsetY + worldTop * scale,
             worldWidth * scale,
@@ -7069,6 +7177,7 @@ import {
 
     function centerCameraFromMiniMap(event) {
         if (!miniMapView || interactionLocked()) return;
+        cancelCameraAnimation();
         const rect = miniMapCanvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
@@ -7186,14 +7295,81 @@ import {
         return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     }
 
+    function applyPendingDragFrame() {
+        dragMoveFrame = 0;
+        if (!dragging || !pendingDragPoint || interactionLocked()) {
+            pendingDragPoint = null;
+            return;
+        }
+        const point = pendingDragPoint;
+        pendingDragPoint = null;
+        const now = performance.now();
+        const elapsed = Math.max(1, now - lastDragUpdate);
+        const dx = point.x - lastPointer.x;
+        const dy = point.y - lastPointer.y;
+        if (Math.abs(dx) + Math.abs(dy) > 2) movedDuringDrag = true;
+        camera.x += dx;
+        camera.y += dy;
+        lastPointer = point;
+        lastDragUpdate = now;
+        dragVelocityX = dragVelocityX * 0.55 + (dx / elapsed) * 0.45;
+        dragVelocityY = dragVelocityY * 0.55 + (dy / elapsed) * 0.45;
+        clampCamera();
+        if (dragSnapshotActive) {
+            updateDragSnapshot();
+        } else {
+            dirty = true;
+            scheduleDraw();
+        }
+        drawMiniMap();
+    }
+
+    function schedulePendingDrag(point) {
+        pendingDragPoint = point;
+        if (!dragMoveFrame) {
+            dragMoveFrame = window.requestAnimationFrame(applyPendingDragFrame);
+        }
+    }
+
+    function flushPendingDrag() {
+        if (dragMoveFrame) {
+            window.cancelAnimationFrame(dragMoveFrame);
+            dragMoveFrame = 0;
+        }
+        if (pendingDragPoint) applyPendingDragFrame();
+    }
+
+    function startDragGlide() {
+        if (reduceMotion || activePointerType !== 'mouse') return;
+        const speed = Math.hypot(dragVelocityX, dragVelocityY);
+        if (speed < 0.06) return;
+        const current = { ...camera };
+        camera = {
+            x: current.x + dragVelocityX * 140,
+            y: current.y + dragVelocityY * 140,
+            scale: current.scale
+        };
+        clampCamera();
+        const target = { ...camera };
+        camera = current;
+        if (Math.hypot(target.x - current.x, target.y - current.y) < 1) return;
+        animateCamera(target, 180, { easing: 'out', logZoom: false });
+    }
+
     function onPointerDown(event) {
         if (state.previewPhoto || exporting || interactionLocked()) return;
+        cancelCameraAnimation();
+        flushPendingDrag();
         canvas.setPointerCapture(event.pointerId);
         prepareDragSnapshot();
         dragging = true;
         movedDuringDrag = false;
         activePointer = event.pointerId;
+        activePointerType = event.pointerType || 'mouse';
         lastPointer = eventPoint(event);
+        dragVelocityX = 0;
+        dragVelocityY = 0;
+        lastDragUpdate = performance.now();
         canvas.classList.add('is-dragging');
     }
 
@@ -7238,24 +7414,13 @@ import {
             canvas.style.cursor = hit ? 'pointer' : 'grab';
             return;
         }
-        const dx = point.x - lastPointer.x;
-        const dy = point.y - lastPointer.y;
-        if (Math.abs(dx) + Math.abs(dy) > 2) movedDuringDrag = true;
-        camera.x += dx;
-        camera.y += dy;
-        lastPointer = point;
-        clampCamera();
-        if (dragSnapshotActive) {
-            updateDragSnapshot();
-            drawMiniMap();
-            return;
-        }
-        dirty = true;
-        scheduleDraw();
+        schedulePendingDrag(point);
     }
 
     function onPointerUp(event) {
         if (state.previewPhoto || exporting || interactionLocked()) return;
+        schedulePendingDrag(eventPoint(event));
+        flushPendingDrag();
         const point = eventPoint(event);
         const hit = hitTest(point);
         if (dragging && !movedDuringDrag) {
@@ -7267,7 +7432,9 @@ import {
             else selectGroup('');
         }
         dragging = false;
+        startDragGlide();
         activePointer = null;
+        activePointerType = '';
         lastPointer = null;
         canvas.classList.remove('is-dragging');
         canvas.style.cursor = hit ? 'pointer' : 'grab';
@@ -7450,46 +7617,112 @@ import {
         return true;
     }
 
+    function paintCurrentPreviewSnapshot() {
+        if (!previewImageReady ||
+            !previewImage.naturalWidth ||
+            !previewImage.naturalHeight) {
+            return false;
+        }
+        stopPreviewTransition();
+        const maxSide = 1800;
+        const scale = Math.min(
+            1,
+            maxSide / previewImage.naturalWidth,
+            maxSide / previewImage.naturalHeight
+        );
+        previewTransitionCanvas.width = Math.max(
+            1,
+            Math.round(previewImage.naturalWidth * scale)
+        );
+        previewTransitionCanvas.height = Math.max(
+            1,
+            Math.round(previewImage.naturalHeight * scale)
+        );
+        previewTransitionCtx.clearRect(
+            0,
+            0,
+            previewTransitionCanvas.width,
+            previewTransitionCanvas.height
+        );
+        previewTransitionCtx.drawImage(
+            previewImage,
+            0,
+            0,
+            previewTransitionCanvas.width,
+            previewTransitionCanvas.height
+        );
+        placePreviewTransition(previewImageScreenRect());
+        previewTransitionCanvas.style.opacity = '1';
+        previewTransitionCanvas.classList.add('is-active');
+        return true;
+    }
+
+    function previewTransitionTransform(rect, baseWidth, baseHeight) {
+        const matrix = new DOMMatrix();
+        matrix.translateSelf(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2
+        );
+        matrix.rotateSelf(Number(rect.rotation) || 0);
+        matrix.scaleSelf(
+            rect.width / baseWidth,
+            rect.height / baseHeight
+        );
+        matrix.translateSelf(-baseWidth / 2, -baseHeight / 2);
+        return 'matrix(' + [
+            matrix.a,
+            matrix.b,
+            matrix.c,
+            matrix.d,
+            matrix.e,
+            matrix.f
+        ].join(', ') + ')';
+    }
+
     function placePreviewTransition(rect) {
-        previewTransitionCanvas.style.left = rect.left + 'px';
-        previewTransitionCanvas.style.top = rect.top + 'px';
+        previewTransitionCanvas.style.left = '0px';
+        previewTransitionCanvas.style.top = '0px';
         previewTransitionCanvas.style.width = rect.width + 'px';
         previewTransitionCanvas.style.height = rect.height + 'px';
-        previewTransitionCanvas.style.transform =
-            'rotate(' + rect.rotation + 'deg)';
+        previewTransitionCanvas.style.transform = previewTransitionTransform(
+            rect,
+            rect.width,
+            rect.height
+        );
     }
 
     function stopPreviewTransition() {
-        if (previewTransitionAnimation) {
-            previewTransitionAnimation.cancel();
-            previewTransitionAnimation = null;
-        }
+        previewTransitionCanvas.getAnimations().forEach(animation =>
+            animation.cancel()
+        );
+        previewTransitionAnimation = null;
         previewTransitionCanvas.classList.remove('is-active');
         previewTransitionCanvas.style.opacity = '';
+        previewTransitionCanvas.style.transform = '';
     }
 
     function animatePreviewTransition(from, to, duration, easing, done, delay = 0) {
         stopPreviewTransition();
         placePreviewTransition(from);
+        const fromTransform = previewTransitionTransform(
+            from,
+            from.width,
+            from.height
+        );
+        const toTransform = previewTransitionTransform(
+            to,
+            from.width,
+            from.height
+        );
         previewTransitionCanvas.classList.add('is-active');
         previewTransitionAnimation = previewTransitionCanvas.animate([
             {
-                left: from.left + 'px',
-                top: from.top + 'px',
-                width: from.width + 'px',
-                height: from.height + 'px',
-                borderRadius: '6px',
                 opacity: 1,
-                transform: 'rotate(' + from.rotation + 'deg)'
+                transform: fromTransform
             },
             {
-                left: to.left + 'px',
-                top: to.top + 'px',
-                width: to.width + 'px',
-                height: to.height + 'px',
-                borderRadius: '10px',
                 opacity: 1,
-                transform: 'rotate(' + to.rotation + 'deg)'
+                transform: toTransform
             }
         ], {
             duration,
@@ -7531,6 +7764,9 @@ import {
                 return;
             }
             previewTransitionAnimation = null;
+            previewTransitionCanvas.getAnimations().forEach(item =>
+                item.cancel()
+            );
             previewTransitionCanvas.classList.remove('is-active');
             previewTransitionCanvas.style.opacity = '';
         }).catch(() => {
@@ -7592,7 +7828,7 @@ import {
         );
         preview.setAttribute('aria-hidden', 'true');
         previewImage.removeAttribute('src');
-        previewImage.classList.remove('is-ready');
+        previewImage.classList.remove('is-ready', 'is-swapping');
         previewFigure.style.width = '';
         previewImage.style.width = '';
         previewImage.style.height = '';
@@ -7637,6 +7873,7 @@ import {
     function movePreview(direction) {
         if (!state.previewPhoto ||
             state.previewPhotos.length < 2 ||
+            !previewImageReady ||
             preview.classList.contains('is-opening') ||
             preview.classList.contains('is-closing')) {
             return;
@@ -7644,9 +7881,11 @@ import {
         const count = state.previewPhotos.length;
         state.previewIndex =
             (state.previewIndex + direction + count) % count;
-        renderPreviewPhoto(state.previewPhotos[state.previewIndex]);
+        paintCurrentPreviewSnapshot();
         previewImageReady = false;
         previewImage.classList.remove('is-ready');
+        previewImage.classList.add('is-swapping');
+        renderPreviewPhoto(state.previewPhotos[state.previewIndex]);
     }
 
     function onWheel(event) {
@@ -7681,6 +7920,7 @@ import {
         }
         if (interactionLocked()) return;
         if (event.target instanceof HTMLButtonElement) return;
+        cancelCameraAnimation();
         if (event.key === '0') setFitView(true);
         else if (event.key === '+' || event.key === '=') {
             zoomAt(viewport.width / 2, viewport.height / 2, 1.16);
@@ -7823,6 +8063,11 @@ import {
 
         if (locked) {
             dragging = false;
+            if (dragMoveFrame) {
+                window.cancelAnimationFrame(dragMoveFrame);
+                dragMoveFrame = 0;
+            }
+            pendingDragPoint = null;
             activePointer = null;
             lastPointer = null;
             canvas.classList.remove('is-dragging');
@@ -7922,21 +8167,27 @@ import {
 
             const totalWorldHeight = scene.worldHeight;
             const contentWidth = scene.worldWidth;
-            const exportWorldSide = Math.max(
-                contentWidth,
-                totalWorldHeight
-            ) + EXPORT_SQUARE_PADDING * 2;
+            const exportWorldWidth = contentWidth + EXPORT_PADDING * 2;
+            const exportWorldHeight =
+                totalWorldHeight + EXPORT_PADDING * 2;
             const maxLongEdge = 8192;
             const maxPixels = 50 * 1024 * 1024;
             const scale = Math.min(
-                maxLongEdge / exportWorldSide,
-                Math.sqrt(maxPixels / (exportWorldSide * exportWorldSide))
+                maxLongEdge / exportWorldWidth,
+                maxLongEdge / exportWorldHeight,
+                Math.sqrt(maxPixels /
+                    (exportWorldWidth * exportWorldHeight))
             );
-            const outputWidth = Math.max(1, Math.round(exportWorldSide * scale));
-            const outputHeight = outputWidth;
-            const contentOffsetX = (exportWorldSide - contentWidth) / 2;
-            const contentOffsetY =
-                (exportWorldSide - totalWorldHeight) / 2;
+            const outputWidth = Math.max(
+                1,
+                Math.round(exportWorldWidth * scale)
+            );
+            const outputHeight = Math.max(
+                1,
+                Math.round(exportWorldHeight * scale)
+            );
+            const contentOffsetX = EXPORT_PADDING;
+            const contentOffsetY = EXPORT_PADDING;
             setExportProgress(62,
                 '生成 ' + outputWidth + ' × ' + outputHeight + ' PNG');
             await new Promise(resolve => requestAnimationFrame(resolve));
@@ -8066,7 +8317,8 @@ import {
 
     function setExportProgress(percent, text) {
         exportProgressText.textContent = text;
-        exportProgressBar.style.width = percent + '%';
+        exportProgressBar.style.transform =
+            'scaleX(' + clamp(Number(percent) || 0, 0, 100) / 100 + ')';
     }
 
     function downloadBlob(blob) {
@@ -8179,10 +8431,12 @@ import {
         previewPrevBtn.addEventListener('click', () => movePreview(-1));
         previewNextBtn.addEventListener('click', () => movePreview(1));
         previewImage.addEventListener('load', () => {
-            window.requestAnimationFrame(fitPreviewFrameToImage);
             if (!state.previewPhoto) return;
+            previewImage.classList.remove('is-swapping');
+            fitPreviewFrameToImage();
             previewImageReady = true;
             revealPreviewImage(previewSession);
+            window.requestAnimationFrame(fitPreviewFrameToImage);
         });
         preview.addEventListener('click', event => {
             if (event.target === preview) closePreview();
@@ -8497,6 +8751,16 @@ import {
         });
     }
 
+    function finishYearTransition() {
+        if (!yearTransitionPending) return;
+        yearTransitionPending = false;
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                root.classList.remove('is-year-switching');
+            });
+        });
+    }
+
     function openTravelWall() {
         if (root.classList.contains('show')) return;
         const waitingForFirstFrame = !firstFrameDrawn;
@@ -8531,6 +8795,8 @@ import {
         initializationPromise = initializeTravelWall()
             .catch(error => {
                 loadingFinished = false;
+                yearTransitionPending = false;
+                root.classList.remove('is-year-switching');
                 root.classList.remove('is-preparing');
                 loadingState.classList.remove('is-hidden', 'is-passive');
                 loadingRetryBtn.hidden = false;

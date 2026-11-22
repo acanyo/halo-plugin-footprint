@@ -170,6 +170,11 @@ body.wall-direct #view-3d {
     display: block;
     cursor: grab;
     touch-action: none;
+    transition: opacity 220ms var(--fp-ease);
+}
+
+#travelMemoryWall.is-year-switching #wallCanvas {
+    opacity: 0.24;
 }
 
 .wall-drag-surface {
@@ -486,6 +491,16 @@ body.wall-direct #view-3d {
     cursor: pointer;
     -webkit-backdrop-filter: blur(16px) saturate(135%);
     backdrop-filter: blur(16px) saturate(135%);
+    opacity: 0;
+    transform: translateY(-6px);
+    transition:
+        opacity 180ms var(--fp-ease),
+        transform 220ms var(--fp-ease);
+}
+
+.immersive-exit.is-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .immersive-exit[hidden] {
@@ -609,12 +624,27 @@ body.wall-direct #view-3d {
     backdrop-filter: blur(22px) saturate(145%);
 }
 
-.mini-map-panel canvas {
+.mini-map-stage {
+    position: relative;
+    width: 188px;
+    height: 132px;
+}
+
+.mini-map-stage canvas {
+    position: absolute;
+    inset: 0;
     width: 188px;
     height: 132px;
     display: block;
     border-radius: 9px;
+}
+
+.mini-map-stage #miniMapCanvas {
     cursor: crosshair;
+}
+
+.mini-map-viewport {
+    pointer-events: none;
 }
 
 .mini-map-panel button {
@@ -844,6 +874,11 @@ body.wall-direct #view-3d {
     opacity: 1;
 }
 
+.photo-preview img.is-swapping {
+    opacity: 0;
+    transition: none;
+}
+
 .photo-preview figcaption {
     display: flex;
     flex: 0 0 auto;
@@ -875,12 +910,14 @@ body.wall-direct #view-3d {
 
 .preview-transition-photo {
     position: fixed;
+    left: 0;
+    top: 0;
     z-index: 2;
     display: none;
     pointer-events: none;
-    transform-origin: 50% 50%;
+    transform-origin: 0 0;
     box-shadow: var(--shadow);
-    will-change: left, top, width, height, transform, opacity;
+    will-change: transform, opacity;
 }
 
 .preview-transition-photo.is-active {
@@ -1052,11 +1089,13 @@ body.wall-direct #view-3d {
 
 .export-track i {
     display: block;
-    width: 0;
+    width: 100%;
     height: 100%;
     border-radius: inherit;
     background: var(--accent);
-    transition: width 180ms ease;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 180ms var(--fp-ease);
 }
 
 .export-progress button {
