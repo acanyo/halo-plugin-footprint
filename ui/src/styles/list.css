@@ -19,12 +19,23 @@
   display: flex;
   flex: 1;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   min-width: 240px;
+}
+.fp-toolbar-main.is-selection-mode {
+  flex-basis: 100%;
+  align-items: center;
+}
+.fp-toolbar-main.is-selection-mode > input[type="checkbox"] {
+  flex: 0 0 auto;
 }
 .fp-toolbar-main > :last-child {
   flex: 1;
   max-width: 360px;
+}
+.fp-toolbar-main.is-selection-mode > .fp-selection {
+  max-width: none;
 }
 .fp-toolbar-filters {
   display: flex;
@@ -34,9 +45,24 @@
 }
 .fp-selection {
   display: flex;
+  flex: 1;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
   font-size: 13px;
+}
+.fp-selection > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.fp-selection .v-popper,
+.fp-selection .v-popper > div,
+.fp-selection button {
+  flex: 0 0 auto;
+}
+.fp-selection .v-popper > div {
+  white-space: nowrap;
 }
 .fp-rows {
   margin: 0;
@@ -45,7 +71,9 @@
 }
 .fp-row {
   display: grid;
-  grid-template-columns: auto 48px minmax(0, 1fr) minmax(0, 150px) minmax(0, 170px) minmax(0, 130px) auto;
+  grid-template-columns:
+    auto 48px minmax(0, 1fr) minmax(0, 150px) minmax(0, 170px) minmax(0, 130px)
+    auto;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
@@ -110,6 +138,10 @@
   border-radius: 999px;
   color: var(--fp-muted);
   font-size: 11px;
+}
+.fp-tag.is-muted {
+  border-style: dashed;
+  color: var(--fp-faint);
 }
 .fp-row-sub {
   overflow: hidden;

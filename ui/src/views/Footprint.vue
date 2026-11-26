@@ -24,7 +24,8 @@ import {
 import RiAddLine from "~icons/ri/add-line";
 import RiExternalLinkLine from "~icons/ri/external-link-line";
 import RiMapPinLine from "~icons/ri/map-pin-line";
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import RiUpload2Line from "~icons/ri/upload-2-line";
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from "vue";
 import { useFootprintList } from "@/composables/useFootprintList";
 import { useFootprintStats } from "@/composables/useFootprintStats";
 import FootprintEditingModal from "../components/FootprintEditingModal.vue";
@@ -38,6 +39,10 @@ import { footprintApiClient } from "@/api";
 import type { Footprint, Option } from "@/api/models";
 import "@/styles/index.css";
 
+const FootprintBatchImportModal = defineAsyncComponent(
+  () => import("../components/FootprintBatchImportModal.vue"),
+);
+
 defineOptions({
   name: "FootprintManagement",
 });
@@ -45,9 +50,7 @@ defineOptions({
 type ManagementTab = "footprints" | "groups" | "wishes";
 const initialTabParam = new URLSearchParams(window.location.search).get("tab");
 const initialTab: ManagementTab =
-  initialTabParam === "groups" || initialTabParam === "wishes"
-    ? initialTabParam
-    : "footprints";
+  initialTabParam === "groups" || initialTabParam === "wishes" ? initialTabParam : "footprints";
 const activeTab = ref<ManagementTab>(initialTab);
 const groupsPanel = ref<InstanceType<typeof FootprintGroupsPanel>>();
 const wishesPanel = ref<InstanceType<typeof FootprintWishesPanel>>();
@@ -69,6 +72,7 @@ const {
   size,
   sort,
   footprintType,
+  organizeStatus,
   keyword,
   total,
   footprints,
@@ -110,6 +114,7 @@ const refreshAll = async () => {
 // 编辑弹窗
 const selectedFootprint = ref<Footprint | undefined>();
 const editingModal = ref(false);
+const batchImportVisible = ref(false);
 
 function handleEdit(footprint?: Footprint) {
   selectedFootprint.value = footprint;
@@ -189,6 +194,11 @@ async function handleDeleteInBatch() {
   });
 }
 
+async function handleBatchImported() {
+  clearSelection();
+  await refreshAll();
+}
+
 // 刷新
 const refreshing = ref(false);
 async function handleRefreshAll() {
@@ -266,6 +276,14 @@ function handleOpenFrontend() {
           @click="handleOpenFrontend"
         >
           <RiExternalLinkLine width="15" height="15" aria-hidden="true" /><span>前台地图</span>
+        </button>
+        <button
+          v-if="activeTab === 'footprints'"
+          type="button"
+          class="fp-text-button"
+          @click="batchImportVisible = true"
+        >
+          <RiUpload2Line width="15" height="15" aria-hidden="true" /><span>批量导入</span>
         </button>
         <button
           v-if="activeTab === 'footprints'"
@@ -368,7 +386,10 @@ function handleOpenFrontend() {
 
         <div class="fp-panel">
           <div class="fp-toolbar">
-            <div class="fp-toolbar-main">
+            <div
+              class="fp-toolbar-main"
+              :class="{ 'is-selection-mode': selectedFootprints.length > 0 }"
+            >
               <input
                 v-model="checkedAll"
                 type="checkbox"
@@ -377,7 +398,7 @@ function handleOpenFrontend() {
                 @change="handleCheckAllChange"
               />
               <div v-if="selectedFootprints.length" class="fp-selection">
-                <span>已选 {{ selectedFootprints.length }} 项</span>
+                <span aria-live="polite">已选 {{ selectedFootprints.length }} 项</span>
                 <VButton size="sm" @click="handleCreateGroup(selectedFootprints)">
                   新建旅程或收藏
                 </VButton>
@@ -386,7 +407,7 @@ function handleOpenFrontend() {
               </div>
               <SearchInput v-else v-model="keyword" placeholder="搜索名称、地址或省市" />
             </div>
-            <div class="fp-toolbar-filters">
+            <div v-if="!selectedFootprints.length" class="fp-toolbar-filters">
               <FilterCleanButton v-if="hasFilters || hasRegionFilter" @click="handleClearFilters" />
               <FilterDropdown
                 v-model="footprintType"
@@ -394,6 +415,16 @@ function handleOpenFrontend() {
                 :items="[
                   { label: '全部' },
                   ...footprintTypes.map((t) => ({ label: t.label, value: t.value })),
+                ]"
+              />
+              <FilterDropdown
+                v-model="organizeStatus"
+                label="整理"
+                :items="[
+                  { label: '全部' },
+                  { label: '全部待整理', value: 'needsAttention' },
+                  { label: '待补照片', value: 'missingPhoto' },
+                  { label: '待补票根', value: 'missingTicket' },
                 ]"
               />
               <FilterDropdown
@@ -486,5 +517,11 @@ function handleOpenFrontend() {
     v-model:visible="editingModal"
     :footprint="selectedFootprint"
     @close="onEditingModalClose"
+  />
+
+  <FootprintBatchImportModal
+    v-if="batchImportVisible"
+    v-model:visible="batchImportVisible"
+    @imported="handleBatchImported"
   />
 </template>

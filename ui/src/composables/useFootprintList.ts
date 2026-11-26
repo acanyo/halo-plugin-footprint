@@ -13,17 +13,19 @@ import { useQuery } from "@tanstack/vue-query";
 import { Toast } from "@halo-dev/components";
 import { footprintApiClient } from "@/api";
 import type { Footprint } from "@/api/models";
+import type { FootprintOrganizeStatus } from "@/api/models";
 
 export function useFootprintList() {
   const page = ref(1);
   const size = ref(20);
   const sort = ref<string | undefined>(undefined);
   const footprintType = ref<string | undefined>(undefined);
+  const organizeStatus = ref<FootprintOrganizeStatus | undefined>(undefined);
   const keyword = ref("");
   const total = ref(0);
 
   watch(
-    () => [sort.value, footprintType.value, keyword.value],
+    () => [sort.value, footprintType.value, organizeStatus.value, keyword.value],
     () => {
       page.value = 1;
     },
@@ -35,7 +37,7 @@ export function useFootprintList() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["footprints", page, size, sort, footprintType, keyword],
+    queryKey: ["footprints", page, size, sort, footprintType, organizeStatus, keyword],
     queryFn: async () => {
       try {
         const response = await footprintApiClient.footprint.listFootprints({
@@ -43,6 +45,7 @@ export function useFootprintList() {
           size: size.value,
           sort: sort.value ? [sort.value] : [],
           footprintType: footprintType.value,
+          organizeStatus: organizeStatus.value,
           keyword: keyword.value,
         });
         total.value = response.total;
@@ -62,12 +65,13 @@ export function useFootprintList() {
   });
 
   const hasFilters = computed(() => {
-    return !!(sort.value || footprintType.value || keyword.value);
+    return !!(sort.value || footprintType.value || organizeStatus.value || keyword.value);
   });
 
   function clearFilters() {
     sort.value = undefined;
     footprintType.value = undefined;
+    organizeStatus.value = undefined;
     keyword.value = "";
   }
 
@@ -76,6 +80,7 @@ export function useFootprintList() {
     size,
     sort,
     footprintType,
+    organizeStatus,
     keyword,
     total,
     footprints,

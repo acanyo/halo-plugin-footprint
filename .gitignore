@@ -85,6 +85,7 @@ packages/*/.svelte-kit/
 frontend-build/node_modules/
 
 docs/*
+!docs/footprint-import-test.csv
 !docs/ai-prompts/
 !docs/ai-prompts/**
 

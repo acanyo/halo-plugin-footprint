@@ -4,7 +4,11 @@ import type {
   FootprintGroup,
   FootprintGroupApiSummary,
   FootprintGroupList,
+  FootprintImportResult,
+  FootprintImportRow,
+  FootprintImportStreamEvent,
   FootprintList,
+  FootprintOrganizeStatus,
   FootprintWish,
   FootprintWishList,
   Option,
@@ -31,6 +35,7 @@ export class FootprintApi {
     sort?: string[];
     keyword?: string;
     footprintType?: string;
+    organizeStatus?: FootprintOrganizeStatus;
     author?: string;
   }): Promise<FootprintList> {
     const { data } = await this.axios.get("/apis/api.footprint.lik.cc/v1alpha1/footprints", {
@@ -40,6 +45,7 @@ export class FootprintApi {
         sort: params?.sort,
         keyword: params?.keyword,
         footprintType: params?.footprintType,
+        organizeStatus: params?.organizeStatus,
         author: params?.author,
       },
     });
@@ -95,6 +101,73 @@ export class FootprintApi {
   async deleteFootprints(names: string[]): Promise<void> {
     const promises = names.map((name) => this.deleteFootprint(name));
     await Promise.all(promises);
+  }
+
+  /**
+   * 校验、解析地址并批量创建足迹。
+   * dryRun=true 时不会写入，只返回每一行解析结果。
+   */
+  async importFootprints(
+    rows: FootprintImportRow[],
+    dryRun: boolean,
+    footprintType = "",
+    signal?: AbortSignal,
+  ): Promise<FootprintImportResult> {
+    const { data } = await this.axios.post(
+      "/apis/api.footprint.lik.cc/v1alpha1/footprints/-/import",
+      { rows, footprintType },
+      { params: { dryRun }, signal },
+    );
+    return data;
+  }
+
+  /**
+   * 流式解析地址。服务端每完成一行就推送一个 NDJSON 事件。
+   */
+  async streamImportFootprints(
+    rows: FootprintImportRow[],
+    onEvent: (event: FootprintImportStreamEvent) => void,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const response = await fetch("/apis/api.footprint.lik.cc/v1alpha1/footprints/-/import-stream", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      signal,
+      headers: {
+        Accept: "application/x-ndjson",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ rows }),
+    });
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || `流式解析失败: ${response.status}`);
+    }
+    if (!response.body) {
+      throw new Error("浏览器不支持流式响应");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        lines
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .forEach((line) => onEvent(JSON.parse(line) as FootprintImportStreamEvent));
+        if (done) break;
+      }
+      const tail = buffer.trim();
+      if (tail) onEvent(JSON.parse(tail) as FootprintImportStreamEvent);
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   async listFootprintGroups(params?: {
@@ -158,16 +231,13 @@ export class FootprintApi {
     size?: number;
     sort?: string[];
   }): Promise<FootprintWishList> {
-    const { data } = await this.axios.get(
-      "/apis/footprint.lik.cc/v1alpha1/footprintwishes",
-      {
-        params: {
-          page: params?.page || 1,
-          size: params?.size || 100,
-          sort: params?.sort,
-        },
+    const { data } = await this.axios.get("/apis/footprint.lik.cc/v1alpha1/footprintwishes", {
+      params: {
+        page: params?.page || 1,
+        size: params?.size || 100,
+        sort: params?.sort,
       },
-    );
+    });
     return data;
   }
 
@@ -184,10 +254,7 @@ export class FootprintApi {
   }
 
   async createFootprintWish(wish: FootprintWish): Promise<FootprintWish> {
-    const { data } = await this.axios.post(
-      "/apis/footprint.lik.cc/v1alpha1/footprintwishes",
-      wish,
-    );
+    const { data } = await this.axios.post("/apis/footprint.lik.cc/v1alpha1/footprintwishes", wish);
     return data;
   }
 

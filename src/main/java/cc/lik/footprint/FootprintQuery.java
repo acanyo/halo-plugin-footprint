@@ -46,6 +46,14 @@ public class FootprintQuery extends SortableRequest {
         return queryParams.getFirst("footprintType");
     }
 
+    @Nullable
+    public String getOrganizeStatus() {
+        return StringUtils.defaultIfBlank(
+            queryParams.getFirst("organizeStatus"),
+            null
+        );
+    }
+
     public ListOptions toListOptions() {
         var builder = ListOptions.builder(super.toListOptions());
 
@@ -115,6 +123,14 @@ public class FootprintQuery extends SortableRequest {
                 .in(ParameterIn.QUERY)
                 .name("footprintType")
                 .description("Footprints filtered by footprintType.")
+                .implementation(String.class)
+                .required(false))
+            .parameter(parameterBuilder()
+                .in(ParameterIn.QUERY)
+                .name("organizeStatus")
+                .description(
+                    "missingPhoto / missingTicket / needsAttention"
+                )
                 .implementation(String.class)
                 .required(false))
 

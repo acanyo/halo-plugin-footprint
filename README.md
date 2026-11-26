@@ -129,8 +129,16 @@
    - 封面、图片墙图片（可拖动排序）、票根图片；
    - 类型、关联文章或自定义链接、关联足迹；
    - 缩放级别；`>= 18` 时可以再设 3D 俯仰角和旋转角。
-3. 如需记录计划，在「足迹」管理页切换到「未来足迹」，填写地点、状态和计划时间；公开记录会显示在前台「旅途」中。
-4. 打开 `/footprints`。
+3. 地点较多时可用「足迹维护」顶部的「批量导入」：
+   - 支持 CSV、Excel 和 JSON；
+   - 导入地点名称、地址、描述、日期和可选时间，地址由服务端自动解析经纬度；
+   - 时间留空按 `00:00`，批量导入的缩放级别统一使用 `14`；
+   - 地址逐行流式解析并实时显示进度，可中途停止；失败行可直接在预览表里修改并单行重试；
+   - 高德限流时会自动退避重试；仍被限流时暂停本批剩余请求，避免继续消耗额度；
+   - 导入窗口必须选择一个默认类型，并可在预览表中逐行手动调整；预览数据支持一键清空和逐行移除；
+   - 封面、票根和图片墙留空，导入后逐条补照片。
+4. 如需记录计划，在「足迹」管理页切换到「未来足迹」，填写地点、状态和计划时间；公开记录会显示在前台「旅途」中。
+5. 打开 `/footprints`。
 
 ## 插件设置
 
@@ -331,16 +339,25 @@
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `GET` | `/apis/api.footprint.lik.cc/v1alpha1/footprints` | 分页查询，支持 `page`、`size`、`sort`、`keyword`、`footprintType` |
+| `GET` | `/apis/api.footprint.lik.cc/v1alpha1/footprints` | 分页查询，支持 `page`、`size`、`sort`、`keyword`、`footprintType`、`organizeStatus` |
 | `GET` | `/apis/api.footprint.lik.cc/v1alpha1/footprints/stats` | 统计：足迹数、省份、城市 |
 | `GET` | `/apis/api.footprint.lik.cc/v1alpha1/footprints/location/{address}` | 地址转经纬度，返回 `经度,纬度` |
 | `POST` | `/apis/api.footprint.lik.cc/v1alpha1/footprints/{name}/geocode` | 对一条足迹做逆地理编码，回填省市与 adcode |
+| `POST` | `/apis/api.footprint.lik.cc/v1alpha1/footprints/-/import?dryRun=true` | 批量校验并解析地址，`dryRun=false` 时创建足迹 |
+| `POST` | `/apis/api.footprint.lik.cc/v1alpha1/footprints/-/import-stream` | NDJSON 流式地址解析，每完成一行推送一个事件 |
 | `GET` | `/apis/api.footprint.lik.cc/v1alpha1/footprints/-/reverse-geocode` | 任意经纬度逆地理编码（控制台地图选点用） |
 | `GET` | `/apis/api.footprint.lik.cc/v1alpha1/footprints/-/map-config` | 控制台地图选点需要的浏览器端配置 |
 | `GET` | `/footprints/image-proxy?url=` | 同源图片代理 |
 
 图片代理用于把跨域的票根、照片画进 canvas（明信片、书架贴图），否则浏览器会拒绝导出。
 只代理本站足迹里出现过的图片域名，拒绝内网地址、非 http(s) 与非图片响应，单张上限 10MB。
+
+足迹列表的 `organizeStatus` 支持 `missingPhoto`、`missingTicket` 和 `needsAttention`。
+
+## 批量导入测试数据
+
+`docs/footprint-import-test.csv` 提供 15 行中文测试数据，覆盖多城市、可选时间、
+带引号描述和留空时间等批量导入场景。
 
 ## 开发
 

@@ -1,6 +1,7 @@
 package cc.lik.footprint.service;
 
 import cc.lik.footprint.dto.GeoInfo;
+import cc.lik.footprint.dto.LocatedGeoInfo;
 import reactor.core.publisher.Mono;
 
 /**
@@ -10,6 +11,7 @@ import reactor.core.publisher.Mono;
  * 响应解析约定：</p>
  * <ul>
  *   <li>{@link #locate}：地址 → 经纬度，供「填地址自动选点」使用；</li>
+ *   <li>{@link #locateWithGeoInfo}：地址 → 坐标和行政区，供批量导入使用；</li>
  *   <li>{@link #reverseGeocode}：经纬度 → 省/市/adcode，供足迹解析与地图选点使用。</li>
  * </ul>
  *
@@ -25,6 +27,11 @@ public interface GaodeGeocodingService {
      * 没有结果时降级到地理编码；两者都失败则以错误结束。</p>
      */
     Mono<String> locate(String address, String webKey);
+
+    /**
+     * 按地址一次性取得经纬度和行政区，避免批量导入时额外发起逆地理编码。
+     */
+    Mono<LocatedGeoInfo> locateWithGeoInfo(String address, String webKey);
 
     /**
      * 逆地理编码，返回省、市与推导出的省/市级 adcode。
