@@ -46,8 +46,6 @@ public class FootprintImportServiceImpl implements FootprintImportService {
     private static final int DESCRIPTION_MAX_LENGTH = 500;
     private static final int ADDRESS_MAX_LENGTH = 200;
     private static final String DEFAULT_ZOOM_LEVEL = "14";
-    // TEMP TEST HOOK: 用于批量导入失败场景测试，测试结束后移除。
-    private static final String TEST_FAILURE_MARKER = "[TEST_FAIL]";
 
     private final ReactiveExtensionClient client;
     private final FootprintConfigService configService;
@@ -198,8 +196,6 @@ public class FootprintImportServiceImpl implements FootprintImportService {
             mark(item, "invalid", "描述不能为空");
         } else if (item.getDescription().length() > DESCRIPTION_MAX_LENGTH) {
             mark(item, "invalid", "描述不能超过 " + DESCRIPTION_MAX_LENGTH + " 个字符");
-        } else if (item.getDescription().contains(TEST_FAILURE_MARKER)) {
-            mark(item, "invalid", "测试失败：已触发导入失败模拟");
         } else if (item.getAddress() == null) {
             mark(item, "invalid", "地址不能为空");
         } else if (item.getAddress().length() > ADDRESS_MAX_LENGTH) {

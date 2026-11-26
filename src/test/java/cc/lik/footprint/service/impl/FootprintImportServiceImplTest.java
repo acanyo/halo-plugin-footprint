@@ -247,29 +247,6 @@ class FootprintImportServiceImplTest {
         org.assertj.core.api.Assertions.assertThat(events.get(3).getTotal()).isEqualTo(2);
     }
 
-    @Test
-    @DisplayName("临时测试标记会让指定行稳定失败且不调用高德")
-    void testFailureMarkerFailsRow() {
-        FootprintImportRow row = readyRow().toBuilder()
-            .description("[TEST_FAIL] 失败测试")
-            .longitude(null)
-            .latitude(null)
-            .province(null)
-            .city(null)
-            .provinceAdcode(null)
-            .cityAdcode(null)
-            .build();
-
-        var result = service.importFootprints(request(row), true)
-            .block(Duration.ofSeconds(2));
-
-        org.assertj.core.api.Assertions.assertThat(result).isNotNull();
-        org.assertj.core.api.Assertions.assertThat(result.getFailed()).isEqualTo(1);
-        org.assertj.core.api.Assertions.assertThat(result.getItems().getFirst().getMessage())
-            .isEqualTo("测试失败：已触发导入失败模拟");
-        verify(geocodingService, never()).locateWithGeoInfo(any(), any());
-    }
-
     private FootprintImportRow readyRow() {
         return FootprintImportRow.builder()
             .rowNumber(2)
