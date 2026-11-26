@@ -178,6 +178,49 @@ export interface FootprintList {
   totalPages: number;
 }
 
+export type FootprintOrganizeStatus = "missingPhoto" | "missingTicket" | "needsAttention";
+
+export type FootprintImportStatus = "valid" | "duplicate" | "invalid" | "success" | "failed";
+
+/**
+ * 批量导入中的一条足迹。visitTime 使用 ISO 8601 日期时间，
+ * 前端按浏览器本地时间解析后提交，服务端转换为 Instant。
+ */
+export interface FootprintImportRow {
+  rowNumber: number;
+  name: string;
+  address: string;
+  description: string;
+  visitTime: string;
+  zoomLevel: string;
+  footprintType: string;
+  longitude?: number;
+  latitude?: number;
+  province?: string;
+  city?: string;
+  provinceAdcode?: string;
+  cityAdcode?: string;
+  status?: FootprintImportStatus;
+  message?: string;
+}
+
+export interface FootprintImportResult {
+  total: number;
+  ready: number;
+  success: number;
+  failed: number;
+  skipped: number;
+  dryRun: boolean;
+  items: FootprintImportRow[];
+}
+
+export interface FootprintImportStreamEvent {
+  type: "start" | "row" | "complete" | "error";
+  total?: number;
+  item?: FootprintImportRow;
+  message?: string;
+}
+
 /**
  * 选项
  **/

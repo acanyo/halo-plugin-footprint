@@ -47,6 +47,12 @@ const emit = defineEmits<{
           {{ footprint.spec.footprintType }}
         </span>
         <span
+          v-if="!footprint.spec.image && !footprint.spec.galleryImages?.length"
+          class="fp-tag is-muted"
+        >
+          待补照片
+        </span>
+        <span
           v-if="footprint.metadata.deletionTimestamp"
           v-tooltip="'删除中'"
           class="fp-status-dot is-warning"

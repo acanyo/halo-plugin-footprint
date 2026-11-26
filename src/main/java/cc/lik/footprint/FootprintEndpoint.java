@@ -2,15 +2,21 @@ package cc.lik.footprint;
 
 import cc.lik.footprint.dto.GeoInfo;
 import cc.lik.footprint.dto.FootprintGroupSummaryDto;
+import cc.lik.footprint.dto.FootprintImportRequest;
+import cc.lik.footprint.dto.FootprintImportResult;
+import cc.lik.footprint.dto.FootprintImportStreamEvent;
 import cc.lik.footprint.dto.MapConfig;
 import cc.lik.footprint.dto.StatsResult;
 import cc.lik.footprint.model.Footprint;
 import cc.lik.footprint.model.FootprintGroup;
 import cc.lik.footprint.service.FootprintConfigService;
+import cc.lik.footprint.service.FootprintImportService;
 import cc.lik.footprint.service.FootprintStatsService;
 import cc.lik.footprint.service.GaodeGeocodingService;
+import cc.lik.footprint.stats.FootprintOrganizeFilter;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -35,7 +41,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
+import static org.springdoc.core.fn.builders.content.Builder.contentBuilder;
 import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
+import static org.springdoc.core.fn.builders.requestbody.Builder.requestBodyBuilder;
+import static org.springdoc.core.fn.builders.schema.Builder.schemaBuilder;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @Component
@@ -46,6 +55,7 @@ public class FootprintEndpoint implements CustomEndpoint {
     private final FootprintConfigService configService;
     private final FootprintStatsService statsService;
     private final GaodeGeocodingService geocodingService;
+    private final FootprintImportService importService;
     private final String footprintTag = "footprint.lik.cc/v1alpha1/footprints";
     private static final Logger log = LoggerFactory.getLogger(FootprintEndpoint.class);
 
@@ -81,6 +91,36 @@ public class FootprintEndpoint implements CustomEndpoint {
                     .description("对指定足迹执行逆地理编码")
                     .response(responseBuilder()
                         .implementation(GeoInfo.class));
+            })
+            .POST("/footprints/-/import", this::importFootprints, builder -> {
+                builder.operationId("ImportFootprints")
+                    .tag(footprintTag)
+                    .description("批量校验、解析地址并导入足迹")
+                    .parameter(parameterBuilder().name("dryRun")
+                        .description("只预览不写入")
+                        .implementation(Boolean.class)
+                        .required(false))
+                    .requestBody(requestBodyBuilder()
+                        .content(contentBuilder()
+                            .schema(schemaBuilder().implementation(
+                                FootprintImportRequest.class
+                            )))
+                        .required(true))
+                    .response(responseBuilder()
+                        .implementation(FootprintImportResult.class));
+            })
+            .POST("/footprints/-/import-stream", this::streamFootprints, builder -> {
+                builder.operationId("StreamFootprintImport")
+                    .tag(footprintTag)
+                    .description("逐行流式解析地址，返回 NDJSON")
+                    .requestBody(requestBodyBuilder()
+                        .content(contentBuilder()
+                            .schema(schemaBuilder().implementation(
+                                FootprintImportRequest.class
+                            )))
+                        .required(true))
+                    .response(responseBuilder()
+                        .implementation(FootprintImportStreamEvent.class));
             })
             .GET("/footprints/-/reverse-geocode", this::reverseGeocode, builder -> {
                 builder.operationId("ReverseGeocode")
@@ -280,6 +320,13 @@ public class FootprintEndpoint implements CustomEndpoint {
                     return false;
                 }
             }
+
+            if (!FootprintOrganizeFilter.matches(
+                footprint,
+                query.getOrganizeStatus()
+            )) {
+                return false;
+            }
             
             return true;
         };
@@ -385,6 +432,35 @@ public class FootprintEndpoint implements CustomEndpoint {
                 log.error("获取足迹统计失败: {}", e.getMessage());
                 return ServerResponse.status(500).bodyValue("获取足迹统计失败: " + e.getMessage());
             });
+    }
+
+    private Mono<ServerResponse> importFootprints(ServerRequest request) {
+        boolean dryRun = request.queryParam("dryRun")
+            .map(Boolean::parseBoolean)
+            .orElse(false);
+        return request.bodyToMono(FootprintImportRequest.class)
+            .switchIfEmpty(Mono.error(new IllegalArgumentException("导入数据不能为空")))
+            .flatMap(body -> importService.importFootprints(body, dryRun))
+            .flatMap(result -> ServerResponse.ok().bodyValue(result))
+            .onErrorResume(IllegalArgumentException.class,
+                e -> ServerResponse.badRequest().bodyValue(e.getMessage()))
+            .onErrorResume(e -> {
+                log.error("批量导入足迹失败", e);
+                return ServerResponse.status(500)
+                    .bodyValue("批量导入失败: " + e.getMessage());
+            });
+    }
+
+    private Mono<ServerResponse> streamFootprints(ServerRequest request) {
+        return request.bodyToMono(FootprintImportRequest.class)
+            .switchIfEmpty(Mono.error(new IllegalArgumentException("导入数据不能为空")))
+            .flatMap(body -> ServerResponse.ok()
+                .contentType(MediaType.APPLICATION_NDJSON)
+                .header("Cache-Control", "no-cache, no-transform")
+                .header("X-Accel-Buffering", "no")
+                .body(importService.streamPreview(body), FootprintImportStreamEvent.class))
+            .onErrorResume(IllegalArgumentException.class,
+                e -> ServerResponse.badRequest().bodyValue(e.getMessage()));
     }
 
     private Mono<ServerResponse> geocodeFootprint(ServerRequest request) {
