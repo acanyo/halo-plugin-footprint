@@ -2,6 +2,8 @@
 
 ## 2.0.4（2026-11-27）
 
+本版本完成 Issue [#18](https://github.com/acanyo/halo-plugin-footprint/issues/18)。
+
 ### 后台批量导入足迹
 
 - 「足迹维护」新增 CSV、Excel 和 JSON 批量导入，支持文件拖入、表头自动识别、字段映射和解析预览。
